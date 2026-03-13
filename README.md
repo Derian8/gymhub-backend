@@ -1,4 +1,5 @@
 # proyectoappgym
+# ("Backend Django para Gimnasio Miembros Hub – gestión miembros, planes, IA chat")
 
 ## Documentación
 - Guía de contribución: [`AGENTS.md`](/mnt/c/dev/proyectos/proyectoappgym/AGENTS.md)
