@@ -10,6 +10,14 @@
 ## Apps Django (9)
 `users` · `classes` · `plans` · `attendance` · `progress` · `alerts` · `billing` · `nutrition` · `ai_chat`
 
+## Convenciones del proyecto
+- Python debe seguir `PEP 8` con indentación de 4 espacios.
+- El estándar para código nuevo es usar nombres en español y `snake_case` en variables, funciones, archivos, carpetas, tablas y campos.
+- Las clases deben usar `PascalCase`.
+- La base de datos nueva debe modelarse en español, por ejemplo `usuarios`, `planes_entrenamiento`, `fecha_vencimiento`, `esta_activo`.
+- No mezclar inglés y español en la lógica nueva del mismo dominio.
+- Excepción: se conservan nombres en inglés cuando ya formen parte del backend actual o sean requeridos por Django, DRF o dependencias externas.
+
 ## Inicio rápido
 
 ```bash
