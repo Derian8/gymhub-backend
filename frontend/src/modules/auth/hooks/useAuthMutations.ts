@@ -1,0 +1,60 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
+import { authApi } from '../api/authApi'
+import { useAuthStore } from '@/shared/store/authStore'
+import { QUERY_KEYS } from '@/shared/constants/queryKeys'
+import { extractApiError } from '@/shared/lib/utils'
+
+export function useLoginMutation() {
+  const navigate = useNavigate()
+  const setUser = useAuthStore((s) => s.setUser)
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: authApi.login,
+    onSuccess: (data) => {
+      setUser(data.user)
+      queryClient.setQueryData(QUERY_KEYS.ME, data.user)
+      toast.success('¡Bienvenido de vuelta!')
+      const role = data.user.role
+      if (role === 'trainer' || data.user.is_staff) {
+        navigate('/dashboard/trainer')
+      } else {
+        navigate('/dashboard/member')
+      }
+    },
+    onError: (error) => {
+      toast.error(extractApiError(error))
+    },
+  })
+}
+
+export function useLogoutMutation() {
+  const navigate = useNavigate()
+  const logout = useAuthStore((s) => s.logout)
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: authApi.logout,
+    onSuccess: () => {
+      logout()
+      queryClient.clear()
+      navigate('/login', { replace: true })
+      toast.success('Sesión cerrada correctamente')
+    },
+    onError: () => {
+      logout()
+      queryClient.clear()
+      navigate('/login', { replace: true })
+    },
+  })
+}
+
+export function useMeQuery() {
+  return useQuery({
+    queryKey: QUERY_KEYS.ME,
+    queryFn: authApi.me,
+    retry: false,
+  })
+}

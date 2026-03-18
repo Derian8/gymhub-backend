@@ -1,0 +1,59 @@
+import { useState, useEffect } from 'react'
+import { Outlet } from 'react-router-dom'
+import { Sidebar } from './Sidebar'
+import { Topbar } from './Topbar'
+import { useAuthStore } from '@/shared/store/authStore'
+import { cn } from '@/shared/lib/utils'
+
+export function AppLayout() {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const { theme } = useAuthStore()
+
+  // Apply theme to document
+  useEffect(() => {
+    const root = document.documentElement
+    if (theme === 'dark') {
+      root.classList.add('dark')
+    } else {
+      root.classList.remove('dark')
+    }
+  }, [theme])
+
+  return (
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50">
+      {/* Sidebar */}
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+      />
+
+      {/* Mobile overlay */}
+      {mobileSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+
+      {/* Main content */}
+      <div
+        className={cn(
+          'transition-all duration-300',
+          sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64',
+        )}
+      >
+        <Topbar
+          onMenuClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+          sidebarCollapsed={sidebarCollapsed}
+        />
+
+        <main className="pt-16 min-h-screen">
+          <div className="p-4 md:p-6 page-enter">
+            <Outlet />
+          </div>
+        </main>
+      </div>
+    </div>
+  )
+}

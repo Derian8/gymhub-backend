@@ -1,0 +1,93 @@
+import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
+import { toast } from 'sonner'
+
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
+export const apiClient = axios.create({
+  baseURL: BASE_URL,
+  withCredentials: true, // Required for httpOnly cookies
+  headers: {
+    'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
+  },
+})
+
+// Request interceptor — attach CSRF if present
+apiClient.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    const csrfToken = getCookie('csrftoken')
+    if (csrfToken) {
+      config.headers['X-CSRFToken'] = csrfToken
+    }
+    return config
+  },
+  (error) => Promise.reject(error),
+)
+
+let isRefreshing = false
+let failedQueue: Array<{
+  resolve: (value?: unknown) => void
+  reject: (reason?: unknown) => void
+}> = []
+
+function processQueue(error: unknown) {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error)
+    } else {
+      prom.resolve()
+    }
+  })
+  failedQueue = []
+}
+
+// Response interceptor — handle 401 and token refresh
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject })
+        })
+          .then(() => apiClient(originalRequest))
+          .catch((err) => Promise.reject(err))
+      }
+
+      originalRequest._retry = true
+      isRefreshing = true
+
+      try {
+        await apiClient.post('/auth/token/refresh/')
+        processQueue(null)
+        return apiClient(originalRequest)
+      } catch (refreshError) {
+        processQueue(refreshError)
+        // Clear auth state and redirect to login
+        window.dispatchEvent(new CustomEvent('auth:logout'))
+        return Promise.reject(refreshError)
+      } finally {
+        isRefreshing = false
+      }
+    }
+
+    if (error.response?.status === 403) {
+      toast.error('No tienes permisos para realizar esta acción')
+    }
+
+    if (error.response?.status === 500) {
+      toast.error('Error interno del servidor. Intenta de nuevo.')
+    }
+
+    return Promise.reject(error)
+  },
+)
+
+function getCookie(name: string): string | null {
+  const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`))
+  return match ? match[2] : null
+}
+
+export default apiClient
