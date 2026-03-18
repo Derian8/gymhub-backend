@@ -2,22 +2,28 @@
 
 ## Requisitos
 - Docker y Docker Compose
-- Variables de entorno en `gymhub/.env`
+- Variables de entorno en `.env` de la raíz
 - PostgreSQL 15+
 - Redis 7+
 
 ## Puesta En Marcha Local
-Desde [`gymhub/`](/mnt/c/dev/proyectos/proyectoappgym/gymhub):
+Desde la raíz del repositorio:
 
 ```bash
-docker-compose up --build -d
-docker-compose exec web python manage.py migrate
-docker-compose exec web python manage.py seed_data
-docker-compose exec web python manage.py createsuperuser
+cp .env.example .env
+./gym-start
+docker compose exec backend python manage.py seed_data
+docker compose exec backend python manage.py createsuperuser
 ```
 
+## Scripts Operativos
+- `./gym-start`: levanta y reconstruye los contenedores principales.
+- `./gym-stop`: detiene los contenedores preservando volúmenes.
+- `./gym-log [servicios...]`: sigue logs de todos los servicios o solo de los indicados.
+
 ## Servicios
-- `web`: ejecuta Django con Gunicorn.
+- `frontend`: ejecuta Vite en el puerto `3000`.
+- `backend`: ejecuta Django en el puerto `8000`.
 - `db`: PostgreSQL.
 - `redis`: broker y caché.
 - `celery`: worker de tareas.
@@ -27,8 +33,8 @@ docker-compose exec web python manage.py createsuperuser
 Comandos principales:
 
 ```bash
-./run_tests.sh
-docker-compose run --rm web pytest tests/ -v --tb=short
+docker compose exec backend ./run_tests.sh
+docker compose exec backend pytest tests/ -v --tb=short
 ```
 
 La configuración de pruebas usa [`gymhub/gymhub/settings_test.py`](/mnt/c/dev/proyectos/proyectoappgym/gymhub/gymhub/settings_test.py), base de datos separada, caché en memoria y Celery en modo eager.
@@ -49,9 +55,10 @@ La configuración de pruebas usa [`gymhub/gymhub/settings_test.py`](/mnt/c/dev/p
 - `AI_DAILY_LIMIT_PER_USER`
 - `INACTIVITY_DAYS_THRESHOLD`
 - `PAYMENT_GRACE_DAYS`
+- `VITE_API_BASE_URL`
+- `VITE_PROXY_TARGET`
 
 ## Consideraciones De Despliegue
-- El proyecto usa Gunicorn con `--reload`, lo cual es útil en desarrollo pero no ideal en producción.
-- `ALLOWED_HOSTS` está abierto a `['*']`; debe cerrarse por entorno antes de exponer el servicio.
-- La documentación actual referencia `.env.example`, pero no existe en el repositorio.
+- El flujo Docker local usa `runserver` para recarga rápida; producción debe usar una configuración separada.
+- `ALLOWED_HOSTS` ya debe configurarse por entorno desde `.env`.
 - No hay evidencia de directorios `migrations/` versionados en las apps.

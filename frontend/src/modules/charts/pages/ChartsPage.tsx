@@ -33,9 +33,9 @@ export function ChartsPage() {
   })
 
   const progressData = progressLogs?.results.map((log) => ({
-    date: formatDate(log.date),
+    date: formatDate(log.recorded_at),
     peso: log.weight_kg,
-    grasa: log.body_fat_percentage,
+    grasa: log.body_fat_pct,
   })).reverse() || []
 
   const { data: sessions } = useQuery({
@@ -74,9 +74,9 @@ export function ChartsPage() {
           <div className="flex items-center justify-center h-64">
             <Loader2 className="animate-spin text-neutral-400" size={32} />
           </div>
-        ) : chartData?.url ? (
+        ) : chartData?.chart_url ? (
           <img
-            src={chartData.url}
+            src={chartData.chart_url}
             alt={selectedType}
             className="w-full rounded-sm"
             data-testid="chart-image"

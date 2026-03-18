@@ -19,17 +19,17 @@ Acción recomendada:
 
 ### 2. Configuración insegura para despliegue
 Evidencia:
-- [`gymhub/gymhub/settings.py`](/mnt/c/dev/proyectos/proyectoappgym/gymhub/gymhub/settings.py) usa `ALLOWED_HOSTS = ['*']`.
-- [`gymhub/docker-compose.yml`](/mnt/c/dev/proyectos/proyectoappgym/gymhub/docker-compose.yml) y [`gymhub/Dockerfile`](/mnt/c/dev/proyectos/proyectoappgym/gymhub/Dockerfile) ejecutan Gunicorn con `--reload`.
+- [`gymhub/Dockerfile`](/mnt/c/dev/proyectos/proyectoappgym/gymhub/Dockerfile) mantiene un `CMD` con Gunicorn `--reload`, aunque el flujo Docker principal ahora arranca desde la raíz con `runserver` para desarrollo.
+- Falta una separación explícita entre imágenes y comandos de desarrollo frente a producción.
 
 Impacto:
 - Superficie de ataque innecesaria.
 - Riesgo de comportamiento inestable o consumo extra en producción.
 
 Acción recomendada:
-- Parametrizar `ALLOWED_HOSTS` por entorno.
+- Mantener `ALLOWED_HOSTS` parametrizado por entorno, como ya quedó en `settings.py`.
 - Separar configuración de desarrollo y producción.
-- Retirar `--reload` fuera de desarrollo.
+- Retirar `--reload` de cualquier imagen destinada a producción.
 
 ### 3. Manejo amplio y silencioso de excepciones
 Evidencia:
@@ -49,15 +49,16 @@ Acción recomendada:
 
 ### 4. Documentación operativa incompleta
 Evidencia:
-- [`gymhub/README.md`](/mnt/c/dev/proyectos/proyectoappgym/gymhub/README.md) indica `cp .env.example .env`, pero `.env.example` no existe.
+- El flujo operativo quedó dividido entre [`README.md`](/mnt/c/dev/proyectos/proyectoappgym/README.md), [`docs/OPERACION.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/OPERACION.md) y [`gymhub/README.md`](/mnt/c/dev/proyectos/proyectoappgym/gymhub/README.md).
+- El proyecto ya tiene `.env.example`, pero el README del backend todavía prioriza el compose legado dentro de `gymhub/`.
 
 Impacto:
 - Onboarding más lento.
 - Riesgo de configuración incorrecta.
 
 Acción recomendada:
-- Crear `.env.example` con variables mínimas.
-- Documentar valores de desarrollo y producción.
+- Consolidar la entrada principal en la raíz del repo.
+- Mantener sincronizadas la documentación raíz y la del backend.
 
 ### 5. Cobertura de pruebas desigual
 Evidencia:

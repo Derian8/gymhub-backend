@@ -20,9 +20,11 @@
 
 ## Inicio rápido
 
+> Flujo recomendado: usa la orquestación de raíz del repositorio con `./gym-start`. Este README conserva los comandos directos del backend para tareas puntuales dentro del servicio `backend`.
+
 ```bash
 # 1. Clonar y configurar variables de entorno
-cp .env.example .env
+cp ../.env.example ../.env
 # Editar .env con tus credenciales
 
 # 2. Levantar servicios

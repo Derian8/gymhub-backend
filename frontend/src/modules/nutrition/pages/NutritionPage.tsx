@@ -1,4 +1,4 @@
-import { Utensils, Target, Flame } from 'lucide-react'
+import { Utensils, Target } from 'lucide-react'
 import { useNutritionProfilesQuery, useNutritionGuidelinesQuery } from '../hooks/useNutrition'
 import { Badge, PageHeader, EmptyState } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
@@ -75,25 +75,23 @@ function NutritionProfileCard({ profile }: { profile: NutritionProfile }) {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        {profile.calories_target && (
-          <MacroCard label="Calorías" value={`${profile.calories_target} kcal`} icon="🔥" />
+        {(profile.calorie_range_min || profile.calorie_range_max) && (
+          <MacroCard
+            label="Calorías"
+            value={`${profile.calorie_range_min ?? '—'}-${profile.calorie_range_max ?? '—'} kcal`}
+            icon="🔥"
+          />
         )}
-        {profile.protein_g && (
-          <MacroCard label="Proteína" value={`${profile.protein_g}g`} icon="🥩" />
+        {profile.protein_focus && (
+          <MacroCard label="Proteína" value={profile.protein_focus} icon="🥩" />
         )}
-        {profile.carbs_g && (
-          <MacroCard label="Carbohidratos" value={`${profile.carbs_g}g`} icon="🌾" />
+        {profile.carb_strategy && (
+          <MacroCard label="Carbohidratos" value={profile.carb_strategy} icon="🌾" />
         )}
-        {profile.fat_g && (
-          <MacroCard label="Grasas" value={`${profile.fat_g}g`} icon="🥑" />
+        {profile.hydration_recommendation && (
+          <MacroCard label="Hidratación" value={profile.hydration_recommendation} icon="💧" />
         )}
       </div>
-
-      {profile.notes && (
-        <p className="mt-4 text-sm text-neutral-500 dark:text-neutral-400 border-t border-neutral-100 dark:border-neutral-800 pt-3">
-          {profile.notes}
-        </p>
-      )}
     </div>
   )
 }
@@ -115,9 +113,12 @@ function GuidelineCard({ guideline }: { guideline: NutritionGuideline }) {
         <h4 className="font-semibold text-neutral-900 dark:text-white">{guideline.title}</h4>
         <Badge variant="neutral">{GOAL_LABELS[guideline.goal_type] || guideline.goal_type}</Badge>
       </div>
-      <p className="text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed line-clamp-4">
-        {guideline.content}
-      </p>
+      <div className="space-y-2 text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed">
+        <p>{guideline.description}</p>
+        {guideline.recommended_foods && <p><strong>Recomendados:</strong> {guideline.recommended_foods}</p>}
+        {guideline.foods_to_limit && <p><strong>Limitar:</strong> {guideline.foods_to_limit}</p>}
+        {guideline.timing_suggestions && <p><strong>Timing:</strong> {guideline.timing_suggestions}</p>}
+      </div>
     </div>
   )
 }

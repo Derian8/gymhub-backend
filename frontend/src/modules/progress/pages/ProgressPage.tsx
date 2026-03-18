@@ -25,9 +25,9 @@ export function ProgressPage() {
     .slice()
     .reverse()
     .map((log) => ({
-      date: formatDate(log.date),
+      date: formatDate(log.recorded_at),
       peso: log.weight_kg,
-      grasa: log.body_fat_percentage,
+      grasa: log.body_fat_pct,
     })) || []
 
   return (
@@ -83,9 +83,9 @@ export function ProgressPage() {
               <tbody>
                 {logs.results.map((log) => (
                   <tr key={log.id} className="tr-hover" data-testid={`progress-row-${log.id}`}>
-                    <td className="td-base">{formatDate(log.date)}</td>
+                    <td className="td-base">{formatDate(log.recorded_at)}</td>
                     <td className="td-base font-semibold">{log.weight_kg ?? '—'}</td>
-                    <td className="td-base">{log.body_fat_percentage ?? '—'}</td>
+                    <td className="td-base">{log.body_fat_pct ?? '—'}</td>
                     <td className="td-base text-xs text-neutral-400">{log.notes || '—'}</td>
                   </tr>
                 ))}
@@ -132,7 +132,7 @@ export function ProgressPage() {
                       </span>
                     </td>
                     <td className="td-base">
-                      {s.overall_feeling ? `${s.overall_feeling}/10` : '—'}
+                      {s.overall_feeling ? `${s.overall_feeling}/5` : '—'}
                     </td>
                   </tr>
                 ))}

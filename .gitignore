@@ -1,16 +1,24 @@
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
+.env
+.env.*
+!.env.example
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+venv/
+.venv/
+
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+*.log
+
+gymhub/media/
+gymhub/staticfiles/
+
+.DS_Store
+Thumbs.db

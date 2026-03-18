@@ -8,7 +8,7 @@ import { formatRelative, GOAL_LABELS, PAYMENT_STATUS_CLASS } from '@/shared/lib/
 
 export function MemberDashboard() {
   const { user } = useAuthStore()
-  const memberId = (user as any)?.memberprofile_id || (user as any)?.id
+  const memberId = user?.memberprofile_id || 0
   const { data, isLoading } = useMemberDashboardQuery(memberId)
 
   if (isLoading) {

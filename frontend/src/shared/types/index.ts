@@ -11,6 +11,8 @@ export interface User {
   last_name: string
   role: 'member' | 'trainer'
   is_staff: boolean
+  memberprofile_id: number | null
+  trainerprofile_id: number | null
 }
 
 export interface LoginCredentials {
@@ -117,9 +119,10 @@ export interface TrainingPlan {
 }
 
 export interface TodayWorkout {
-  workout_day: WorkoutDay
-  plan: TrainingPlan
-  day_index: number
+  id: number
+  name: string
+  day_label: DayLabel
+  exercises: Exercise[]
 }
 
 // --- Attendance ---
@@ -135,9 +138,11 @@ export interface Attendance {
 export interface ProgressLog {
   id: number
   member: number
-  date: string
+  recorded_at: string
   weight_kg: number | null
-  body_fat_percentage: number | null
+  body_fat_pct: number | null
+  muscle_mass_kg: number | null
+  waist_cm: number | null
   notes: string
   source: string
 }
@@ -192,11 +197,14 @@ export interface PaymentSchedule {
 
 export interface PaymentRecord {
   id: number
-  schedule: PaymentSchedule
+  schedule: number
+  due_date: string
   amount: string
   paid_at: string | null
   status: PaymentStatus
+  method_used: number | null
   notes: string
+  days_overdue: number
 }
 
 export interface PaymentMethod {
@@ -212,8 +220,9 @@ export interface PaymentMethod {
 export interface InactivityAlert {
   id: number
   member: number
-  member_name?: string
   created_at: string
+  last_checkin_date: string | null
+  days_inactive: number
   resolved: boolean
   resolved_by: number | null
   resolved_at: string | null
@@ -230,27 +239,29 @@ export interface Notification {
 // --- Nutrition ---
 export interface NutritionProfile {
   id: number
-  member: number
+  training_plan: number
   goal_type: string
-  calories_target: number | null
-  protein_g: number | null
-  carbs_g: number | null
-  fat_g: number | null
-  notes: string
+  calorie_range_min: number | null
+  calorie_range_max: number | null
+  protein_focus: string
+  carb_strategy: string
+  hydration_recommendation: string
 }
 
 export interface NutritionGuideline {
   id: number
   title: string
   goal_type: string
-  content: string
-  created_at: string
+  description: string
+  recommended_foods: string
+  foods_to_limit: string
+  timing_suggestions: string
 }
 
 // --- AI Chat ---
 export interface AIChatMessage {
   id: number
-  user: number
+  member: number
   role: 'user' | 'assistant'
   content: string
   tokens_used: number
@@ -262,10 +273,12 @@ export interface AIChatRequest {
 }
 
 export interface AIChatResponse {
-  reply: string
-  tokens_used: number
-  daily_count: number
-  daily_limit: number
+  role: 'assistant'
+  content: string
+  tokens_used?: number
+  message_id?: number
+  limit_reached?: boolean
+  error?: boolean
 }
 
 // --- Classes ---

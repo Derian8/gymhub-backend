@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOCKER_BIN="docker"
+
+if ! docker ps >/dev/null 2>&1; then
+  DOCKER_BIN="/mnt/c/Program Files/Docker/Docker/resources/bin/docker.exe"
+fi
+
+if ! command -v docker >/dev/null 2>&1 && [ ! -x "${DOCKER_BIN}" ]; then
+  echo "Docker no está instalado o no está disponible en PATH."
+  exit 1
+fi
+
+if ! "${DOCKER_BIN}" compose version >/dev/null 2>&1; then
+  echo "Docker Compose no está disponible."
+  exit 1
+fi
+
+if [ ! -f "${ROOT_DIR}/.env" ]; then
+  echo "Falta ${ROOT_DIR}/.env. Crea el archivo a partir de .env.example."
+  exit 1
+fi
+
+if [ ! -f "${ROOT_DIR}/frontend/package.json" ]; then
+  echo "No se encontró frontend/package.json."
+  exit 1
+fi
+
+if [ ! -f "${ROOT_DIR}/gymhub/manage.py" ]; then
+  echo "No se encontró gymhub/manage.py."
+  exit 1
+fi
+
+cd "${ROOT_DIR}"
+"${DOCKER_BIN}" compose up -d --build "$@"

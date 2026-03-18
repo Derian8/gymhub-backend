@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOCKER_BIN="docker"
+
+if ! docker ps >/dev/null 2>&1; then
+  DOCKER_BIN="/mnt/c/Program Files/Docker/Docker/resources/bin/docker.exe"
+fi
+
+cd "${ROOT_DIR}"
+
+if [ "$#" -gt 0 ]; then
+  "${DOCKER_BIN}" compose logs -f "$@"
+else
+  "${DOCKER_BIN}" compose logs -f frontend backend db redis celery celerybeat
+fi

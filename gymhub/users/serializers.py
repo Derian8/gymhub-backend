@@ -6,10 +6,24 @@ User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
+    memberprofile_id = serializers.SerializerMethodField()
+    trainerprofile_id = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ('id', 'email', 'username', 'first_name', 'last_name', 'role', 'is_staff')
-        read_only_fields = ('id', 'is_staff')
+        fields = (
+            'id', 'email', 'username', 'first_name', 'last_name',
+            'role', 'is_staff', 'memberprofile_id', 'trainerprofile_id'
+        )
+        read_only_fields = ('id', 'is_staff', 'memberprofile_id', 'trainerprofile_id')
+
+    def get_memberprofile_id(self, obj):
+        profile = getattr(obj, 'memberprofile', None)
+        return profile.id if profile else None
+
+    def get_trainerprofile_id(self, obj):
+        profile = getattr(obj, 'trainerprofile', None)
+        return profile.id if profile else None
 
 
 class RegisterSerializer(serializers.ModelSerializer):

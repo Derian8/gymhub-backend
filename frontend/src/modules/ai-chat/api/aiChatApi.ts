@@ -1,5 +1,5 @@
 import apiClient from '@/shared/api/client'
-import type { AIChatMessage, AIChatRequest, AIChatResponse, PaginatedResponse } from '@/shared/types'
+import type { AIChatMessage, AIChatRequest, AIChatResponse } from '@/shared/types'
 
 export const aiChatApi = {
   send: async (payload: AIChatRequest): Promise<AIChatResponse> => {
@@ -7,7 +7,7 @@ export const aiChatApi = {
     return data
   },
 
-  history: async (): Promise<PaginatedResponse<AIChatMessage>> => {
+  history: async (): Promise<AIChatMessage[]> => {
     const { data } = await apiClient.get('/api/ai-chat/history/')
     return data
   },

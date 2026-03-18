@@ -27,19 +27,19 @@ export function TodayWorkoutPage() {
   const [sessionId, setSessionId] = useState<number | null>(null)
   const [sessionStarted, setSessionStarted] = useState(false)
   const [logs, setLogs] = useState<Record<number, ExerciseLogEntry>>({})
-  const [overallFeeling, setOverallFeeling] = useState(7)
+  const [overallFeeling, setOverallFeeling] = useState(4)
 
   const handleStartSession = () => {
-    if (!data?.workout_day) return
+    if (!data) return
     createSession(
-      { workout_day_id: data.workout_day.id },
+      { workout_day_id: data.id },
       {
         onSuccess: (session) => {
           setSessionId(session.id)
           setSessionStarted(true)
           // Initialize log entries from exercises
           const initialLogs: Record<number, ExerciseLogEntry> = {}
-          data.workout_day.exercises?.forEach((ex) => {
+          data.exercises?.forEach((ex) => {
             initialLogs[ex.id] = {
               exercise_id: ex.id,
               sets_completed: ex.sets,
@@ -90,7 +90,7 @@ export function TodayWorkoutPage() {
     )
   }
 
-  if (!data?.workout_day) {
+  if (!data?.id) {
     return (
       <div data-testid="no-workout-today" className="page-enter">
         <Link to={`/plans/${planId}`} className="flex items-center gap-2 text-sm text-neutral-500 hover:text-primary mb-6">
@@ -106,7 +106,7 @@ export function TodayWorkoutPage() {
     )
   }
 
-  const { workout_day } = data
+  const workoutDay = data
 
   return (
     <div data-testid="today-workout-page" className="page-enter max-w-2xl mx-auto">
@@ -115,9 +115,9 @@ export function TodayWorkoutPage() {
         Volver al plan
       </Link>
 
-      <PageHeader
-        title={`Día ${workout_day.day_label}: ${workout_day.name}`}
-        subtitle={`${workout_day.exercises?.length || 0} ejercicios`}
+        <PageHeader
+        title={`Día ${workoutDay.day_label}: ${workoutDay.name}`}
+        subtitle={`${workoutDay.exercises?.length || 0} ejercicios`}
       />
 
       {!sessionStarted ? (
@@ -139,7 +139,7 @@ export function TodayWorkoutPage() {
 
       {/* Exercise list */}
       <div className="space-y-4">
-        {workout_day.exercises?.map((exercise) => (
+        {workoutDay.exercises?.map((exercise) => (
           <ExerciseCard
             key={exercise.id}
             exercise={exercise}
@@ -158,12 +158,12 @@ export function TodayWorkoutPage() {
           </h3>
           <div>
             <label className="label-base block mb-2">
-              ¿Cómo te sentiste? ({overallFeeling}/10)
+              ¿Cómo te sentiste? ({overallFeeling}/5)
             </label>
             <input
               type="range"
               min={1}
-              max={10}
+              max={5}
               value={overallFeeling}
               onChange={(e) => setOverallFeeling(parseInt(e.target.value))}
               className="w-full accent-primary"
@@ -171,7 +171,7 @@ export function TodayWorkoutPage() {
             />
             <div className="flex justify-between text-xs text-neutral-400 mt-1">
               <span>Muy difícil</span>
-              <span>Perfecto</span>
+              <span>Excelente</span>
             </div>
           </div>
           <button

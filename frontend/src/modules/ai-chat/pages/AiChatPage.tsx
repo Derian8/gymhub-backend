@@ -19,8 +19,8 @@ export function AiChatPage() {
   }, [localMessages, isPending])
 
   useEffect(() => {
-    if (history?.results) {
-      const msgs = [...history.results]
+    if (history?.length) {
+      const msgs = [...history]
         .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
         .map((m) => ({ role: m.role, content: m.content }))
       setLocalMessages(msgs)
@@ -37,7 +37,7 @@ export function AiChatPage() {
       { message: userMsg },
       {
         onSuccess: (data) => {
-          setLocalMessages((prev) => [...prev, { role: 'assistant', content: data.reply }])
+          setLocalMessages((prev) => [...prev, { role: 'assistant', content: data.content }])
         },
         onError: () => {
           setLocalMessages((prev) => [...prev, { role: 'assistant', content: 'Lo siento, ocurrió un error. Intenta de nuevo.' }])
@@ -52,9 +52,6 @@ export function AiChatPage() {
       handleSend()
     }
   }
-
-  const dailyLimit = lastResponse?.daily_limit || 20
-  const dailyCount = lastResponse?.daily_count || 0
 
   return (
     <div data-testid="ai-chat-page" className="page-enter flex flex-col" style={{ height: 'calc(100vh - 8rem)' }}>
@@ -72,7 +69,7 @@ export function AiChatPage() {
           </div>
           {lastResponse && (
             <span className="text-xs text-neutral-400">
-              {dailyCount}/{dailyLimit} mensajes hoy
+              {lastResponse.limit_reached ? 'Límite diario alcanzado' : 'Sesión activa'}
             </span>
           )}
         </div>

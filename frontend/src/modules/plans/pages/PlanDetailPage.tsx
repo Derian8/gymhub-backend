@@ -78,10 +78,10 @@ export function PlanDetailPage() {
             </div>
           </div>
 
-          {todayWorkout && (
+          {todayWorkout?.id && (
             <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800">
-              <p className="label-base mb-2">Hoy: Día {todayWorkout.workout_day?.day_label}</p>
-              <p className="text-sm font-medium text-neutral-900 dark:text-white">{todayWorkout.workout_day?.name}</p>
+              <p className="label-base mb-2">Hoy: Día {todayWorkout.day_label}</p>
+              <p className="text-sm font-medium text-neutral-900 dark:text-white">{todayWorkout.name}</p>
             </div>
           )}
         </div>

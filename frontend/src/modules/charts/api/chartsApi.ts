@@ -3,7 +3,10 @@ import apiClient from '@/shared/api/client'
 export type ChartType = 'attendance_monthly' | 'retention_rate' | 'payment_status' | 'physical_progress' | 'exercise_progression'
 
 export const chartsApi = {
-  get: async (chartType: ChartType, params?: Record<string, string | number>): Promise<{ url: string; chart_type: string }> => {
+  get: async (
+    chartType: ChartType,
+    params?: Record<string, string | number>,
+  ): Promise<{ chart_url: string; chart_type: string; generated_at: string; cached: boolean }> => {
     const { data } = await apiClient.get(`/api/charts/${chartType}/`, { params })
     return data
   },
