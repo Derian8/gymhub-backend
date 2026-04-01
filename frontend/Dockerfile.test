@@ -1,0 +1,13 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+ENV CI=true
+ENV npm_config_update_notifier=false
+
+COPY package*.json ./
+RUN npm ci --include=optional
+
+COPY . .
+
+CMD ["npm", "run", "test"]

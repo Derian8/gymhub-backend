@@ -7,7 +7,7 @@ from users.permissions import IsTrainer
 
 
 class GymClassViewSet(viewsets.ModelViewSet):
-    queryset = GymClass.objects.select_related('trainer__user').all()
+    queryset = GymClass.objects.select_related('trainer__user').order_by('id')
     serializer_class = GymClassSerializer
 
     def get_permissions(self):
@@ -30,5 +30,5 @@ class ClassEnrollmentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.role == 'member':
-            return ClassEnrollment.objects.filter(member__user=user)
-        return ClassEnrollment.objects.all()
+            return ClassEnrollment.objects.filter(member__user=user).order_by('id')
+        return ClassEnrollment.objects.order_by('id')

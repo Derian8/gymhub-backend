@@ -1,0 +1,233 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BACKEND_URL="${BACKEND_URL:-http://localhost:8000}"
+SEED_DATA=0
+COMPOSE_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --prod)
+      COMPOSE_ARGS=(-f docker-compose.prod.yml)
+      shift
+      ;;
+    --seed)
+      SEED_DATA=1
+      shift
+      ;;
+    *)
+      echo "Uso: ./gym-smoke [--prod] [--seed]" >&2
+      exit 1
+      ;;
+  esac
+done
+
+for bin in curl python3; do
+  if ! command -v "$bin" >/dev/null 2>&1; then
+    echo "Falta dependencia requerida: $bin" >&2
+    exit 1
+  fi
+done
+
+if [[ $SEED_DATA -eq 1 ]]; then
+  echo "==> Ejecutando seed_data"
+  if [[ ${#COMPOSE_ARGS[@]} -gt 0 ]]; then
+    "$ROOT_DIR"/gym-start --prod >/dev/null
+  else
+    "$ROOT_DIR"/gym-start >/dev/null
+  fi
+  "/mnt/c/Program Files/Docker/Docker/resources/bin/docker.exe" compose "${COMPOSE_ARGS[@]}" exec backend python manage.py seed_data >/dev/null
+fi
+
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+
+fail() {
+  echo "[ERROR] $*" >&2
+  exit 1
+}
+
+wait_for_backend() {
+  local attempts=30
+  local delay=2
+
+  for _ in $(seq 1 "$attempts"); do
+    if curl -fsS "$BACKEND_URL/api/docs/" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep "$delay"
+  done
+
+  return 1
+}
+
+json_field() {
+  local field="$1"
+  python3 -c "import json,sys; data=json.load(sys.stdin); value=data$field; print(value if value is not None else '')"
+}
+
+request_json() {
+  local cookie_file="$1"
+  local method="$2"
+  local path="$3"
+  local body="${4:-}"
+  local response_file="$TMP_DIR/response.json"
+  local status
+
+  if [[ -n "$body" ]]; then
+    status=$(curl -sS -o "$response_file" -w "%{http_code}" \
+      -X "$method" \
+      -c "$cookie_file" -b "$cookie_file" \
+      -H 'Content-Type: application/json' \
+      -d "$body" \
+      "$BACKEND_URL$path")
+  else
+    status=$(curl -sS -o "$response_file" -w "%{http_code}" \
+      -X "$method" \
+      -c "$cookie_file" -b "$cookie_file" \
+      "$BACKEND_URL$path")
+  fi
+
+  if [[ "$status" -lt 200 || "$status" -ge 300 ]]; then
+    echo "Respuesta inesperada ($status) en $path" >&2
+    cat "$response_file" >&2 || true
+    exit 1
+  fi
+
+  cat "$response_file"
+}
+
+logout() {
+  local cookie_file="$1"
+  request_json "$cookie_file" POST "/auth/logout/" >/dev/null
+}
+
+assert_non_empty() {
+  local value="$1"
+  local label="$2"
+  [[ -n "$value" ]] || fail "Valor vacío: $label"
+}
+
+login() {
+  local email="$1"
+  local password="$2"
+  local cookie_file="$3"
+  local payload
+  payload=$(printf '{"email":"%s","password":"%s"}' "$email" "$password")
+  request_json "$cookie_file" POST "/auth/login/" "$payload" >/dev/null
+}
+
+echo "==> Validando disponibilidad del backend"
+wait_for_backend || fail "Backend no disponible en $BACKEND_URL"
+
+TRAINER_COOKIE="$TMP_DIR/trainer.cookies"
+MEMBER_COOKIE="$TMP_DIR/member.cookies"
+
+echo "==> Login trainer"
+login "trainer1@gymhub.com" "trainer123!" "$TRAINER_COOKIE"
+trainer_me="$(request_json "$TRAINER_COOKIE" GET "/auth/me/")"
+trainer_role="$(printf '%s' "$trainer_me" | json_field "['role']")"
+[[ "$trainer_role" == "trainer" ]] || fail "Rol trainer inesperado: $trainer_role"
+
+trainer_overview="$(request_json "$TRAINER_COOKIE" GET "/api/trainer/gym-overview/")"
+trainer_members="$(request_json "$TRAINER_COOKIE" GET "/api/members/")"
+trainer_alerts="$(request_json "$TRAINER_COOKIE" GET "/api/alerts/")"
+trainer_chart="$(request_json "$TRAINER_COOKIE" GET "/api/charts/payment_status/")"
+trainer_first_member_id="$(printf '%s' "$trainer_members" | python3 -c "import json,sys; data=json.load(sys.stdin); items=data.get('results') or []; print(items[0]['id'] if items else '')")"
+assert_non_empty "$trainer_first_member_id" "trainer.first_member_id"
+trainer_member_detail="$(request_json "$TRAINER_COOKIE" GET "/api/members/$trainer_first_member_id/")"
+
+trainer_total_members="$(printf '%s' "$trainer_overview" | json_field "['total_active_members']")"
+trainer_members_count="$(printf '%s' "$trainer_members" | json_field "['count']")"
+trainer_alerts_count="$(printf '%s' "$trainer_alerts" | json_field "['count']")"
+trainer_chart_url="$(printf '%s' "$trainer_chart" | json_field "['chart_url']")"
+trainer_member_email="$(printf '%s' "$trainer_member_detail" | json_field "['email']")"
+
+assert_non_empty "$trainer_total_members" "trainer.total_active_members"
+assert_non_empty "$trainer_members_count" "trainer.members.count"
+assert_non_empty "$trainer_alerts_count" "trainer.alerts.count"
+assert_non_empty "$trainer_chart_url" "trainer.chart.chart_url"
+assert_non_empty "$trainer_member_email" "trainer.member_detail.email"
+
+echo "==> Login member"
+login "member1@gymhub.com" "member123!" "$MEMBER_COOKIE"
+member_me="$(request_json "$MEMBER_COOKIE" GET "/auth/me/")"
+member_role="$(printf '%s' "$member_me" | json_field "['role']")"
+member_profile_id="$(printf '%s' "$member_me" | json_field "['memberprofile_id']")"
+[[ "$member_role" == "member" ]] || fail "Rol member inesperado: $member_role"
+assert_non_empty "$member_profile_id" "member.memberprofile_id"
+
+member_dashboard="$(request_json "$MEMBER_COOKIE" GET "/api/members/$member_profile_id/dashboard-summary/")"
+member_plans="$(request_json "$MEMBER_COOKIE" GET "/api/plans/")"
+member_progress="$(request_json "$MEMBER_COOKIE" GET "/api/progress-logs/")"
+member_payments="$(request_json "$MEMBER_COOKIE" GET "/api/payment-records/")"
+member_nutrition="$(request_json "$MEMBER_COOKIE" GET "/api/nutrition-profiles/")"
+member_chat_history="$(request_json "$MEMBER_COOKIE" GET "/api/ai-chat/history/")"
+member_profile="$(request_json "$MEMBER_COOKIE" GET "/auth/me/")"
+
+member_plan_id="$(printf '%s' "$member_plans" | python3 -c "import json,sys; data=json.load(sys.stdin); plans=data.get('results') or []; print(plans[0]['id'] if plans else '')")"
+assert_non_empty "$member_plan_id" "member.first_plan_id"
+member_today_workout="$(request_json "$MEMBER_COOKIE" GET "/api/plans/$member_plan_id/today-workout/")"
+member_today_workout_id="$(printf '%s' "$member_today_workout" | python3 -c "import json,sys; data=json.load(sys.stdin); print(data.get('id',''))")"
+member_today_exercise_id="$(printf '%s' "$member_today_workout" | python3 -c "import json,sys; data=json.load(sys.stdin); exs=data.get('exercises') or []; print(exs[0]['id'] if exs else '')")"
+member_today_exercise_sets="$(printf '%s' "$member_today_workout" | python3 -c "import json,sys; data=json.load(sys.stdin); exs=data.get('exercises') or []; print(exs[0]['sets'] if exs else '')")"
+member_today_exercise_reps="$(printf '%s' "$member_today_workout" | python3 -c "import json,sys; data=json.load(sys.stdin); exs=data.get('exercises') or []; reps=(exs[0]['reps_range'].split('-')[0] if exs else ''); print(reps)")"
+member_today_exercise_weight="$(printf '%s' "$member_today_workout" | python3 -c "import json,sys; data=json.load(sys.stdin); exs=data.get('exercises') or []; value=(exs[0].get('weight_suggestion_kg') if exs else ''); print(value if value is not None else 0)")"
+assert_non_empty "$member_today_workout_id" "member.today_workout.id"
+assert_non_empty "$member_today_exercise_id" "member.today_exercise.id"
+
+member_session_payload="$(printf '{"workout_day_id":%s}' "$member_today_workout_id")"
+member_session="$(request_json "$MEMBER_COOKIE" POST "/api/workout-sessions/" "$member_session_payload")"
+member_session_id="$(printf '%s' "$member_session" | json_field "['id']")"
+assert_non_empty "$member_session_id" "member.session.id"
+
+member_logs_payload="$(printf '{"session_id":%s,"logs":[{"exercise_id":%s,"sets_completed":%s,"reps_completed":%s,"weight_used_kg":%s}]}' \
+  "$member_session_id" "$member_today_exercise_id" "$member_today_exercise_sets" "$member_today_exercise_reps" "$member_today_exercise_weight")"
+member_logs="$(request_json "$MEMBER_COOKIE" POST "/api/exercise-logs/bulk/" "$member_logs_payload")"
+member_logs_count="$(printf '%s' "$member_logs" | python3 -c "import json,sys; data=json.load(sys.stdin); print(len(data))")"
+assert_non_empty "$member_logs_count" "member.logs.count"
+
+member_complete_payload='{"overall_feeling":4}'
+member_completed_session="$(request_json "$MEMBER_COOKIE" PATCH "/api/workout-sessions/$member_session_id/complete/" "$member_complete_payload")"
+member_completed_flag="$(printf '%s' "$member_completed_session" | json_field "['is_completed']")"
+assert_non_empty "$member_completed_flag" "member.session.is_completed"
+
+member_payment_status="$(printf '%s' "$member_dashboard" | json_field "['payment_status']")"
+member_plan_name="$(printf '%s' "$member_dashboard" | python3 -c "import json,sys; data=json.load(sys.stdin); plan=data.get('active_plan') or {}; print(plan.get('name',''))")"
+member_progress_count="$(printf '%s' "$member_progress" | json_field "['count']")"
+member_payments_count="$(printf '%s' "$member_payments" | json_field "['count']")"
+member_nutrition_count="$(printf '%s' "$member_nutrition" | json_field "['count']")"
+member_chat_count="$(printf '%s' "$member_chat_history" | python3 -c "import json,sys; data=json.load(sys.stdin); print(len(data))")"
+member_today_name="$(printf '%s' "$member_today_workout" | python3 -c "import json,sys; data=json.load(sys.stdin); print(data.get('name','') or data.get('message',''))")"
+
+assert_non_empty "$member_payment_status" "member.payment_status"
+assert_non_empty "$member_plan_name" "member.active_plan.name"
+assert_non_empty "$member_progress_count" "member.progress.count"
+assert_non_empty "$member_payments_count" "member.payments.count"
+assert_non_empty "$member_nutrition_count" "member.nutrition.count"
+assert_non_empty "$member_chat_count" "member.chat_history.count"
+assert_non_empty "$member_today_name" "member.today_workout"
+
+logout "$TRAINER_COOKIE"
+logout "$MEMBER_COOKIE"
+
+echo
+echo "Smoke MVP OK"
+echo "  Trainer:"
+echo "    miembros activos: $trainer_total_members"
+echo "    miembros listados: $trainer_members_count"
+echo "    alertas: $trainer_alerts_count"
+echo "    detalle miembro: $trainer_member_email"
+echo "    chart_url: $trainer_chart_url"
+echo "  Member:"
+echo "    perfil: $member_profile_id"
+echo "    estado de pago: $member_payment_status"
+echo "    plan activo: $member_plan_name"
+echo "    progreso: $member_progress_count"
+echo "    pagos: $member_payments_count"
+echo "    perfiles nutricionales: $member_nutrition_count"
+echo "    mensajes IA: $member_chat_count"
+echo "    entrenamiento de hoy: $member_today_name"
+echo "    sesión creada: $member_session_id"
+echo "    logs guardados: $member_logs_count"

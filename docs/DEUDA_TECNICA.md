@@ -1,56 +1,56 @@
 # Deuda Técnica
 
 ## Resumen Ejecutivo
-La base funcional está bien separada por dominios y tiene pruebas en áreas críticas, pero la madurez operativa todavía es baja. La deuda principal está en persistencia reproducible, endurecimiento de seguridad, manejo de errores, consistencia de nombres y cobertura desigual de pruebas.
+La base funcional ya es operable en desarrollo y en producción local, con smoke test del MVP, migraciones versionadas y cobertura útil en backend y frontend. La deuda principal ahora está en endurecimiento final para despliegue real, cobertura medible con umbrales formales y cierre de infraestructura externa para staging.
 
 ## Prioridad Alta
 
-### 1. Migraciones no versionadas
+### 1. Configuración aún permisiva para despliegue real
 Evidencia:
-- No existen directorios `migrations/` en las apps bajo [`gymhub/`](/mnt/c/dev/proyectos/proyectoappgym/gymhub).
+- El flujo `--prod` está validado para producción local, pero [`.env.prod.example`](/mnt/c/dev/proyectos/proyectoappgym/.env.prod.example) conserva cookies inseguras y `SECURE_SSL_REDIRECT=False` para no romper pruebas locales.
+- [`gymhub/gymhub/settings.py`](/mnt/c/dev/proyectos/proyectoappgym/gymhub/gymhub/settings.py) ya advierte cuando `DEBUG=False` convive con flags inseguros.
 
 Impacto:
-- No hay forma confiable de reconstruir la base de datos entre entornos.
-- El esquema real puede divergir del código.
+- Riesgo de desplegar con valores pensados para validación local.
+- Cookies y redirección HTTPS podrían quedar abiertas por error humano.
 
 Acción recomendada:
-- Generar y versionar migraciones por app.
-- Definir política de cambios de esquema y revisión de migraciones.
+- Definir un `.env` real por entorno.
+- Activar `AUTH_COOKIE_SECURE`, `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE` y `SECURE_SSL_REDIRECT` en staging/producción.
+- Reemplazar `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS` y `CSRF_TRUSTED_ORIGINS` por dominios reales.
 
-### 2. Configuración insegura para despliegue
+### 2. Manejo amplio de excepciones aún no eliminado por completo
 Evidencia:
-- [`gymhub/Dockerfile`](/mnt/c/dev/proyectos/proyectoappgym/gymhub/Dockerfile) mantiene un `CMD` con Gunicorn `--reload`, aunque el flujo Docker principal ahora arranca desde la raíz con `runserver` para desarrollo.
-- Falta una separación explícita entre imágenes y comandos de desarrollo frente a producción.
+- Ya se corrigieron capturas genéricas triviales y se dejó logging contextual en rutas críticas.
+- Los errores aún controlados de forma amplia deben quedar acotados a integraciones externas o librerías que no expongan taxonomía estable de excepciones.
 
 Impacto:
-- Superficie de ataque innecesaria.
-- Riesgo de comportamiento inestable o consumo extra en producción.
+- Algunos errores reales todavía pueden degradarse a respuestas opacas.
+- Observabilidad desigual según el módulo.
 
 Acción recomendada:
-- Mantener `ALLOWED_HOSTS` parametrizado por entorno, como ya quedó en `settings.py`.
-- Separar configuración de desarrollo y producción.
-- Retirar `--reload` de cualquier imagen destinada a producción.
+- Revisar el resto de `views.py`, tareas y utilidades por módulo.
+- Reemplazar capturas genéricas restantes por excepciones específicas cuando el dominio sí las conozca.
+- Mantener logging contextual en dominios críticos y sanitizar respuestas de error hacia el cliente.
 
-### 3. Manejo amplio y silencioso de excepciones
+### 3. Validación end-to-end aún incompleta
 Evidencia:
-- Capturas genéricas en autenticación, asistencia, planes, pagos, gráficas y chat IA.
-- Casos visibles en [`gymhub/users/authentication.py`](/mnt/c/dev/proyectos/proyectoappgym/gymhub/users/authentication.py), [`gymhub/ai_chat/views.py`](/mnt/c/dev/proyectos/proyectoappgym/gymhub/ai_chat/views.py), [`gymhub/billing/tasks.py`](/mnt/c/dev/proyectos/proyectoappgym/gymhub/billing/tasks.py), [`gymhub/attendance/views.py`](/mnt/c/dev/proyectos/proyectoappgym/gymhub/attendance/views.py).
+- Existe `gym-smoke` para validar el MVP por rol y pruebas frontend por módulos críticos.
+- No hay todavía una suite browser E2E dedicada con Playwright o equivalente.
 
 Impacto:
-- Errores reales quedan ocultos.
-- La observabilidad y el soporte operativo se degradan.
+- Riesgo de regresiones en navegación real, cookies, rendering y redirecciones completas.
+- Parte de la calidad aún depende de pruebas por componente y smoke HTTP.
 
 Acción recomendada:
-- Reemplazar `except Exception` por excepciones específicas.
-- Registrar contexto con logging estructurado.
-- Responder códigos de error coherentes.
+- Añadir flujos E2E para `login`, `dashboard`, `members`, `check-in`, `today workout`, `billing` y `alerts`.
 
 ## Prioridad Media
 
 ### 4. Documentación operativa incompleta
 Evidencia:
-- El flujo operativo quedó dividido entre [`README.md`](/mnt/c/dev/proyectos/proyectoappgym/README.md), [`docs/OPERACION.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/OPERACION.md) y [`gymhub/README.md`](/mnt/c/dev/proyectos/proyectoappgym/gymhub/README.md).
-- El proyecto ya tiene `.env.example`, pero el README del backend todavía prioriza el compose legado dentro de `gymhub/`.
+- La fuente principal ahora debe vivir en `README` y `RUNBOOK.md`.
+- Las guías secundarias del backend y `docs/` deben mantenerse sincronizadas cuando cambien scripts o modos de arranque.
 
 Impacto:
 - Onboarding más lento.
@@ -62,15 +62,16 @@ Acción recomendada:
 
 ### 5. Cobertura de pruebas desigual
 Evidencia:
-- Existen pruebas para auth, IA, check-in, planes, Celery, charts y validadores.
-- No se observan pruebas para `classes`, `alerts`, `nutrition` ni CRUDs completos de `billing`.
+- Hay pruebas backend para `auth`, `ai_chat`, `check-in`, `plans`, `celery`, `charts`, `classes`, `alerts`, `nutrition` y vistas críticas de `billing`.
+- Hay pruebas frontend para guards, auth, dashboards, members, billing, alerts, plans, nutrition, progress, charts, ai-chat, profile y check-in.
 
 Impacto:
-- Mayor riesgo de regresión en módulos no cubiertos.
+- Sigue faltando medir cobertura total y fijar umbral mínimo.
+- Aún no hay pruebas E2E reales de navegador.
 
 Acción recomendada:
-- Priorizar pruebas de permisos, filtros, acciones custom y tareas de alertas.
-- Medir cobertura y fijar un umbral mínimo por módulo.
+- Medir cobertura backend/frontend.
+- Fijar umbral mínimo por módulo y agregar E2E críticos.
 
 ### 6. Inconsistencia de idioma en el dominio
 Evidencia:
@@ -86,23 +87,10 @@ Acción recomendada:
 
 ## Prioridad Baja
 
-### 7. Script de pruebas frágil
-Evidencia:
-- [`gymhub/run_tests.sh`](/mnt/c/dev/proyectos/proyectoappgym/gymhub/run_tests.sh) usa `sleep 5`.
-- El mismo script oculta errores de migración con `2>/dev/null || true`.
-
-Impacto:
-- Falsos positivos.
-- Diagnóstico más difícil cuando falla el entorno.
-
-Acción recomendada:
-- Esperar por healthchecks reales.
-- No suprimir errores de migración.
-
-### 8. Acoplamiento entre vistas y lógica de negocio
+### 7. Acoplamiento entre vistas y lógica de negocio
 Evidencia:
 - `ai_chat` importa lógica desde vistas de `plans`.
-- Parte de la lógica de negocio vive directamente en `views.py`.
+- Parte de la lógica de negocio sigue viviendo directamente en `views.py`.
 
 Impacto:
 - Reutilización limitada.
@@ -113,9 +101,9 @@ Acción recomendada:
 - Mantener vistas como capa HTTP delgada.
 
 ## Orden Recomendado De Ataque
-1. Versionar migraciones.
-2. Endurecer configuración de despliegue.
-3. Corregir manejo silencioso de errores y logging.
-4. Crear `.env.example` y cerrar brechas de documentación operativa.
-5. Ampliar pruebas en módulos sin cobertura.
+1. Endurecer configuración para staging/producción real.
+2. Cerrar `except Exception` restantes y mejorar observabilidad.
+3. Añadir pruebas E2E del MVP.
+4. Mantener sincronizadas documentación raíz, backend y checklist de release.
+5. Extraer lógica de negocio acoplada a vistas.
 6. Diseñar plan gradual de normalización de nombres al español.

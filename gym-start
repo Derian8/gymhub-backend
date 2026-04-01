@@ -3,20 +3,68 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOCKER_BIN="docker"
+WINDOWS_DOCKER_BIN="/mnt/c/Program Files/Docker/Docker/resources/bin/docker.exe"
+COMPOSE_FILES=(-f docker-compose.yml)
 
-if ! docker ps >/dev/null 2>&1; then
-  DOCKER_BIN="/mnt/c/Program Files/Docker/Docker/resources/bin/docker.exe"
+if [ "${1:-}" = "--prod" ]; then
+  COMPOSE_FILES=(-f docker-compose.prod.yml)
+  shift
 fi
 
-if ! command -v docker >/dev/null 2>&1 && [ ! -x "${DOCKER_BIN}" ]; then
+seleccionar_docker() {
+  if docker ps >/dev/null 2>&1; then
+    DOCKER_BIN="docker"
+    return 0
+  fi
+
+  if [ -x "${WINDOWS_DOCKER_BIN}" ]; then
+    DOCKER_BIN="${WINDOWS_DOCKER_BIN}"
+    return 0
+  fi
+
+  return 1
+}
+
+mostrar_error_docker() {
+  local salida="$1"
+
+  if [[ "$salida" == *"could not be found in this WSL 2 distro"* ]]; then
+    echo "Docker Desktop está instalado, pero esta distro WSL no tiene integración habilitada."
+    echo "Activa Settings > Resources > WSL Integration para esta distro y vuelve a ejecutar ./gym-start."
+    return 0
+  fi
+
+  if [[ "$salida" == *"dockerDesktopLinuxEngine"* ]] || [[ "$salida" == *"UtilBindVsockAnyPort"* ]]; then
+    echo "Docker Desktop no tiene disponible el engine Linux para este entorno."
+    echo "Abre Docker Desktop, confirma que esté iniciado y que use contenedores Linux antes de ejecutar ./gym-start."
+    return 0
+  fi
+
+  return 1
+}
+
+validar_docker() {
+  local salida=""
+
+  if ! salida="$("${DOCKER_BIN}" compose version 2>&1)"; then
+    echo "Docker Compose no está disponible."
+    mostrar_error_docker "$salida" || echo "$salida"
+    exit 1
+  fi
+
+  if ! salida="$("${DOCKER_BIN}" ps 2>&1)"; then
+    echo "Docker está instalado, pero el daemon no está disponible."
+    mostrar_error_docker "$salida" || echo "$salida"
+    exit 1
+  fi
+}
+
+if ! seleccionar_docker; then
   echo "Docker no está instalado o no está disponible en PATH."
   exit 1
 fi
 
-if ! "${DOCKER_BIN}" compose version >/dev/null 2>&1; then
-  echo "Docker Compose no está disponible."
-  exit 1
-fi
+validar_docker
 
 if [ ! -f "${ROOT_DIR}/.env" ]; then
   echo "Falta ${ROOT_DIR}/.env. Crea el archivo a partir de .env.example."
@@ -34,4 +82,4 @@ if [ ! -f "${ROOT_DIR}/gymhub/manage.py" ]; then
 fi
 
 cd "${ROOT_DIR}"
-"${DOCKER_BIN}" compose up -d --build "$@"
+"${DOCKER_BIN}" compose "${COMPOSE_FILES[@]}" up -d --build "$@"

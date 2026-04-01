@@ -3,7 +3,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
-from charts.views import ChartView
+from charts.views import ChartOverviewView, ChartView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -26,6 +26,7 @@ urlpatterns = [
     path('api/', include('nutrition.urls')),
     path('api/', include('ai_chat.urls')),
     path('api/', include('users.member_urls')),
+    path('api/charts/overview/', ChartOverviewView.as_view(), name='charts-overview'),
     path('api/charts/<str:chart_type>/', ChartView.as_view(), name='chart'),
 ]
 

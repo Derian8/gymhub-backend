@@ -1,5 +1,6 @@
 import hashlib
 import io
+import logging
 import os
 import time
 
@@ -14,6 +15,11 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.exceptions import PermissionDenied
+
+from .services import build_member_charts, build_trainer_charts
+
+logger = logging.getLogger(__name__)
 
 CHART_CACHE_TIMEOUT = 6 * 3600  # 6 horas
 
@@ -281,8 +287,50 @@ class ChartView(APIView):
                 'cached': False,
             })
 
-        except Exception as e:
+        except (OSError, RuntimeError, ValueError) as exc:
+            logger.exception(
+                'Fallo al generar chart_type=%s member_id=%s exercise_id=%s',
+                chart_type,
+                member_id,
+                exercise_id,
+            )
             return Response(
-                {'error': f'Error al generar gráfica: {str(e)}'},
+                {'error': 'Error al generar gráfica.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class ChartOverviewView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from users.models import MemberProfile
+        from users.views import _get_trainer_profile
+
+        user = request.user
+        if user.role == 'member':
+            try:
+                member = MemberProfile.objects.select_related(
+                    'user', 'trainer_asignado__user', 'membership_plan'
+                ).get(user=user)
+            except MemberProfile.DoesNotExist:
+                return Response({'error': 'Perfil de member no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(build_member_charts(member))
+
+        if user.role == 'trainer':
+            trainer_profile = _get_trainer_profile(user)
+            return Response(build_trainer_charts(trainer_profile, user))
+
+        if user.is_staff:
+            member_id = request.query_params.get('member_id')
+            if not member_id:
+                return Response({'error': 'Para staff se requiere member_id.'}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                member = MemberProfile.objects.select_related(
+                    'user', 'trainer_asignado__user', 'membership_plan'
+                ).get(id=member_id)
+            except MemberProfile.DoesNotExist:
+                return Response({'error': 'Perfil de member no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(build_member_charts(member))
+
+        raise PermissionDenied('No tienes permisos para ver analytics.')

@@ -8,6 +8,69 @@ from rest_framework import status
 
 
 @pytest.mark.django_db
+class TestTrainingPlans:
+    def test_trainer_can_create_plan_without_sending_trainer_field(
+        self, trainer_client, member_profile, trainer_profile
+    ):
+        member_profile.trainer_asignado = trainer_profile
+        member_profile.save(update_fields=['trainer_asignado'])
+
+        resp = trainer_client.post('/api/plans/', {
+            'member': member_profile.id,
+            'name': 'Plan fuerza base',
+            'goal': 'muscle_gain',
+            'start_date': '2026-03-26',
+            'end_date': '2026-05-21',
+            'weeks_duration': 8,
+            'days_per_week': 4,
+            'is_active': True,
+        }, format='json')
+
+        assert resp.status_code == status.HTTP_201_CREATED
+        assert resp.data['member'] == member_profile.id
+        assert resp.data['trainer'] == trainer_profile.id
+
+    def test_trainer_can_delete_plan_and_cascade_content(self, trainer_client, training_plan):
+        plan_id = training_plan.id
+        day_ids = list(training_plan.workout_days.values_list('id', flat=True))
+
+        resp = trainer_client.delete(f'/api/plans/{plan_id}/')
+
+        assert resp.status_code == status.HTTP_204_NO_CONTENT
+
+        from plans.models import Exercise, TrainingPlan, WorkoutDay
+
+        assert not TrainingPlan.objects.filter(id=plan_id).exists()
+        assert WorkoutDay.objects.filter(id__in=day_ids).count() == 0
+        assert Exercise.objects.filter(workout_day_id__in=day_ids).count() == 0
+
+    def test_member_cannot_delete_plan(self, member_client, training_plan):
+        resp = member_client.delete(f'/api/plans/{training_plan.id}/')
+
+        assert resp.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_trainer_can_create_plan_with_maintenance_goal(
+        self, trainer_client, member_profile, trainer_profile
+    ):
+        member_profile.trainer_asignado = trainer_profile
+        member_profile.save(update_fields=['trainer_asignado'])
+
+        resp = trainer_client.post('/api/plans/', {
+            'member': member_profile.id,
+            'name': 'Plan mantenimiento',
+            'goal': 'maintenance',
+            'start_date': '2026-03-26',
+            'end_date': '2026-05-21',
+            'weeks_duration': 8,
+            'days_per_week': 3,
+            'is_active': True,
+        }, format='json')
+
+        assert resp.status_code == status.HTTP_201_CREATED
+        assert resp.data['goal'] == 'maintenance'
+
+
+@pytest.mark.django_db
 class TestTodayWorkout:
     def test_today_workout_returns_correct_rotation(self, member_client, training_plan):
         """today-workout retorna el WorkoutDay correcto según la rotación."""

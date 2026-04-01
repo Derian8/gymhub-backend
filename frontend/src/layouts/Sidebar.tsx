@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
-  LayoutDashboard, Users, Dumbbell, Calendar,
+  LayoutDashboard, Users, Dumbbell,
   CreditCard, Utensils, Bell, Bot, User,
   LogOut, ChevronLeft, ChevronRight, Activity,
   ClipboardList, CheckSquare,
@@ -37,7 +37,6 @@ const memberNav: NavItem[] = [
   { label: 'Sesiones', icon: <ClipboardList size={18} />, to: '/sessions' },
   { label: 'Nutrición', icon: <Utensils size={18} />, to: '/nutrition' },
   { label: 'Pagos', icon: <CreditCard size={18} />, to: '/billing' },
-  { label: 'Calendario', icon: <Calendar size={18} />, to: '/calendar' },
   { label: 'Chat IA', icon: <Bot size={18} />, to: '/ai-chat' },
 ]
 

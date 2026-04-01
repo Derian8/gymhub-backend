@@ -112,6 +112,42 @@ class TestCheckIn:
         })
         assert resp.status_code == status.HTTP_403_FORBIDDEN
 
+    def test_trainer_can_filter_attendance_by_member(self, trainer_client, member_profile, membership_plan):
+        from django.contrib.auth import get_user_model
+        from users.models import MemberProfile
+        from attendance.models import Attendance
+        from billing.models import MembershipPlan
+
+        own_attendance = Attendance.objects.create(member=member_profile)
+
+        User = get_user_model()
+        other_user = User.objects.create_user(
+            username='member_attendance_other',
+            email='member-attendance-other@test.com',
+            password='member123!',
+            role='member',
+        )
+        other_plan = MembershipPlan.objects.create(
+            name='Plan asistencia',
+            description='Plan',
+            price_monthly=65.00,
+            duration_months=1,
+        )
+        other_profile, _ = MemberProfile.objects.get_or_create(
+            user=other_user,
+            defaults={
+                'membership_plan': other_plan,
+                'is_active': True,
+            },
+        )
+        Attendance.objects.create(member=other_profile)
+
+        resp = trainer_client.get(f'/api/attendance/?member={member_profile.id}')
+
+        assert resp.status_code == status.HTTP_200_OK
+        results = resp.data.get('results', resp.data)
+        assert [item['id'] for item in results] == [own_attendance.id]
+
     def test_throttle_30_per_minute(self, member_client, member_profile):
         """
         Más de 30 requests/min → 429.
@@ -123,7 +159,7 @@ class TestCheckIn:
         # En tests usamos un scope personalizado con límite bajo
         with override_settings(REST_FRAMEWORK={
             **__import__('django.conf', fromlist=['settings']).settings.REST_FRAMEWORK,
-            'DEFAULT_THROTTLE_RATES': {'user': '3/min', 'anon': '100/hour', 'login': '10/15min'},
+            'DEFAULT_THROTTLE_RATES': {'user': '3/min', 'anon': '100/hour', 'login': '10/min'},
         }):
             responses = []
             for _ in range(5):

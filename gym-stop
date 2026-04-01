@@ -3,10 +3,16 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOCKER_BIN="docker"
+COMPOSE_FILES=(-f docker-compose.yml)
+
+if [ "${1:-}" = "--prod" ]; then
+  COMPOSE_FILES=(-f docker-compose.prod.yml)
+  shift
+fi
 
 if ! docker ps >/dev/null 2>&1; then
   DOCKER_BIN="/mnt/c/Program Files/Docker/Docker/resources/bin/docker.exe"
 fi
 
 cd "${ROOT_DIR}"
-"${DOCKER_BIN}" compose stop "$@"
+"${DOCKER_BIN}" compose "${COMPOSE_FILES[@]}" stop "$@"

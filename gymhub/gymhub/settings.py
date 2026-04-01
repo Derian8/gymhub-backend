@@ -1,8 +1,10 @@
+import logging
 import environ
 from pathlib import Path
 from datetime import timedelta
 
 env = environ.Env()
+logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 environ.Env.read_env(BASE_DIR / '.env')
@@ -10,6 +12,12 @@ environ.Env.read_env(BASE_DIR / '.env')
 SECRET_KEY = env('DJANGO_SECRET_KEY')
 DEBUG = env.bool('DEBUG', default=False)
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1', 'backend'])
+USE_X_FORWARDED_HOST = env.bool('USE_X_FORWARDED_HOST', default=False)
+
+AUTH_COOKIE_SECURE = env.bool('AUTH_COOKIE_SECURE', default=not DEBUG)
+AUTH_COOKIE_SAMESITE = env('AUTH_COOKIE_SAMESITE', default='Lax')
+AUTH_COOKIE_DOMAIN = env('AUTH_COOKIE_DOMAIN', default=None)
+AUTH_COOKIE_PATH = env('AUTH_COOKIE_PATH', default='/')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -118,7 +126,7 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'user': '30/min',
         'anon': '100/hour',
-        'login': '10/15min',
+        'login': '10/min',
     },
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_FILTER_BACKENDS': [
@@ -162,16 +170,57 @@ CACHES = {
 # CORS
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=['http://localhost:3000'])
-CSRF_TRUSTED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=['http://localhost:3000'])
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=CORS_ALLOWED_ORIGINS)
 
-SESSION_COOKIE_SAMESITE = 'Lax'
-SESSION_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SAMESITE = env('SESSION_COOKIE_SAMESITE', default='Lax')
+SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', default=not DEBUG)
+CSRF_COOKIE_SAMESITE = env('CSRF_COOKIE_SAMESITE', default='Lax')
+CSRF_COOKIE_SECURE = env.bool('CSRF_COOKIE_SECURE', default=not DEBUG)
+CSRF_COOKIE_HTTPONLY = False
+
+SECURE_PROXY_SSL_HEADER = (
+    ('HTTP_X_FORWARDED_PROTO', 'https')
+    if env.bool('USE_X_FORWARDED_PROTO', default=False)
+    else None
+)
+SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=False)
+SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=0)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=False)
+SECURE_HSTS_PRELOAD = env.bool('SECURE_HSTS_PRELOAD', default=False)
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+REFERRER_POLICY = 'same-origin'
+
+if not DEBUG:
+    if not AUTH_COOKIE_SECURE or not SESSION_COOKIE_SECURE or not CSRF_COOKIE_SECURE:
+        logger.warning(
+            'DEBUG=False con cookies inseguras. Revisa AUTH_COOKIE_SECURE, '
+            'SESSION_COOKIE_SECURE y CSRF_COOKIE_SECURE antes de desplegar.'
+        )
+    if not SECURE_SSL_REDIRECT:
+        logger.warning(
+            'DEBUG=False con SECURE_SSL_REDIRECT=False. '
+            'Habilita redirección HTTPS en staging/producción reales.'
+        )
+    if ALLOWED_HOSTS == ['localhost', '127.0.0.1', 'backend']:
+        logger.warning(
+            'DEBUG=False usando ALLOWED_HOSTS por defecto. '
+            'Configura hosts reales antes de desplegar.'
+        )
 
 # AI Config
+AI_PROVIDER = env('AI_PROVIDER', default='deterministic')
+AI_LOCAL_BACKEND = env('AI_LOCAL_BACKEND', default='ollama')
+AI_LOCAL_MODEL = env('AI_LOCAL_MODEL', default='llama3.2:3b')
+AI_LOCAL_BASE_URL = env('AI_LOCAL_BASE_URL', default='http://host.docker.internal:11434')
+AI_LOCAL_TIMEOUT_MS = env.int('AI_LOCAL_TIMEOUT_MS', default=2500)
 OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
 OPENAI_MODEL = env('OPENAI_MODEL', default='gpt-4.1-mini')
 OPENAI_MAX_TOKENS = env.int('OPENAI_MAX_TOKENS', default=300)
 AI_DAILY_LIMIT_PER_USER = env.int('AI_DAILY_LIMIT_PER_USER', default=20)
+AI_DAILY_LIMIT_MEMBER = env.int('AI_DAILY_LIMIT_MEMBER', default=AI_DAILY_LIMIT_PER_USER)
+AI_DAILY_LIMIT_TRAINER = env.int('AI_DAILY_LIMIT_TRAINER', default=60)
+AI_CHAT_HISTORY_WINDOW = env.int('AI_CHAT_HISTORY_WINDOW', default=10)
 EMERGENT_LLM_KEY = env('EMERGENT_LLM_KEY', default='')
 
 # Business rules

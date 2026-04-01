@@ -4,6 +4,7 @@ conftest.py — Fixtures globales para todos los tests.
 import pytest
 from datetime import date, timedelta
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -31,16 +32,26 @@ def api_client():
     return APIClient()
 
 
+@pytest.fixture(autouse=True)
+def limpiar_cache():
+    """Aísla resultados cacheados entre pruebas."""
+    cache.clear()
+    yield
+    cache.clear()
+
+
 @pytest.fixture
 @pytest.mark.django_db
-def membership_plan(db):
+def membership_plan(db, trainer_profile):
     from billing.models import MembershipPlan
     return MembershipPlan.objects.create(
+        trainer=trainer_profile,
         name='Plan Test',
         description='Plan de prueba',
         price_monthly=50.00,
         duration_months=1,
         features='Test features',
+        is_active=True,
     )
 
 
@@ -91,16 +102,19 @@ def member_user(db):
 
 @pytest.fixture
 @pytest.mark.django_db
-def member_profile(db, member_user, membership_plan):
+def member_profile(db, member_user, membership_plan, trainer_profile):
     from users.models import MemberProfile
     profile, _ = MemberProfile.objects.get_or_create(
         user=member_user,
         defaults={
+            'trainer_asignado': trainer_profile,
             'membership_plan': membership_plan,
             'join_date': date.today() - timedelta(days=30),
             'is_active': True,
         }
     )
+    profile.trainer_asignado = trainer_profile
+    profile.save(update_fields=['trainer_asignado'])
     return profile
 
 

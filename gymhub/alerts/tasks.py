@@ -1,9 +1,17 @@
 from celery import shared_task
 from django.conf import settings
-from django.utils import timezone
-
 import logging
 logger = logging.getLogger(__name__)
+
+
+def _notification_recipients(member):
+    trainer = getattr(member, 'trainer_asignado', None)
+    if trainer is not None:
+        return [trainer.user]
+
+    from users.models import TrainerProfile
+
+    return [trainer_profile.user for trainer_profile in TrainerProfile.objects.select_related('user').all()]
 
 
 @shared_task(name='alerts.tasks.check_member_inactivity')
@@ -15,17 +23,17 @@ def check_member_inactivity():
     - Crea Notification para el trainer
     """
     from datetime import date, timedelta
-    from users.models import MemberProfile, TrainerProfile
+    from users.models import MemberProfile
     from attendance.models import Attendance
     from alerts.models import InactivityAlert, Notification
 
     threshold = settings.INACTIVITY_DAYS_THRESHOLD
-    cutoff = date.today() - timedelta(days=threshold)
-
     alerts_created = 0
     notifications_created = 0
 
-    for member in MemberProfile.objects.filter(is_active=True).select_related('user'):
+    for member in MemberProfile.objects.filter(is_active=True).select_related(
+        'user', 'trainer_asignado__user'
+    ):
         last_att = Attendance.objects.filter(member=member).first()
 
         if last_att is None:
@@ -47,14 +55,22 @@ def check_member_inactivity():
                 )
                 alerts_created += 1
 
-                # Notificar a todos los trainers
-                for trainer in TrainerProfile.objects.select_related('user').all():
-                    Notification.objects.create(
-                        user=trainer.user,
-                        message=f"El miembro {member.user.get_full_name() or member.user.email} lleva {days_inactive} días inactivo.",
-                        type='inactivity',
+                for recipient in _notification_recipients(member):
+                    dedupe_key = (
+                        f'inactivity:{recipient.id}:{member.id}:{last_date.isoformat()}'
                     )
-                    notifications_created += 1
+                    _, created = Notification.objects.get_or_create(
+                        user=recipient,
+                        type='inactivity',
+                        dedupe_key=dedupe_key,
+                        defaults={
+                            'message': (
+                                f"El miembro {member.user.get_full_name() or member.user.email} "
+                                f'lleva {days_inactive} días inactivo.'
+                            ),
+                        },
+                    )
+                    notifications_created += int(created)
 
     logger.info(f"check_member_inactivity: {alerts_created} alertas creadas, {notifications_created} notificaciones.")
     return {'alerts_created': alerts_created, 'notifications_created': notifications_created}

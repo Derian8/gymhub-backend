@@ -22,6 +22,9 @@ class InactivityAlertViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=['post'], url_path='resolve')
     def resolve(self, request, pk=None):
         """POST /api/alerts/{id}/resolve/"""
+        if request.user.role != 'trainer' and not request.user.is_staff:
+            return Response({'error': 'Solo trainers o staff pueden resolver alertas.'}, status=status.HTTP_403_FORBIDDEN)
+
         alert = self.get_object()
         if alert.resolved:
             return Response({'error': 'La alerta ya fue resuelta.'}, status=status.HTTP_400_BAD_REQUEST)

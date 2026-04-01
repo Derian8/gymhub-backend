@@ -6,6 +6,6 @@ router = DefaultRouter()
 router.register(r'attendance', AttendanceViewSet, basename='attendance')
 
 urlpatterns = [
-    path('', include(router.urls)),
     path('attendance/check-in/', CheckInView.as_view(), name='attendance-check-in'),
+    path('', include(router.urls)),
 ]

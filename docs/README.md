@@ -1,15 +1,21 @@
 # Documentación Del Proyecto
 
 ## Índice
+- [`../RUNBOOK.md`](/mnt/c/dev/proyectos/proyectoappgym/RUNBOOK.md): fuente principal de operación, soporte, recuperación y validación de entrega.
 - [`ARQUITECTURA.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/ARQUITECTURA.md): visión técnica del backend, roles, dominios y flujo general.
 - [`MODULOS_Y_API.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/MODULOS_Y_API.md): inventario funcional por app, entidades principales y rutas expuestas.
 - [`OPERACION.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/OPERACION.md): puesta en marcha local, dependencias, pruebas y consideraciones operativas.
 - [`DEUDA_TECNICA.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/DEUDA_TECNICA.md): deuda técnica identificada, prioridad, impacto y recomendaciones.
+- [`MVP_FUNCIONAL.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/MVP_FUNCIONAL.md): definición operativa del producto mínimo viable, rutas activas y alcance por rol.
+- [`QA_MVP.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/QA_MVP.md): matriz manual de validación por rol y ruta del MVP.
+- [`RELEASE_CHECKLIST.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/RELEASE_CHECKLIST.md): checklist de validación para staging, producción local y entregas.
 
 ## Resumen
 Este repositorio contiene el backend de GymHub, una API para gestión de miembros, entrenadores, clases, planes de entrenamiento, asistencia, progreso, facturación, nutrición, alertas, gráficas y chat con IA.
 
 La aplicación está organizada como un proyecto Django modular dentro de [`gymhub/`](/mnt/c/dev/proyectos/proyectoappgym/gymhub), con autenticación JWT en cookies httpOnly, PostgreSQL como base de datos principal, Redis como broker/cache y Celery para tareas programadas.
+
+Para operación diaria y entregas, prioriza [`RUNBOOK.md`](/mnt/c/dev/proyectos/proyectoappgym/RUNBOOK.md). Los documentos de `docs/` complementan ese flujo con detalle técnico.
 
 ## Convenciones
 - Código Python bajo `PEP 8`.

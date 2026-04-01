@@ -1,17 +1,30 @@
-import { useParams, Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Calendar, ChevronRight } from 'lucide-react'
-import { usePlanDetailQuery, useTodayWorkoutQuery, useWeeklyPlanQuery } from '../hooks/usePlans'
-import { Badge, PageHeader, EmptyState } from '@/shared/components/UI'
+import { useDeletePlanMutation, usePlanDetailQuery, useTodayWorkoutQuery, useWeeklyPlanQuery } from '../hooks/usePlans'
+import { Badge, ConfirmDialog, PageHeader, EmptyState } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
 import { GOAL_LABELS, MUSCLE_LABELS } from '@/shared/lib/utils'
 import type { WorkoutDay, Exercise } from '@/shared/types'
+import { useAuthStore } from '@/shared/store/authStore'
 
 export function PlanDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const planId = parseInt(id || '0')
+  const { user } = useAuthStore()
   const { data: plan, isLoading } = usePlanDetailQuery(planId)
   const { data: weeklyView } = useWeeklyPlanQuery(planId)
   const { data: todayWorkout } = useTodayWorkoutQuery(planId)
+  const deletePlan = useDeletePlanMutation()
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const canDelete = !!user && (user.role === 'trainer' || user.is_staff)
+
+  useEffect(() => {
+    if (deletePlan.isSuccess) {
+      navigate('/plans')
+    }
+  }, [deletePlan.isSuccess, navigate])
 
   if (isLoading) {
     return (
@@ -43,13 +56,25 @@ export function PlanDetailPage() {
         title={plan.name}
         subtitle={GOAL_LABELS[plan.goal] || plan.goal}
         action={
-          <Link
-            to={`/plans/${plan.id}/today`}
-            className="btn-primary"
-            data-testid="today-workout-btn"
-          >
-            Entrenamiento de hoy
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            {canDelete && (
+              <button
+                type="button"
+                className="btn-danger"
+                onClick={() => setShowDeleteDialog(true)}
+                data-testid="open-delete-plan-dialog"
+              >
+                Borrar plan
+              </button>
+            )}
+            <Link
+              to={`/plans/${plan.id}/today`}
+              className="btn-primary"
+              data-testid="today-workout-btn"
+            >
+              Entrenamiento de hoy
+            </Link>
+          </div>
         }
       />
 
@@ -112,6 +137,17 @@ export function PlanDetailPage() {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showDeleteDialog}
+        title="Borrar plan completo"
+        description={`Se eliminara el plan completo "${plan.name}" y todos sus dias y ejercicios. Esta accion no se puede deshacer.${plan.is_active ? ' El member se quedara sin este plan activo.' : ''}`}
+        confirmLabel="Confirmar borrado"
+        isPending={deletePlan.isPending}
+        onCancel={() => setShowDeleteDialog(false)}
+        onConfirm={() => deletePlan.mutate({ id: plan.id, memberId: plan.member })}
+        data-testid="plan-detail-delete-dialog"
+      />
     </div>
   )
 }

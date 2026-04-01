@@ -60,3 +60,39 @@ class PlanNutritionLink(models.Model):
 
     def __str__(self):
         return f"{self.plan} → {self.guideline}"
+
+
+class PlantillaNutricion(models.Model):
+    NIVEL_ADHERENCIA_CHOICES = [
+        ('low', 'Baja adherencia'),
+        ('medium', 'Adherencia media'),
+        ('high', 'Alta adherencia'),
+    ]
+
+    trainer = models.ForeignKey(
+        'users.TrainerProfile',
+        on_delete=models.CASCADE,
+        related_name='plantillas_nutricion'
+    )
+    nombre = models.CharField(max_length=200)
+    descripcion = models.TextField(blank=True)
+    goal_type = models.CharField(max_length=20, choices=GOAL_TYPE_CHOICES)
+    nivel_adherencia_recomendado = models.CharField(
+        max_length=10,
+        choices=NIVEL_ADHERENCIA_CHOICES,
+        default='medium'
+    )
+    calorie_range_min = models.PositiveIntegerField(default=1800)
+    calorie_range_max = models.PositiveIntegerField(default=2200)
+    protein_focus = models.CharField(max_length=200, blank=True)
+    carb_strategy = models.CharField(max_length=200, blank=True)
+    hydration_recommendation = models.CharField(max_length=200, blank=True)
+    esta_activa = models.BooleanField(default=True)
+    creada_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['nombre', 'id']
+        db_table = 'plantillas_nutricion'
+
+    def __str__(self):
+        return self.nombre

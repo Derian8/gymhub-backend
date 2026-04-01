@@ -6,38 +6,56 @@ import { authApi } from '@/modules/auth/api/authApi'
 import { QUERY_KEYS } from '@/shared/constants/queryKeys'
 
 export function useAuth() {
-  const { user, isAuthenticated, setUser, logout } = useAuthStore()
+  const { user, isAuthenticated, authResolved, setUser, setAuthResolved, logout } = useAuthStore()
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, isFetched } = useQuery({
     queryKey: QUERY_KEYS.ME,
     queryFn: authApi.me,
     retry: false,
     staleTime: 5 * 60 * 1000,
-    enabled: isAuthenticated,
+    refetchOnWindowFocus: false,
   })
 
   useEffect(() => {
-    if (data) setUser(data)
-  }, [data, setUser])
+    if (data) {
+      setUser(data)
+      setAuthResolved(true)
+    }
+  }, [data, setUser, setAuthResolved])
 
   useEffect(() => {
-    if (isError) logout()
-  }, [isError, logout])
+    if (isError) {
+      logout()
+      setAuthResolved(true)
+    }
+  }, [isError, logout, setAuthResolved])
+
+  useEffect(() => {
+    if (isFetched && !data && !isError) {
+      setAuthResolved(true)
+    }
+  }, [data, isError, isFetched, setAuthResolved])
 
   // Listen for forced logout from interceptor
   useEffect(() => {
-    const handler = () => logout()
+    const handler = () => {
+      logout()
+      setAuthResolved(true)
+    }
     window.addEventListener('auth:logout', handler)
     return () => window.removeEventListener('auth:logout', handler)
-  }, [logout])
+  }, [logout, setAuthResolved])
+
+  const currentUser = user || data || null
 
   return {
-    user: user || data || null,
-    isAuthenticated,
-    isLoading,
-    isTrainer: (user?.role === 'trainer') || user?.is_staff,
-    isMember: user?.role === 'member',
-    isStaff: user?.is_staff,
+    user: currentUser,
+    isAuthenticated: !!currentUser || isAuthenticated,
+    isLoading: isLoading || !authResolved,
+    authResolved,
+    isTrainer: currentUser?.role === 'trainer' || !!currentUser?.is_staff,
+    isMember: currentUser?.role === 'member',
+    isStaff: !!currentUser?.is_staff,
   }
 }
 

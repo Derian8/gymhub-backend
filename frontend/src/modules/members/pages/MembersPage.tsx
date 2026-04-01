@@ -1,22 +1,28 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Filter, UserPlus, CheckCircle, XCircle, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, UserPlus, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react'
 import { useMembersQuery } from '../hooks/useMembers'
 import { Badge, PageHeader, EmptyState, Avatar } from '@/shared/components/UI'
 import { TableRowSkeleton } from '@/shared/components/Skeleton'
-import { formatDate, PAYMENT_STATUS_CLASS } from '@/shared/lib/utils'
+import { formatDate, RISK_LEVEL_BADGE, RISK_LEVEL_LABELS } from '@/shared/lib/utils'
 import type { MemberProfile } from '@/shared/types'
 
 export function MembersPage() {
   const [search, setSearch] = useState('')
   const [paymentFilter, setPaymentFilter] = useState('')
   const [inactivityFilter, setInactivityFilter] = useState('')
+  const [riskFilter, setRiskFilter] = useState('')
+  const [prescriptionFilter, setPrescriptionFilter] = useState('')
+  const [ordering, setOrdering] = useState('riesgo_desc')
   const [page, setPage] = useState(1)
 
   const { data, isLoading } = useMembersQuery({
     search: search || undefined,
     payment_status: paymentFilter || undefined,
     inactivity: inactivityFilter || undefined,
+    risk_level: riskFilter || undefined,
+    prescription_status: prescriptionFilter || undefined,
+    ordering: ordering || undefined,
     page,
   })
 
@@ -74,6 +80,41 @@ export function MembersPage() {
           />
           <span className="text-neutral-700 dark:text-neutral-300">Solo inactivos</span>
         </label>
+
+        <select
+          value={riskFilter}
+          onChange={(e) => { setRiskFilter(e.target.value); setPage(1) }}
+          className="py-2.5 px-3 text-sm bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-sm focus:outline-none focus:border-primary text-neutral-700 dark:text-neutral-300"
+          data-testid="risk-filter"
+        >
+          <option value="">Todos los riesgos</option>
+          <option value="high">Riesgo alto</option>
+          <option value="medium">Riesgo medio</option>
+          <option value="low">Riesgo bajo</option>
+        </select>
+
+        <select
+          value={prescriptionFilter}
+          onChange={(e) => { setPrescriptionFilter(e.target.value); setPage(1) }}
+          className="py-2.5 px-3 text-sm bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-sm focus:outline-none focus:border-primary text-neutral-700 dark:text-neutral-300"
+          data-testid="prescription-filter"
+        >
+          <option value="">Toda la prescripción</option>
+          <option value="sin_plan">Sin plan activo</option>
+          <option value="incompleta">Incompleta</option>
+          <option value="lista">Lista para member</option>
+        </select>
+
+        <select
+          value={ordering}
+          onChange={(e) => { setOrdering(e.target.value); setPage(1) }}
+          className="py-2.5 px-3 text-sm bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-sm focus:outline-none focus:border-primary text-neutral-700 dark:text-neutral-300"
+          data-testid="members-ordering"
+        >
+          <option value="riesgo_desc">Priorizar riesgo</option>
+          <option value="prescripcion">Priorizar prescripción</option>
+          <option value="riesgo_asc">Menor riesgo primero</option>
+        </select>
       </div>
 
       {/* Table */}
@@ -84,17 +125,18 @@ export function MembersPage() {
               <th className="th-base">Miembro</th>
               <th className="th-base hidden sm:table-cell">Teléfono</th>
               <th className="th-base hidden md:table-cell">Fecha ingreso</th>
+              <th className="th-base hidden lg:table-cell">Riesgo</th>
               <th className="th-base">Estado</th>
-              <th className="th-base">Pago</th>
+              <th className="th-base hidden xl:table-cell">Señales</th>
               <th className="th-base">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
-              Array.from({ length: 8 }).map((_, i) => <TableRowSkeleton key={i} cols={6} />)
+              Array.from({ length: 8 }).map((_, i) => <TableRowSkeleton key={i} cols={7} />)
             ) : data?.results.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-neutral-400 text-sm">
+                <td colSpan={7} className="py-8 text-center text-neutral-400 text-sm">
                   No se encontraron miembros
                 </td>
               </tr>
@@ -152,6 +194,22 @@ function MemberRow({ member }: { member: MemberProfile }) {
       </td>
       <td className="td-base hidden sm:table-cell">{member.phone || '—'}</td>
       <td className="td-base hidden md:table-cell">{formatDate(member.join_date)}</td>
+      <td className="td-base hidden lg:table-cell">
+        {member.nivel_riesgo ? (
+          <div className="space-y-1">
+            <Badge variant={RISK_LEVEL_BADGE[member.nivel_riesgo]}>
+              {RISK_LEVEL_LABELS[member.nivel_riesgo]} {member.riesgo_adherencia != null ? `· ${member.riesgo_adherencia}/100` : ''}
+            </Badge>
+            {member.days_since_last_checkin != null && (
+              <p className="text-[11px] text-neutral-500">
+                {member.days_since_last_checkin} días sin check-in
+              </p>
+            )}
+          </div>
+        ) : (
+          <Badge variant="neutral">Sin señal</Badge>
+        )}
+      </td>
       <td className="td-base">
         {member.is_active ? (
           <Badge variant="success">Activo</Badge>
@@ -159,17 +217,44 @@ function MemberRow({ member }: { member: MemberProfile }) {
           <Badge variant="error">Inactivo</Badge>
         )}
       </td>
-      <td className="td-base">
-        <Badge variant="neutral">—</Badge>
+      <td className="td-base hidden xl:table-cell">
+        <div className="max-w-xs space-y-2">
+          {member.estado_prescripcion ? (
+            <Badge variant={member.estado_prescripcion === 'lista' ? 'success' : 'warning'}>
+              {member.estado_prescripcion === 'sin_plan'
+                ? 'Sin plan activo'
+                : member.estado_prescripcion === 'incompleta'
+                  ? 'Prescripción incompleta'
+                  : 'Lista para member'}
+            </Badge>
+          ) : null}
+          {member.motivos_riesgo?.length ? (
+            <p className="text-xs text-neutral-600 dark:text-neutral-400 line-clamp-2">
+              {member.motivos_riesgo.join(' · ')}
+            </p>
+          ) : (
+            <span className="text-xs text-neutral-400">Sin señales críticas</span>
+          )}
+        </div>
       </td>
       <td className="td-base">
-        <Link
-          to={`/members/${member.id}`}
-          className="text-primary text-sm font-medium hover:underline"
-          data-testid={`member-detail-${member.id}`}
-        >
-          Ver detalle
-        </Link>
+        <div className="flex items-center gap-3">
+          {member.nivel_riesgo === 'high' && <AlertTriangle size={14} className="text-red-500" />}
+          <Link
+            to={`/members/${member.id}/program`}
+            className="text-sm font-medium text-neutral-700 hover:text-primary dark:text-neutral-300"
+            data-testid={`member-program-${member.id}`}
+          >
+            Asignar plan
+          </Link>
+          <Link
+            to={`/members/${member.id}`}
+            className="text-primary text-sm font-medium hover:underline"
+            data-testid={`member-detail-${member.id}`}
+          >
+            Ver detalle
+          </Link>
+        </div>
       </td>
     </tr>
   )

@@ -1,8 +1,11 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q, Case, When, IntegerField
 from django.utils import timezone
 from rest_framework import status, viewsets, filters
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
@@ -16,13 +19,31 @@ from .serializers import (
     UserSerializer, RegisterSerializer, LoginSerializer,
     MemberProfileSerializer, TrainerProfileSerializer, AuditLogSerializer
 )
+from .prescription_services import get_member_prescription_summary
+from .services import (
+    annotate_member_metrics,
+    get_active_prescription,
+    get_member_dashboard_summary,
+    get_member_prescription_status,
+    get_member_risk_snapshot,
+    get_trainer_overview,
+)
 
 User = get_user_model()
 
 
 class LoginThrottle(AnonRateThrottle):
-    rate = '10/15min'
+    rate = '10/min'
     scope = 'login'
+
+
+def _get_trainer_profile(user):
+    if getattr(user, 'role', None) != 'trainer':
+        return None
+    try:
+        return user.trainerprofile
+    except ObjectDoesNotExist as exc:
+        raise PermissionDenied('Perfil de trainer no encontrado.') from exc
 
 
 def _set_auth_cookies(response, refresh_token):
@@ -31,10 +52,12 @@ def _set_auth_cookies(response, refresh_token):
 
     cookie_opts = {
         'httponly': True,
-        'samesite': 'Lax',
-        'secure': not settings.DEBUG,
-        'path': '/',
+        'samesite': settings.AUTH_COOKIE_SAMESITE,
+        'secure': settings.AUTH_COOKIE_SECURE,
+        'path': settings.AUTH_COOKIE_PATH,
     }
+    if settings.AUTH_COOKIE_DOMAIN:
+        cookie_opts['domain'] = settings.AUTH_COOKIE_DOMAIN
     response.set_cookie(
         settings.ACCESS_TOKEN_COOKIE_NAME, access_token,
         max_age=int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds()),
@@ -48,8 +71,14 @@ def _set_auth_cookies(response, refresh_token):
 
 
 def _clear_auth_cookies(response):
-    response.delete_cookie(settings.ACCESS_TOKEN_COOKIE_NAME)
-    response.delete_cookie(settings.REFRESH_TOKEN_COOKIE_NAME)
+    delete_opts = {
+        'path': settings.AUTH_COOKIE_PATH,
+        'samesite': settings.AUTH_COOKIE_SAMESITE,
+    }
+    if settings.AUTH_COOKIE_DOMAIN:
+        delete_opts['domain'] = settings.AUTH_COOKIE_DOMAIN
+    response.delete_cookie(settings.ACCESS_TOKEN_COOKIE_NAME, **delete_opts)
+    response.delete_cookie(settings.REFRESH_TOKEN_COOKIE_NAME, **delete_opts)
 
 
 class RegisterView(APIView):
@@ -167,12 +196,16 @@ class TokenRefreshCookieView(APIView):
             )
 
         response = Response({'message': 'Token renovado.'})
-        response.set_cookie(
-            settings.ACCESS_TOKEN_COOKIE_NAME, new_access,
-            httponly=True, samesite='Lax',
-            secure=not settings.DEBUG,
-            max_age=int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds()),
-        )
+        cookie_opts = {
+            'httponly': True,
+            'samesite': settings.AUTH_COOKIE_SAMESITE,
+            'secure': settings.AUTH_COOKIE_SECURE,
+            'path': settings.AUTH_COOKIE_PATH,
+            'max_age': int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds()),
+        }
+        if settings.AUTH_COOKIE_DOMAIN:
+            cookie_opts['domain'] = settings.AUTH_COOKIE_DOMAIN
+        response.set_cookie(settings.ACCESS_TOKEN_COOKIE_NAME, new_access, **cookie_opts)
         return response
 
 
@@ -195,15 +228,24 @@ class MemberViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        qs = MemberProfile.objects.select_related('user', 'membership_plan')
+        qs = annotate_member_metrics(MemberProfile.objects.select_related(
+            'user', 'membership_plan', 'trainer_asignado__user'
+        ).order_by('id'))
 
         # Members solo ven su propio perfil
         if user.role == 'member':
             return qs.filter(user=user)
 
+        if user.role == 'trainer' and not user.is_staff:
+            trainer_profile = _get_trainer_profile(user)
+            qs = qs.filter(Q(trainer_asignado=trainer_profile) | Q(trainer_asignado__isnull=True))
+
         # Filtros adicionales para trainers/staff
         payment_status = self.request.query_params.get('payment_status')
         inactivity = self.request.query_params.get('inactivity')
+        risk_level = self.request.query_params.get('risk_level')
+        prescription_status = self.request.query_params.get('prescription_status')
+        ordering = self.request.query_params.get('ordering')
 
         if payment_status:
             from billing.models import PaymentRecord
@@ -221,128 +263,143 @@ class MemberViewSet(viewsets.ModelViewSet):
             ).values_list('member_id', flat=True).distinct()
             qs = qs.exclude(id__in=active_member_ids)
 
+        if risk_level in ('low', 'medium', 'high'):
+            ids = [member.id for member in qs if get_member_risk_snapshot(member)['nivel_riesgo'] == risk_level]
+            qs = qs.filter(id__in=ids)
+
+        if prescription_status in ('sin_plan', 'incompleta', 'lista'):
+            ids = [member.id for member in qs if get_member_prescription_status(member)['estado'] == prescription_status]
+            qs = qs.filter(id__in=ids)
+
+        if ordering in ('riesgo_desc', 'riesgo_asc', 'prescripcion'):
+            if ordering == 'prescripcion':
+                priority = {'sin_plan': 0, 'incompleta': 1, 'lista': 2}
+                sorted_ids = [
+                    member.id for member in sorted(
+                        qs,
+                        key=lambda member: (
+                            priority[get_member_prescription_status(member)['estado']],
+                            -(get_member_risk_snapshot(member)['riesgo_adherencia']),
+                            member.id,
+                        ),
+                    )
+                ]
+            else:
+                reverse = ordering == 'riesgo_desc'
+                sorted_ids = [
+                    member.id for member in sorted(
+                        qs,
+                        key=lambda member: get_member_risk_snapshot(member)['riesgo_adherencia'],
+                        reverse=reverse,
+                    )
+                ]
+            if sorted_ids:
+                preserve_order = Case(
+                    *[When(id=member_id, then=position) for position, member_id in enumerate(sorted_ids)],
+                    output_field=IntegerField(),
+                )
+                qs = qs.filter(id__in=sorted_ids).order_by(preserve_order)
+
         return qs
 
     def get_permissions(self):
-        if self.action in ('list', 'retrieve', 'dashboard_summary', 'progress_by_exercise'):
+        if self.action in ('list', 'retrieve', 'dashboard_summary', 'active_prescription', 'progress_by_exercise'):
             return [IsAuthenticated()]
+        if self.action == 'assign_trainer':
+            return [IsAuthenticated(), IsTrainer()]
         return [IsAuthenticated(), IsTrainer()]
 
     @action(detail=True, methods=['get'], url_path='dashboard-summary')
     def dashboard_summary(self, request, pk=None):
         """GET /api/members/{id}/dashboard-summary/"""
         member = self.get_object()
-        from datetime import date
-        from billing.models import PaymentRecord
-        from attendance.models import Attendance
-        from alerts.models import InactivityAlert, Notification
-        from progress.models import WorkoutSession
+        return Response(get_member_dashboard_summary(member))
 
-        # Payment status
-        last_record = PaymentRecord.objects.filter(
-            schedule__member=member
-        ).order_by('-schedule__due_date').first()
+    @action(detail=True, methods=['get'], url_path='prescription-summary')
+    def prescription_summary(self, request, pk=None):
+        member = self.get_object()
+        return Response(get_member_prescription_summary(member))
 
-        payment_status = None
-        days_until_due = None
-        days_overdue = None
+    @action(detail=True, methods=['get'], url_path='active-prescription')
+    def active_prescription(self, request, pk=None):
+        member = self.get_object()
+        return Response(get_active_prescription(member))
 
-        if last_record:
-            payment_status = last_record.status
-            due = last_record.schedule.due_date
-            today = date.today()
-            delta = (due - today).days
-            if delta >= 0:
-                days_until_due = delta
-            else:
-                days_overdue = abs(delta)
+    @action(detail=True, methods=['post'], url_path='assign-trainer')
+    def assign_trainer(self, request, pk=None):
+        member = self.get_object()
 
-        # Last check-in
-        last_att = Attendance.objects.filter(member=member).first()
-        last_checkin = last_att.check_in_time if last_att else None
-
-        # Active plan
-        active_plan_qs = member.plans.filter(is_active=True).first()
-        active_plan = None
-        if active_plan_qs:
-            active_plan = {'id': active_plan_qs.id, 'name': active_plan_qs.name}
-
-        # Nutrition goal
-        nutrition_goal = None
-        if active_plan_qs:
+        if request.user.is_staff:
+            trainer_id = request.data.get('trainer_id')
+            if not trainer_id:
+                raise ValidationError({'trainer_id': 'Este campo es requerido.'})
             try:
-                nutrition_goal = active_plan_qs.nutrition_profile.goal_type
-            except Exception:
-                pass
+                trainer_profile = TrainerProfile.objects.get(id=trainer_id)
+            except TrainerProfile.DoesNotExist as exc:
+                raise ValidationError({'trainer_id': 'Trainer no encontrado.'}) from exc
+        else:
+            trainer_profile = _get_trainer_profile(request.user)
+            if member.trainer_asignado and member.trainer_asignado_id != trainer_profile.id:
+                raise PermissionDenied('El cliente ya está asignado a otro trainer.')
 
-        # Inactivity alert
-        inactivity_alert = InactivityAlert.objects.filter(member=member, resolved=False).exists()
-
-        # Unread notifications
-        unread_notifications = Notification.objects.filter(user=member.user, read=False).count()
-
-        # Today has workout
-        today_has_workout = False
-        if active_plan_qs:
-            workout_days = list(active_plan_qs.workout_days.order_by('order'))
-            if workout_days:
-                today = date.today()
-                days_elapsed = (today - active_plan_qs.start_date).days
-                day_index = days_elapsed % len(workout_days)
-                today_has_workout = True
-
-        # Weekly sessions
-        from datetime import timedelta
-        week_start = date.today() - timedelta(days=date.today().weekday())
-        weekly_sessions_done = WorkoutSession.objects.filter(
-            member=member,
-            is_completed=True,
-            started_at__date__gte=week_start
-        ).count()
-
-        return Response({
-            'payment_status': payment_status,
-            'days_until_due': days_until_due,
-            'days_overdue': days_overdue,
-            'last_checkin': last_checkin,
-            'active_plan': active_plan,
-            'nutrition_goal': nutrition_goal,
-            'inactivity_alert': inactivity_alert,
-            'unread_notifications': unread_notifications,
-            'today_has_workout': today_has_workout,
-            'weekly_sessions_done': weekly_sessions_done,
-        })
+        member.trainer_asignado = trainer_profile
+        member.save(update_fields=['trainer_asignado'])
+        return Response(MemberProfileSerializer(member, context={'request': request}).data)
 
     @action(detail=True, methods=['post'], url_path='activate')
     def activate(self, request, pk=None):
         """POST /api/members/{id}/activate/ — Activa el perfil y genera PaymentSchedule."""
         member = self.get_object()
-        from billing.models import MembershipPlan, PaymentSchedule, PaymentRecord
+        from billing.models import MembershipPlan, MemberSubscription, PaymentSchedule, PaymentRecord
         from datetime import date
 
         member.is_active = True
         member.save()
 
-        plan_id = request.data.get('membership_plan_id')
+        plan_id = request.data.get('plan_id') or request.data.get('membership_plan_id')
+        agreed_price = request.data.get('agreed_price')
         if plan_id:
             try:
                 plan = MembershipPlan.objects.get(id=plan_id)
+                if request.user.is_staff:
+                    trainer_profile = member.trainer_asignado
+                else:
+                    trainer_profile = _get_trainer_profile(request.user)
+                    if member.trainer_asignado_id != trainer_profile.id:
+                        raise PermissionDenied('Solo puedes activar clientes asignados a ti.')
+
+                MemberSubscription.objects.filter(member=member, is_active=True).update(is_active=False)
+                subscription = MemberSubscription.objects.create(
+                    member=member,
+                    plan=plan,
+                    trainer=trainer_profile,
+                    agreed_price=agreed_price or plan.price_monthly,
+                    start_date=date.today(),
+                    next_billing_date=date.today(),
+                    recurrence_type='monthly',
+                    grace_period_days=settings.PAYMENT_GRACE_DAYS,
+                    auto_generate_next=True,
+                    is_active=True,
+                )
                 member.membership_plan = plan
-                member.save()
+                member.save(update_fields=['membership_plan', 'is_active'])
 
                 schedule, created = PaymentSchedule.objects.get_or_create(
                     member=member,
+                    subscription=subscription,
                     plan=plan,
                     is_active=True,
                     defaults={
-                        'due_date': date.today(),
-                        'grace_period_days': settings.PAYMENT_GRACE_DAYS,
+                        'due_date': subscription.next_billing_date,
+                        'recurrence_type': subscription.recurrence_type,
+                        'grace_period_days': subscription.grace_period_days,
+                        'auto_generate_next': subscription.auto_generate_next,
                     }
                 )
                 if created:
                     PaymentRecord.objects.create(
                         schedule=schedule,
-                        amount=plan.price_monthly,
+                        amount=subscription.agreed_price,
                         status='pending',
                     )
             except MembershipPlan.DoesNotExist:
@@ -392,55 +449,5 @@ class TrainerOverviewView(APIView):
     permission_classes = [IsAuthenticated, IsTrainer]
 
     def get(self, request):
-        from datetime import date, timedelta
-        from users.models import MemberProfile
-        from attendance.models import Attendance
-        from billing.models import PaymentRecord
-        from alerts.models import InactivityAlert
-        from progress.models import WorkoutSession
-
-        today = date.today()
-        month_start = today.replace(day=1)
-        week_start = today - timedelta(days=today.weekday())
-        cutoff_30d = today - timedelta(days=30)
-        grace = settings.PAYMENT_GRACE_DAYS
-
-        total_active = MemberProfile.objects.filter(is_active=True).count()
-        checked_in_today = Attendance.objects.filter(check_in_time__date=today).count()
-
-        members_in_mora = PaymentRecord.objects.filter(
-            status='late'
-        ).values('schedule__member').distinct().count()
-
-        inactive_ids = Attendance.objects.filter(
-            check_in_time__date__gte=cutoff_30d
-        ).values_list('member_id', flat=True).distinct()
-        members_inactive_30d = MemberProfile.objects.filter(
-            is_active=True
-        ).exclude(id__in=inactive_ids).count()
-
-        pending_alerts = InactivityAlert.objects.filter(resolved=False).count()
-
-        paid_this_month = PaymentRecord.objects.filter(
-            status='paid', paid_at__date__gte=month_start
-        )
-        revenue_this_month = sum(float(r.amount) for r in paid_this_month)
-
-        new_members_this_month = MemberProfile.objects.filter(
-            join_date__gte=month_start
-        ).count()
-
-        sessions_this_week = WorkoutSession.objects.filter(
-            is_completed=True, started_at__date__gte=week_start
-        ).count()
-
-        return Response({
-            'total_active_members': total_active,
-            'checked_in_today': checked_in_today,
-            'members_in_mora': members_in_mora,
-            'members_inactive_30d': members_inactive_30d,
-            'pending_alerts': pending_alerts,
-            'revenue_this_month': revenue_this_month,
-            'new_members_this_month': new_members_this_month,
-            'sessions_completed_this_week': sessions_this_week,
-        })
+        trainer_profile = _get_trainer_profile(request.user)
+        return Response(get_trainer_overview(request.user, trainer_profile))

@@ -1,0 +1,6 @@
+services:
+  frontend-test:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.test
+    working_dir: /app

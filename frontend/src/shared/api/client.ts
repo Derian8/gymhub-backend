@@ -2,9 +2,14 @@ import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { toast } from 'sonner'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
+const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 15000)
+const TOKEN_REFRESH_PATH = '/auth/token/refresh/'
+const LOGIN_PATH = '/auth/login/'
+const LOGOUT_PATH = '/auth/logout/'
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
+  timeout: API_TIMEOUT_MS,
   withCredentials: true, // Required for httpOnly cookies
   headers: {
     'Content-Type': 'application/json',
@@ -46,8 +51,13 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
+    const requestPath = originalRequest?.url ?? ''
+    const shouldSkipRefresh =
+      requestPath.includes(TOKEN_REFRESH_PATH)
+      || requestPath.includes(LOGIN_PATH)
+      || requestPath.includes(LOGOUT_PATH)
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest._retry && !shouldSkipRefresh) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject })
@@ -71,6 +81,11 @@ apiClient.interceptors.response.use(
       } finally {
         isRefreshing = false
       }
+    }
+
+    if (!error.response) {
+      toast.error('No se pudo conectar con el servidor. Verifica backend y red.')
+      return Promise.reject(error)
     }
 
     if (error.response?.status === 403) {

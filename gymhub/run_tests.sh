@@ -1,28 +1,37 @@
 #!/bin/bash
 # run_tests.sh — Ejecuta los tests pytest dentro del contenedor Docker
-set -e
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+DOCKER_BIN="docker"
+
+if ! docker ps >/dev/null 2>&1; then
+  DOCKER_BIN="/mnt/c/Program Files/Docker/Docker/resources/bin/docker.exe"
+fi
 
 echo "========================================"
 echo "  GymHub Backend — Ejecutando Tests     "
 echo "========================================"
 
-# Asegurarse de que los servicios están corriendo
-docker-compose up -d db redis
+cd "${PROJECT_ROOT}"
 
-# Esperar a que la base de datos esté lista
+# Asegurarse de que los servicios están corriendo
+"${DOCKER_BIN}" compose up -d db redis
+
 echo "Esperando a que la base de datos esté lista..."
-sleep 5
+"${DOCKER_BIN}" compose exec -T db sh -c 'until pg_isready -U "${POSTGRES_USER}" -d "${POSTGRES_DB}"; do sleep 1; done'
 
 # Ejecutar migraciones en modo test
-docker-compose run --rm web sh -c "
-  python manage.py migrate --settings=gymhub.settings_test --noinput 2>/dev/null || true
+"${DOCKER_BIN}" compose run --rm backend sh -c "
+  python manage.py migrate --settings=gymhub.settings_test --noinput
 "
 
 # Ejecutar los tests
 echo "Ejecutando tests..."
-docker-compose run --rm \
+"${DOCKER_BIN}" compose run --rm \
   -e DJANGO_SETTINGS_MODULE=gymhub.settings_test \
-  web pytest tests/ -v --tb=short "$@"
+  backend pytest tests/ -v --tb=short "$@"
 
 echo "========================================"
 echo "  Tests completados                      "

@@ -1,7 +1,9 @@
 import apiClient from '@/shared/api/client'
 import type {
+  ActivePrescription,
   MemberProfile,
   MemberDashboardSummary,
+  PrescriptionSummary,
   TrainerOverview,
   PaginatedResponse,
 } from '@/shared/types'
@@ -10,6 +12,9 @@ interface MembersParams {
   search?: string
   payment_status?: string
   inactivity?: string
+  risk_level?: string
+  prescription_status?: string
+  ordering?: string
   page?: number
 }
 
@@ -29,10 +34,27 @@ export const membersApi = {
     return data
   },
 
-  activate: async (id: number, membershipPlanId?: number): Promise<{ message: string; member: MemberProfile }> => {
+  prescriptionSummary: async (id: number): Promise<PrescriptionSummary> => {
+    const { data } = await apiClient.get(`/api/members/${id}/prescription-summary/`)
+    return data
+  },
+
+  activePrescription: async (id: number): Promise<ActivePrescription> => {
+    const { data } = await apiClient.get(`/api/members/${id}/active-prescription/`)
+    return data
+  },
+
+  activate: async (id: number, payload?: { plan_id?: number; agreed_price?: number }): Promise<{ message: string; member: MemberProfile }> => {
     const { data } = await apiClient.post(`/api/members/${id}/activate/`, {
-      membership_plan_id: membershipPlanId,
+      membership_plan_id: payload?.plan_id,
+      plan_id: payload?.plan_id,
+      agreed_price: payload?.agreed_price,
     })
+    return data
+  },
+
+  assignTrainer: async (id: number): Promise<MemberProfile> => {
+    const { data } = await apiClient.post(`/api/members/${id}/assign-trainer/`)
     return data
   },
 

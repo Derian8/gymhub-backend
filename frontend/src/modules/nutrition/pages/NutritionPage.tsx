@@ -1,24 +1,55 @@
 import { Utensils, Target } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import { useMemberActivePrescriptionQuery } from '@/modules/members/hooks/useMembers'
 import { useNutritionProfilesQuery, useNutritionGuidelinesQuery } from '../hooks/useNutrition'
 import { Badge, PageHeader, EmptyState } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
 import { GOAL_LABELS } from '@/shared/lib/utils'
+import { useAuthStore } from '@/shared/store/authStore'
 import type { NutritionProfile, NutritionGuideline } from '@/shared/types'
 
 export function NutritionPage() {
-  const { data: profiles, isLoading: profilesLoading } = useNutritionProfilesQuery()
+  const [searchParams] = useSearchParams()
+  const memberId = searchParams.get('member')
+  const { user } = useAuthStore()
+  const isMemberView = user?.role === 'member' && !memberId
+  const { data: activePrescription, isLoading: activePrescriptionLoading } = useMemberActivePrescriptionQuery(
+    isMemberView ? user?.memberprofile_id || 0 : 0,
+  )
+  const { data: profiles, isLoading: profilesLoading } = useNutritionProfilesQuery(
+    memberId ? { member: memberId } : undefined,
+  )
   const { data: guidelines, isLoading: guidelinesLoading } = useNutritionGuidelinesQuery()
 
   return (
     <div data-testid="nutrition-page" className="page-enter">
-      <PageHeader title="Nutrición" subtitle="Perfiles y guías nutricionales" />
+      <PageHeader
+        title="Nutrición"
+        subtitle={memberId ? 'Recomendaciones nutricionales del cliente seleccionado' : 'Perfiles y guías nutricionales'}
+      />
 
       {/* My Profile */}
       <section className="mb-8">
         <h2 className="font-heading font-bold text-xl text-neutral-900 dark:text-white mb-4">
           Mi perfil nutricional
         </h2>
-        {profilesLoading ? (
+        {isMemberView ? (
+          activePrescriptionLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CardSkeleton lines={5} />
+            </div>
+          ) : !activePrescription?.perfil_nutricional ? (
+            <EmptyState
+              icon={<Utensils size={40} />}
+              title="Sin nutrición activa"
+              description="Tu trainer aún no ha asociado una guía nutricional a tu plan activo."
+            />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <NutritionProfileCard profile={activePrescription.perfil_nutricional} />
+            </div>
+          )
+        ) : profilesLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <CardSkeleton lines={5} />
           </div>
@@ -42,7 +73,25 @@ export function NutritionPage() {
         <h2 className="font-heading font-bold text-xl text-neutral-900 dark:text-white mb-4">
           Guías de nutrición
         </h2>
-        {guidelinesLoading ? (
+        {isMemberView ? (
+          activePrescriptionLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Array.from({ length: 2 }).map((_, i) => <CardSkeleton key={i} lines={3} />)}
+            </div>
+          ) : !activePrescription?.guias_vinculadas.length ? (
+            <EmptyState
+              icon={<Target size={40} />}
+              title="Sin guías activas"
+              description="Las guías nutricionales vinculadas por tu trainer aparecerán aquí."
+            />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {activePrescription.guias_vinculadas.map((guideLink) => (
+                <GuidelineCard key={guideLink.id} guideline={guideLink.guideline} />
+              ))}
+            </div>
+          )
+        ) : guidelinesLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {Array.from({ length: 4 }).map((_, i) => <CardSkeleton key={i} lines={3} />)}
           </div>

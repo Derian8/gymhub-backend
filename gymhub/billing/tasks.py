@@ -1,10 +1,21 @@
+from smtplib import SMTPException
+
 from celery import shared_task
 from django.conf import settings
 from django.core.mail import send_mail
-from django.utils import timezone
-
 import logging
+
 logger = logging.getLogger(__name__)
+
+
+def _notification_recipients(member):
+    trainer = getattr(member, 'trainer_asignado', None)
+    if trainer is not None:
+        return [trainer.user]
+
+    from users.models import TrainerProfile
+
+    return [trainer_profile.user for trainer_profile in TrainerProfile.objects.select_related('user').all()]
 
 
 @shared_task(name='billing.tasks.check_upcoming_payments')
@@ -26,18 +37,19 @@ def check_upcoming_payments():
         status='pending',
         schedule__due_date__lte=cutoff,
         schedule__due_date__gte=today,
-    ).select_related('schedule__member__user', 'schedule__plan')
+    ).select_related('schedule__member__user', 'schedule__plan', 'schedule__subscription__plan')
 
     for record in records:
         member = record.schedule.member
         due_date = record.schedule.due_date
-        plan_name = record.schedule.plan.name
+        plan = record.schedule.resolved_plan
+        plan_name = plan.name if plan else 'Plan'
 
-        # Verificar que no existe ya una notificación para esta fecha de vencimiento
+        dedupe_key = f'payment_due:{record.id}:{due_date.isoformat()}'
         already_notified = Notification.objects.filter(
             user=member.user,
             type='payment_due',
-            message__contains=str(due_date),
+            dedupe_key=dedupe_key,
         ).exists()
 
         if not already_notified:
@@ -46,6 +58,7 @@ def check_upcoming_payments():
                 user=member.user,
                 message=f"Tu pago del plan '{plan_name}' vence en {days_left} día(s) el {due_date}.",
                 type='payment_due',
+                dedupe_key=dedupe_key,
             )
             notifications_created += 1
 
@@ -58,8 +71,11 @@ def check_upcoming_payments():
                     recipient_list=[member.user.email],
                     fail_silently=True,
                 )
-            except Exception:
-                pass
+            except (SMTPException, OSError):
+                logger.exception(
+                    'No se pudo enviar recordatorio de pago',
+                    extra={'member_email': member.user.email, 'due_date': str(due_date)}
+                )
 
     logger.info(f"check_upcoming_payments: {notifications_created} notificaciones creadas.")
     return {'notifications_created': notifications_created}
@@ -74,7 +90,6 @@ def check_overdue_payments():
     """
     from datetime import date
     from billing.models import PaymentRecord
-    from users.models import TrainerProfile
     from alerts.models import Notification
 
     today = date.today()
@@ -83,7 +98,7 @@ def check_overdue_payments():
 
     pending_records = PaymentRecord.objects.filter(
         status='pending',
-    ).select_related('schedule__member__user', 'schedule__plan')
+    ).select_related('schedule__member__user', 'schedule__plan', 'schedule__subscription__plan')
 
     for record in pending_records:
         due_date = record.schedule.due_date
@@ -96,24 +111,39 @@ def check_overdue_payments():
             updated += 1
 
             member = record.schedule.member
-            plan_name = record.schedule.plan.name
+            plan = record.schedule.resolved_plan
+            plan_name = plan.name if plan else 'Plan'
 
-            # Notificar al miembro
-            Notification.objects.create(
+            member_dedupe_key = f'payment_overdue:member:{record.id}:{due_date.isoformat()}'
+            _, created = Notification.objects.get_or_create(
                 user=member.user,
-                message=f"Tu pago del plan '{plan_name}' está vencido hace {days_overdue} días. Por favor regulariza tu situación.",
                 type='payment_overdue',
+                dedupe_key=member_dedupe_key,
+                defaults={
+                    'message': (
+                        f"Tu pago del plan '{plan_name}' está vencido hace {days_overdue} días. "
+                        'Por favor regulariza tu situación.'
+                    ),
+                },
             )
-            notifications_created += 1
+            notifications_created += int(created)
 
-            # Notificar a trainers
-            for trainer in TrainerProfile.objects.select_related('user').all():
-                Notification.objects.create(
-                    user=trainer.user,
-                    message=f"El miembro {member.user.get_full_name() or member.user.email} tiene pago vencido hace {days_overdue} días ({plan_name}).",
-                    type='payment_overdue',
+            for recipient in _notification_recipients(member):
+                trainer_dedupe_key = (
+                    f'payment_overdue:trainer:{recipient.id}:{record.id}:{due_date.isoformat()}'
                 )
-                notifications_created += 1
+                _, created = Notification.objects.get_or_create(
+                    user=recipient,
+                    type='payment_overdue',
+                    dedupe_key=trainer_dedupe_key,
+                    defaults={
+                        'message': (
+                            f"El miembro {member.user.get_full_name() or member.user.email} "
+                            f'tiene pago vencido hace {days_overdue} días ({plan_name}).'
+                        ),
+                    },
+                )
+                notifications_created += int(created)
 
             # Email al miembro
             try:
@@ -124,8 +154,11 @@ def check_overdue_payments():
                     recipient_list=[member.user.email],
                     fail_silently=True,
                 )
-            except Exception:
-                pass
+            except (SMTPException, OSError):
+                logger.exception(
+                    'No se pudo enviar email de pago vencido',
+                    extra={'member_email': member.user.email, 'days_overdue': days_overdue}
+                )
 
     logger.info(f"check_overdue_payments: {updated} registros actualizados, {notifications_created} notificaciones.")
     return {'updated': updated, 'notifications_created': notifications_created}

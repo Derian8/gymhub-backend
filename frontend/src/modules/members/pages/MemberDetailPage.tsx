@@ -1,19 +1,39 @@
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Phone, Calendar, Mail, Dumbbell, CreditCard, CheckSquare } from 'lucide-react'
-import { useMemberDetailQuery, useActivateMemberMutation } from '../hooks/useMembers'
+import { ArrowLeft, Phone, Calendar, Mail, Dumbbell, CreditCard, CheckSquare, Apple, AlertTriangle, Activity } from 'lucide-react'
+import { useMemberActivePrescriptionQuery, useMemberDetailQuery, useActivateMemberMutation, useAssignTrainerMutation, useMemberDashboardQuery } from '../hooks/useMembers'
 import { useMembershipPlansQuery } from '@/modules/billing/hooks/useBilling'
 import { Badge, PageHeader, Avatar } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
-import { formatDate } from '@/shared/lib/utils'
-import { useState } from 'react'
+import { formatDate, formatDateTime, RISK_LEVEL_BADGE, RISK_LEVEL_LABELS } from '@/shared/lib/utils'
+import { useEffect, useMemo, useState } from 'react'
+import { useAuthStore } from '@/shared/store/authStore'
+import { descripcionPublicacionPrescripcion, leerPublicacionPrescripcion } from '@/shared/lib/prescriptionPublication'
 
 export function MemberDetailPage() {
   const { id } = useParams<{ id: string }>()
   const memberId = parseInt(id || '0')
   const { data: member, isLoading } = useMemberDetailQuery(memberId)
+  const { data: dashboardSummary } = useMemberDashboardQuery(memberId)
+  const { data: activePrescription } = useMemberActivePrescriptionQuery(memberId)
   const { data: plans } = useMembershipPlansQuery()
   const { mutate: activate, isPending: isActivating } = useActivateMemberMutation()
+  const { mutate: assignTrainer, isPending: isAssigningTrainer } = useAssignTrainerMutation()
+  const { user } = useAuthStore()
   const [selectedPlanId, setSelectedPlanId] = useState<number | undefined>()
+  const [agreedPrice, setAgreedPrice] = useState<number | undefined>()
+  const lastPublication = useMemo(() => leerPublicacionPrescripcion(memberId), [memberId])
+
+  useEffect(() => {
+    if (!member || !plans?.results.length || selectedPlanId) {
+      return
+    }
+    const defaultPlan = plans.results.find((plan) => plan.id === member.membership_plan) ?? plans.results[0]
+    if (!defaultPlan) {
+      return
+    }
+    setSelectedPlanId(defaultPlan.id)
+    setAgreedPrice(Number(member.precio_suscripcion_actual ?? defaultPlan.price_monthly))
+  }, [member, plans, selectedPlanId])
 
   if (isLoading) {
     return (
@@ -38,6 +58,20 @@ export function MemberDetailPage() {
     )
   }
 
+  const canManagePrescription = user?.is_staff || (member.trainer_asignado !== null && member.trainer_asignado === user?.trainerprofile_id)
+  const prescriptionStatus = !member.trainer_asignado
+    ? 'Sin asignar'
+    : activePrescription?.estado_prescripcion.esta_lista_para_member
+      ? 'Lista para member'
+      : activePrescription?.estado_prescripcion.tiene_plan_activo
+        ? 'Incompleta'
+        : 'Pendiente'
+  const prescriptionVariant = !member.trainer_asignado
+    ? 'warning'
+    : activePrescription?.estado_prescripcion.esta_lista_para_member
+      ? 'success'
+      : 'warning'
+
   return (
     <div data-testid="member-detail-page" className="page-enter">
       <Link to="/members" className="flex items-center gap-2 text-sm text-neutral-500 hover:text-primary transition-colors mb-6">
@@ -51,14 +85,42 @@ export function MemberDetailPage() {
         breadcrumb={[{ label: 'Miembros', href: '/members' }, { label: member.full_name }]}
         action={
           <div className="flex gap-2">
+            {member.trainer_asignado && canManagePrescription && (
+              <Link
+                to={`/members/${member.id}/program`}
+                className="btn-primary"
+                data-testid="manage-prescription-btn"
+              >
+                {activePrescription?.estado_prescripcion.tiene_plan_activo ? 'Editar prescripción' : 'Asignar plan al miembro'}
+              </Link>
+            )}
+            {member.trainer_asignado && (
+              <Link
+                to={`/ai-chat?member=${member.id}`}
+                className="btn-secondary"
+                data-testid="open-ai-copilot-btn"
+              >
+                Abrir copiloto IA
+              </Link>
+            )}
             {!member.is_active && (
               <button
-                onClick={() => activate({ id: member.id, membershipPlanId: selectedPlanId })}
+                onClick={() => activate({ id: member.id, planId: selectedPlanId, agreedPrice })}
                 disabled={isActivating}
                 className="btn-primary flex items-center gap-2"
                 data-testid="activate-member-btn"
               >
                 {isActivating ? 'Activando...' : 'Activar miembro'}
+              </button>
+            )}
+            {!member.trainer_asignado && user?.role === 'trainer' && (
+              <button
+                onClick={() => assignTrainer(member.id)}
+                disabled={isAssigningTrainer}
+                className="btn-secondary"
+                data-testid="assign-trainer-btn"
+              >
+                {isAssigningTrainer ? 'Asignando...' : 'Asignarme cliente'}
               </button>
             )}
           </div>
@@ -77,6 +139,9 @@ export function MemberDetailPage() {
             <Badge variant={member.is_active ? 'success' : 'error'}>
               {member.is_active ? 'Activo' : 'Inactivo'}
             </Badge>
+            <Badge variant={member.trainer_asignado ? 'info' : 'warning'}>
+              {member.trainer_asignado_nombre ? `Trainer: ${member.trainer_asignado_nombre}` : 'Sin trainer asignado'}
+            </Badge>
           </div>
 
           <div className="space-y-3 text-sm">
@@ -92,6 +157,125 @@ export function MemberDetailPage() {
 
         {/* Actions & details */}
         <div className="lg:col-span-2 space-y-4">
+          <div className="card p-6" data-testid="member-prescription-panel">
+            <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+              <div>
+                <p className="label-base">Prescripción del trainer</p>
+                <h3 className="font-heading font-bold text-lg text-neutral-900 dark:text-white">
+                  {member.trainer_asignado
+                    ? activePrescription?.plan_activo?.name || 'Aún no hay plan publicado'
+                    : 'Primero asigna este cliente'}
+                </h3>
+                <p className="text-sm text-neutral-500 mt-1">
+                  {member.trainer_asignado_nombre
+                    ? `Responsable: ${member.trainer_asignado_nombre}`
+                    : 'Sin trainer asignado todavía.'}
+                </p>
+                {lastPublication && (
+                  <p className="text-sm text-neutral-500 mt-1" data-testid="member-last-publication">
+                    Ultima publicacion: {descripcionPublicacionPrescripcion(lastPublication.tipo)} el {formatDateTime(lastPublication.fechaIso)}
+                  </p>
+                )}
+              </div>
+              <Badge variant={prescriptionVariant}>
+                {prescriptionStatus}
+              </Badge>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+              <PrescriptionTile
+                label="Plan activo"
+                value={activePrescription?.estado_prescripcion.tiene_plan_activo ? 'Publicado' : 'Pendiente'}
+              />
+              <PrescriptionTile
+                label="Nutrición"
+                value={activePrescription?.estado_prescripcion.tiene_nutricion ? 'Asignada' : 'Pendiente'}
+              />
+              <PrescriptionTile
+                label="Visible para member"
+                value={activePrescription?.estado_prescripcion.esta_lista_para_member ? 'Sí' : 'No'}
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {!member.trainer_asignado && user?.role === 'trainer' ? (
+                <button
+                  onClick={() => assignTrainer(member.id)}
+                  disabled={isAssigningTrainer}
+                  className="btn-secondary"
+                  data-testid="prescription-assign-trainer-btn"
+                >
+                  {isAssigningTrainer ? 'Asignando...' : 'Asignarme y empezar prescripción'}
+                </button>
+              ) : canManagePrescription ? (
+                <Link
+                  to={`/members/${member.id}/program`}
+                  className="btn-secondary"
+                  data-testid="open-prescription-flow-btn"
+                >
+                  {activePrescription?.estado_prescripcion.tiene_plan_activo ? 'Abrir flujo de prescripción' : 'Crear prescripción'}
+                </Link>
+              ) : null}
+              {activePrescription?.plan_activo && (
+                <Link
+                  to={`/plans/${activePrescription.plan_activo.id}`}
+                  className="text-sm font-medium text-primary hover:underline"
+                  data-testid="active-plan-detail-link"
+                >
+                  Ver plan publicado
+                </Link>
+              )}
+            </div>
+          </div>
+
+          <div className="card p-6" data-testid="member-risk-panel">
+            <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+              <div>
+                <p className="label-base">Radar de adherencia</p>
+                <h3 className="font-heading font-bold text-lg text-neutral-900 dark:text-white">
+                  {dashboardSummary?.siguiente_accion || 'Sin recomendación disponible'}
+                </h3>
+              </div>
+              {member.nivel_riesgo ? (
+                <Badge variant={RISK_LEVEL_BADGE[member.nivel_riesgo]}>
+                  Riesgo {RISK_LEVEL_LABELS[member.nivel_riesgo]} · {member.riesgo_adherencia || 0}/100
+                </Badge>
+              ) : null}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+              <InsightTile
+                icon={<CheckSquare size={18} />}
+                label="Último check-in"
+                value={member.days_since_last_checkin == null ? 'Sin registro' : `${member.days_since_last_checkin} días`}
+              />
+              <InsightTile
+                icon={<Dumbbell size={18} />}
+                label="Última sesión"
+                value={member.days_since_last_session == null ? 'Sin registro' : `${member.days_since_last_session} días`}
+              />
+              <InsightTile
+                icon={<Activity size={18} />}
+                label="Último progreso"
+                value={member.days_since_last_progress == null ? 'Sin registro' : `${member.days_since_last_progress} días`}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-wide text-neutral-500">Señales detectadas</p>
+              {member.motivos_riesgo?.length ? (
+                member.motivos_riesgo.map((reason) => (
+                  <div key={reason} className="flex items-start gap-2 text-sm text-neutral-700 dark:text-neutral-300">
+                    <AlertTriangle size={14} className="text-yellow-500 mt-0.5 flex-shrink-0" />
+                    <span>{reason}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-neutral-500">Sin señales críticas por ahora.</p>
+              )}
+            </div>
+          </div>
+
           {/* Activation panel */}
           {!member.is_active && (
             <div className="card p-6 border-yellow-500/30" data-testid="activation-panel">
@@ -99,7 +283,7 @@ export function MemberDetailPage() {
                 Activar miembro
               </h3>
               <p className="text-sm text-neutral-500 mb-4">
-                Selecciona un plan de membresía para activar al miembro y generar su calendario de pagos.
+                Selecciona un plan configurable y define el precio acordado para activar al miembro y generar su suscripción.
               </p>
               {plans?.results && (
                 <div className="space-y-2 mb-4">
@@ -117,17 +301,33 @@ export function MemberDetailPage() {
                         name="plan"
                         value={plan.id}
                         checked={selectedPlanId === plan.id}
-                        onChange={() => setSelectedPlanId(plan.id)}
+                        onChange={() => {
+                          setSelectedPlanId(plan.id)
+                          setAgreedPrice(Number(plan.price_monthly))
+                        }}
                         className="accent-primary"
                       />
                       <div>
                         <p className="font-medium text-neutral-900 dark:text-white text-sm">{plan.name}</p>
-                        <p className="text-xs text-neutral-500">${plan.price_monthly}/mes · {plan.duration_months} mes(es)</p>
+                        <p className="text-xs text-neutral-500">${plan.price_monthly}/mes base · {plan.duration_months} mes(es)</p>
                       </div>
                     </label>
                   ))}
                 </div>
               )}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  Precio acordado de la suscripción
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  className="input"
+                  value={agreedPrice ?? ''}
+                  onChange={(event) => setAgreedPrice(event.target.value ? Number(event.target.value) : undefined)}
+                  data-testid="activation-agreed-price-input"
+                />
+              </div>
             </div>
           )}
 
@@ -135,9 +335,9 @@ export function MemberDetailPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <QuickLink
               icon={<Dumbbell size={20} />}
-              label="Ver planes"
-              to={`/plans?member=${member.id}`}
-              testId="member-plans-link"
+              label="Asignar plan"
+              to={`/members/${member.id}/program`}
+              testId="member-program-link"
             />
             <QuickLink
               icon={<CreditCard size={20} />}
@@ -146,14 +346,47 @@ export function MemberDetailPage() {
               testId="member-billing-link"
             />
             <QuickLink
+              icon={<AlertTriangle size={20} />}
+              label="Alertas"
+              to="/alerts"
+              testId="member-alerts-link"
+            />
+            <QuickLink
               icon={<CheckSquare size={20} />}
               label="Asistencia"
               to={`/attendance?member=${member.id}`}
               testId="member-attendance-link"
             />
+            <QuickLink
+              icon={<Apple size={20} />}
+              label="Nutrición"
+              to={`/nutrition?member=${member.id}`}
+              testId="member-nutrition-link"
+            />
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+function PrescriptionTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-sm border border-neutral-200 dark:border-neutral-800 p-3">
+      <p className="text-xs uppercase tracking-wide text-neutral-500">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-neutral-900 dark:text-white">{value}</p>
+    </div>
+  )
+}
+
+function InsightTile({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="rounded-sm border border-neutral-200 dark:border-neutral-800 p-3">
+      <div className="flex items-center gap-2 text-neutral-500 mb-1">
+        {icon}
+        <span className="text-xs uppercase tracking-wide">{label}</span>
+      </div>
+      <p className="text-sm font-medium text-neutral-900 dark:text-white">{value}</p>
     </div>
   )
 }

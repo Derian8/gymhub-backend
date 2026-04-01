@@ -3,11 +3,12 @@ import { toast } from 'sonner'
 import { plansApi } from '../api/plansApi'
 import { QUERY_KEYS } from '@/shared/constants/queryKeys'
 import { extractApiError } from '@/shared/lib/utils'
+import type { ExercisePayload, TrainingPlanPayload, TrainingTemplateUpdatePayload, WorkoutDayPayload } from '@/shared/types'
 
-export function usePlansQuery() {
+export function usePlansQuery(params?: Record<string, string>) {
   return useQuery({
-    queryKey: QUERY_KEYS.PLANS_LIST,
-    queryFn: plansApi.list,
+    queryKey: QUERY_KEYS.PLANS_LIST(params),
+    queryFn: () => plansApi.list(params),
   })
 }
 
@@ -32,6 +33,288 @@ export function useWeeklyPlanQuery(planId: number) {
     queryKey: QUERY_KEYS.PLAN_WEEKLY(planId),
     queryFn: () => plansApi.weeklyView(planId),
     enabled: !!planId,
+  })
+}
+
+export function useWorkoutDaysByPlanQuery(planId: number) {
+  return useQuery({
+    queryKey: QUERY_KEYS.WORKOUT_DAYS_BY_PLAN(planId),
+    queryFn: () => plansApi.workoutDaysByPlan(planId),
+    enabled: !!planId,
+  })
+}
+
+export function useTrainingTemplatesQuery() {
+  return useQuery({
+    queryKey: QUERY_KEYS.PLAN_TEMPLATES,
+    queryFn: plansApi.trainingTemplates,
+  })
+}
+
+export function useCreatePlanMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: plansApi.createPlan,
+    onSuccess: (plan) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLANS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_PROGRAM(plan.member) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_ACTIVE_PRESCRIPTION(plan.member) })
+      toast.success('Plan publicado al member')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useUpdatePlanMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: Partial<TrainingPlanPayload> }) => plansApi.updatePlan(id, payload),
+    onSuccess: (plan) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLANS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_DETAIL(plan.id) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_PROGRAM(plan.member) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_ACTIVE_PRESCRIPTION(plan.member) })
+      toast.success('Cambios del plan publicados al member')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useDeletePlanMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id }: { id: number; memberId: number }) => plansApi.deletePlan(id),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLANS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_DETAIL(variables.id) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_PROGRAM(variables.memberId) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_PRESCRIPTION(variables.memberId) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_ACTIVE_PRESCRIPTION(variables.memberId) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TRAINER_OVERVIEW })
+      toast.success('Plan y contenido eliminados')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useCreateWorkoutDayMutation(planId?: number, memberId?: number) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: plansApi.createWorkoutDay,
+    onSuccess: (day) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WORKOUT_DAYS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WORKOUT_DAYS_BY_PLAN(day.plan) })
+      if (memberId) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_ACTIVE_PRESCRIPTION(memberId) })
+      }
+      if (planId) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_DETAIL(planId) })
+      }
+      toast.success('Día agregado al plan activo del member')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useUpdateWorkoutDayMutation(planId?: number, memberId?: number) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: Partial<WorkoutDayPayload>; silent?: boolean }) =>
+      plansApi.updateWorkoutDay(id, payload),
+    onSuccess: (day, variables) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WORKOUT_DAYS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WORKOUT_DAYS_BY_PLAN(day.plan) })
+      if (planId) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_DETAIL(planId) })
+      }
+      if (memberId) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_PROGRAM(memberId) })
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_ACTIVE_PRESCRIPTION(memberId) })
+      }
+      if (!variables.silent) {
+        toast.success('Dia actualizado en el plan del member')
+      }
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useDeleteWorkoutDayMutation(planId?: number, memberId?: number) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id }: { id: number }) => plansApi.deleteWorkoutDay(id),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WORKOUT_DAYS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WORKOUT_DAYS_BY_PLAN(planId ?? 0) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.EXERCISES })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.EXERCISES_BY_DAY(variables.id) })
+      if (planId) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_DETAIL(planId) })
+      }
+      if (memberId) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_PROGRAM(memberId) })
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_PRESCRIPTION(memberId) })
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_ACTIVE_PRESCRIPTION(memberId) })
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERS })
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TRAINER_OVERVIEW })
+      }
+      toast.success('Dia eliminado del plan')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useCreateExerciseMutation(memberId?: number) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: plansApi.createExercise,
+    onSuccess: (exercise) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.EXERCISES })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.EXERCISES_BY_DAY(exercise.workout_day) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WORKOUT_DAYS })
+      if (memberId) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_ACTIVE_PRESCRIPTION(memberId) })
+      }
+      toast.success('Ejercicio publicado en la rutina del member')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useUpdateExerciseMutation(planId?: number, memberId?: number) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: Partial<ExercisePayload>; silent?: boolean }) =>
+      plansApi.updateExercise(id, payload),
+    onSuccess: (exercise, variables) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.EXERCISES })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.EXERCISES_BY_DAY(exercise.workout_day) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WORKOUT_DAYS })
+      if (planId) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WORKOUT_DAYS_BY_PLAN(planId) })
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_DETAIL(planId) })
+      }
+      if (memberId) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_PROGRAM(memberId) })
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_ACTIVE_PRESCRIPTION(memberId) })
+      }
+      if (!variables.silent) {
+        toast.success('Ejercicio actualizado en la rutina del member')
+      }
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useDeleteExerciseMutation(planId?: number, memberId?: number) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, workoutDayId }: { id: number; workoutDayId: number }) => plansApi.deleteExercise(id),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.EXERCISES })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.EXERCISES_BY_DAY(variables.workoutDayId) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WORKOUT_DAYS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WORKOUT_DAYS_BY_PLAN(planId ?? 0) })
+      if (planId) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_DETAIL(planId) })
+      }
+      if (memberId) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_PROGRAM(memberId) })
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_PRESCRIPTION(memberId) })
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_ACTIVE_PRESCRIPTION(memberId) })
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERS })
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TRAINER_OVERVIEW })
+      }
+      toast.success('Ejercicio eliminado de la rutina')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useSavePlanAsTemplateMutation(memberId?: number) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ planId, payload }: { planId: number; payload?: Record<string, unknown> }) => plansApi.savePlanAsTemplate(planId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_TEMPLATES })
+      if (memberId) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_PROGRAM(memberId) })
+      }
+      toast.success('Plantilla de entrenamiento guardada')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useApplyTrainingTemplateMutation(memberId?: number) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ templateId, payload }: { templateId: number; payload: { member_id: number; start_date?: string } }) =>
+      plansApi.applyTrainingTemplate(templateId, payload),
+    onSuccess: (plan) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLANS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_TEMPLATES })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_PROGRAM(memberId || plan.member) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_PRESCRIPTION(memberId || plan.member) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_ACTIVE_PRESCRIPTION(memberId || plan.member) })
+      toast.success('Base de entrenamiento publicada al member')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useUpdateTrainingTemplateMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ templateId, payload }: { templateId: number; payload: TrainingTemplateUpdatePayload }) =>
+      plansApi.updateTrainingTemplate(templateId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_TEMPLATES })
+      toast.success('Plantilla de entrenamiento actualizada')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useDeleteTrainingTemplateMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ templateId }: { templateId: number }) => plansApi.deleteTrainingTemplate(templateId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_TEMPLATES })
+      toast.success('Plantilla de entrenamiento eliminada')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useRefreshTrainingTemplateMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ templateId, payload }: { templateId: number; payload: { plan_id: number } }) =>
+      plansApi.refreshTrainingTemplateFromPlan(templateId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_TEMPLATES })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLANS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WORKOUT_DAYS })
+      toast.success('Plantilla sincronizada desde el plan activo')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
   })
 }
 

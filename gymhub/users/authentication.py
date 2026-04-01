@@ -1,5 +1,6 @@
 from django.conf import settings
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 
 
@@ -34,7 +35,7 @@ class JWTCookieAuthentication(JWTAuthentication):
 
         try:
             user = self.get_user(validated_token)
-        except Exception:
+        except (AuthenticationFailed, InvalidToken, TokenError):
             return None
 
         return user, validated_token

@@ -9,12 +9,14 @@ import { extractApiError } from '@/shared/lib/utils'
 export function useLoginMutation() {
   const navigate = useNavigate()
   const setUser = useAuthStore((s) => s.setUser)
+  const setAuthResolved = useAuthStore((s) => s.setAuthResolved)
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: authApi.login,
     onSuccess: (data) => {
       setUser(data.user)
+      setAuthResolved(true)
       queryClient.setQueryData(QUERY_KEYS.ME, data.user)
       toast.success('¡Bienvenido de vuelta!')
       const role = data.user.role
@@ -33,18 +35,21 @@ export function useLoginMutation() {
 export function useLogoutMutation() {
   const navigate = useNavigate()
   const logout = useAuthStore((s) => s.logout)
+  const setAuthResolved = useAuthStore((s) => s.setAuthResolved)
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: authApi.logout,
     onSuccess: () => {
       logout()
+      setAuthResolved(true)
       queryClient.clear()
       navigate('/login', { replace: true })
       toast.success('Sesión cerrada correctamente')
     },
     onError: () => {
       logout()
+      setAuthResolved(true)
       queryClient.clear()
       navigate('/login', { replace: true })
     },

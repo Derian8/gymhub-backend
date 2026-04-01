@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 NOTIFICATION_TYPE_CHOICES = [
@@ -6,6 +7,7 @@ NOTIFICATION_TYPE_CHOICES = [
     ('payment_due', 'Payment Due'),
     ('payment_overdue', 'Payment Overdue'),
     ('plan_assigned', 'Plan Assigned'),
+    ('trainer_message', 'Trainer Message'),
     ('system', 'System'),
 ]
 
@@ -30,6 +32,9 @@ class InactivityAlert(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['member', 'resolved', 'created_at']),
+        ]
 
     def __str__(self):
         return f"Alert: {self.member} — {self.days_inactive} días inactivo"
@@ -47,11 +52,24 @@ class Notification(models.Model):
         choices=NOTIFICATION_TYPE_CHOICES,
         default='system'
     )
+    dedupe_key = models.CharField(max_length=120, blank=True, default='')
     read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'read', 'created_at']),
+            models.Index(fields=['type', 'created_at']),
+            models.Index(fields=['dedupe_key']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['dedupe_key'],
+                condition=~Q(dedupe_key=''),
+                name='uniq_notification_dedupe_key',
+            ),
+        ]
 
     def __str__(self):
         return f"Notif({self.type}) → {self.user.email}"

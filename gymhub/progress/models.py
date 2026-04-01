@@ -26,6 +26,9 @@ class ProgressLog(models.Model):
 
     class Meta:
         ordering = ['-recorded_at']
+        indexes = [
+            models.Index(fields=['member', 'recorded_at']),
+        ]
 
     def __str__(self):
         return f"{self.member} — {self.recorded_at.date()}"
@@ -60,6 +63,10 @@ class WorkoutSession(models.Model):
 
     class Meta:
         ordering = ['-started_at']
+        indexes = [
+            models.Index(fields=['member', 'is_completed', 'started_at']),
+            models.Index(fields=['workout_day', 'started_at']),
+        ]
 
     def __str__(self):
         return f"{self.member} — {self.workout_day} @ {self.started_at.date()}"

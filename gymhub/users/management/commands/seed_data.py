@@ -141,12 +141,14 @@ class Command(BaseCommand):
             profile, _ = MemberProfile.objects.get_or_create(
                 user=user,
                 defaults={
+                    'trainer_asignado': trainers[i % len(trainers)],
                     'membership_plan': plan,
                     'phone': f'+5491100{i+1:04d}',
                     'join_date': date.today() - timedelta(days=90 + i * 5),
                     'is_active': True,
                 }
             )
+            profile.trainer_asignado = trainers[i % len(trainers)]
             profile.membership_plan = plan
             profile.save()
             members.append(profile)
@@ -159,8 +161,6 @@ class Command(BaseCommand):
 
         training_plans = []
         goals = ['muscle_gain', 'fat_loss', 'endurance', 'muscle_gain', 'fat_loss']
-        trainer = trainers[0]
-
         # Ejercicios por día
         exercises_by_day = {
             'A': [  # Pecho + Tríceps
@@ -192,6 +192,7 @@ class Command(BaseCommand):
 
         for i in range(5):
             member = members[i]
+            trainer = member.trainer_asignado or trainers[0]
             plan, _ = TrainingPlan.objects.get_or_create(
                 member=member,
                 trainer=trainer,

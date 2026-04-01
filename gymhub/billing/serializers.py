@@ -1,24 +1,53 @@
 from rest_framework import serializers
-from .models import MembershipPlan, PaymentSchedule, PaymentRecord, PaymentMethod, PaymentInstruction
+from .models import MembershipPlan, MemberSubscription, PaymentSchedule, PaymentRecord, PaymentMethod, PaymentInstruction
 
 
 class MembershipPlanSerializer(serializers.ModelSerializer):
+    trainer_nombre = serializers.SerializerMethodField()
+
     class Meta:
         model = MembershipPlan
-        fields = ('id', 'name', 'description', 'price_monthly', 'duration_months', 'features')
+        fields = (
+            'id', 'trainer', 'trainer_nombre', 'name', 'description',
+            'price_monthly', 'duration_months', 'features', 'is_active',
+        )
+
+    def get_trainer_nombre(self, obj):
+        if not obj.trainer_id:
+            return None
+        return obj.trainer.user.get_full_name() or obj.trainer.user.email
+
+
+class MemberSubscriptionSerializer(serializers.ModelSerializer):
+    plan_detail = MembershipPlanSerializer(source='plan', read_only=True)
+
+    class Meta:
+        model = MemberSubscription
+        fields = (
+            'id', 'member', 'plan', 'plan_detail', 'trainer',
+            'agreed_price', 'start_date', 'next_billing_date',
+            'recurrence_type', 'grace_period_days',
+            'auto_generate_next', 'is_active',
+        )
+        read_only_fields = ('trainer',)
 
 
 class PaymentMethodSerializer(serializers.ModelSerializer):
     class Meta:
         model = PaymentMethod
         fields = ('id', 'member', 'type', 'details', 'is_default', 'is_active')
+        extra_kwargs = {
+            'member': {'required': False},
+        }
 
 
 class PaymentScheduleSerializer(serializers.ModelSerializer):
+    subscription_detail = MemberSubscriptionSerializer(source='subscription', read_only=True)
+
     class Meta:
         model = PaymentSchedule
         fields = (
-            'id', 'member', 'plan', 'due_date',
+            'id', 'member', 'subscription', 'subscription_detail', 'plan', 'due_date',
             'recurrence_type', 'grace_period_days',
             'auto_generate_next', 'is_active'
         )
@@ -27,12 +56,14 @@ class PaymentScheduleSerializer(serializers.ModelSerializer):
 class PaymentRecordSerializer(serializers.ModelSerializer):
     days_overdue = serializers.SerializerMethodField()
     due_date = serializers.DateField(source='schedule.due_date', read_only=True)
+    subscription_id = serializers.IntegerField(source='schedule.subscription_id', read_only=True)
+    plan_name = serializers.SerializerMethodField()
 
     class Meta:
         model = PaymentRecord
         fields = (
-            'id', 'schedule', 'due_date', 'amount', 'paid_at',
-            'status', 'method_used', 'notes', 'days_overdue'
+            'id', 'schedule', 'subscription_id', 'due_date', 'amount', 'paid_at',
+            'status', 'method_used', 'notes', 'days_overdue', 'plan_name'
         )
 
     def get_days_overdue(self, obj):
@@ -40,6 +71,10 @@ class PaymentRecordSerializer(serializers.ModelSerializer):
         if obj.status in ('pending', 'late') and obj.schedule.due_date < date.today():
             return (date.today() - obj.schedule.due_date).days
         return 0
+
+    def get_plan_name(self, obj):
+        plan = obj.schedule.resolved_plan
+        return plan.name if plan else None
 
 
 class PaymentInstructionSerializer(serializers.ModelSerializer):

@@ -1,5 +1,6 @@
 from django.db import transaction
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -143,7 +144,9 @@ class BulkExerciseLogView(APIView):
                 try:
                     exercise = Exercise.objects.get(id=exercise_id)
                 except Exercise.DoesNotExist:
-                    raise Exception(f'Ejercicio {exercise_id} no encontrado.')
+                    raise ValidationError({
+                        'logs': [f'Ejercicio {exercise_id} no encontrado.']
+                    })
 
                 log = ExerciseLog.objects.create(
                     session=session,

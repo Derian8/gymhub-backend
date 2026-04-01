@@ -22,6 +22,12 @@ class MemberProfile(models.Model):
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name='memberprofile'
     )
+    trainer_asignado = models.ForeignKey(
+        'users.TrainerProfile',
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='clientes',
+    )
     membership_plan = models.ForeignKey(
         'billing.MembershipPlan',
         null=True, blank=True,
@@ -34,6 +40,13 @@ class MemberProfile(models.Model):
     join_date = models.DateField(default=timezone.now)
     is_active = models.BooleanField(default=True)
     photo = models.ImageField(upload_to='member_photos/', null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['trainer_asignado', 'is_active']),
+            models.Index(fields=['membership_plan', 'is_active']),
+            models.Index(fields=['join_date']),
+        ]
 
     def __str__(self):
         return f"Member: {self.user.get_full_name() or self.user.email}"

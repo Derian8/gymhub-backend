@@ -86,6 +86,44 @@ class TestCheckOverduePayments:
             user=member_profile.user, type='payment_overdue'
         ).count() > initial_count
 
+    @patch('billing.tasks.send_mail')
+    def test_overdue_payment_notifies_assigned_trainer_only(
+        self, mock_send_mail, member_profile, membership_plan, trainer_user
+    ):
+        from django.contrib.auth import get_user_model
+        from alerts.models import Notification
+        from billing.models import PaymentSchedule, PaymentRecord
+        from billing.tasks import check_overdue_payments
+        from users.models import TrainerProfile
+
+        other_trainer = get_user_model().objects.create_user(
+            username='trainer_extra',
+            email='trainer-extra@test.com',
+            password='trainer123!',
+            role='trainer',
+        )
+        TrainerProfile.objects.get_or_create(user=other_trainer)
+
+        schedule = PaymentSchedule.objects.create(
+            member=member_profile,
+            plan=membership_plan,
+            due_date=date.today() - timedelta(days=15),
+            grace_period_days=7,
+            is_active=True,
+        )
+        PaymentRecord.objects.create(schedule=schedule, amount=50.00, status='pending')
+
+        check_overdue_payments()
+
+        assert Notification.objects.filter(
+            user=trainer_user,
+            type='payment_overdue',
+        ).exists()
+        assert not Notification.objects.filter(
+            user=other_trainer,
+            type='payment_overdue',
+        ).exists()
+
 
 @pytest.mark.django_db
 class TestCheckMemberInactivity:

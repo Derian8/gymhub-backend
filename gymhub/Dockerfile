@@ -20,4 +20,4 @@ RUN mkdir -p /app/media/charts
 
 EXPOSE 8000
 
-CMD ["gunicorn", "gymhub.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "120", "--reload"]
+CMD ["gunicorn", "gymhub.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "120"]

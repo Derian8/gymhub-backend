@@ -164,3 +164,54 @@ export function StatCard({ label, value, icon, variant = 'default', trend, 'data
     </div>
   )
 }
+
+interface ConfirmDialogProps {
+  open: boolean
+  title: string
+  description: string
+  confirmLabel?: string
+  cancelLabel?: string
+  isPending?: boolean
+  onConfirm: () => void
+  onCancel: () => void
+  'data-testid'?: string
+}
+
+export function ConfirmDialog({
+  open,
+  title,
+  description,
+  confirmLabel = 'Confirmar',
+  cancelLabel = 'Cancelar',
+  isPending = false,
+  onConfirm,
+  onCancel,
+  'data-testid': testId,
+}: ConfirmDialogProps) {
+  if (!open) {
+    return null
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/70 px-4"
+      role="dialog"
+      aria-modal="true"
+      data-testid={testId}
+    >
+      <div className="w-full max-w-lg rounded-lg border border-red-500/30 bg-white p-6 shadow-xl dark:bg-neutral-950">
+        <p className="text-xs font-semibold uppercase tracking-wide text-red-500">Accion destructiva</p>
+        <h3 className="mt-2 font-heading text-xl font-bold text-neutral-900 dark:text-white">{title}</h3>
+        <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-300">{description}</p>
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button type="button" className="btn-secondary" onClick={onCancel} disabled={isPending}>
+            {cancelLabel}
+          </button>
+          <button type="button" className="btn-danger" onClick={onConfirm} disabled={isPending}>
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}

@@ -9,6 +9,29 @@ from unittest.mock import patch
 
 @pytest.mark.django_db
 class TestCharts:
+    def test_member_chart_overview_returns_personal_metrics(self, member_client, member_profile, payment_schedule_and_record, attendance_record, training_plan):
+        from progress.models import ProgressLog, WorkoutSession
+
+        ProgressLog.objects.create(member=member_profile, weight_kg=80, body_fat_pct=18, waist_cm=83)
+        WorkoutSession.objects.create(member=member_profile, workout_day=training_plan.workout_days.first(), is_completed=True)
+
+        resp = member_client.get('/api/charts/overview/')
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert resp.data['role'] == 'member'
+        assert 'physical_progress' in resp.data
+        assert 'attendance_weekly' in resp.data
+        assert 'insights' in resp.data
+
+    def test_trainer_chart_overview_returns_assigned_members_aggregate(self, trainer_client, member_profile, payment_schedule_and_record):
+        resp = trainer_client.get('/api/charts/overview/')
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert resp.data['role'] == 'trainer'
+        assert 'risk_distribution' in resp.data
+        assert 'payment_distribution' in resp.data
+        assert 'top_risk_members' in resp.data
+
     def test_exercise_progression_without_exercise_id_returns_400(
         self, trainer_client, member_profile
     ):

@@ -26,6 +26,10 @@ class Attendance(models.Model):
 
     class Meta:
         ordering = ['-check_in_time']
+        indexes = [
+            models.Index(fields=['member', 'check_in_time']),
+            models.Index(fields=['checked_in_by', 'check_in_time']),
+        ]
 
     def __str__(self):
         return f"{self.member} @ {self.check_in_time.date()}"

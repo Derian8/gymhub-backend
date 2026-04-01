@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppLayout } from '@/layouts/AppLayout'
 import { AuthLayout } from '@/layouts/AuthLayout'
 import { ProtectedRoute, PublicRoute } from '@/shared/components/RouteGuards'
+import { useAuth } from '@/shared/hooks/useAuth'
 
 // Auth
 import { LoginPage } from '@/modules/auth/pages/LoginPage'
@@ -13,6 +14,7 @@ import { MemberDashboard } from '@/modules/dashboard/pages/MemberDashboard'
 // Members
 import { MembersPage } from '@/modules/members/pages/MembersPage'
 import { MemberDetailPage } from '@/modules/members/pages/MemberDetailPage'
+import { TrainerProgramPage } from '@/modules/members/pages/TrainerProgramPage'
 
 // Plans
 import { PlansPage } from '@/modules/plans/pages/PlansPage'
@@ -44,6 +46,8 @@ import { AiChatPage } from '@/modules/ai-chat/pages/AiChatPage'
 import { ProfilePage } from '@/modules/profile/pages/ProfilePage'
 
 function App() {
+  useAuth()
+
   return (
     <Routes>
       {/* Public routes */}
@@ -86,6 +90,7 @@ function App() {
         {/* Members (trainer/staff only) */}
         <Route path="/members" element={<ProtectedRoute requiredRole="trainer"><MembersPage /></ProtectedRoute>} />
         <Route path="/members/:id" element={<ProtectedRoute requiredRole="trainer"><MemberDetailPage /></ProtectedRoute>} />
+        <Route path="/members/:id/program" element={<ProtectedRoute requiredRole="trainer"><TrainerProgramPage /></ProtectedRoute>} />
         <Route path="/members/new" element={<ProtectedRoute requiredRole="trainer"><MemberDetailPage /></ProtectedRoute>} />
 
         {/* Plans */}
@@ -96,14 +101,28 @@ function App() {
 
         {/* Attendance */}
         <Route path="/attendance" element={<CheckInPage />} />
-        <Route path="/attendance/check-in" element={<CheckInPage />} />
+        <Route
+          path="/attendance/check-in"
+          element={
+            <ProtectedRoute requiredRole="member">
+              <CheckInPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Progress */}
         <Route path="/progress" element={<ProgressPage />} />
         <Route path="/sessions" element={<ProgressPage />} />
 
         {/* Alerts */}
-        <Route path="/alerts" element={<AlertsPage />} />
+        <Route
+          path="/alerts"
+          element={
+            <ProtectedRoute requiredRole="trainer">
+              <AlertsPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Billing */}
         <Route path="/billing" element={<BillingPage />} />
@@ -112,7 +131,14 @@ function App() {
         <Route path="/nutrition" element={<NutritionPage />} />
 
         {/* Charts */}
-        <Route path="/charts" element={<ChartsPage />} />
+        <Route
+          path="/charts"
+          element={
+            <ProtectedRoute requiredRole="trainer">
+              <ChartsPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* AI Chat */}
         <Route path="/ai-chat" element={<AiChatPage />} />
@@ -120,23 +146,12 @@ function App() {
         {/* Profile */}
         <Route path="/profile" element={<ProfilePage />} />
 
-        {/* Calendar (placeholder) */}
-        <Route path="/calendar" element={<CalendarPlaceholder />} />
       </Route>
 
       {/* Root redirect */}
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
-  )
-}
-
-function CalendarPlaceholder() {
-  return (
-    <div className="page-enter text-center py-20">
-      <h1 className="text-3xl font-heading font-black text-neutral-900 dark:text-white mb-2">CALENDARIO</h1>
-      <p className="text-neutral-500">Próximamente disponible</p>
-    </div>
   )
 }
 

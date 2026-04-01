@@ -54,6 +54,7 @@ export const GOAL_LABELS: Record<string, string> = {
   muscle_gain: 'Ganancia muscular',
   endurance: 'Resistencia',
   flexibility: 'Flexibilidad',
+  maintenance: 'Mantenimiento',
   general: 'General',
 }
 
@@ -80,6 +81,18 @@ export const PAYMENT_STATUS_CLASS: Record<string, string> = {
   paid: 'badge-success',
   pending: 'badge-warning',
   late: 'badge-error',
+}
+
+export const RISK_LEVEL_LABELS: Record<string, string> = {
+  low: 'Bajo',
+  medium: 'Medio',
+  high: 'Alto',
+}
+
+export const RISK_LEVEL_BADGE: Record<string, 'success' | 'warning' | 'error'> = {
+  low: 'success',
+  medium: 'warning',
+  high: 'error',
 }
 
 export function extractApiError(error: unknown): string {
