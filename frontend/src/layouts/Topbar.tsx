@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { Bell, Sun, Moon, Search, Menu } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Bell, Sun, Moon, Search, Menu, MessageSquareMore, ArrowRight } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/shared/store/authStore'
 import { useNotificationsQuery } from '@/modules/alerts/hooks/useAlerts'
 import { cn } from '@/shared/lib/utils'
+import { BrandMark, SymbolFrame } from '@/shared/components/Brand'
+import type { Notification } from '@/shared/types'
 
 interface TopbarProps {
   onMenuClick: () => void
@@ -14,6 +16,7 @@ export function Topbar({ onMenuClick, sidebarCollapsed }: TopbarProps) {
   const { theme, toggleTheme, user } = useAuthStore()
   const { data: notifications } = useNotificationsQuery()
   const [showNotifs, setShowNotifs] = useState(false)
+  const navigate = useNavigate()
 
   const unreadCount = notifications?.results?.filter((n) => !n.read).length || 0
 
@@ -30,10 +33,12 @@ export function Topbar({ onMenuClick, sidebarCollapsed }: TopbarProps) {
       {/* Left: hamburger (mobile) */}
       <button
         onClick={onMenuClick}
-        className="lg:hidden p-2 rounded-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500"
+        className="lg:hidden text-neutral-500"
         data-testid="topbar-menu"
       >
-        <Menu size={20} />
+        <SymbolFrame size="sm" className="rounded-xl">
+          <Menu size={18} />
+        </SymbolFrame>
       </button>
 
       {/* Search (desktop) */}
@@ -43,7 +48,7 @@ export function Topbar({ onMenuClick, sidebarCollapsed }: TopbarProps) {
           <input
             type="text"
             placeholder="Buscar..."
-            className="w-full pl-9 pr-4 py-2 text-sm bg-neutral-100 dark:bg-neutral-900 rounded-sm border border-neutral-200 dark:border-neutral-800 focus:outline-none focus:border-primary text-neutral-900 dark:text-white placeholder-neutral-400"
+            className="w-full rounded-2xl border border-neutral-200 bg-white/85 py-2.5 pl-10 pr-4 text-sm text-neutral-900 shadow-sm backdrop-blur-sm placeholder-neutral-400 focus:outline-none focus:border-primary dark:border-white/10 dark:bg-neutral-900/85 dark:text-white"
             data-testid="topbar-search"
           />
         </div>
@@ -54,10 +59,12 @@ export function Topbar({ onMenuClick, sidebarCollapsed }: TopbarProps) {
         <button
           onClick={toggleTheme}
           data-testid="theme-toggle"
-          className="p-2 rounded-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 transition-colors"
+          className="text-neutral-600 dark:text-neutral-400 transition-colors"
           title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
         >
-          {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          <SymbolFrame size="sm" className="rounded-xl">
+            {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
+          </SymbolFrame>
         </button>
 
         {/* Notifications */}
@@ -65,9 +72,11 @@ export function Topbar({ onMenuClick, sidebarCollapsed }: TopbarProps) {
           <button
             onClick={() => setShowNotifs(!showNotifs)}
             data-testid="notifications-bell"
-            className="p-2 rounded-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 transition-colors relative"
+            className="relative text-neutral-600 dark:text-neutral-400 transition-colors"
           >
-            <Bell size={18} />
+            <SymbolFrame size="sm" className="rounded-xl">
+              <Bell size={17} />
+            </SymbolFrame>
             {unreadCount > 0 && (
               <span className="absolute top-1 right-1 w-4 h-4 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                 {unreadCount > 9 ? '9+' : unreadCount}
@@ -77,7 +86,12 @@ export function Topbar({ onMenuClick, sidebarCollapsed }: TopbarProps) {
 
           {showNotifs && (
             <NotificationsDropdown
+              isMember={user?.role === 'member'}
               notifications={notifications?.results || []}
+              onOpenMessages={() => {
+                setShowNotifs(false)
+                navigate('/messages')
+              }}
               onClose={() => setShowNotifs(false)}
             />
           )}
@@ -87,15 +101,18 @@ export function Topbar({ onMenuClick, sidebarCollapsed }: TopbarProps) {
         {user && (
           <Link
             to="/profile"
-            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            className="hidden sm:flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white/85 px-3 py-1.5 shadow-sm backdrop-blur-sm transition-colors hover:border-primary/30 dark:border-white/10 dark:bg-neutral-900/85"
             data-testid="topbar-user"
           >
-            <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
-              {(user.first_name?.[0] || user.email[0]).toUpperCase()}
+            <BrandMark size="sm" />
+            <div className="min-w-0">
+              <span className="block text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+                {user.first_name || user.username}
+              </span>
+              <span className="block text-[10px] uppercase tracking-[0.22em] text-neutral-500 dark:text-neutral-400">
+                Perfil
+              </span>
             </div>
-            <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-              {user.first_name || user.username}
-            </span>
           </Link>
         )}
       </div>
@@ -104,12 +121,18 @@ export function Topbar({ onMenuClick, sidebarCollapsed }: TopbarProps) {
 }
 
 function NotificationsDropdown({
+  isMember,
   notifications,
+  onOpenMessages,
   onClose,
 }: {
-  notifications: Array<{ id: number; message: string; read: boolean; created_at: string }>
+  isMember?: boolean
+  notifications: Notification[]
+  onOpenMessages: () => void
   onClose: () => void
 }) {
+  const trainerMessages = notifications.filter((notification) => notification.type === 'trainer_message')
+
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
@@ -120,6 +143,27 @@ function NotificationsDropdown({
         <div className="px-4 py-2 border-b border-neutral-100 dark:border-neutral-800">
           <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">Notificaciones</h3>
         </div>
+        {isMember && trainerMessages.length > 0 && (
+          <button
+            type="button"
+            onClick={onOpenMessages}
+            className="flex w-full items-center justify-between border-b border-neutral-100 px-4 py-3 text-left text-sm text-neutral-700 transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-900"
+            data-testid="notifications-open-messages"
+          >
+            <div className="flex items-center gap-3">
+              <SymbolFrame tone="primary" size="sm" className="rounded-xl">
+                <MessageSquareMore size={16} />
+              </SymbolFrame>
+              <div>
+                <p className="font-medium">Mensajes del trainer</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                  {trainerMessages.filter((message) => !message.read).length} sin leer
+                </p>
+              </div>
+            </div>
+            <ArrowRight size={16} className="text-neutral-400" />
+          </button>
+        )}
         <div className="max-h-72 overflow-y-auto">
           {notifications.length === 0 ? (
             <p className="px-4 py-6 text-sm text-center text-neutral-400">Sin notificaciones</p>
@@ -132,6 +176,13 @@ function NotificationsDropdown({
                   !n.read && 'bg-primary/5',
                 )}
               >
+                <div className="mb-1 flex items-center gap-2">
+                  {n.type === 'trainer_message' ? (
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">Mensaje trainer</span>
+                  ) : (
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400">Sistema</span>
+                  )}
+                </div>
                 <p className="text-sm text-neutral-700 dark:text-neutral-300">{n.message}</p>
                 {!n.read && (
                   <span className="mt-1 inline-block text-[10px] font-bold text-primary uppercase">nuevo</span>

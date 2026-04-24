@@ -84,6 +84,10 @@ def test_trainer_overview_returns_members_at_risk(
     assert response.status_code == 200
     assert 'miembros_en_riesgo' in response.data
     assert response.data['payments_overdue'] >= 1
+    assert 'active_subscriptions_count' in response.data
+    assert 'estimated_mrr' in response.data
+    assert 'expected_revenue_this_month' in response.data
+    assert 'late_rate_pct' in response.data
     assert 'members_without_active_plan' in response.data
     assert 'incomplete_prescriptions' in response.data
     assert 'miembros_sin_plan_activo' in response.data

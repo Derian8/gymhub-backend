@@ -20,6 +20,12 @@ export function useCheckInMutation() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ATTENDANCE })
       toast.success('Check-in registrado exitosamente')
     },
-    onError: (error) => toast.error(extractApiError(error)),
+    onError: (error) => {
+      const data = (error as { response?: { data?: unknown } })?.response?.data as { blocked?: boolean } | undefined
+      if (data?.blocked) {
+        return
+      }
+      toast.error(extractApiError(error))
+    },
   })
 }

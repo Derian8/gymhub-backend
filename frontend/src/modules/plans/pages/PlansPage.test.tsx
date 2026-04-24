@@ -36,6 +36,11 @@ vi.mock('../hooks/usePlans', () => ({
 vi.mock('@/modules/members/hooks/useMembers', () => ({
   useMemberActivePrescriptionQuery: () => ({
     data: {
+      trainer: {
+        id: 2,
+        nombre: 'Carlos Mendoza',
+        correo: 'trainer@gymhub.com',
+      },
       plan_activo: {
         id: 12,
         member: 10,
@@ -48,6 +53,25 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
         end_date: '2026-04-26',
         is_active: true,
       },
+      dias: [
+        {
+          id: 101,
+          day_label: 'A',
+          name: 'Torso',
+          exercises: [
+            { id: 1, name: 'Press banca' },
+            { id: 2, name: 'Remo con barra' },
+          ],
+        },
+      ],
+      entrenamiento_hoy: {
+        id: 101,
+        day_label: 'A',
+        name: 'Torso',
+        exercises: [{ id: 1, name: 'Press banca' }],
+      },
+      perfil_nutricional: { id: 21 },
+      guias_vinculadas: [{ id: 31 }],
       estado_prescripcion: {
         tiene_plan_activo: true,
         tiene_dias: true,
@@ -56,6 +80,14 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
         tiene_guias: true,
         esta_lista_para_member: true,
       },
+    },
+    isLoading: false,
+  }),
+  useMemberDashboardQuery: () => ({
+    data: {
+      resumen_hoy: 'Hoy toca torso superior con foco en fuerza.',
+      siguiente_accion: 'Empieza por el bloque del día y registra tu sesión.',
+      payment_status: 'pending',
     },
     isLoading: false,
   }),
@@ -102,8 +134,12 @@ describe('PlansPage', () => {
   it('shows only the active prescription for members', () => {
     const { getByTestId, getByText } = renderWithProviders(<PlansPage />, { route: '/plans/my' })
 
-    expect(getByText('Mi Plan')).toBeInTheDocument()
+    expect(getByText('Mi Programa')).toBeInTheDocument()
+    expect(getByTestId('member-program-hero')).toBeInTheDocument()
     expect(getByTestId('active-prescription-status')).toBeInTheDocument()
+    expect(getByTestId('program-week-overview')).toBeInTheDocument()
+    expect(getByTestId('program-today-card')).toHaveTextContent('Carlos Mendoza')
     expect(getByTestId('active-plan-today-link')).toHaveAttribute('href', '/plans/12/today')
+    expect(getByTestId('active-plan-detail-link')).toHaveAttribute('href', '/plans/12')
   })
 })

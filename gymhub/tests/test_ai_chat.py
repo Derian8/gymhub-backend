@@ -17,7 +17,8 @@ class TestAIChat:
         assert resp.data['mode'] == 'member'
         assert resp.data['engine_mode'] == 'deterministic'
         assert resp.data['response_source'] == 'rules'
-        assert 'prioridad de hoy' in resp.data['content'].lower()
+        assert 'lectura del caso' in resp.data['content'].lower()
+        assert 'acción recomendada' in resp.data['content'].lower()
 
         from ai_chat.models import AIChatConversation, AIChatMessage
 
@@ -147,6 +148,7 @@ class TestAIChat:
             engine_mode='local_hybrid',
             local_llm_used=True,
             response_source='local_model',
+            intent_detected='general',
         )
 
         resp = member_client.post('/api/ai-chat/', {'message': 'Hola'}, format='json')
@@ -191,6 +193,8 @@ class TestAIChat:
         assert resp.data['engine_mode'] == 'deterministic'
         assert resp.data['local_llm_available'] is False
         assert len(resp.data['suggested_prompts']) >= 3
+        assert resp.data['summary']['risk_reasons']
+        assert 'analysis_context' in resp.data
 
     def test_context_endpoint_for_trainer_without_member_requests_selection(self, trainer_client):
         resp = trainer_client.get('/api/ai-chat/context/')

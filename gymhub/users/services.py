@@ -20,6 +20,12 @@ RISK_LEVEL_THRESHOLDS = (
     ('low', 0),
 )
 
+RECURRENCE_MONTH_DIVISOR = {
+    'monthly': 1,
+    'quarterly': 3,
+    'annual': 12,
+}
+
 
 def annotate_member_metrics(queryset):
     active_plans = TrainingPlan.objects.filter(
@@ -179,6 +185,37 @@ def get_latest_payment_record(member):
     return PaymentRecord.objects.filter(
         schedule__member=member
     ).select_related('schedule', 'schedule__plan').order_by('-schedule__due_date').first()
+
+
+def get_member_payment_access_status(member, overdue_days_threshold=30):
+    unpaid_record = PaymentRecord.objects.filter(
+        schedule__member=member,
+        status__in=('pending', 'late'),
+    ).select_related('schedule', 'schedule__plan').order_by('-schedule__due_date', '-id').first()
+
+    if not unpaid_record:
+        return {
+            'blocked': False,
+            'reason': '',
+            'days_overdue': 0,
+            'record_id': None,
+        }
+
+    days_overdue = (date.today() - unpaid_record.schedule.due_date).days
+    if days_overdue < overdue_days_threshold:
+        return {
+            'blocked': False,
+            'reason': '',
+            'days_overdue': max(days_overdue, 0),
+            'record_id': unpaid_record.id,
+        }
+
+    return {
+        'blocked': True,
+        'reason': 'payment_overdue_30d',
+        'days_overdue': days_overdue,
+        'record_id': unpaid_record.id,
+    }
 
 
 def _days_since(value):
@@ -462,6 +499,7 @@ def get_active_prescription(member):
 
 def get_trainer_overview(user, trainer_profile):
     from users.models import MemberProfile
+    from billing.models import MemberSubscription
 
     today = date.today()
     month_start = today.replace(day=1)
@@ -503,6 +541,25 @@ def get_trainer_overview(user, trainer_profile):
         status='paid',
         paid_at__date__gte=month_start,
     ).aggregate(total=Sum('amount'))['total'] or 0)
+    active_subscriptions = list(
+        MemberSubscription.objects.filter(
+            member_id__in=member_ids,
+            is_active=True,
+        ).select_related('plan')
+    )
+    active_subscriptions_count = len(active_subscriptions)
+    estimated_mrr = round(sum(
+        float(subscription.agreed_price) / RECURRENCE_MONTH_DIVISOR.get(subscription.recurrence_type, 1)
+        for subscription in active_subscriptions
+    ), 2)
+    expected_revenue_this_month = round(sum(
+        float(record.amount)
+        for record in PaymentRecord.objects.filter(
+            schedule__member_id__in=member_ids,
+            schedule__due_date__gte=month_start,
+            schedule__due_date__lte=today,
+        )
+    ), 2)
 
     new_members_this_month = miembros.filter(join_date__gte=month_start).count()
     sessions_this_week = WorkoutSession.objects.filter(
@@ -568,14 +625,19 @@ def get_trainer_overview(user, trainer_profile):
     members_at_risk.sort(key=lambda member: member['riesgo_adherencia'], reverse=True)
     members_missing_plan_items.sort(key=lambda member: member['riesgo_adherencia'], reverse=True)
     members_incomplete_prescription_items.sort(key=lambda member: member['riesgo_adherencia'], reverse=True)
+    late_rate = round((payments_overdue / active_subscriptions_count) * 100, 1) if active_subscriptions_count else 0
 
     return {
         'total_active_members': total_active,
+        'active_subscriptions_count': active_subscriptions_count,
         'checked_in_today': checked_in_today,
         'members_in_mora': members_in_mora,
         'members_inactive_30d': members_inactive_30d,
         'pending_alerts': pending_alerts,
         'revenue_this_month': revenue_this_month,
+        'estimated_mrr': estimated_mrr,
+        'expected_revenue_this_month': expected_revenue_this_month,
+        'late_rate_pct': late_rate,
         'new_members_this_month': new_members_this_month,
         'sessions_completed_this_week': sessions_this_week,
         'payments_due_soon': payments_due_soon,

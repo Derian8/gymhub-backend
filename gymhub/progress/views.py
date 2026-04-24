@@ -148,6 +148,32 @@ class BulkExerciseLogView(APIView):
                         'logs': [f'Ejercicio {exercise_id} no encontrado.']
                     })
 
+                if exercise.workout_day_id != session.workout_day_id:
+                    raise ValidationError({
+                        'logs': [f'El ejercicio {exercise_id} no pertenece a la sesión indicada.']
+                    })
+
+                if exercise.exercise_type == 'timed':
+                    if 'minutes_completed' not in log_data:
+                        raise ValidationError({
+                            'logs': [f'El ejercicio {exercise_id} requiere minutes_completed.']
+                        })
+                    log_data['sets_completed'] = 0
+                    log_data['reps_completed'] = 0
+                    log_data['weight_used_kg'] = None
+                else:
+                    if user.role == 'member':
+                        repeticiones_objetivo = 0
+                        reps_range = (exercise.reps_range or '').split('-')[0].strip()
+                        if reps_range.isdigit():
+                            repeticiones_objetivo = int(reps_range)
+                        log_data['sets_completed'] = exercise.sets
+                        log_data['reps_completed'] = repeticiones_objetivo
+                    elif 'sets_completed' not in log_data or 'reps_completed' not in log_data:
+                        raise ValidationError({
+                            'logs': ['Series y repeticiones son requeridas para registros operativos del trainer.']
+                        })
+
                 log = ExerciseLog.objects.create(
                     session=session,
                     exercise=exercise,

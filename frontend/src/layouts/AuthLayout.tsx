@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import { useAuthStore } from '@/shared/store/authStore'
 import { useEffect } from 'react'
+import { BrandMark, BrandWordmark, SymbolFrame } from '@/shared/components/Brand'
 
 export function AuthLayout() {
   const { theme } = useAuthStore()
@@ -26,7 +27,9 @@ export function AuthLayout() {
         <div className="absolute inset-0 bg-gradient-to-br from-neutral-950/80 to-neutral-950/40" />
         <div className="relative z-10 flex flex-col justify-end p-12">
           <div className="mb-8">
-            <div className="w-12 h-1 bg-primary mb-6" />
+            <div className="mb-6">
+              <BrandWordmark className="text-white" />
+            </div>
             <h2 className="text-4xl xl:text-5xl font-heading font-black text-white uppercase tracking-tight leading-none">
               ELEVA TU<br />
               <span className="text-primary">RENDIMIENTO</span>
@@ -41,7 +44,7 @@ export function AuthLayout() {
               { label: 'Entrenamientos', value: '10K+' },
               { label: 'Satisfacción', value: '98%' },
             ].map((stat) => (
-              <div key={stat.label} className="bg-white/5 border border-white/10 rounded-sm p-3">
+              <div key={stat.label} className="rounded-2xl border border-white/10 bg-white/5 p-3 backdrop-blur-sm">
                 <p className="text-2xl font-heading font-black text-white">{stat.value}</p>
                 <p className="text-xs text-neutral-400 mt-0.5">{stat.label}</p>
               </div>
@@ -53,10 +56,16 @@ export function AuthLayout() {
       {/* Right: form */}
       <div className="w-full lg:w-[480px] flex flex-col justify-center px-8 py-12 bg-white dark:bg-neutral-950">
         <div className="max-w-sm mx-auto w-full">
-          <div className="mb-8">
-            <span className="font-heading font-black text-3xl tracking-tight text-neutral-900 dark:text-white">
-              GYM<span className="text-primary">HUB</span>
-            </span>
+          <div className="mb-8 flex items-center gap-3">
+            <BrandMark />
+            <div>
+              <BrandWordmark compact />
+              <div className="mt-2">
+                <SymbolFrame size="sm" tone="primary" className="h-8 w-auto rounded-full px-3 text-[10px] uppercase tracking-[0.22em] shadow-none">
+                  Acceso seguro
+                </SymbolFrame>
+              </div>
+            </div>
           </div>
           <Outlet />
         </div>

@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.core.validators import (
     MinValueValidator, MaxValueValidator, RegexValidator
@@ -30,6 +31,11 @@ DAY_LABEL_CHOICES = [
     ('B', 'Day B'),
     ('C', 'Day C'),
     ('D', 'Day D'),
+]
+
+EXERCISE_TYPE_CHOICES = [
+    ('strength', 'Strength'),
+    ('timed', 'Timed'),
 ]
 
 
@@ -87,17 +93,28 @@ class Exercise(models.Model):
     )
     name = models.CharField(max_length=200)
     muscle_group = models.CharField(max_length=20, choices=MUSCLE_GROUP_CHOICES)
+    exercise_type = models.CharField(
+        max_length=20,
+        choices=EXERCISE_TYPE_CHOICES,
+        default='strength',
+    )
     sets = models.PositiveIntegerField(
+        null=True, blank=True,
         validators=[MinValueValidator(1), MaxValueValidator(20)]
     )
     reps_range = models.CharField(
         max_length=10,
+        blank=True,
         validators=[
             RegexValidator(
                 r'^\d{1,3}(-\d{1,3})?$',
                 'Formato válido: 8 o 8-12'
             )
         ]
+    )
+    target_minutes = models.PositiveIntegerField(
+        null=True, blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(600)]
     )
     weight_suggestion_kg = models.FloatField(
         null=True, blank=True,
@@ -113,7 +130,27 @@ class Exercise(models.Model):
     class Meta:
         ordering = ['order']
 
+    def clean(self):
+        super().clean()
+
+        if self.exercise_type == 'timed':
+            if not self.target_minutes:
+                raise ValidationError({'target_minutes': 'Los ejercicios por tiempo requieren minutos objetivo.'})
+            if self.sets is not None:
+                raise ValidationError({'sets': 'Los ejercicios por tiempo no usan series.'})
+            if self.reps_range:
+                raise ValidationError({'reps_range': 'Los ejercicios por tiempo no usan repeticiones.'})
+        else:
+            if not self.sets:
+                raise ValidationError({'sets': 'Las series son obligatorias para ejercicios de fuerza.'})
+            if not self.reps_range:
+                raise ValidationError({'reps_range': 'Las repeticiones son obligatorias para ejercicios de fuerza.'})
+            if self.target_minutes is not None:
+                raise ValidationError({'target_minutes': 'Los ejercicios de fuerza no usan minutos objetivo.'})
+
     def __str__(self):
+        if self.exercise_type == 'timed':
+            return f"{self.name} ({self.muscle_group}) — {self.target_minutes} min"
         return f"{self.name} ({self.muscle_group}) — {self.sets}×{self.reps_range}"
 
 
@@ -175,17 +212,28 @@ class PlantillaEjercicio(models.Model):
     )
     nombre = models.CharField(max_length=200)
     grupo_muscular = models.CharField(max_length=20, choices=MUSCLE_GROUP_CHOICES)
+    tipo_ejercicio = models.CharField(
+        max_length=20,
+        choices=EXERCISE_TYPE_CHOICES,
+        default='strength',
+    )
     series = models.PositiveIntegerField(
+        null=True, blank=True,
         validators=[MinValueValidator(1), MaxValueValidator(20)]
     )
     rango_repeticiones = models.CharField(
         max_length=10,
+        blank=True,
         validators=[
             RegexValidator(
                 r'^\d{1,3}(-\d{1,3})?$',
                 'Formato válido: 8 o 8-12'
             )
         ]
+    )
+    minutos_objetivo = models.PositiveIntegerField(
+        null=True, blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(600)]
     )
     peso_sugerido_kg = models.FloatField(
         null=True, blank=True,
@@ -201,6 +249,24 @@ class PlantillaEjercicio(models.Model):
     class Meta:
         ordering = ['orden', 'id']
         db_table = 'plantillas_ejercicios'
+
+    def clean(self):
+        super().clean()
+
+        if self.tipo_ejercicio == 'timed':
+            if not self.minutos_objetivo:
+                raise ValidationError({'minutos_objetivo': 'Los ejercicios por tiempo requieren minutos objetivo.'})
+            if self.series is not None:
+                raise ValidationError({'series': 'Los ejercicios por tiempo no usan series.'})
+            if self.rango_repeticiones:
+                raise ValidationError({'rango_repeticiones': 'Los ejercicios por tiempo no usan repeticiones.'})
+        else:
+            if not self.series:
+                raise ValidationError({'series': 'Las series son obligatorias para ejercicios de fuerza.'})
+            if not self.rango_repeticiones:
+                raise ValidationError({'rango_repeticiones': 'Las repeticiones son obligatorias para ejercicios de fuerza.'})
+            if self.minutos_objetivo is not None:
+                raise ValidationError({'minutos_objetivo': 'Los ejercicios de fuerza no usan minutos objetivo.'})
 
     def __str__(self):
         return self.nombre

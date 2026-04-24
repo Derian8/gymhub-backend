@@ -37,6 +37,14 @@ export const billingApi = {
     return data
   },
 
+  markPaymentAsPaid: async (
+    id: number,
+    payload: Pick<PaymentRecord, 'payment_reference' | 'notes'>,
+  ): Promise<PaymentRecord> => {
+    const { data } = await apiClient.post(`/api/payment-records/${id}/mark-paid/`, payload)
+    return data
+  },
+
   memberSubscriptions: async (params?: Record<string, string>): Promise<PaginatedResponse<MemberSubscription>> => {
     const { data } = await apiClient.get('/api/member-subscriptions/', { params })
     return data

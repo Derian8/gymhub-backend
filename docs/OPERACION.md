@@ -6,7 +6,7 @@
 - Docker y Docker Compose
 - Si usas WSL, habilita la integración de la distro en Docker Desktop y verifica que el engine Linux esté levantado
 - Variables de entorno en `.env` de la raíz
-- PostgreSQL 15+
+- Proyecto PostgreSQL en Supabase
 - Redis 7+
 
 ## Puesta En Marcha Local
@@ -14,6 +14,7 @@ Desde la raíz del repositorio:
 
 ```bash
 cp .env.example .env
+# Edita .env con DATABASE_URL o DB_* de Supabase.
 ./gym-start
 docker compose exec backend python manage.py seed_data
 docker compose exec backend python manage.py createsuperuser
@@ -31,6 +32,7 @@ Para un despliegue real con HTTPS, no reutilices sin cambios el `.env.prod.examp
 - activa `AUTH_COOKIE_SECURE`, `SESSION_COOKIE_SECURE` y `CSRF_COOKIE_SECURE`
 - activa `SECURE_SSL_REDIRECT`
 - reemplaza `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS` y `CSRF_TRUSTED_ORIGINS` por dominios reales
+- reemplaza `DATABASE_URL` o `DB_*` por credenciales reales de Supabase
 - parte de [`.env.staging.example`](/mnt/c/dev/proyectos/proyectoappgym/.env.staging.example) para separar staging real del flujo local
 
 ## Scripts Operativos
@@ -44,7 +46,7 @@ Para un despliegue real con HTTPS, no reutilices sin cambios el `.env.prod.examp
 ## Servicios
 - `frontend`: ejecuta Vite en el puerto `3000`.
 - `backend`: ejecuta Django en el puerto `8000`.
-- `db`: PostgreSQL.
+- `db`: no existe localmente; PostgreSQL vive en Supabase.
 - `redis`: broker y caché.
 - `celery`: worker de tareas.
 - `celerybeat`: scheduler de tareas recurrentes.
@@ -79,6 +81,9 @@ Para E2E con Playwright:
 - `DB_PASSWORD`
 - `DB_HOST`
 - `DB_PORT`
+- `DATABASE_URL`
+- `DB_SSLMODE`
+- `DB_CONN_MAX_AGE`
 - `REDIS_URL`
 - `CELERY_BROKER_URL`
 - `CELERY_RESULT_BACKEND`
@@ -107,6 +112,8 @@ Para E2E con Playwright:
 ## Consideraciones De Despliegue
 - El flujo Docker local usa `runserver` para recarga rápida.
 - El flujo `--prod` usa Gunicorn en backend y Nginx para servir el frontend compilado.
+- La base de datos es Supabase PostgreSQL en todos los entornos; los compose no crean un contenedor PostgreSQL local.
+- Usa `DATABASE_URL` con `sslmode=require` o las variables `DB_*` equivalentes.
 - `ALLOWED_HOSTS` ya debe configurarse por entorno desde `.env`.
 - En producción local con `docker-compose.prod.yml`, deja `VITE_API_BASE_URL=` vacío para que Nginx enrute `/auth/`, `/api/` y `/media/` al backend.
 - Para pruebas E2E desde contenedores, incluye `host.docker.internal` en `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS` y `CSRF_TRUSTED_ORIGINS`.

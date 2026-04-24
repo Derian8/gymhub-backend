@@ -6,11 +6,34 @@ from .models import (
 
 
 class ExerciseSerializer(serializers.ModelSerializer):
+    def validate(self, attrs):
+        exercise_type = attrs.get('exercise_type', getattr(self.instance, 'exercise_type', 'strength'))
+        sets = attrs.get('sets', getattr(self.instance, 'sets', None))
+        reps_range = attrs.get('reps_range', getattr(self.instance, 'reps_range', ''))
+        target_minutes = attrs.get('target_minutes', getattr(self.instance, 'target_minutes', None))
+
+        if exercise_type == 'timed':
+            if not target_minutes:
+                raise serializers.ValidationError({'target_minutes': 'Este campo es requerido para ejercicios por tiempo.'})
+            if sets is not None:
+                raise serializers.ValidationError({'sets': 'Los ejercicios por tiempo no usan series.'})
+            if reps_range:
+                raise serializers.ValidationError({'reps_range': 'Los ejercicios por tiempo no usan repeticiones.'})
+        else:
+            if not sets:
+                raise serializers.ValidationError({'sets': 'Este campo es requerido para ejercicios de fuerza.'})
+            if not reps_range:
+                raise serializers.ValidationError({'reps_range': 'Este campo es requerido para ejercicios de fuerza.'})
+            if target_minutes is not None:
+                raise serializers.ValidationError({'target_minutes': 'Los ejercicios de fuerza no usan minutos objetivo.'})
+
+        return attrs
+
     class Meta:
         model = Exercise
         fields = (
-            'id', 'workout_day', 'name', 'muscle_group',
-            'sets', 'reps_range', 'weight_suggestion_kg',
+            'id', 'workout_day', 'name', 'muscle_group', 'exercise_type',
+            'sets', 'reps_range', 'target_minutes', 'weight_suggestion_kg',
             'rest_seconds', 'technique_notes', 'order'
         )
 
@@ -54,8 +77,8 @@ class PlantillaEjercicioSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlantillaEjercicio
         fields = (
-            'id', 'dia', 'nombre', 'grupo_muscular', 'series',
-            'rango_repeticiones', 'peso_sugerido_kg', 'descanso_segundos',
+            'id', 'dia', 'nombre', 'grupo_muscular', 'tipo_ejercicio', 'series',
+            'rango_repeticiones', 'minutos_objetivo', 'peso_sugerido_kg', 'descanso_segundos',
             'notas_tecnicas', 'orden',
         )
 

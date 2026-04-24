@@ -1,7 +1,6 @@
 import json
 import logging
 from dataclasses import dataclass
-from typing import Optional
 from urllib import error, request
 
 from django.conf import settings
@@ -14,6 +13,7 @@ INTENT_ADHERENCE = 'adherence'
 INTENT_NUTRITION = 'nutrition'
 INTENT_PAYMENT = 'payment'
 INTENT_CLIENT_MESSAGE = 'client_message'
+INTENT_FULL_ANALYSIS = 'full_analysis'
 INTENT_GENERAL = 'general'
 
 SUPPORTED_ENGINE_MODES = ('deterministic', 'local_hybrid')
@@ -28,6 +28,7 @@ class ChatGenerationResult:
     sendable: bool = False
     message_text: str = ''
     priority_detected: str = ''
+    intent_detected: str = ''
 
 
 def get_engine_mode():
@@ -75,6 +76,18 @@ def is_local_llm_available():
 def detect_intent(message, mode):
     content = (message or '').lower()
 
+    if any(keyword in content for keyword in (
+        'analiza',
+        'analisis',
+        'análisis',
+        'lectura del caso',
+        'caso completo',
+        'resume completo',
+        'que esta pasando',
+        'qué está pasando',
+        'prioriza',
+    )):
+        return INTENT_FULL_ANALYSIS
     if mode == 'trainer_member' and any(keyword in content for keyword in ('mensaje', 'whatsapp', 'escribe', 'comunicar', 'decirle')):
         return INTENT_CLIENT_MESSAGE
     if any(keyword in content for keyword in ('pago', 'mora', 'factura', 'cobro', 'venc', 'deuda')):
@@ -88,24 +101,26 @@ def detect_intent(message, mode):
     return INTENT_GENERAL
 
 
-def build_deterministic_response(mode, member, summary, prescription_status, user_message):
+def build_deterministic_response(mode, member, summary, prescription_status, analysis_context, user_message):
     intent = detect_intent(user_message, mode)
     if mode == 'trainer_member':
-        return _build_trainer_response(member, summary, prescription_status, intent)
+        return _build_trainer_response(member, summary, prescription_status, analysis_context, intent)
     return {
-        'content': _build_member_response(summary, prescription_status, intent),
+        'content': _build_member_response(summary, prescription_status, analysis_context, intent),
         'sendable': False,
         'message_text': '',
         'priority_detected': '',
+        'intent_detected': intent,
     }
 
 
-def generate_chat_response(mode, member, summary, prescription_status, transcript, user_message):
+def generate_chat_response(mode, member, summary, prescription_status, analysis_context, transcript, user_message):
     deterministic_response = build_deterministic_response(
         mode=mode,
         member=member,
         summary=summary,
         prescription_status=prescription_status,
+        analysis_context=analysis_context,
         user_message=user_message,
     )
     deterministic_content = deterministic_response['content']
@@ -119,12 +134,14 @@ def generate_chat_response(mode, member, summary, prescription_status, transcrip
             sendable=deterministic_response['sendable'],
             message_text=deterministic_response['message_text'],
             priority_detected=deterministic_response['priority_detected'],
+            intent_detected=deterministic_response['intent_detected'],
         )
 
     rewritten = _rewrite_with_local_llm(
         mode=mode,
         member=member,
         summary=summary,
+        analysis_context=analysis_context,
         transcript=transcript,
         user_message=user_message,
         deterministic_response=deterministic_content,
@@ -138,6 +155,7 @@ def generate_chat_response(mode, member, summary, prescription_status, transcrip
             sendable=deterministic_response['sendable'],
             message_text=deterministic_response['message_text'],
             priority_detected=deterministic_response['priority_detected'],
+            intent_detected=deterministic_response['intent_detected'],
         )
 
     return ChatGenerationResult(
@@ -148,108 +166,57 @@ def generate_chat_response(mode, member, summary, prescription_status, transcrip
         sendable=deterministic_response['sendable'],
         message_text=deterministic_response['message_text'],
         priority_detected=deterministic_response['priority_detected'],
+        intent_detected=deterministic_response['intent_detected'],
     )
 
 
-def _build_member_response(summary, prescription_status, intent):
-    payment_text = _payment_guidance(summary)
-    prescription_text = _prescription_guidance(prescription_status)
-    risk_text = _risk_sentence(summary)
-
-    if intent == INTENT_NUTRITION:
-        nutrition_goal = summary['nutrition_goal'] or 'un objetivo nutricional visible'
-        return (
-            f"Prioridad de hoy: alinea tu alimentación con {nutrition_goal}.\n\n"
-            f"Contexto: {summary['resumen_hoy']} {risk_text} {payment_text}\n\n"
-            f"Siguiente paso: mantén una comida simple y consistente antes o después de entrenar, y recuerda que {prescription_text}."
-        )
-    if intent == INTENT_PAYMENT:
-        return (
-            f"Prioridad de hoy: evita que el estado de pago afecte tu constancia.\n\n"
-            f"Contexto: {payment_text} {summary['resumen_hoy']}\n\n"
-            f"Siguiente paso: regulariza o confirma tu pago y luego ejecuta esta acción concreta: {summary['siguiente_accion']}"
-        )
-    if intent == INTENT_ADHERENCE:
-        return (
-            f"Prioridad de hoy: recuperar consistencia con una acción medible.\n\n"
-            f"Contexto: {risk_text} {summary['resumen_hoy']} {prescription_text}.\n\n"
-            f"Siguiente paso: haz hoy exactamente esto: {summary['siguiente_accion']}"
-        )
-    if intent == INTENT_WORKOUT:
-        return (
-            f"Prioridad de hoy: {summary['siguiente_accion']}\n\n"
-            f"Contexto: {summary['resumen_hoy']} {risk_text}\n\n"
-            f"Siguiente paso: completa tu sesión o check-in hoy y vuelve a la app para registrar el avance. Además, {prescription_text}."
-        )
-    return (
-        f"Prioridad de hoy: {summary['siguiente_accion']}\n\n"
-        f"Contexto: {summary['resumen_hoy']} {risk_text} {payment_text}\n\n"
-        f"Siguiente paso: mantén una acción simple y concreta hoy. {prescription_text}."
-    )
+def _build_member_response(summary, prescription_status, analysis_context, intent):
+    return _join_sections([
+        ('Lectura del caso', _member_case_read(summary, analysis_context, intent)),
+        ('Factores clave', _member_key_factors(summary, prescription_status, analysis_context, intent)),
+        ('Riesgos o fricciones', _member_friction_points(summary, prescription_status, analysis_context)),
+        ('Acción recomendada', _member_recommended_action(summary, analysis_context, intent)),
+    ])
 
 
-def _build_trainer_response(member, summary, prescription_status, intent):
-    payment_text = _payment_guidance(summary)
-    prescription_text = _prescription_guidance(prescription_status)
-    risk_reasons = ', '.join(summary['riesgo_personal']['reasons']) or 'sin alertas críticas'
+def _build_trainer_response(member, summary, prescription_status, analysis_context, intent):
     client_name = member.user.get_full_name() or member.user.email
     priority = _detect_trainer_priority(summary)
+    prescription_text = _prescription_guidance(prescription_status)
 
     if intent == INTENT_CLIENT_MESSAGE:
         message_text = _build_client_message(summary, priority, prescription_text)
-        return (
-            {
-                'content': (
-                    f"Lectura del caso: {client_name} tiene riesgo {summary['riesgo_personal']['level']} por {risk_reasons}.\n\n"
-                    f"Prioridad detectada: {_priority_label(priority)}.\n\n"
-                    f"Acción recomendada: pide una acción mínima hoy y valida si {prescription_text.lower()}.\n\n"
-                    f"Mensaje sugerido: {message_text}"
-                ),
-                'sendable': True,
-                'message_text': message_text,
-                'priority_detected': priority,
-            }
-        )
-    if intent == INTENT_PAYMENT:
         return {
-            'content': (
-                f"Lectura del caso: el bloqueo operativo principal es financiero; {payment_text.lower()}.\n\n"
-                f"Acción recomendada: separa conversación de cobro y conversación de adherencia, pero cierra ambas hoy.\n\n"
-                f"Mensaje sugerido: Quiero ayudarte a mantener tu ritmo sin fricción. Revisemos tu pago pendiente y luego te dejo una acción simple para que no pierdas continuidad."
-            ),
-            'sendable': False,
-            'message_text': '',
+            'content': _join_sections([
+                ('Lectura del caso', _trainer_case_read(client_name, summary, analysis_context, INTENT_FULL_ANALYSIS)),
+                ('Factores clave', _trainer_key_factors(summary, prescription_status, analysis_context, priority)),
+                ('Riesgos o fricciones', _trainer_friction_points(summary, prescription_status, analysis_context, priority)),
+                ('Acción recomendada', 'Pide una acción mínima hoy y confirma respuesta o bloqueo real del member.'),
+                ('Mensaje sugerido', message_text),
+            ]),
+            'sendable': True,
+            'message_text': message_text,
             'priority_detected': priority,
+            'intent_detected': intent,
         }
-    if intent == INTENT_NUTRITION:
-        nutrition_goal = summary['nutrition_goal'] or 'un objetivo nutricional no configurado todavía'
-        return {
-            'content': (
-                f"Lectura del caso: el contexto nutricional visible apunta a {nutrition_goal}, con señales: {risk_reasons}.\n\n"
-                f"Acción recomendada: entrega una indicación simple, medible y fácil de cumplir hoy; evita complejidad si {prescription_text.lower()}.\n\n"
-                f"Mensaje sugerido: Hoy enfócate en una comida alineada con tu objetivo y en completar la acción principal del día: {summary['siguiente_accion'].lower()}"
-            ),
-            'sendable': False,
-            'message_text': '',
-            'priority_detected': priority,
-        }
+
     return {
-        'content': (
-            f"Lectura del caso: {client_name} tiene riesgo {summary['riesgo_personal']['level']} por {risk_reasons}.\n\n"
-            f"Acción recomendada: prioriza {summary['siguiente_accion'].lower()} y verifica si {prescription_text.lower()}; además {payment_text.lower()}.\n\n"
-            f"Mensaje sugerido: Hoy necesito que nos enfoquemos en un solo paso: {summary['siguiente_accion'].lower()} Si lo confirmas, te ajusto el siguiente movimiento para que recuperes consistencia."
-        ),
+        'content': _join_sections([
+            ('Lectura del caso', _trainer_case_read(client_name, summary, analysis_context, intent)),
+            ('Factores clave', _trainer_key_factors(summary, prescription_status, analysis_context, priority)),
+            ('Riesgos o fricciones', _trainer_friction_points(summary, prescription_status, analysis_context, priority)),
+            ('Acción recomendada', _trainer_recommended_action(summary, prescription_status, analysis_context, intent)),
+        ]),
         'sendable': False,
         'message_text': '',
         'priority_detected': priority,
+        'intent_detected': intent,
     }
 
 
 def _detect_trainer_priority(summary):
     payment_status = summary['payment_status']
-    if payment_status == 'late':
-        return INTENT_PAYMENT
-    if payment_status == 'pending':
+    if payment_status in ('late', 'pending'):
         return INTENT_PAYMENT
     risk_level = summary['riesgo_personal']['level']
     reasons = ' '.join(summary['riesgo_personal']['reasons']).lower()
@@ -292,11 +259,15 @@ def _build_client_message(summary, priority, prescription_text):
     )
 
 
-def _payment_guidance(summary):
+def _payment_guidance(summary, analysis_context):
     payment_status = summary['payment_status']
     if payment_status == 'late':
+        if analysis_context.get('days_overdue') is not None:
+            return f"Hay mora activa desde hace {analysis_context['days_overdue']} días y eso puede frenar la adherencia."
         return 'Hay mora activa y eso puede frenar la adherencia.'
     if payment_status == 'pending':
+        if analysis_context.get('days_until_due') is not None:
+            return f"Hay un pago pendiente con vencimiento en {analysis_context['days_until_due']} días."
         return 'Hay un pago pendiente que conviene resolver pronto.'
     if payment_status == 'paid':
         return 'No hay fricción de pago visible en este momento.'
@@ -312,22 +283,146 @@ def _prescription_guidance(prescription_status):
     return 'todavía no hay un plan activo publicado'
 
 
-def _risk_sentence(summary):
-    reasons = ', '.join(summary['riesgo_personal']['reasons']) or 'sin alertas críticas'
+def _join_sections(sections):
+    return '\n\n'.join(f'{title}: {content}' for title, content in sections if content)
+
+
+def _member_case_read(summary, analysis_context, intent):
+    if intent == INTENT_PAYMENT:
+        return f"Tu caso hoy tiene una fricción financiera clara. {_payment_guidance(summary, analysis_context)}"
+    if intent == INTENT_NUTRITION:
+        nutrition_goal = summary['nutrition_goal'] or 'un objetivo nutricional todavía no configurado'
+        return f"Tu progreso hoy depende de alinear entrenamiento y alimentación; el objetivo visible apunta a {nutrition_goal}."
+    if analysis_context['today_has_workout']:
+        return f"{summary['resumen_hoy']} La oportunidad principal está en ejecutar y registrar esa sesión."
+    return f"{summary['resumen_hoy']} La prioridad hoy es sostener adherencia y evitar perder ritmo."
+
+
+def _member_key_factors(summary, prescription_status, analysis_context, intent):
+    factores = [
+        f"Plan activo: {analysis_context['active_plan_name'] or 'sin plan activo'}",
+        f"Riesgo actual: {analysis_context['risk_level']}",
+        f"Señales visibles: {', '.join(analysis_context['risk_reasons']) or 'sin alertas críticas'}",
+        f"Prescripción: {_prescription_guidance(prescription_status)}",
+    ]
+    if analysis_context['today_workout_name']:
+        factores.append(f"Entrenamiento de hoy: {analysis_context['today_workout_name']}")
+    if summary['cumplimiento_semanal'] is not None:
+        factores.append(f"Cumplimiento semanal: {summary['cumplimiento_semanal']}%")
+    if intent == INTENT_NUTRITION and summary['nutrition_goal']:
+        factores.append(f"Objetivo nutricional: {summary['nutrition_goal']}")
+    return ' | '.join(factores)
+
+
+def _member_friction_points(summary, prescription_status, analysis_context):
+    fricciones = []
+    if summary['payment_status'] in ('pending', 'late'):
+        fricciones.append(_payment_guidance(summary, analysis_context))
+    if analysis_context['inactivity_alert']:
+        fricciones.append('Hay una alerta de inactividad abierta.')
+    if prescription_status['estado'] != 'lista':
+        fricciones.append(_prescription_guidance(prescription_status).capitalize() + '.')
+    if analysis_context['unread_notifications']:
+        fricciones.append(f"Tienes {analysis_context['unread_notifications']} notificaciones sin revisar.")
+    if not fricciones:
+        fricciones.append('No hay bloqueos críticos visibles; la clave es ejecutar una acción concreta hoy.')
+    return ' '.join(fricciones)
+
+
+def _member_recommended_action(summary, analysis_context, intent):
+    if intent == INTENT_NUTRITION:
+        nutrition_goal = summary['nutrition_goal'] or 'tu objetivo nutricional actual'
+        return (
+            f"Prioriza {summary['siguiente_accion'].lower()} y acompáñalo con una comida simple alineada con {nutrition_goal}. "
+            "Después registra el avance en la app."
+        )
+    if intent == INTENT_PAYMENT:
+        return f"Regulariza o confirma tu pago y luego ejecuta esta acción concreta: {summary['siguiente_accion']}"
     return (
-        f"El nivel de riesgo actual es {summary['riesgo_personal']['level']} "
-        f"con estas señales: {reasons}."
+        f"Haz hoy exactamente esto: {summary['siguiente_accion']} "
+        "Si completas ese paso, empujas tu progreso sin depender de perfección."
     )
 
 
-def _rewrite_with_local_llm(mode, member, summary, transcript, user_message, deterministic_response):
+def _trainer_case_read(client_name, summary, analysis_context, intent):
+    if intent == INTENT_PAYMENT:
+        return f"El bloqueo principal de {client_name} hoy es financiero. {_payment_guidance(summary, analysis_context)}"
+    if intent == INTENT_NUTRITION:
+        nutrition_goal = summary['nutrition_goal'] or 'un objetivo nutricional no configurado todavía'
+        return f"{client_name} necesita una indicación nutricional simple; el objetivo visible apunta a {nutrition_goal}."
+    return (
+        f"{client_name} tiene riesgo {summary['riesgo_personal']['level']} con estas señales: "
+        f"{', '.join(summary['riesgo_personal']['reasons']) or 'sin alertas críticas'}."
+    )
+
+
+def _trainer_key_factors(summary, prescription_status, analysis_context, priority):
+    factores = [
+        f"Prioridad detectada: {_priority_label(priority)}",
+        f"Plan activo: {analysis_context['active_plan_name'] or 'sin plan activo'}",
+        f"Siguiente acción del member: {summary['siguiente_accion']}",
+        f"Prescripción: {_prescription_guidance(prescription_status)}",
+    ]
+    if analysis_context['today_workout_name']:
+        factores.append(f"Sesión de hoy: {analysis_context['today_workout_name']}")
+    if summary['cumplimiento_semanal'] is not None:
+        factores.append(f"Cumplimiento semanal: {summary['cumplimiento_semanal']}%")
+    return ' | '.join(factores)
+
+
+def _trainer_friction_points(summary, prescription_status, analysis_context, priority):
+    fricciones = []
+    if summary['payment_status'] in ('pending', 'late'):
+        fricciones.append(_payment_guidance(summary, analysis_context))
+    if analysis_context['inactivity_alert']:
+        fricciones.append('La alerta de inactividad sigue abierta.')
+    if prescription_status['estado'] != 'lista':
+        fricciones.append(_prescription_guidance(prescription_status).capitalize() + '.')
+    if not fricciones and priority == INTENT_ADHERENCE:
+        fricciones.append('No hay bloqueo operativo severo; el riesgo es de consistencia.')
+    if not fricciones:
+        fricciones.append('No hay bloqueos críticos adicionales visibles en la app.')
+    return ' '.join(fricciones)
+
+
+def _trainer_recommended_action(summary, prescription_status, analysis_context, intent):
+    if intent == INTENT_PAYMENT:
+        return (
+            "Separa conversación de cobro y conversación de adherencia, pero cierra ambas hoy. "
+            "Primero resuelve el pago; luego deja una acción mínima para no perder continuidad."
+        )
+    if intent == INTENT_NUTRITION:
+        return (
+            f"Entrega una indicación simple y medible hoy, evita complejidad si {_prescription_guidance(prescription_status).lower()}. "
+            f"Luego conecta esa indicación con {summary['siguiente_accion'].lower()}."
+        )
+    if intent == INTENT_FULL_ANALYSIS:
+        return (
+            f"Intervén hoy sobre {summary['siguiente_accion'].lower()} y valida si {_prescription_guidance(prescription_status).lower()}. "
+            f"Si hay fricción adicional, ordénala en este orden: pago, adherencia y ajuste táctico."
+        )
+    return (
+        f"Prioriza {summary['siguiente_accion'].lower()} y verifica si {_prescription_guidance(prescription_status).lower()}. "
+        "Después decide si toca intervenir adherencia, pago o nutrición."
+    )
+
+
+def _rewrite_with_local_llm(mode, member, summary, analysis_context, transcript, user_message, deterministic_response):
     if not is_local_llm_configured():
         return None
 
     payload = {
         'model': get_local_model(),
         'stream': False,
-        'prompt': _build_local_prompt(mode, member, summary, transcript, user_message, deterministic_response),
+        'prompt': _build_local_prompt(
+            mode,
+            member,
+            summary,
+            analysis_context,
+            transcript,
+            user_message,
+            deterministic_response,
+        ),
     }
 
     try:
@@ -348,7 +443,7 @@ def _rewrite_with_local_llm(mode, member, summary, transcript, user_message, det
         return None
 
 
-def _build_local_prompt(mode, member, summary, transcript, user_message, deterministic_response):
+def _build_local_prompt(mode, member, summary, analysis_context, transcript, user_message, deterministic_response):
     role = 'trainer' if mode == 'trainer_member' else 'miembro'
     return f"""Reescribe la respuesta base para GymHub.
 Reglas:
@@ -356,12 +451,19 @@ Reglas:
 - No inventes datos.
 - Conserva todos los hechos de la respuesta base.
 - Mantén el tono accionable y profesional.
-- Máximo 3 bloques cortos.
+- Usa formato de diagnostico estructurado con bloques claros.
+- Máximo 5 bloques cortos.
 
 Rol activo: {role}
 Miembro: {member.user.get_full_name() or member.user.email}
+Intencion detectada: {detect_intent(user_message, mode)}
 Resumen de hoy: {summary['resumen_hoy']}
 Siguiente acción: {summary['siguiente_accion']}
+Plan activo: {analysis_context['active_plan_name'] or 'sin plan activo'}
+Entrenamiento de hoy: {analysis_context['today_workout_name'] or 'sin sesion visible'}
+Estado de pago: {analysis_context['payment_status'] or 'sin datos'}
+Razones de riesgo: {', '.join(analysis_context['risk_reasons']) or 'sin alertas criticas'}
+Prescripcion: {analysis_context['prescription_status']}
 Historial reciente:
 {transcript}
 

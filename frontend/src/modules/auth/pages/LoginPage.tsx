@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useLoginMutation } from '../hooks/useAuthMutations'
 
 const loginSchema = z.object({
@@ -24,9 +25,7 @@ export function LoginPage() {
     resolver: zodResolver(loginSchema),
   })
 
-  const onSubmit = (data: LoginForm) => {
-    login(data)
-  }
+  const onSubmit = (data: LoginForm) => login(data)
 
   return (
     <div className="page-enter">
@@ -98,6 +97,13 @@ export function LoginPage() {
           )}
         </button>
       </form>
+
+      <p className="mt-6 text-center text-sm text-neutral-500 dark:text-neutral-400">
+        ¿No tienes cuenta?{' '}
+        <Link to="/register" className="font-semibold text-primary hover:text-primary-dark">
+          Regístrate
+        </Link>
+      </p>
     </div>
   )
 }

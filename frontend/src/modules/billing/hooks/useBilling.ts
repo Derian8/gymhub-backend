@@ -91,3 +91,22 @@ export function useUpdateMemberSubscriptionMutation(memberId?: number) {
     onError: (error) => toast.error(extractApiError(error)),
   })
 }
+
+export function useMarkPaymentAsPaidMutation(memberId?: number) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: { payment_reference: string; notes: string } }) =>
+      billingApi.markPaymentAsPaid(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PAYMENT_RECORDS(memberId ? { member: String(memberId) } : undefined) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_SUBSCRIPTIONS(memberId ? { member: String(memberId) } : undefined) })
+      if (memberId) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_DETAIL(memberId) })
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_DASHBOARD(memberId) })
+      }
+      toast.success('Pago registrado y recibo emitido')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}

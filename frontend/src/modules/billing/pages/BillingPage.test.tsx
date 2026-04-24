@@ -6,14 +6,15 @@ const createPlanMock = vi.fn()
 const updatePlanMock = vi.fn()
 const createSubscriptionMock = vi.fn()
 const updateSubscriptionMock = vi.fn()
+const markPaymentAsPaidMock = vi.fn()
 
 vi.mock('../hooks/useBilling', () => ({
   usePaymentRecordsQuery: () => ({
     data: {
       results: [
-        { id: 1, schedule: 1, due_date: '2026-03-05', amount: '50.00', paid_at: '2026-03-05T12:00:00Z', status: 'paid', method_used: 1, notes: '', days_overdue: 0 },
-        { id: 2, schedule: 2, due_date: '2026-03-10', amount: '60.00', paid_at: null, status: 'pending', method_used: null, notes: 'Pendiente', days_overdue: 0 },
-        { id: 3, schedule: 3, due_date: '2026-03-01', paid_at: null, amount: '70.00', status: 'late', method_used: null, notes: '', days_overdue: 5 },
+        { id: 1, schedule: 1, due_date: '2026-03-05', amount: '50.00', paid_at: '2026-03-05T12:00:00Z', status: 'paid', method_used: 1, payment_reference: 'TRX-001', receipt_issued_at: '2026-03-05T12:01:00Z', receipt_number: 'REC-20260305-1', notes: '', days_overdue: 0, plan_name: 'Premium' },
+        { id: 2, schedule: 2, due_date: '2026-03-10', amount: '60.00', paid_at: null, status: 'pending', method_used: null, payment_reference: '', receipt_issued_at: null, receipt_number: null, notes: 'Pendiente', days_overdue: 0, plan_name: 'Premium' },
+        { id: 3, schedule: 3, due_date: '2026-03-01', paid_at: null, amount: '70.00', status: 'late', method_used: null, payment_reference: '', receipt_issued_at: null, receipt_number: null, notes: '', days_overdue: 5, plan_name: 'Premium' },
       ],
     },
     isLoading: false,
@@ -38,6 +39,7 @@ vi.mock('../hooks/useBilling', () => ({
   useUpdateMembershipPlanMutation: () => ({ mutate: updatePlanMock, isPending: false }),
   useCreateMemberSubscriptionMutation: () => ({ mutate: createSubscriptionMock, isPending: false }),
   useUpdateMemberSubscriptionMutation: () => ({ mutate: updateSubscriptionMock, isPending: false }),
+  useMarkPaymentAsPaidMutation: () => ({ mutate: markPaymentAsPaidMock, isPending: false }),
 }))
 
 describe('BillingPage', () => {
@@ -46,6 +48,7 @@ describe('BillingPage', () => {
     updatePlanMock.mockReset()
     createSubscriptionMock.mockReset()
     updateSubscriptionMock.mockReset()
+    markPaymentAsPaidMock.mockReset()
   })
 
   it('renders billing summary, payment rows and membership plans', () => {
@@ -53,6 +56,7 @@ describe('BillingPage', () => {
 
     expect(getByTestId('billing-page')).toBeInTheDocument()
     expect(getByText('Pendientes')).toBeInTheDocument()
+    expect(getByText('Recibos emitidos')).toBeInTheDocument()
     expect(getAllByText('En mora')).toHaveLength(2)
     expect(getByTestId('payment-row-1')).toBeInTheDocument()
     expect(getByTestId('payment-row-2')).toBeInTheDocument()
@@ -66,7 +70,7 @@ describe('BillingPage', () => {
     const { getByText } = renderWithProviders(<BillingPage />, { route: '/billing?member=15' })
 
     expect(getByText('Facturación Del Miembro')).toBeInTheDocument()
-    expect(getByText('Pagos, estados y vencimientos del miembro seleccionado')).toBeInTheDocument()
+    expect(getByText('Cobros, recibos y estado comercial del miembro seleccionado')).toBeInTheDocument()
     expect(getByText('Suscripción del member')).toBeInTheDocument()
   })
 
@@ -85,5 +89,25 @@ describe('BillingPage', () => {
         recurrence_type: 'monthly',
       }),
     )
+  })
+
+  it('registers a payment from the billing table', () => {
+    const { getByTestId } = renderWithProviders(<BillingPage />, { route: '/billing?member=15' })
+
+    fireEvent.change(getByTestId('mark-paid-2').parentElement?.querySelector('input') as HTMLInputElement, {
+      target: { value: 'REF-200' },
+    })
+    fireEvent.change(getByTestId('mark-paid-2').parentElement?.querySelector('textarea') as HTMLTextAreaElement, {
+      target: { value: 'Transferencia verificada' },
+    })
+    fireEvent.click(getByTestId('mark-paid-2'))
+
+    expect(markPaymentAsPaidMock).toHaveBeenCalledWith({
+      id: 2,
+      payload: {
+        payment_reference: 'REF-200',
+        notes: 'Transferencia verificada',
+      },
+    })
   })
 })

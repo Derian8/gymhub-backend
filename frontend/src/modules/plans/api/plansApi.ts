@@ -7,6 +7,7 @@ import type {
   TodayWorkout,
   WorkoutSession,
   ExerciseLog,
+  ExerciseLogPayload,
   TrainingPlanPayload,
   TrainingTemplateUpdatePayload,
   WorkoutDayPayload,
@@ -133,14 +134,7 @@ export const plansApi = {
 
   bulkExerciseLogs: async (payload: {
     session_id: number
-    logs: Array<{
-      exercise_id: number
-      sets_completed: number
-      reps_completed: number
-      weight_used_kg?: number
-      rpe?: number
-      notes?: string
-    }>
+    logs: ExerciseLogPayload[]
   }): Promise<ExerciseLog[]> => {
     const { data } = await apiClient.post('/api/exercise-logs/bulk/', payload)
     return data

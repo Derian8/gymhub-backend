@@ -1,4 +1,5 @@
 import { cn } from '@/shared/lib/utils'
+import { BrandMark, SymbolFrame } from './Brand'
 
 interface BadgeProps {
   variant?: 'success' | 'warning' | 'error' | 'info' | 'neutral'
@@ -48,12 +49,12 @@ export function Avatar({ name, photo, size = 'md', className }: AvatarProps) {
   return (
     <div
       className={cn(
-        'rounded-full flex items-center justify-center font-bold bg-primary/10 text-primary',
+        'rounded-[1.1rem] flex items-center justify-center font-bold border border-primary/10 bg-gradient-to-br from-white to-primary/10 text-primary shadow-sm dark:border-white/10 dark:from-neutral-900 dark:to-primary/10',
         sizeClasses[size],
         className,
       )}
     >
-      {initials}
+      <span className="relative z-10">{initials}</span>
     </div>
   )
 }
@@ -68,11 +69,15 @@ interface EmptyStateProps {
 export function EmptyState({ icon, title, description, action }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-      {icon && (
-        <div className="mb-4 text-neutral-400 dark:text-neutral-600 opacity-50">
-          {icon}
-        </div>
-      )}
+      <div className="mb-5">
+        {icon ? (
+          <SymbolFrame size="lg" className="h-16 w-16 rounded-[1.4rem]">
+            <span className="text-neutral-500 dark:text-neutral-300">{icon}</span>
+          </SymbolFrame>
+        ) : (
+          <BrandMark size="lg" />
+        )}
+      </div>
       <h3 className="text-lg font-heading font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
         {title}
       </h3>
@@ -109,11 +114,11 @@ export function PageHeader({ title, subtitle, action, breadcrumb }: PageHeaderPr
             ))}
           </div>
         )}
-        <h1 className="text-3xl lg:text-4xl font-heading font-bold uppercase tracking-tight text-neutral-900 dark:text-white">
+        <h1 className="text-3xl lg:text-4xl font-heading font-bold uppercase tracking-[0.04em] text-neutral-900 dark:text-white">
           {title}
         </h1>
         {subtitle && (
-          <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">{subtitle}</p>
+          <p className="mt-2 max-w-2xl text-sm text-neutral-500 dark:text-neutral-400">{subtitle}</p>
         )}
       </div>
       {action && <div className="flex-shrink-0">{action}</div>}
@@ -133,27 +138,31 @@ interface StatCardProps {
 export function StatCard({ label, value, icon, variant = 'default', trend, 'data-testid': testId }: StatCardProps) {
   const variantClasses = {
     default: '',
-    danger: 'border-red-500/30',
-    success: 'border-green-500/30',
-    warning: 'border-yellow-500/30',
-    info: 'border-blue-500/30',
+    danger: 'border-red-500/20',
+    success: 'border-green-500/20',
+    warning: 'border-yellow-500/20',
+    info: 'border-blue-500/20',
   }
 
-  const iconClasses = {
-    default: 'text-neutral-400',
-    danger: 'text-red-400',
-    success: 'text-green-400',
-    warning: 'text-yellow-400',
-    info: 'text-blue-400',
+  const iconTones = {
+    default: 'default' as const,
+    danger: 'danger' as const,
+    success: 'success' as const,
+    warning: 'warning' as const,
+    info: 'primary' as const,
   }
 
   return (
     <div className={cn('stat-card', variantClasses[variant])} data-testid={testId}>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <span className="label-base">{label}</span>
-        {icon && <span className={iconClasses[variant]}>{icon}</span>}
+        {icon && (
+          <SymbolFrame tone={iconTones[variant]} size="sm" className="rounded-xl">
+            {icon}
+          </SymbolFrame>
+        )}
       </div>
-      <span className="text-3xl font-heading font-bold text-neutral-900 dark:text-white">
+      <span className="text-3xl font-heading font-bold tracking-tight text-neutral-900 dark:text-white">
         {value}
       </span>
       {trend && (

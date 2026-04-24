@@ -6,6 +6,7 @@ import { useAuth } from '@/shared/hooks/useAuth'
 
 // Auth
 import { LoginPage } from '@/modules/auth/pages/LoginPage'
+import { RegisterPage } from '@/modules/auth/pages/RegisterPage'
 
 // Dashboards
 import { TrainerDashboard } from '@/modules/dashboard/pages/TrainerDashboard'
@@ -29,6 +30,7 @@ import { ProgressPage } from '@/modules/progress/pages/ProgressPage'
 
 // Alerts
 import { AlertsPage } from '@/modules/alerts/pages/AlertsPage'
+import { MessagesPage } from '@/modules/alerts/pages/MessagesPage'
 
 // Billing
 import { BillingPage } from '@/modules/billing/pages/BillingPage'
@@ -59,6 +61,7 @@ function App() {
         }
       >
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
       </Route>
 
       {/* Protected routes */}
@@ -120,6 +123,14 @@ function App() {
           element={
             <ProtectedRoute requiredRole="trainer">
               <AlertsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/messages"
+          element={
+            <ProtectedRoute requiredRole="member">
+              <MessagesPage />
             </ProtectedRoute>
           }
         />

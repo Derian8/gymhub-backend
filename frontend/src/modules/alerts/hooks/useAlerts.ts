@@ -25,10 +25,10 @@ export function useResolveAlertMutation() {
   })
 }
 
-export function useNotificationsQuery() {
+export function useNotificationsQuery(params?: Record<string, string>) {
   return useQuery({
-    queryKey: QUERY_KEYS.NOTIFICATIONS,
-    queryFn: alertsApi.notifications,
+    queryKey: QUERY_KEYS.NOTIFICATIONS_LIST(params),
+    queryFn: () => alertsApi.notifications(params),
     refetchInterval: 30_000,
   })
 }
@@ -40,6 +40,19 @@ export function useMarkAllReadMutation() {
     mutationFn: alertsApi.markAllRead,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.NOTIFICATIONS })
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'list'] })
+    },
+  })
+}
+
+export function useMarkReadMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: number) => alertsApi.markRead(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.NOTIFICATIONS })
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'list'] })
     },
   })
 }

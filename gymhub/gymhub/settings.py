@@ -2,6 +2,7 @@ import logging
 import environ
 from pathlib import Path
 from datetime import timedelta
+from urllib.parse import parse_qsl, unquote, urlparse
 
 env = environ.Env()
 logger = logging.getLogger(__name__)
@@ -79,16 +80,48 @@ WSGI_APPLICATION = 'gymhub.wsgi.application'
 
 AUTH_USER_MODEL = 'users.User'
 
-DATABASES = {
-    'default': {
+
+def build_database_config():
+    database_url = env('DATABASE_URL', default='')
+    db_sslmode = env('DB_SSLMODE', default='require')
+    conn_max_age = env.int('DB_CONN_MAX_AGE', default=60)
+
+    if database_url:
+        parsed_url = urlparse(database_url)
+        query_options = dict(parse_qsl(parsed_url.query))
+        sslmode = query_options.pop('sslmode', db_sslmode)
+
+        config = {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': parsed_url.path.lstrip('/'),
+            'USER': unquote(parsed_url.username or ''),
+            'PASSWORD': unquote(parsed_url.password or ''),
+            'HOST': parsed_url.hostname or '',
+            'PORT': str(parsed_url.port or 5432),
+            'CONN_MAX_AGE': conn_max_age,
+            'OPTIONS': {
+                'sslmode': sslmode,
+                **query_options,
+            },
+        }
+        return {'default': config}
+
+    config = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': env('DB_NAME'),
         'USER': env('DB_USER'),
         'PASSWORD': env('DB_PASSWORD'),
-        'HOST': env('DB_HOST', default='db'),
+        'HOST': env('DB_HOST'),
         'PORT': env('DB_PORT', default='5432'),
     }
-}
+
+    if db_sslmode:
+        config['OPTIONS'] = {'sslmode': db_sslmode}
+    config['CONN_MAX_AGE'] = conn_max_age
+    return {'default': config}
+
+
+DATABASES = build_database_config()
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -160,12 +193,20 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 # Cache
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': env('REDIS_URL', default='redis://redis:6379/0'),
+REDIS_URL = env('REDIS_URL', default='redis://redis:6379/0')
+if REDIS_URL == 'locmem://':
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+        }
+    }
 
 # CORS
 CORS_ALLOW_CREDENTIALS = True

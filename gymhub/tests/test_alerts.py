@@ -94,3 +94,23 @@ class TestAlerts:
         other_notification.refresh_from_db()
         assert own_notification.read is True
         assert other_notification.read is False
+
+    def test_notifications_can_be_filtered_by_type(self, member_client, member_user):
+        from alerts.models import Notification
+
+        trainer_message = Notification.objects.create(
+            user=member_user,
+            message='Tu trainer dejó una indicación.',
+            type='trainer_message',
+        )
+        Notification.objects.create(
+            user=member_user,
+            message='Pago por vencer',
+            type='payment_due',
+        )
+
+        resp = member_client.get('/api/notifications/', {'type': 'trainer_message'})
+
+        assert resp.status_code == status.HTTP_200_OK
+        results = resp.data.get('results', resp.data)
+        assert [item['id'] for item in results] == [trainer_message.id]

@@ -47,6 +47,7 @@ export const QUERY_KEYS = {
   ALERTS: ['alerts'] as const,
   ALERTS_LIST: (params?: Record<string, string>) => ['alerts', 'list', params] as const,
   NOTIFICATIONS: ['notifications'] as const,
+  NOTIFICATIONS_LIST: (params?: Record<string, string>) => ['notifications', 'list', params] as const,
 
   // Nutrition
   NUTRITION_PROFILES: (params?: Record<string, string>) => ['nutrition-profiles', params] as const,

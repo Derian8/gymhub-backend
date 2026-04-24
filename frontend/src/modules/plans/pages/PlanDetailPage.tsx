@@ -1,21 +1,35 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Calendar, ChevronRight } from 'lucide-react'
+import { ArrowLeft, Calendar, ChevronRight, NotebookTabs, UserRound } from 'lucide-react'
 import { useDeletePlanMutation, usePlanDetailQuery, useTodayWorkoutQuery, useWeeklyPlanQuery } from '../hooks/usePlans'
 import { Badge, ConfirmDialog, PageHeader, EmptyState } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
 import { GOAL_LABELS, MUSCLE_LABELS } from '@/shared/lib/utils'
 import type { WorkoutDay, Exercise } from '@/shared/types'
 import { useAuthStore } from '@/shared/store/authStore'
+import { useMemberActivePrescriptionQuery, useMemberDashboardQuery } from '@/modules/members/hooks/useMembers'
+import { SymbolFrame } from '@/shared/components/Brand'
+
+function formatExercisePrescription(exercise: Exercise) {
+  if (exercise.exercise_type === 'timed') {
+    return `${exercise.target_minutes ?? 0} min`
+  }
+
+  const weightLabel = exercise.weight_suggestion_kg ? ` @${exercise.weight_suggestion_kg}kg` : ''
+  return `${exercise.sets ?? 0}×${exercise.reps_range}${weightLabel}`
+}
 
 export function PlanDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const planId = parseInt(id || '0')
   const { user } = useAuthStore()
+  const isMember = user?.role === 'member'
   const { data: plan, isLoading } = usePlanDetailQuery(planId)
   const { data: weeklyView } = useWeeklyPlanQuery(planId)
   const { data: todayWorkout } = useTodayWorkoutQuery(planId)
+  const { data: activePrescription } = useMemberActivePrescriptionQuery(isMember ? user?.memberprofile_id || 0 : 0)
+  const { data: dashboardSummary } = useMemberDashboardQuery(isMember ? user?.memberprofile_id || 0 : 0)
   const deletePlan = useDeletePlanMutation()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const canDelete = !!user && (user.role === 'trainer' || user.is_staff)
@@ -47,14 +61,14 @@ export function PlanDetailPage() {
 
   return (
     <div data-testid="plan-detail-page" className="page-enter">
-      <Link to="/plans" className="flex items-center gap-2 text-sm text-neutral-500 hover:text-primary mb-6 transition-colors">
+      <Link to={isMember ? '/plans/my' : '/plans'} className="flex items-center gap-2 text-sm text-neutral-500 hover:text-primary mb-6 transition-colors">
         <ArrowLeft size={16} />
-        Volver a planes
+        {isMember ? 'Volver a mi programa' : 'Volver a planes'}
       </Link>
 
       <PageHeader
         title={plan.name}
-        subtitle={GOAL_LABELS[plan.goal] || plan.goal}
+        subtitle={isMember ? 'Así se ve el plan completo que tu trainer publicó para ti.' : GOAL_LABELS[plan.goal] || plan.goal}
         action={
           <div className="flex flex-wrap items-center gap-3">
             {canDelete && (
@@ -79,7 +93,6 @@ export function PlanDetailPage() {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Plan info */}
         <div className="card p-6 space-y-4">
           <h3 className="font-heading font-bold text-lg text-neutral-900 dark:text-white">Información</h3>
           <div className="space-y-2 text-sm">
@@ -109,13 +122,41 @@ export function PlanDetailPage() {
               <p className="text-sm font-medium text-neutral-900 dark:text-white">{todayWorkout.name}</p>
             </div>
           )}
+
+          {isMember && activePrescription?.trainer && (
+            <div className="rounded-2xl border border-neutral-200 bg-neutral-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/50">
+              <div className="mb-3 flex items-center gap-3">
+                <SymbolFrame size="sm" tone="primary" className="rounded-xl">
+                  <UserRound size={16} />
+                </SymbolFrame>
+                <div>
+                  <p className="label-base">Publicado por</p>
+                  <p className="text-sm font-semibold text-neutral-900 dark:text-white">{activePrescription.trainer.nombre}</p>
+                </div>
+              </div>
+              <p className="text-sm text-neutral-600 dark:text-neutral-300">
+                {dashboardSummary?.siguiente_accion || 'Sigue la estructura del trainer y usa esta vista para entender mejor tu semana.'}
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* Weekly view */}
         <div className="lg:col-span-2 space-y-4">
-          <h3 className="font-heading font-bold text-xl text-neutral-900 dark:text-white">
-            Vista semanal
-          </h3>
+          <div className="flex items-center gap-3">
+            <SymbolFrame size="sm" tone="primary" className="rounded-xl">
+              <NotebookTabs size={18} />
+            </SymbolFrame>
+            <div>
+              <h3 className="font-heading font-bold text-xl text-neutral-900 dark:text-white">
+                Vista semanal
+              </h3>
+              {isMember ? (
+                <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                  Aquí ves la organización exacta del plan que tu trainer dejó publicada para ti.
+                </p>
+              ) : null}
+            </div>
+          </div>
           {weeklyView?.workout_days ? (
             <div className="space-y-3">
               {weeklyView.workout_days.map((day: WorkoutDay) => (
@@ -188,8 +229,7 @@ function ExerciseRow({ exercise }: { exercise: Exercise }) {
         <span className="ml-2 text-xs text-neutral-400">{MUSCLE_LABELS[exercise.muscle_group]}</span>
       </div>
       <span className="text-xs font-mono text-neutral-500">
-        {exercise.sets}×{exercise.reps_range}
-        {exercise.weight_suggestion_kg && ` @${exercise.weight_suggestion_kg}kg`}
+        {formatExercisePrescription(exercise)}
       </span>
     </div>
   )

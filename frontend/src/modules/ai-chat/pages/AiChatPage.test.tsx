@@ -83,12 +83,18 @@ describe('AiChatPage', () => {
           siguiente_accion: 'Completa tu entrenamiento de hoy.',
           estado_prescripcion: 'lista',
           trainer_asignado_nombre: 'Carlos Trainer',
+          last_checkin: '2026-03-09T09:00:00Z',
+          unread_notifications: 2,
         },
         summary: {
           active_plan_name: 'Hipertrofia',
+          active_plan_id: 5,
           today_has_workout: true,
+          today_workout_name: 'Torso superior',
           resumen_hoy: 'Hoy toca torso superior.',
           payment_status: 'pending',
+          days_until_due: 2,
+          days_overdue: null,
           nutrition_goal: 'muscle_gain',
           weekly_sessions_done: 3,
           streak_asistencia: 4,
@@ -96,6 +102,37 @@ describe('AiChatPage', () => {
           inactivity_alert: false,
           tiene_plan_activo: true,
           prescripcion_lista: true,
+          risk_reasons: ['inasistencia reciente'],
+        },
+        analysis_context: {
+          trainer_name: 'Carlos Trainer',
+          risk_level: 'medium',
+          risk_reasons: ['inasistencia reciente'],
+          next_action: 'Completa tu entrenamiento de hoy.',
+          payment_status: 'pending',
+          days_until_due: 2,
+          days_overdue: null,
+          last_checkin: '2026-03-09T09:00:00Z',
+          unread_notifications: 2,
+          today_has_workout: true,
+          today_workout_name: 'Torso superior',
+          active_plan_name: 'Hipertrofia',
+          weekly_sessions_done: 3,
+          streak_asistencia: 4,
+          cumplimiento_semanal: 75,
+          nutrition_goal: 'muscle_gain',
+          inactivity_alert: false,
+          prescription_status: 'lista',
+          prescription_readiness: {
+            tiene_plan_activo: true,
+            tiene_dias: true,
+            tiene_ejercicios: true,
+            tiene_nutricion: true,
+            tiene_guias: true,
+            esta_lista_para_member: true,
+            estado: 'lista',
+          },
+          has_today_workout: true,
         },
       },
       isLoading: false,
@@ -135,6 +172,8 @@ describe('AiChatPage', () => {
       expect(getByText('Hipertrofia')).toBeInTheDocument()
       expect(getByText('Hola, vamos a organizar tu entrenamiento.')).toBeInTheDocument()
       expect(getByText('Asistente contextual')).toBeInTheDocument()
+      expect(getByText('Pago pendiente (2 días)')).toBeInTheDocument()
+      expect(getByText(/Señales clave:/)).toBeInTheDocument()
     })
 
     await user.type(getByTestId('chat-input'), 'Necesito ayuda con mi rutina')
@@ -186,6 +225,7 @@ describe('AiChatPage', () => {
         suggested_prompts: [],
         member: null,
         summary: null,
+        analysis_context: null,
       },
       isLoading: false,
     })
@@ -245,12 +285,18 @@ describe('AiChatPage', () => {
           siguiente_accion: 'Completa tu entrenamiento de hoy.',
           estado_prescripcion: 'lista',
           trainer_asignado_nombre: 'Luis Trainer',
+          last_checkin: '2026-03-08T09:00:00Z',
+          unread_notifications: 1,
         },
         summary: {
           active_plan_name: 'Hipertrofia',
+          active_plan_id: 5,
           today_has_workout: true,
+          today_workout_name: 'Torso superior',
           resumen_hoy: 'Hoy toca torso superior.',
           payment_status: 'late',
+          days_until_due: null,
+          days_overdue: 4,
           nutrition_goal: 'muscle_gain',
           weekly_sessions_done: 1,
           streak_asistencia: 1,
@@ -258,6 +304,37 @@ describe('AiChatPage', () => {
           inactivity_alert: true,
           tiene_plan_activo: true,
           prescripcion_lista: true,
+          risk_reasons: ['inasistencia reciente', 'caída de adherencia'],
+        },
+        analysis_context: {
+          trainer_name: 'Luis Trainer',
+          risk_level: 'high',
+          risk_reasons: ['inasistencia reciente', 'caída de adherencia'],
+          next_action: 'Completa tu entrenamiento de hoy.',
+          payment_status: 'late',
+          days_until_due: null,
+          days_overdue: 4,
+          last_checkin: '2026-03-08T09:00:00Z',
+          unread_notifications: 1,
+          today_has_workout: true,
+          today_workout_name: 'Torso superior',
+          active_plan_name: 'Hipertrofia',
+          weekly_sessions_done: 1,
+          streak_asistencia: 1,
+          cumplimiento_semanal: 25,
+          nutrition_goal: 'muscle_gain',
+          inactivity_alert: true,
+          prescription_status: 'lista',
+          prescription_readiness: {
+            tiene_plan_activo: true,
+            tiene_dias: true,
+            tiene_ejercicios: true,
+            tiene_nutricion: true,
+            tiene_guias: true,
+            esta_lista_para_member: true,
+            estado: 'lista',
+          },
+          has_today_workout: true,
         },
       },
       isLoading: false,
@@ -268,12 +345,13 @@ describe('AiChatPage', () => {
     const user = userEvent.setup()
     enviarMensaje.mockImplementation((_payload, options) => {
       options?.onSuccess?.({
-        content: 'Lectura del caso: bloqueo financiero.\n\nMensaje sugerido: Regulariza tu pago hoy.',
+        content: 'Lectura del caso: bloqueo financiero.\n\nFactores clave: pago vencido.\n\nRiesgos o fricciones: mora activa.\n\nAcción recomendada: separa cobro y adherencia.\n\nMensaje sugerido: Regulariza tu pago hoy.',
         message_id: 900,
         conversation_id: 55,
         sendable: true,
         message_text: 'Regulariza tu pago hoy para que retomemos tu ritmo.',
         priority_detected: 'payment',
+        intent_detected: 'client_message',
         fallback_used: false,
         engine_mode: 'deterministic',
         local_llm_used: false,
@@ -292,6 +370,7 @@ describe('AiChatPage', () => {
     await waitFor(() => {
       expect(getByTestId('sendable-message-card')).toBeInTheDocument()
       expect(getByText('Regulariza tu pago hoy para que retomemos tu ritmo.')).toBeInTheDocument()
+      expect(getByText('Al enviarlo, el member lo verá en su bandeja de mensajes del trainer.')).toBeInTheDocument()
     })
 
     await user.click(getByTestId('sendable-message-send'))

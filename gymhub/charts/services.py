@@ -129,7 +129,11 @@ def build_member_charts(member):
 
     exercise_progress = []
     top_exercise = (
-        ExerciseLog.objects.filter(session__member=member, session__is_completed=True)
+        ExerciseLog.objects.filter(
+            session__member=member,
+            session__is_completed=True,
+            exercise__exercise_type='strength',
+        )
         .values('exercise__id', 'exercise__name')
         .annotate(total=Sum('weight_used_kg'))
         .order_by('-total', 'exercise__name')

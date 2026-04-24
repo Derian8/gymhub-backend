@@ -14,7 +14,9 @@ venv/
 
 node_modules/
 frontend/node_modules/
+frontend/node_modules.inaccessible.bak/
 frontend/dist/
+frontend/dist.inaccessible.bak/
 frontend/.vite/
 frontend/playwright-report/
 frontend/test-results/

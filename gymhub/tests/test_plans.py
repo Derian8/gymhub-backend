@@ -130,6 +130,118 @@ class TestWorkoutSessions:
 
 @pytest.mark.django_db
 class TestBulkExerciseLogs:
+    def test_member_bulk_exercise_logs_ignores_manipulated_structure(
+        self, member_client, workout_session, workout_day_a
+    ):
+        from plans.models import Exercise
+        from progress.models import ExerciseLog
+
+        exercise = Exercise.objects.filter(workout_day=workout_day_a).first()
+        assert exercise is not None
+
+        resp = member_client.post('/api/exercise-logs/bulk/', {
+            'session_id': workout_session.id,
+            'logs': [
+                {
+                    'exercise_id': exercise.id,
+                    'sets_completed': 99,
+                    'reps_completed': 1,
+                    'weight_used_kg': 62.5,
+                    'rpe': 8,
+                },
+            ],
+        }, format='json')
+
+        assert resp.status_code == status.HTTP_201_CREATED
+        log = ExerciseLog.objects.get(session=workout_session, exercise=exercise)
+        assert log.sets_completed == exercise.sets
+        assert log.reps_completed == int(exercise.reps_range.split('-')[0])
+
+    def test_member_bulk_exercise_logs_accepts_minimal_payload(
+        self, member_client, workout_session, workout_day_a
+    ):
+        from plans.models import Exercise
+
+        exercise = Exercise.objects.filter(workout_day=workout_day_a).first()
+        assert exercise is not None
+
+        resp = member_client.post('/api/exercise-logs/bulk/', {
+            'session_id': workout_session.id,
+            'logs': [
+                {
+                    'exercise_id': exercise.id,
+                    'weight_used_kg': 55.0,
+                    'rpe': 7,
+                },
+            ],
+        }, format='json')
+
+        assert resp.status_code == status.HTTP_201_CREATED
+
+    def test_member_bulk_exercise_logs_accepts_timed_exercise_minutes(
+        self, member_client, workout_session, workout_day_a
+    ):
+        from plans.models import Exercise
+        from progress.models import ExerciseLog
+
+        exercise = Exercise.objects.create(
+            workout_day=workout_day_a,
+            name='Bici estatica',
+            muscle_group='cardio',
+            exercise_type='timed',
+            sets=None,
+            reps_range='',
+            target_minutes=20,
+            rest_seconds=30,
+            order=5,
+        )
+
+        resp = member_client.post('/api/exercise-logs/bulk/', {
+            'session_id': workout_session.id,
+            'logs': [
+                {
+                    'exercise_id': exercise.id,
+                    'minutes_completed': 18,
+                    'weight_used_kg': 99,
+                },
+            ],
+        }, format='json')
+
+        assert resp.status_code == status.HTTP_201_CREATED
+        log = ExerciseLog.objects.get(session=workout_session, exercise=exercise)
+        assert log.minutes_completed == 18
+        assert log.weight_used_kg is None
+        assert log.sets_completed == 0
+        assert log.reps_completed == 0
+
+    def test_member_bulk_exercise_logs_rejects_timed_exercise_without_minutes(
+        self, member_client, workout_session, workout_day_a
+    ):
+        from plans.models import Exercise
+
+        exercise = Exercise.objects.create(
+            workout_day=workout_day_a,
+            name='Bici estatica',
+            muscle_group='cardio',
+            exercise_type='timed',
+            sets=None,
+            reps_range='',
+            target_minutes=20,
+            rest_seconds=30,
+            order=6,
+        )
+
+        resp = member_client.post('/api/exercise-logs/bulk/', {
+            'session_id': workout_session.id,
+            'logs': [
+                {
+                    'exercise_id': exercise.id,
+                },
+            ],
+        }, format='json')
+
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+
     def test_bulk_exercise_logs_atomic_transaction(
         self, member_client, workout_session, workout_day_a
     ):
@@ -193,6 +305,40 @@ class TestBulkExerciseLogs:
         assert resp.status_code in (status.HTTP_400_BAD_REQUEST, status.HTTP_500_INTERNAL_SERVER_ERROR)
         # Rollback: sin nuevos logs
         assert ExerciseLog.objects.count() == initial_count
+
+    def test_bulk_exercise_logs_rejects_exercise_outside_session_workout_day(
+        self, member_client, workout_session, workout_day_a, training_plan
+    ):
+        from plans.models import Exercise, WorkoutDay
+
+        foreign_day = WorkoutDay.objects.create(
+            plan=training_plan,
+            name='Dia externo',
+            day_label='B',
+            order=9,
+        )
+        foreign_exercise = Exercise.objects.create(
+            workout_day=foreign_day,
+            name='Remo externo',
+            muscle_group='back',
+            sets=3,
+            reps_range='10-12',
+            rest_seconds=75,
+            order=0,
+        )
+
+        resp = member_client.post('/api/exercise-logs/bulk/', {
+            'session_id': workout_session.id,
+            'logs': [
+                {
+                    'exercise_id': foreign_exercise.id,
+                    'weight_used_kg': 40.0,
+                    'rpe': 6,
+                },
+            ],
+        }, format='json')
+
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.django_db

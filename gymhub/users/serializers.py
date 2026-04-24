@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from django.utils.text import slugify
 from .models import MemberProfile, TrainerProfile, AuditLog
 from .services import get_member_prescription_status, get_member_risk_snapshot
 
@@ -28,6 +29,13 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class RegisterSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=150,
+        validators=User._meta.get_field('username').validators,
+    )
+    role = serializers.ChoiceField(choices=User.ROLE_CHOICES, default='member')
     password = serializers.CharField(write_only=True, min_length=8)
     password2 = serializers.CharField(write_only=True)
 
@@ -35,13 +43,44 @@ class RegisterSerializer(serializers.ModelSerializer):
         model = User
         fields = ('email', 'username', 'first_name', 'last_name', 'role', 'password', 'password2')
 
+    def validate_email(self, value):
+        email = value.strip().lower()
+        if User.objects.filter(email__iexact=email).exists():
+            raise serializers.ValidationError('Ya existe un usuario con este email.')
+        return email
+
+    def validate_username(self, value):
+        username = value.strip()
+        if username and User.objects.filter(username=username).exists():
+            raise serializers.ValidationError('Ya existe un usuario con este username.')
+        return username
+
     def validate(self, attrs):
         if attrs['password'] != attrs.pop('password2'):
             raise serializers.ValidationError({'password': 'Las contraseñas no coinciden.'})
         return attrs
 
+    def _generate_unique_username(self, email):
+        local_part = email.split('@', 1)[0]
+        base = slugify(local_part.replace('.', '-').replace('_', '-')) or 'member'
+        base = base[:140]
+        candidate = base
+        suffix = 1
+
+        while User.objects.filter(username=candidate).exists():
+            suffix_text = f'-{suffix}'
+            candidate = f'{base[:150 - len(suffix_text)]}{suffix_text}'
+            suffix += 1
+
+        return candidate
+
     def create(self, validated_data):
         password = validated_data.pop('password')
+        username = validated_data.get('username', '').strip()
+        if not username:
+            validated_data['username'] = self._generate_unique_username(validated_data['email'])
+        else:
+            validated_data['username'] = username
         user = User(**validated_data)
         user.set_password(password)
         user.save()
@@ -51,6 +90,37 @@ class RegisterSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
+
+    def validate_email(self, value):
+        return value.strip().lower()
+
+
+class MeUpdateSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=150,
+        validators=User._meta.get_field('username').validators,
+    )
+
+    class Meta:
+        model = User
+        fields = ('email', 'username', 'first_name', 'last_name')
+
+    def validate_email(self, value):
+        email = value.strip().lower()
+        qs = User.objects.filter(email__iexact=email).exclude(id=self.instance.id)
+        if qs.exists():
+            raise serializers.ValidationError('Ya existe un usuario con este email.')
+        return email
+
+    def validate_username(self, value):
+        username = value.strip()
+        if username:
+            qs = User.objects.filter(username=username).exclude(id=self.instance.id)
+            if qs.exists():
+                raise serializers.ValidationError('Ya existe un usuario con este username.')
+        return username
 
 
 class MemberProfileSerializer(serializers.ModelSerializer):
@@ -155,5 +225,5 @@ class TrainerProfileSerializer(serializers.ModelSerializer):
 class AuditLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = AuditLog
-        fields = ('id', 'user', 'action_type', 'target_model', 'target_id', 'ip_address', 'created_at')
+        fields = ('id', 'user', 'action_type', 'target_model', 'target_id', 'ip_address', 'details', 'created_at')
         read_only_fields = ('id', 'created_at')

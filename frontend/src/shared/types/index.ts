@@ -22,12 +22,19 @@ export interface LoginCredentials {
 
 export interface RegisterData {
   email: string
-  username: string
+  username?: string
   first_name: string
   last_name: string
-  role: 'member' | 'trainer'
+  role?: 'member' | 'trainer'
   password: string
   password2: string
+}
+
+export interface UpdateProfileData {
+  email?: string
+  username?: string
+  first_name?: string
+  last_name?: string
 }
 
 // --- Member ---
@@ -55,6 +62,11 @@ export interface MemberSubscription {
   grace_period_days: number
   auto_generate_next: boolean
   is_active: boolean
+  status: 'active' | 'past_due' | 'suspended' | 'cancelled'
+  renewal_date: string | null
+  cancellation_date: string | null
+  cancellation_reason: string
+  commercial_notes: string
   plan_detail?: MembershipPlan
 }
 
@@ -110,11 +122,15 @@ export interface MemberDashboardSummary {
 // --- Trainer Overview ---
 export interface TrainerOverview {
   total_active_members: number
+  active_subscriptions_count: number
   checked_in_today: number
   members_in_mora: number
   members_inactive_30d: number
   pending_alerts: number
   revenue_this_month: number
+  estimated_mrr: number
+  expected_revenue_this_month: number
+  late_rate_pct: number
   new_members_this_month: number
   sessions_completed_this_week: number
   payments_due_soon: number
@@ -251,14 +267,17 @@ export type ChartsOverview = MemberChartsOverview | TrainerChartsOverview
 export type GoalType = 'fat_loss' | 'muscle_gain' | 'endurance' | 'flexibility' | 'maintenance' | 'general'
 export type MuscleGroup = 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'legs' | 'glutes' | 'core' | 'full_body' | 'cardio'
 export type DayLabel = 'A' | 'B' | 'C' | 'D'
+export type ExerciseType = 'strength' | 'timed'
 
 export interface Exercise {
   id: number
   workout_day: number
   name: string
   muscle_group: MuscleGroup
-  sets: number
+  exercise_type: ExerciseType
+  sets: number | null
   reps_range: string
+  target_minutes: number | null
   weight_suggestion_kg: number | null
   rest_seconds: number
   technique_notes: string
@@ -332,8 +351,10 @@ export interface TrainingTemplateExercise {
   dia: number
   nombre: string
   grupo_muscular: MuscleGroup
-  series: number
+  tipo_ejercicio: ExerciseType
+  series: number | null
   rango_repeticiones: string
+  minutos_objetivo: number | null
   peso_sugerido_kg: number | null
   descanso_segundos: number
   notas_tecnicas: string
@@ -394,8 +415,10 @@ export interface ExercisePayload {
   workout_day: number
   name: string
   muscle_group: MuscleGroup
-  sets: number
+  exercise_type: ExerciseType
+  sets: number | null
   reps_range: string
+  target_minutes: number | null
   weight_suggestion_kg?: number | null
   rest_seconds: number
   technique_notes?: string
@@ -414,8 +437,16 @@ export interface Attendance {
   id: number
   member: number
   check_in_time: string
-  check_out_time: string | null
+  gym_class?: number | null
+  checked_in_by?: number | null
+  is_manual_override?: boolean
   notes: string
+}
+
+export interface CheckInBlockedResponse {
+  blocked: true
+  reason: 'payment_overdue'
+  days_overdue: number
 }
 
 // --- Progress ---
@@ -450,18 +481,31 @@ export interface ExerciseLog {
   exercise: number
   sets_completed: number
   reps_completed: number
+  minutes_completed: number | null
   weight_used_kg: number | null
   rpe: number | null
   notes: string
+}
+
+export interface ExerciseLogPayload {
+  exercise_id: number
+  sets_completed?: number
+  reps_completed?: number
+  minutes_completed?: number
+  weight_used_kg?: number
+  rpe?: number
+  notes?: string
 }
 
 export interface ProgressByExercise {
   exercise_name: string
   data_points: Array<{
     date: string
+    exercise_type?: ExerciseType
     weight_used_kg: number | null
     sets: number
     reps_completed: number
+    minutes_completed?: number | null
     rpe: number | null
   }>
 }
@@ -491,6 +535,9 @@ export interface PaymentRecord {
   paid_at: string | null
   status: PaymentStatus
   method_used: number | null
+  payment_reference: string
+  receipt_issued_at: string | null
+  receipt_number: string | null
   notes: string
   days_overdue: number
   plan_name?: string | null
@@ -626,6 +673,7 @@ export interface AIChatResponse {
   sendable?: boolean
   message_text?: string
   priority_detected?: 'payment' | 'adherence' | 'workout' | 'nutrition' | 'general' | ''
+  intent_detected?: 'payment' | 'adherence' | 'workout' | 'nutrition' | 'client_message' | 'full_analysis' | 'general' | ''
   error?: boolean
 }
 
@@ -663,12 +711,18 @@ export interface AIChatContext {
     siguiente_accion: string
     estado_prescripcion: 'sin_plan' | 'incompleta' | 'lista'
     trainer_asignado_nombre: string | null
+    last_checkin: string | null
+    unread_notifications: number
   } | null
   summary: {
     active_plan_name: string | null
+    active_plan_id: number | null
     today_has_workout: boolean
+    today_workout_name: string | null
     resumen_hoy: string
     payment_status: 'paid' | 'pending' | 'late' | null
+    days_until_due: number | null
+    days_overdue: number | null
     nutrition_goal: string | null
     weekly_sessions_done: number
     streak_asistencia: number
@@ -676,6 +730,37 @@ export interface AIChatContext {
     inactivity_alert: boolean
     tiene_plan_activo: boolean
     prescripcion_lista: boolean
+    risk_reasons: string[]
+  } | null
+  analysis_context: {
+    trainer_name: string | null
+    risk_level: 'low' | 'medium' | 'high'
+    risk_reasons: string[]
+    next_action: string
+    payment_status: 'paid' | 'pending' | 'late' | null
+    days_until_due: number | null
+    days_overdue: number | null
+    last_checkin: string | null
+    unread_notifications: number
+    today_has_workout: boolean
+    today_workout_name: string | null
+    active_plan_name: string | null
+    weekly_sessions_done: number
+    streak_asistencia: number
+    cumplimiento_semanal: number | null
+    nutrition_goal: string | null
+    inactivity_alert: boolean
+    prescription_status: 'sin_plan' | 'incompleta' | 'lista'
+    prescription_readiness: {
+      tiene_plan_activo: boolean
+      tiene_dias: boolean
+      tiene_ejercicios: boolean
+      tiene_nutricion: boolean
+      tiene_guias: boolean
+      esta_lista_para_member: boolean
+      estado?: 'sin_plan' | 'incompleta' | 'lista'
+    }
+    has_today_workout: boolean
   } | null
 }
 
@@ -705,4 +790,11 @@ export interface ApiError {
   message: string
   status: number
   data?: Record<string, unknown>
+}
+
+export interface AuthBlockedResponse {
+  error: string
+  code: 'payment_access_blocked'
+  reason: 'payment_overdue_30d'
+  days_overdue: number
 }

@@ -59,5 +59,7 @@ class AIChatContextSerializer(serializers.Serializer):
     sendable = serializers.BooleanField(default=False, required=False)
     message_text = serializers.CharField(default='', required=False)
     priority_detected = serializers.CharField(default='', required=False)
+    intent_detected = serializers.CharField(default='', required=False)
     member = serializers.DictField(required=False, allow_null=True)
     summary = serializers.DictField(required=False, allow_null=True)
+    analysis_context = serializers.DictField(required=False, allow_null=True)

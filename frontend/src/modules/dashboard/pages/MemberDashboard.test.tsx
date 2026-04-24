@@ -45,6 +45,16 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
   }),
 }))
 
+vi.mock('@/modules/alerts/hooks/useAlerts', () => ({
+  useNotificationsQuery: () => ({
+    data: {
+      results: [
+        { id: 51, user: 1, message: 'Tu trainer dejó una indicación.', type: 'trainer_message', read: false, created_at: '2026-03-20T08:00:00Z' },
+      ],
+    },
+  }),
+}))
+
 describe('MemberDashboard', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -75,6 +85,8 @@ describe('MemberDashboard', () => {
     expect(getByTestId('today-hero')).toBeInTheDocument()
     expect(getByTestId('card-payment')).toBeInTheDocument()
     expect(getByTestId('card-workout')).toHaveAttribute('href', '/plans/11/today')
+    expect(getByTestId('card-messages')).toHaveAttribute('href', '/messages')
+    expect(getByTestId('card-messages')).toHaveTextContent('1')
     expect(getByTestId('card-notifications')).toHaveTextContent('3')
     expect(getByText('5 días de racha')).toBeInTheDocument()
   })

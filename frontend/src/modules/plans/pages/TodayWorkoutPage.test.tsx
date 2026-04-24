@@ -2,6 +2,7 @@ import userEvent from '@testing-library/user-event'
 import { waitFor } from '@testing-library/react'
 import { renderWithProviders } from '@/test/utils'
 import { TodayWorkoutPage } from './TodayWorkoutPage'
+import { useAuthStore } from '@/shared/store/authStore'
 
 const crearSesion = vi.fn()
 const completarSesion = vi.fn()
@@ -27,12 +28,27 @@ vi.mock('../hooks/usePlans', () => ({
           id: 501,
           name: 'Press banca',
           muscle_group: 'chest',
+          exercise_type: 'strength',
           sets: 4,
           reps_range: '8-10',
+          target_minutes: null,
           weight_suggestion_kg: 60,
           rest_seconds: 90,
           technique_notes: '',
           order: 0,
+        },
+        {
+          id: 502,
+          name: 'Bici estatica',
+          muscle_group: 'cardio',
+          exercise_type: 'timed',
+          sets: null,
+          reps_range: '',
+          target_minutes: 20,
+          weight_suggestion_kg: null,
+          rest_seconds: 30,
+          technique_notes: 'Mantén ritmo constante',
+          order: 1,
         },
       ],
     },
@@ -52,11 +68,44 @@ vi.mock('../hooks/usePlans', () => ({
   }),
 }))
 
+vi.mock('@/modules/members/hooks/useMembers', () => ({
+  useMemberActivePrescriptionQuery: () => ({
+    data: {
+      trainer: {
+        id: 2,
+        nombre: 'Carlos Mendoza',
+        correo: 'trainer@gymhub.com',
+      },
+      plan_activo: {
+        id: 12,
+        name: 'Hipertrofia base',
+      },
+    },
+    isLoading: false,
+  }),
+}))
+
 describe('TodayWorkoutPage', () => {
   beforeEach(() => {
     crearSesion.mockReset()
     completarSesion.mockReset()
     guardarLogs.mockReset()
+    useAuthStore.setState({
+      user: {
+        id: 1,
+        email: 'member@test.com',
+        username: 'member',
+        first_name: 'Ana',
+        last_name: 'Member',
+        role: 'member',
+        is_staff: false,
+        memberprofile_id: 10,
+        trainerprofile_id: null,
+      },
+      isAuthenticated: true,
+      authResolved: true,
+      theme: 'dark',
+    })
   })
 
   it('starts and completes a workout session', async () => {
@@ -71,10 +120,13 @@ describe('TodayWorkoutPage', () => {
       options?.onSuccess?.({ id: 901, is_completed: true })
     })
 
-    const { getByTestId, queryByTestId, getByText } = renderWithProviders(<TodayWorkoutPage />)
+    const { getAllByText, getByTestId, queryByTestId, getByText } = renderWithProviders(<TodayWorkoutPage />)
 
     expect(getByTestId('today-workout-page')).toBeInTheDocument()
     expect(getByText('Press banca')).toBeInTheDocument()
+    expect(getByText('Bici estatica')).toBeInTheDocument()
+    expect(getByText(/Carlos Mendoza dejó este bloque activo para hoy/)).toBeInTheDocument()
+    expect(getByText('Volver a mi programa')).toBeInTheDocument()
 
     await user.click(getByTestId('start-session-btn'))
 
@@ -84,6 +136,9 @@ describe('TodayWorkoutPage', () => {
         expect.objectContaining({ onSuccess: expect.any(Function) }),
       )
       expect(getByTestId('complete-session-btn')).toBeInTheDocument()
+      expect(getAllByText('Prescripción del trainer')).toHaveLength(2)
+      expect(getByTestId('rpe-input-501')).toBeInTheDocument()
+      expect(getByTestId('minutes-input-502')).toBeInTheDocument()
     })
 
     await user.click(getByTestId('complete-session-btn'))
@@ -95,9 +150,12 @@ describe('TodayWorkoutPage', () => {
           logs: [
             {
               exercise_id: 501,
-              sets_completed: 4,
-              reps_completed: 8,
               weight_used_kg: 60,
+              rpe: 7,
+            },
+            {
+              exercise_id: 502,
+              minutes_completed: 20,
             },
           ],
         },

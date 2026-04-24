@@ -1,11 +1,12 @@
 import {
   Users, CheckSquare, AlertTriangle, DollarSign, Activity, UserPlus,
-  Dumbbell, ArrowRight, Siren, TrendingDown,
+  Dumbbell, ArrowRight, Siren, TrendingDown, CreditCard,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useTrainerOverviewQuery } from '@/modules/members/hooks/useMembers'
 import { Badge, EmptyState, PageHeader, StatCard } from '@/shared/components/UI'
 import { StatCardSkeleton } from '@/shared/components/Skeleton'
+import { SymbolFrame } from '@/shared/components/Brand'
 import {
   formatCurrency,
   PAYMENT_STATUS_LABELS,
@@ -91,6 +92,27 @@ export function TrainerDashboard() {
           testId: 'stat-revenue',
         },
         {
+          label: 'MRR estimado',
+          value: formatCurrency(data.estimated_mrr),
+          icon: <DollarSign size={20} />,
+          variant: 'info' as const,
+          testId: 'stat-estimated-mrr',
+        },
+        {
+          label: 'Cobranza esperada',
+          value: formatCurrency(data.expected_revenue_this_month),
+          icon: <CreditCard size={20} />,
+          variant: 'default' as const,
+          testId: 'stat-expected-revenue',
+        },
+        {
+          label: 'Tasa de mora',
+          value: `${data.late_rate_pct}%`,
+          icon: <TrendingDown size={20} />,
+          variant: data.late_rate_pct > 15 ? 'danger' as const : 'default' as const,
+          testId: 'stat-late-rate',
+        },
+        {
           label: 'Nuevos miembros',
           value: data.new_members_this_month,
           icon: <UserPlus size={20} />,
@@ -103,6 +125,13 @@ export function TrainerDashboard() {
           icon: <Dumbbell size={20} />,
           variant: 'default' as const,
           testId: 'stat-sessions',
+        },
+        {
+          label: 'Suscripciones activas',
+          value: data.active_subscriptions_count,
+          icon: <CreditCard size={20} />,
+          variant: 'default' as const,
+          testId: 'stat-active-subscriptions',
         },
       ]
     : []
@@ -213,7 +242,7 @@ export function TrainerDashboard() {
             title="Resolver alertas"
             description={`${data?.pending_alerts || 0} alertas pendientes de resolución`}
             to="/alerts"
-            icon={<AlertTriangle size={24} />}
+            icon={<AlertTriangle size={20} />}
             variant={data && data.pending_alerts > 0 ? 'warning' : 'default'}
             testId="quick-alerts"
           />
@@ -221,7 +250,7 @@ export function TrainerDashboard() {
             title="Cobros urgentes"
             description={`${data?.payments_due_soon || 0} por vencer y ${data?.payments_overdue || 0} en mora`}
             to="/billing"
-            icon={<DollarSign size={24} />}
+            icon={<DollarSign size={20} />}
             variant={data && (data.payments_due_soon > 0 || data.payments_overdue > 0) ? 'warning' : 'default'}
             testId="quick-billing"
           />
@@ -229,14 +258,14 @@ export function TrainerDashboard() {
             title="Gestionar miembros"
             description="Lista completa con búsqueda y señales de adherencia"
             to="/members"
-            icon={<Users size={24} />}
+            icon={<Users size={20} />}
             testId="quick-members"
           />
           <QuickAction
             title="Completar prescripciones"
             description={`${data?.members_without_active_plan || 0} sin plan y ${data?.incomplete_prescriptions || 0} incompletas`}
             to="/members"
-            icon={<Dumbbell size={24} />}
+            icon={<Dumbbell size={20} />}
             variant={data && (data.members_without_active_plan > 0 || data.incomplete_prescriptions > 0) ? 'warning' : 'default'}
             testId="quick-prescriptions"
           />
@@ -285,9 +314,9 @@ function QuickAction({ title, description, to, icon, variant = 'default', testId
         variant === 'warning' ? 'border-yellow-500/30' : ''
       }`}
     >
-      <div className={`p-3 rounded-sm ${variant === 'warning' ? 'bg-yellow-500/10 text-yellow-500' : 'bg-primary/10 text-primary'}`}>
+      <SymbolFrame tone={variant === 'warning' ? 'warning' : 'primary'} size="md" className="rounded-2xl">
         {icon}
-      </div>
+      </SymbolFrame>
       <div>
         <h3 className="font-semibold text-neutral-900 dark:text-white group-hover:text-primary transition-colors">
           {title}

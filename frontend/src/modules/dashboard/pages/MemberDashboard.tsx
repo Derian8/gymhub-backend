@@ -1,9 +1,11 @@
-import { Dumbbell, CheckSquare, CreditCard, AlertTriangle, Utensils, Activity, Flame, GaugeCircle } from 'lucide-react'
+import { Dumbbell, CheckSquare, CreditCard, AlertTriangle, Utensils, Activity, Flame, GaugeCircle, MessageSquareMore } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '@/shared/store/authStore'
 import { useMemberActivePrescriptionQuery, useMemberDashboardQuery } from '@/modules/members/hooks/useMembers'
+import { useNotificationsQuery } from '@/modules/alerts/hooks/useAlerts'
 import { Badge, PageHeader } from '@/shared/components/UI'
 import { StatCardSkeleton } from '@/shared/components/Skeleton'
+import { SymbolFrame } from '@/shared/components/Brand'
 import { formatRelative, GOAL_LABELS, RISK_LEVEL_BADGE, RISK_LEVEL_LABELS } from '@/shared/lib/utils'
 
 export function MemberDashboard() {
@@ -11,6 +13,8 @@ export function MemberDashboard() {
   const memberId = user?.memberprofile_id || 0
   const { data, isLoading } = useMemberDashboardQuery(memberId)
   const { data: activePrescription } = useMemberActivePrescriptionQuery(memberId)
+  const { data: trainerMessages } = useNotificationsQuery({ type: 'trainer_message' })
+  const unreadTrainerMessages = trainerMessages?.results?.filter((message) => !message.read).length || 0
 
   if (isLoading) {
     return (
@@ -31,8 +35,10 @@ export function MemberDashboard() {
       />
 
       {data?.inactivity_alert && (
-        <div className="mb-6 flex items-center gap-3 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-sm" data-testid="inactivity-banner">
-          <AlertTriangle size={18} className="text-yellow-500 flex-shrink-0" />
+        <div className="mb-6 flex items-center gap-3 rounded-2xl border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20" data-testid="inactivity-banner">
+          <SymbolFrame tone="warning" size="sm" className="rounded-xl">
+            <AlertTriangle size={16} className="flex-shrink-0" />
+          </SymbolFrame>
           <p className="text-sm text-yellow-700 dark:text-yellow-400">
             Tienes una alerta de inactividad. ¡Retoma tu rutina hoy!
           </p>
@@ -151,7 +157,7 @@ export function MemberDashboard() {
         </section>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
         <DashboardCard
           title="Sesiones esta semana"
           icon={<Activity size={20} className="text-primary" />}
@@ -165,9 +171,27 @@ export function MemberDashboard() {
         </DashboardCard>
 
         <DashboardCard
+          title="Mensajes del trainer"
+          icon={<MessageSquareMore size={20} className="text-primary" />}
+          to="/messages"
+          testId="card-messages"
+        >
+          {unreadTrainerMessages ? (
+            <>
+              <span className="text-4xl font-heading font-black text-primary">
+                {unreadTrainerMessages}
+              </span>
+              <p className="text-xs text-neutral-400 mt-1">por revisar</p>
+            </>
+          ) : (
+            <p className="text-sm text-neutral-400">Sin mensajes nuevos</p>
+          )}
+        </DashboardCard>
+
+        <DashboardCard
           title="Notificaciones"
           icon={<AlertTriangle size={20} className="text-primary" />}
-          to="/alerts"
+          to="/ai-chat"
           testId="card-notifications"
         >
           {data?.unread_notifications ? (
@@ -178,7 +202,7 @@ export function MemberDashboard() {
               <p className="text-xs text-neutral-400 mt-1">sin leer</p>
             </>
           ) : (
-            <p className="text-sm text-neutral-400">Sin notificaciones nuevas</p>
+            <p className="text-sm text-neutral-400">Sin novedades del sistema</p>
           )}
         </DashboardCard>
       </div>
@@ -199,10 +223,12 @@ function DashboardCard({ title, icon, children, to, testId }: DashboardCardProps
     <Link
       to={to}
       data-testid={testId}
-      className="card p-6 hover:border-primary/50 transition-all duration-300 hover:-translate-y-0.5 block"
+      className="card block p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/50"
     >
-      <div className="flex items-center gap-2 mb-3">
-        {icon}
+      <div className="mb-3 flex items-center gap-3">
+        <SymbolFrame tone="primary" size="sm" className="rounded-xl">
+          {icon}
+        </SymbolFrame>
         <span className="label-base">{title}</span>
       </div>
       <div>{children}</div>
@@ -212,8 +238,10 @@ function DashboardCard({ title, icon, children, to, testId }: DashboardCardProps
 
 function MetricPill({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <div className="inline-flex items-center gap-2 rounded-full border border-neutral-200 dark:border-neutral-800 px-3 py-1.5 text-sm text-neutral-700 dark:text-neutral-300">
-      <span className="text-primary">{icon}</span>
+    <div className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white/80 px-2.5 py-1.5 text-sm text-neutral-700 shadow-sm dark:border-neutral-800 dark:bg-neutral-900/70 dark:text-neutral-300">
+      <SymbolFrame tone="primary" size="sm" className="h-7 w-7 rounded-full border-primary/10 bg-primary/10 shadow-none">
+        {icon}
+      </SymbolFrame>
       <span>{label}</span>
     </div>
   )

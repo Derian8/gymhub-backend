@@ -13,10 +13,11 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
-from .models import MemberProfile, TrainerProfile, AuditLog
+from .models import MemberProfile, TrainerProfile
+from .audit import registrar_auditoria
 from .permissions import IsStaffOrTrainer, IsTrainer, IsMember
 from .serializers import (
-    UserSerializer, RegisterSerializer, LoginSerializer,
+    UserSerializer, RegisterSerializer, LoginSerializer, MeUpdateSerializer,
     MemberProfileSerializer, TrainerProfileSerializer, AuditLogSerializer
 )
 from .prescription_services import get_member_prescription_summary
@@ -135,7 +136,7 @@ class LoginView(APIView):
         password = serializer.validated_data['password']
 
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.get(email__iexact=email)
         except User.DoesNotExist:
             return Response(
                 {'error': 'Credenciales inválidas.'},
@@ -215,6 +216,18 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(UserSerializer(request.user).data)
+
+    def patch(self, request):
+        payload = {
+            key: value
+            for key, value in request.data.items()
+            if key in {'email', 'username', 'first_name', 'last_name'}
+        }
+        serializer = MeUpdateSerializer(request.user, data=payload, partial=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        user = serializer.save()
+        return Response(UserSerializer(user).data)
 
 
 class MemberViewSet(viewsets.ModelViewSet):
@@ -344,6 +357,17 @@ class MemberViewSet(viewsets.ModelViewSet):
 
         member.trainer_asignado = trainer_profile
         member.save(update_fields=['trainer_asignado'])
+        registrar_auditoria(
+            request.user,
+            'trainer_assigned',
+            'MemberProfile',
+            member.id,
+            request=request,
+            details={
+                'member_id': member.id,
+                'trainer_id': trainer_profile.id,
+            },
+        )
         return Response(MemberProfileSerializer(member, context={'request': request}).data)
 
     @action(detail=True, methods=['post'], url_path='activate')
@@ -380,6 +404,8 @@ class MemberViewSet(viewsets.ModelViewSet):
                     grace_period_days=settings.PAYMENT_GRACE_DAYS,
                     auto_generate_next=True,
                     is_active=True,
+                    status='active',
+                    renewal_date=date.today(),
                 )
                 member.membership_plan = plan
                 member.save(update_fields=['membership_plan', 'is_active'])
@@ -404,6 +430,19 @@ class MemberViewSet(viewsets.ModelViewSet):
                     )
             except MembershipPlan.DoesNotExist:
                 pass
+
+        registrar_auditoria(
+            request.user,
+            'member_activated',
+            'MemberProfile',
+            member.id,
+            request=request,
+            details={
+                'member_id': member.id,
+                'plan_id': plan_id,
+                'agreed_price': str(agreed_price) if agreed_price is not None else None,
+            },
+        )
 
         return Response({
             'message': 'Miembro activado.',
@@ -430,9 +469,11 @@ class MemberViewSet(viewsets.ModelViewSet):
         data_points = [
             {
                 'date': log.session.started_at.date(),
+                'exercise_type': exercise.exercise_type,
                 'weight_used_kg': log.weight_used_kg,
                 'sets': log.sets_completed,
                 'reps_completed': log.reps_completed,
+                'minutes_completed': log.minutes_completed,
                 'rpe': log.rpe,
             }
             for log in logs

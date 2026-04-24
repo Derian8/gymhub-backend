@@ -44,7 +44,11 @@ class NotificationViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_queryset(self):
-        return Notification.objects.filter(user=self.request.user)
+        queryset = Notification.objects.filter(user=self.request.user)
+        notification_type = self.request.query_params.get('type')
+        if notification_type:
+            queryset = queryset.filter(type=notification_type)
+        return queryset
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)

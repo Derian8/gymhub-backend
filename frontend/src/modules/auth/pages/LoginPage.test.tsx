@@ -1,3 +1,4 @@
+import { cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { renderWithProviders } from '@/test/utils'
 import { LoginPage } from './LoginPage'
@@ -13,6 +14,7 @@ vi.mock('../hooks/useAuthMutations', () => ({
 
 describe('LoginPage', () => {
   beforeEach(() => {
+    cleanup()
     loginMock.mockReset()
   })
 
@@ -35,9 +37,17 @@ describe('LoginPage', () => {
     await user.type(getByTestId('password-input'), 'member123!')
     await user.click(getByTestId('login-submit'))
 
-    expect(loginMock).toHaveBeenCalledWith({
-      email: 'member@test.com',
-      password: 'member123!',
-    })
+    expect(loginMock).toHaveBeenCalledWith(
+      {
+        email: 'member@test.com',
+        password: 'member123!',
+      },
+    )
+  })
+
+  it('links to public registration', () => {
+    const { getByRole } = renderWithProviders(<LoginPage />)
+
+    expect(getByRole('link', { name: 'Regístrate' })).toHaveAttribute('href', '/register')
   })
 })

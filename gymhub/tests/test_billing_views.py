@@ -47,7 +47,7 @@ class TestBillingViews:
         member_profile,
         membership_plan,
     ):
-        from billing.models import MemberSubscription, PaymentSchedule
+        from billing.models import MemberSubscription, PaymentRecord, PaymentSchedule
 
         resp = trainer_client.post('/api/member-subscriptions/', {
             'member': member_profile.id,
@@ -59,11 +59,15 @@ class TestBillingViews:
             'grace_period_days': 7,
             'auto_generate_next': True,
             'is_active': True,
+            'status': 'active',
+            'renewal_date': timezone.now().date().isoformat(),
+            'commercial_notes': 'Primer cierre comercial',
         })
 
         assert resp.status_code == status.HTTP_201_CREATED
         subscription = MemberSubscription.objects.get(member=member_profile, is_active=True)
         schedule = PaymentSchedule.objects.get(subscription=subscription)
+        payment_record = PaymentRecord.objects.get(schedule=schedule)
         member_profile.refresh_from_db()
 
         assert str(subscription.agreed_price) == '62.50'
@@ -71,6 +75,9 @@ class TestBillingViews:
         assert member_profile.membership_plan_id == membership_plan.id
         assert schedule.plan_id == membership_plan.id
         assert schedule.member_id == member_profile.id
+        assert str(payment_record.amount) == '62.50'
+        assert subscription.status == 'active'
+        assert subscription.commercial_notes == 'Primer cierre comercial'
 
     def test_trainer_cannot_create_subscription_for_member_of_another_trainer(
         self,
@@ -173,6 +180,7 @@ class TestBillingViews:
 
     def test_member_cannot_mark_payment_as_paid(self, member_client, member_profile, membership_plan):
         from billing.models import PaymentSchedule, PaymentRecord
+        from users.models import AuditLog
 
         schedule = PaymentSchedule.objects.create(
             member=member_profile,
@@ -192,6 +200,7 @@ class TestBillingViews:
 
     def test_trainer_can_mark_payment_as_paid(self, trainer_client, member_profile, membership_plan):
         from billing.models import PaymentSchedule, PaymentRecord
+        from users.models import AuditLog
 
         schedule = PaymentSchedule.objects.create(
             member=member_profile,
@@ -204,13 +213,23 @@ class TestBillingViews:
             amount=50.00,
             status='pending',
         )
+        initial_logs = AuditLog.objects.count()
 
-        resp = trainer_client.post(f'/api/payment-records/{record.id}/mark-paid/')
+        resp = trainer_client.post(f'/api/payment-records/{record.id}/mark-paid/', {
+            'payment_reference': 'TRX-900',
+            'notes': 'Pago confirmado en caja',
+        })
 
         assert resp.status_code == status.HTTP_200_OK
         record.refresh_from_db()
         assert record.status == 'paid'
         assert record.paid_at is not None
+        assert record.payment_reference == 'TRX-900'
+        assert record.receipt_issued_at is not None
+        assert AuditLog.objects.count() == initial_logs + 1
+        log = AuditLog.objects.latest('created_at')
+        assert log.action_type == 'payment_marked_paid'
+        assert log.details['payment_reference'] == 'TRX-900'
 
     def test_member_creates_payment_method_for_self(self, member_client, member_profile):
         resp = member_client.post('/api/payment-methods/', {

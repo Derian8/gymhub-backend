@@ -15,9 +15,25 @@ from .serializers import (
     PaymentRecordSerializer, PaymentMethodSerializer, PaymentInstructionSerializer, MemberSubscriptionSerializer
 )
 from users.permissions import IsTrainer, IsStaffOrTrainer
+from users.audit import registrar_auditoria
 from users.views import _get_trainer_profile
 
 logger = logging.getLogger(__name__)
+
+
+def _infer_subscription_status(subscription, preferred_status=None):
+    if preferred_status == 'cancelled' or subscription.cancellation_date:
+        return 'cancelled'
+    if preferred_status == 'suspended' or not subscription.is_active:
+        return 'suspended'
+    if preferred_status == 'past_due':
+        return 'past_due'
+    latest_record = PaymentRecord.objects.filter(
+        schedule__subscription=subscription
+    ).order_by('-schedule__due_date', '-id').first()
+    if latest_record and latest_record.status == 'late':
+        return 'past_due'
+    return 'active'
 
 
 class MembershipPlanViewSet(viewsets.ModelViewSet):
@@ -102,9 +118,16 @@ class MemberSubscriptionViewSet(viewsets.ModelViewSet):
         MemberSubscription.objects.filter(member=member, is_active=True).update(is_active=False)
         PaymentSchedule.objects.filter(member=member, is_active=True).update(is_active=False)
         subscription = serializer.save(trainer=trainer_profile)
+        subscription.status = _infer_subscription_status(
+            subscription,
+            preferred_status=serializer.validated_data.get('status'),
+        )
+        if subscription.renewal_date is None:
+            subscription.renewal_date = subscription.next_billing_date
+        subscription.save(update_fields=['status', 'renewal_date'])
         member.membership_plan = plan
         member.save(update_fields=['membership_plan'])
-        PaymentSchedule.objects.create(
+        schedule = PaymentSchedule.objects.create(
             member=member,
             subscription=subscription,
             plan=plan,
@@ -114,16 +137,48 @@ class MemberSubscriptionViewSet(viewsets.ModelViewSet):
             auto_generate_next=subscription.auto_generate_next,
             is_active=subscription.is_active,
         )
+        PaymentRecord.objects.create(
+            schedule=schedule,
+            amount=subscription.agreed_price,
+            status='pending',
+        )
+        registrar_auditoria(
+            self.request.user,
+            'subscription_created',
+            'MemberSubscription',
+            subscription.id,
+            request=self.request,
+            details={
+                'member_id': member.id,
+                'plan_id': plan.id,
+                'agreed_price': str(subscription.agreed_price),
+                'status': subscription.status,
+            },
+        )
 
     def perform_update(self, serializer):
         subscription = self.get_object()
         user = self.request.user
         if not user.is_staff and subscription.trainer_id != _get_trainer_profile(user).id:
             raise PermissionDenied('Solo puedes editar suscripciones de tus clientes.')
+        previous_values = {
+            'agreed_price': str(subscription.agreed_price),
+            'status': subscription.status,
+            'is_active': subscription.is_active,
+            'renewal_date': subscription.renewal_date.isoformat() if subscription.renewal_date else None,
+            'cancellation_date': subscription.cancellation_date.isoformat() if subscription.cancellation_date else None,
+        }
         updated = serializer.save()
         if updated.is_active:
             MemberSubscription.objects.filter(member=updated.member).exclude(id=updated.id).update(is_active=False)
             PaymentSchedule.objects.filter(member=updated.member).exclude(subscription=updated).update(is_active=False)
+        updated.status = _infer_subscription_status(
+            updated,
+            preferred_status=serializer.validated_data.get('status'),
+        )
+        if updated.status != 'cancelled' and updated.renewal_date is None:
+            updated.renewal_date = updated.next_billing_date
+        updated.save(update_fields=['status', 'renewal_date'])
         updated.member.membership_plan = updated.plan
         updated.member.save(update_fields=['membership_plan'])
         PaymentSchedule.objects.filter(subscription=updated).update(
@@ -133,6 +188,27 @@ class MemberSubscriptionViewSet(viewsets.ModelViewSet):
             grace_period_days=updated.grace_period_days,
             auto_generate_next=updated.auto_generate_next,
             is_active=updated.is_active,
+        )
+        PaymentRecord.objects.filter(
+            schedule__subscription=updated,
+            status='pending',
+        ).update(amount=updated.agreed_price)
+        registrar_auditoria(
+            self.request.user,
+            'subscription_updated',
+            'MemberSubscription',
+            updated.id,
+            request=self.request,
+            details={
+                'before': previous_values,
+                'after': {
+                    'agreed_price': str(updated.agreed_price),
+                    'status': updated.status,
+                    'is_active': updated.is_active,
+                    'renewal_date': updated.renewal_date.isoformat() if updated.renewal_date else None,
+                    'cancellation_date': updated.cancellation_date.isoformat() if updated.cancellation_date else None,
+                },
+            },
         )
 
 
@@ -206,9 +282,34 @@ class PaymentRecordViewSet(viewsets.ModelViewSet):
         if record.status == 'paid':
             return Response({'error': 'El pago ya fue registrado.'}, status=status.HTTP_400_BAD_REQUEST)
         from django.utils import timezone
+        reference = request.data.get('payment_reference', '').strip()
+        notes = request.data.get('notes', '').strip()
         record.status = 'paid'
         record.paid_at = timezone.now()
+        record.payment_reference = reference
+        record.receipt_issued_at = timezone.now()
+        if notes:
+            record.notes = notes
         record.save()
+        subscription = record.schedule.subscription
+        if subscription:
+            subscription.status = 'active'
+            subscription.renewal_date = subscription.next_billing_date
+            subscription.save(update_fields=['status', 'renewal_date'])
+        registrar_auditoria(
+            request.user,
+            'payment_marked_paid',
+            'PaymentRecord',
+            record.id,
+            request=request,
+            details={
+                'member_id': record.schedule.member_id,
+                'subscription_id': record.schedule.subscription_id,
+                'amount': str(record.amount),
+                'payment_reference': record.payment_reference,
+                'receipt_number': PaymentRecordSerializer(record).data.get('receipt_number'),
+            },
+        )
         return Response(PaymentRecordSerializer(record).data)
 
 

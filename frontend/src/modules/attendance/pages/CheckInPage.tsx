@@ -1,124 +1,272 @@
-import { useSearchParams } from 'react-router-dom'
 import { useState } from 'react'
-import { CheckSquare, Loader2, Clock } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import { AlertTriangle, CheckSquare, Clock3, Loader2, NotebookPen, ShieldAlert } from 'lucide-react'
+
 import { useCheckInMutation, useAttendanceQuery } from '../hooks/useAttendance'
-import { PageHeader, EmptyState } from '@/shared/components/UI'
+import { PageHeader, EmptyState, Badge } from '@/shared/components/UI'
+import { SymbolFrame } from '@/shared/components/Brand'
 import { TableRowSkeleton } from '@/shared/components/Skeleton'
-import { formatDateTime } from '@/shared/lib/utils'
+import { formatDateTime, formatRelative } from '@/shared/lib/utils'
 import { useAuthStore } from '@/shared/store/authStore'
+import type { CheckInBlockedResponse } from '@/shared/types'
 
 export function CheckInPage() {
   const { user } = useAuthStore()
-  const es_entrenador = user?.role === 'trainer' || user?.is_staff
+  const esEntrenador = user?.role === 'trainer' || user?.is_staff
   const [searchParams] = useSearchParams()
   const memberId = searchParams.get('member')
-  const filtros = es_entrenador && memberId ? { member: memberId } : undefined
+  const filtros = esEntrenador && memberId ? { member: memberId } : undefined
   const [notes, setNotes] = useState('')
+  const [blockedState, setBlockedState] = useState<CheckInBlockedResponse | null>(null)
   const { mutate: checkIn, isPending } = useCheckInMutation()
   const { data: attendance, isLoading } = useAttendanceQuery(filtros)
 
+  const ultimoRegistro = attendance?.results?.[0]
+
   const handleCheckIn = () => {
-    checkIn(notes)
-    setNotes('')
+    checkIn(notes, {
+      onSuccess: () => {
+        setBlockedState(null)
+        setNotes('')
+      },
+      onError: (error) => {
+        const response = (error as { response?: { data?: unknown } })?.response?.data as Partial<CheckInBlockedResponse> | undefined
+        if (response?.blocked && response.reason === 'payment_overdue' && typeof response.days_overdue === 'number') {
+          setBlockedState({
+            blocked: true,
+            reason: 'payment_overdue',
+            days_overdue: response.days_overdue,
+          })
+        }
+      },
+    })
   }
 
   return (
-    <div data-testid="checkin-page" className="page-enter max-w-xl mx-auto">
+    <div data-testid="checkin-page" className="page-enter mx-auto max-w-4xl">
       <PageHeader
-        title={es_entrenador ? (memberId ? 'Asistencia Del Miembro' : 'Asistencia') : 'Check-in'}
+        title={esEntrenador ? (memberId ? 'Asistencia Del Miembro' : 'Asistencia') : 'Check-in'}
         subtitle={
-          es_entrenador
+          esEntrenador
             ? memberId
               ? 'Registros recientes del miembro seleccionado'
               : 'Visión rápida de registros recientes de asistencia'
-            : 'Registra tu asistencia al gimnasio'
+            : 'Registra tu presencia en segundos y mantén tu constancia visible'
         }
       />
 
-      {/* Check-in card */}
-      {!es_entrenador && (
-        <div className="card p-8 mb-6 text-center">
-          <div className="w-20 h-20 mx-auto mb-4 bg-primary/10 text-primary rounded-full flex items-center justify-center">
-            <CheckSquare size={36} />
-          </div>
-          <h2 className="font-heading font-bold text-2xl text-neutral-900 dark:text-white mb-2">
-            Registrar asistencia
-          </h2>
-          <p className="text-sm text-neutral-500 mb-6">
-            Confirma tu presencia en el gimnasio para hoy
-          </p>
+      {!esEntrenador ? (
+        <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+          <section className="rounded-[1.9rem] border border-neutral-200 bg-gradient-to-br from-white via-neutral-50 to-primary/5 p-6 shadow-sm dark:border-neutral-800 dark:from-neutral-950 dark:via-neutral-950 dark:to-primary/10">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-4">
+                <SymbolFrame size="lg" tone={blockedState ? 'danger' : 'primary'}>
+                  {blockedState ? <ShieldAlert size={26} /> : <CheckSquare size={26} />}
+                </SymbolFrame>
+                <div>
+                  <p className="label-base">Acción principal</p>
+                  <h2 className="font-heading text-2xl font-bold text-neutral-900 dark:text-white">
+                    {blockedState ? 'Check-in bloqueado' : 'Registrar asistencia'}
+                  </h2>
+                  <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
+                    {blockedState
+                      ? `Tienes una mora activa de ${blockedState.days_overdue} días. Regulariza ese frente para recuperar el check-in.`
+                      : 'Confirma tu presencia y deja una nota opcional si quieres registrar el foco de tu sesión.'}
+                  </p>
+                </div>
+              </div>
+              <Badge variant={blockedState ? 'error' : 'success'}>
+                {blockedState ? 'Requiere regularización' : 'Disponible hoy'}
+              </Badge>
+            </div>
 
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Notas opcionales (ej: entrenamiento de pecho)"
-            rows={2}
-            className="w-full px-4 py-3 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-sm focus:outline-none focus:border-primary text-neutral-900 dark:text-white placeholder-neutral-400 resize-none mb-4"
-            data-testid="checkin-notes"
-          />
+            {ultimoRegistro ? (
+              <div className="mt-5 rounded-2xl border border-neutral-200 bg-white/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/70">
+                <p className="text-[11px] uppercase tracking-wide text-neutral-500">Último check-in</p>
+                <p className="mt-1 text-sm font-semibold text-neutral-900 dark:text-white">
+                  {formatRelative(ultimoRegistro.check_in_time)}
+                </p>
+                <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                  {formatDateTime(ultimoRegistro.check_in_time)}
+                </p>
+              </div>
+            ) : null}
 
-          <button
-            onClick={handleCheckIn}
-            disabled={isPending}
-            className="btn-primary w-full flex items-center justify-center gap-2"
-            data-testid="checkin-submit"
-          >
-            {isPending ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                Registrando...
-              </>
+            {blockedState ? (
+              <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-300">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle size={18} className="mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold">No puedes hacer check-in por mora</p>
+                    <p className="mt-1 text-xs opacity-90">
+                      Regulariza tu pago pendiente para volver a registrar asistencia sin fricción.
+                    </p>
+                  </div>
+                </div>
+              </div>
             ) : (
               <>
-                <CheckSquare size={16} />
-                HACER CHECK-IN
+                <div className="mt-5">
+                  <label className="label-base mb-2 flex items-center gap-2">
+                    <NotebookPen size={14} />
+                    Nota opcional
+                  </label>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Ejemplo: torso, movilidad, cardio suave"
+                    rows={3}
+                    className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition-colors focus:border-primary dark:border-neutral-800 dark:bg-neutral-950 dark:text-white"
+                    data-testid="checkin-notes"
+                  />
+                </div>
+
+                <button
+                  onClick={handleCheckIn}
+                  disabled={isPending}
+                  className="btn-primary mt-5 flex w-full items-center justify-center gap-2"
+                  data-testid="checkin-submit"
+                >
+                  {isPending ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Registrando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckSquare size={16} />
+                      HACER CHECK-IN
+                    </>
+                  )}
+                </button>
               </>
             )}
-          </button>
-        </div>
-      )}
+          </section>
 
-      {/* Recent attendance */}
-      <h3 className="font-heading font-bold text-lg text-neutral-900 dark:text-white mb-3">
-        {es_entrenador ? (memberId ? 'Registros recientes del miembro' : 'Registros recientes del gimnasio') : 'Historial reciente'}
-      </h3>
-
-      {isLoading ? (
-        <div className="card overflow-hidden">
-          <table className="table-base">
-            <tbody>{Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={3} />)}</tbody>
-          </table>
+          <section className="rounded-[1.9rem] border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
+            <p className="label-base">Orden del día</p>
+            <div className="mt-4 space-y-3">
+              <TimelinePoint
+                icon={<CheckSquare size={16} />}
+                title="1. Marca tu llegada"
+                description="Deja visible tu constancia y habilita mejor seguimiento."
+              />
+              <TimelinePoint
+                icon={<NotebookPen size={16} />}
+                title="2. Añade una nota breve"
+                description="Úsala solo si aporta contexto real de la sesión."
+              />
+              <TimelinePoint
+                icon={<Clock3 size={16} />}
+                title="3. Revisa tu historial"
+                description="Tu progreso operativo queda ordenado por fecha y hora."
+              />
+            </div>
+          </section>
         </div>
-      ) : !attendance?.results.length ? (
-        <EmptyState
-          icon={<Clock size={32} />}
-          title="Sin registros de asistencia"
-          description="Tu historial de check-ins aparecerá aquí"
-        />
-      ) : (
-        <div className="table-container">
-          <table className="table-base">
-            <thead>
-              <tr>
-                <th className="th-base">Fecha</th>
-                <th className="th-base">Check-in</th>
-                <th className="th-base">Notas</th>
-              </tr>
-            </thead>
-            <tbody>
-              {attendance.results.map((a) => (
-                <tr key={a.id} className="tr-hover" data-testid={`attendance-row-${a.id}`}>
-                  <td className="td-base">{formatDateTime(a.check_in_time)}</td>
-                  <td className="td-base">
-                    <span className="text-green-500 font-medium text-xs">✓ Presente</span>
-                  </td>
-                  <td className="td-base text-neutral-400 text-xs">{a.notes || '—'}</td>
+      ) : null}
+
+      <section className="mt-6">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="font-heading text-lg font-bold text-neutral-900 dark:text-white">
+            {esEntrenador ? (memberId ? 'Registros recientes del miembro' : 'Registros recientes del gimnasio') : 'Historial reciente'}
+          </h3>
+          {!esEntrenador && attendance?.results?.length ? (
+            <Badge variant="neutral">{attendance.results.length} registros</Badge>
+          ) : null}
+        </div>
+
+        {isLoading ? (
+          <div className="card overflow-hidden">
+            <table className="table-base">
+              <tbody>{Array.from({ length: 4 }).map((_, i) => <TableRowSkeleton key={i} cols={3} />)}</tbody>
+            </table>
+          </div>
+        ) : !attendance?.results.length ? (
+          <EmptyState
+            icon={<Clock3 size={32} />}
+            title="Sin registros de asistencia"
+            description="Tu historial de check-ins aparecerá aquí."
+          />
+        ) : esEntrenador ? (
+          <div className="table-container">
+            <table className="table-base">
+              <thead>
+                <tr>
+                  <th className="th-base">Fecha</th>
+                  <th className="th-base">Check-in</th>
+                  <th className="th-base">Notas</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {attendance.results.map((item) => (
+                  <tr key={item.id} className="tr-hover" data-testid={`attendance-row-${item.id}`}>
+                    <td className="td-base">{formatDateTime(item.check_in_time)}</td>
+                    <td className="td-base">
+                      <span className="text-xs font-medium text-green-500">✓ Presente</span>
+                    </td>
+                    <td className="td-base text-xs text-neutral-400">{item.notes || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {attendance.results.map((item) => (
+              <div
+                key={item.id}
+                className="rounded-2xl border border-neutral-200 bg-white px-4 py-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
+                data-testid={`attendance-row-${item.id}`}
+              >
+                <div className="flex items-start gap-3">
+                  <SymbolFrame size="sm" tone="success">
+                    <CheckSquare size={16} />
+                  </SymbolFrame>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-neutral-900 dark:text-white">
+                        Check-in confirmado
+                      </p>
+                      <Badge variant="success">Presente</Badge>
+                    </div>
+                    <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                      {formatDateTime(item.check_in_time)} · {formatRelative(item.check_in_time)}
+                    </p>
+                    {item.notes ? (
+                      <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-300">{item.notes}</p>
+                    ) : (
+                      <p className="mt-3 text-sm text-neutral-400">Sin nota registrada.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  )
+}
+
+function TimelinePoint({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode
+  title: string
+  description: string
+}) {
+  return (
+    <div className="flex items-start gap-3 rounded-2xl border border-neutral-200 px-4 py-4 dark:border-neutral-800">
+      <SymbolFrame size="sm" tone="default">
+        {icon}
+      </SymbolFrame>
+      <div>
+        <p className="text-sm font-semibold text-neutral-900 dark:text-white">{title}</p>
+        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">{description}</p>
+      </div>
     </div>
   )
 }

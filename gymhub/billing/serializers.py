@@ -27,7 +27,9 @@ class MemberSubscriptionSerializer(serializers.ModelSerializer):
             'id', 'member', 'plan', 'plan_detail', 'trainer',
             'agreed_price', 'start_date', 'next_billing_date',
             'recurrence_type', 'grace_period_days',
-            'auto_generate_next', 'is_active',
+            'auto_generate_next', 'is_active', 'status',
+            'renewal_date', 'cancellation_date',
+            'cancellation_reason', 'commercial_notes',
         )
         read_only_fields = ('trainer',)
 
@@ -58,12 +60,15 @@ class PaymentRecordSerializer(serializers.ModelSerializer):
     due_date = serializers.DateField(source='schedule.due_date', read_only=True)
     subscription_id = serializers.IntegerField(source='schedule.subscription_id', read_only=True)
     plan_name = serializers.SerializerMethodField()
+    receipt_number = serializers.SerializerMethodField()
 
     class Meta:
         model = PaymentRecord
         fields = (
             'id', 'schedule', 'subscription_id', 'due_date', 'amount', 'paid_at',
-            'status', 'method_used', 'notes', 'days_overdue', 'plan_name'
+            'status', 'method_used', 'payment_reference',
+            'receipt_issued_at', 'receipt_number', 'notes',
+            'days_overdue', 'plan_name'
         )
 
     def get_days_overdue(self, obj):
@@ -75,6 +80,11 @@ class PaymentRecordSerializer(serializers.ModelSerializer):
     def get_plan_name(self, obj):
         plan = obj.schedule.resolved_plan
         return plan.name if plan else None
+
+    def get_receipt_number(self, obj):
+        if not obj.receipt_issued_at:
+            return None
+        return f"REC-{obj.receipt_issued_at:%Y%m%d}-{obj.id}"
 
 
 class PaymentInstructionSerializer(serializers.ModelSerializer):

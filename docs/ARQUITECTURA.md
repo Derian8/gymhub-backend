@@ -5,7 +5,7 @@ GymHub es una API backend monolítica y modular desarrollada con Django 5 y Djan
 
 ## Componentes Principales
 - API web Django/DRF: expone autenticación, CRUDs, acciones de negocio y documentación OpenAPI.
-- PostgreSQL: persistencia transaccional principal.
+- Supabase PostgreSQL: persistencia transaccional principal.
 - Redis: broker/result backend de Celery y caché de Django.
 - Celery worker: ejecuta tareas asíncronas.
 - Celery Beat: agenda tareas recurrentes de pagos e inactividad.
@@ -49,3 +49,4 @@ GymHub es una API backend monolítica y modular desarrollada con Django 5 y Djan
 - La autenticación está bajo `/auth/`.
 - Swagger está en `/api/docs/`.
 - En `DEBUG`, Django sirve archivos estáticos y media directamente.
+- PostgreSQL no corre en Docker local; Django se conecta a Supabase mediante `DATABASE_URL` o variables `DB_*` con SSL.

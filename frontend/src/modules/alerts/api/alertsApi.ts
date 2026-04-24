@@ -12,8 +12,8 @@ export const alertsApi = {
     return data
   },
 
-  notifications: async (): Promise<PaginatedResponse<Notification>> => {
-    const { data } = await apiClient.get('/api/notifications/')
+  notifications: async (params?: Record<string, string>): Promise<PaginatedResponse<Notification>> => {
+    const { data } = await apiClient.get('/api/notifications/', { params })
     return data
   },
 

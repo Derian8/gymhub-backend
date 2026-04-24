@@ -48,9 +48,27 @@ vi.mock('../hooks/usePlans', () => ({
               id: 501,
               name: 'Press banca',
               muscle_group: 'chest',
+              exercise_type: 'strength',
               sets: 4,
               reps_range: '8-10',
+              target_minutes: null,
               weight_suggestion_kg: 60,
+              rest_seconds: 90,
+              technique_notes: '',
+              order: 0,
+            },
+            {
+              id: 502,
+              name: 'Bici estatica',
+              muscle_group: 'cardio',
+              exercise_type: 'timed',
+              sets: null,
+              reps_range: '',
+              target_minutes: 20,
+              weight_suggestion_kg: null,
+              rest_seconds: 30,
+              technique_notes: '',
+              order: 1,
             },
           ],
         },
@@ -69,6 +87,23 @@ vi.mock('../hooks/usePlans', () => ({
     mutate: deletePlanMutate,
     isPending: false,
     isSuccess: false,
+  }),
+}))
+
+vi.mock('@/modules/members/hooks/useMembers', () => ({
+  useMemberActivePrescriptionQuery: () => ({
+    data: {
+      trainer: {
+        id: 9,
+        nombre: 'Trainer Demo',
+        correo: 'trainer@gymhub.com',
+      },
+    },
+  }),
+  useMemberDashboardQuery: () => ({
+    data: {
+      siguiente_accion: 'Sigue esta estructura tal como la publicó tu trainer.',
+    },
   }),
 }))
 
@@ -102,6 +137,7 @@ describe('PlanDetailPage', () => {
     expect(getByTestId('today-workout-btn')).toHaveAttribute('href', '/plans/12/today')
     expect(getByTestId('workout-day-101')).toBeInTheDocument()
     expect(getByText('Press banca')).toBeInTheDocument()
+    expect(getByText('Bici estatica')).toBeInTheDocument()
   })
 
   it('lets a trainer confirm plan deletion from the detail page', () => {
@@ -115,5 +151,30 @@ describe('PlanDetailPage', () => {
     fireEvent.click(getByText('Confirmar borrado'))
 
     expect(deletePlanMutate).toHaveBeenCalledWith({ id: 12, memberId: 15 })
+  })
+
+  it('shows member-focused navigation when opened by a member', () => {
+    useAuthStore.setState({
+      user: {
+        id: 1,
+        email: 'member@gymhub.com',
+        username: 'member',
+        first_name: 'Ana',
+        last_name: 'Member',
+        role: 'member',
+        is_staff: false,
+        memberprofile_id: 10,
+        trainerprofile_id: null,
+      },
+      isAuthenticated: true,
+      authResolved: true,
+      theme: 'dark',
+    })
+
+    const { getByText, getByTestId } = renderWithProviders(<PlanDetailPage />)
+
+    expect(getByText('Volver a mi programa')).toBeInTheDocument()
+    expect(getByText('Publicado por')).toBeInTheDocument()
+    expect(getByTestId('today-workout-btn')).toHaveAttribute('href', '/plans/12/today')
   })
 })

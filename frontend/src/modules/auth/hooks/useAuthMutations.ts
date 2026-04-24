@@ -32,6 +32,48 @@ export function useLoginMutation() {
   })
 }
 
+export function useRegisterMutation() {
+  const navigate = useNavigate()
+  const setUser = useAuthStore((s) => s.setUser)
+  const setAuthResolved = useAuthStore((s) => s.setAuthResolved)
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: authApi.register,
+    onSuccess: (data) => {
+      setUser(data.user)
+      setAuthResolved(true)
+      queryClient.setQueryData(QUERY_KEYS.ME, data.user)
+      toast.success('Cuenta creada correctamente')
+      if (data.user.role === 'trainer' || data.user.is_staff) {
+        navigate('/dashboard/trainer')
+      } else {
+        navigate('/dashboard/member')
+      }
+    },
+    onError: (error) => {
+      toast.error(extractApiError(error))
+    },
+  })
+}
+
+export function useUpdateMeMutation() {
+  const setUser = useAuthStore((s) => s.setUser)
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: authApi.updateMe,
+    onSuccess: (user) => {
+      setUser(user)
+      queryClient.setQueryData(QUERY_KEYS.ME, user)
+      toast.success('Perfil actualizado correctamente')
+    },
+    onError: (error) => {
+      toast.error(extractApiError(error))
+    },
+  })
+}
+
 export function useLogoutMutation() {
   const navigate = useNavigate()
   const logout = useAuthStore((s) => s.logout)

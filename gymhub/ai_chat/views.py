@@ -59,15 +59,22 @@ def _serialize_member_context(member, summary, prescription_status):
             if member.trainer_asignado_id and member.trainer_asignado and member.trainer_asignado.user
             else None
         ),
+        'last_checkin': summary['last_checkin'],
+        'unread_notifications': summary['unread_notifications'],
     }
 
 
 def _serialize_summary_context(summary, active_prescription):
+    today_workout = active_prescription['entrenamiento_hoy']
     return {
         'active_plan_name': summary['active_plan']['name'] if summary['active_plan'] else None,
+        'active_plan_id': summary['active_plan']['id'] if summary['active_plan'] else None,
         'today_has_workout': summary['today_has_workout'],
+        'today_workout_name': today_workout['name'] if today_workout else None,
         'resumen_hoy': summary['resumen_hoy'],
         'payment_status': summary['payment_status'],
+        'days_until_due': summary['days_until_due'],
+        'days_overdue': summary['days_overdue'],
         'nutrition_goal': summary['nutrition_goal'],
         'weekly_sessions_done': summary['weekly_sessions_done'],
         'streak_asistencia': summary['streak_asistencia'],
@@ -75,14 +82,45 @@ def _serialize_summary_context(summary, active_prescription):
         'inactivity_alert': summary['inactivity_alert'],
         'tiene_plan_activo': active_prescription['estado_prescripcion']['tiene_plan_activo'],
         'prescripcion_lista': active_prescription['estado_prescripcion']['esta_lista_para_member'],
+        'risk_reasons': summary['riesgo_personal']['reasons'],
     }
 
 
-def _get_suggested_prompts(mode, summary):
+def _serialize_analysis_context(member, summary, active_prescription, prescription_status):
+    trainer_name = (
+        member.trainer_asignado.user.get_full_name()
+        if member.trainer_asignado_id and member.trainer_asignado and member.trainer_asignado.user
+        else None
+    )
+    return {
+        'trainer_name': trainer_name,
+        'risk_level': summary['riesgo_personal']['level'],
+        'risk_reasons': summary['riesgo_personal']['reasons'],
+        'next_action': summary['siguiente_accion'],
+        'payment_status': summary['payment_status'],
+        'days_until_due': summary['days_until_due'],
+        'days_overdue': summary['days_overdue'],
+        'last_checkin': summary['last_checkin'],
+        'unread_notifications': summary['unread_notifications'],
+        'today_has_workout': summary['today_has_workout'],
+        'today_workout_name': active_prescription['entrenamiento_hoy']['name'] if active_prescription['entrenamiento_hoy'] else None,
+        'active_plan_name': summary['active_plan']['name'] if summary['active_plan'] else None,
+        'weekly_sessions_done': summary['weekly_sessions_done'],
+        'streak_asistencia': summary['streak_asistencia'],
+        'cumplimiento_semanal': summary['cumplimiento_semanal'],
+        'nutrition_goal': summary['nutrition_goal'],
+        'inactivity_alert': summary['inactivity_alert'],
+        'prescription_status': prescription_status['estado'],
+        'prescription_readiness': active_prescription['estado_prescripcion'],
+        'has_today_workout': bool(active_prescription['entrenamiento_hoy']),
+    }
+
+
+def _get_suggested_prompts(mode, summary, analysis_context=None):
     plan_name = summary['active_plan']['name'] if summary['active_plan'] else 'mi plan actual'
     if mode == 'trainer_member':
         return [
-            'Resume el riesgo principal de este cliente y qué debo intervenir hoy.',
+            'Haz una lectura completa del caso y dime qué debo intervenir hoy.',
             'Escribe un mensaje corto para motivar a este cliente a retomar adherencia.',
             f'¿Qué ajuste táctico recomiendas para la próxima sesión de {plan_name}?',
             'Explícame cómo abordar nutrición y pagos sin generar fricción.',
@@ -90,9 +128,12 @@ def _get_suggested_prompts(mode, summary):
 
     prompts = [
         f'¿Qué debería priorizar hoy en {plan_name}?',
+        'Analiza mi caso completo y dime qué está frenando mi progreso.',
         'Explícame mi siguiente acción en palabras simples.',
         '¿Cómo puedo mejorar mi adherencia esta semana?',
     ]
+    if analysis_context and analysis_context['payment_status'] in ('pending', 'late'):
+        prompts.append('Explícame cómo ordenar mi pago sin afectar mi constancia.')
     if summary['nutrition_goal']:
         prompts.append('Dame una recomendación simple de nutrición para hoy.')
     return prompts
@@ -201,14 +242,17 @@ def _build_context_payload(user, member, mode, conversation):
             'local_llm_available': local_llm_available,
             'response_source': 'rules',
             'suggested_prompts': [],
+            'intent_detected': '',
             'member': None,
             'summary': None,
+            'analysis_context': None,
         }
         return AIChatContextSerializer(payload).data
 
     summary = get_member_dashboard_summary(member)
     active_prescription = get_active_prescription(member)
     prescription_status = get_member_prescription_status(member)
+    analysis_context = _serialize_analysis_context(member, summary, active_prescription, prescription_status)
     payload = {
         'mode': mode,
         'conversation_id': conversation.id if conversation else None,
@@ -219,9 +263,11 @@ def _build_context_payload(user, member, mode, conversation):
         'engine_mode': engine_mode,
         'local_llm_available': local_llm_available,
         'response_source': 'local_model' if local_llm_available and engine_mode == 'local_hybrid' else 'rules',
-        'suggested_prompts': _get_suggested_prompts(mode, summary),
+        'suggested_prompts': _get_suggested_prompts(mode, summary, analysis_context),
+        'intent_detected': '',
         'member': _serialize_member_context(member, summary, prescription_status),
         'summary': _serialize_summary_context(summary, active_prescription),
+        'analysis_context': analysis_context,
     }
     return AIChatContextSerializer(payload).data
 
@@ -239,8 +285,10 @@ def _build_degraded_context_payload(user, mode, member=None):
         'local_llm_available': False,
         'response_source': 'rules',
         'suggested_prompts': [],
+        'intent_detected': '',
         'member': None,
         'summary': None,
+        'analysis_context': None,
     }
     return AIChatContextSerializer(payload).data
 
@@ -286,7 +334,9 @@ class AIChatView(APIView):
 
         user_message = input_ser.validated_data['message']
         summary = get_member_dashboard_summary(member)
+        active_prescription = get_active_prescription(member)
         prescription_status = get_member_prescription_status(member)
+        analysis_context = _serialize_analysis_context(member, summary, active_prescription, prescription_status)
 
         AIChatMessage.objects.create(
             conversation=conversation,
@@ -303,6 +353,7 @@ class AIChatView(APIView):
             member=member,
             summary=summary,
             prescription_status=prescription_status,
+            analysis_context=analysis_context,
             transcript=transcript,
             user_message=user_message,
         )
@@ -332,7 +383,8 @@ class AIChatView(APIView):
             'sendable': generation.sendable,
             'message_text': generation.message_text,
             'priority_detected': generation.priority_detected,
-            'suggested_prompts': _get_suggested_prompts(mode, summary),
+            'intent_detected': generation.intent_detected,
+            'suggested_prompts': _get_suggested_prompts(mode, summary, analysis_context),
             'remaining_messages': updated_remaining,
             'limit': limit,
         }, status=status.HTTP_200_OK)

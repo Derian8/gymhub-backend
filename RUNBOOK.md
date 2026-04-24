@@ -7,10 +7,12 @@ Este documento concentra el flujo de arranque, validación, soporte y recuperaci
 - Desarrollo local: usa [`.env.example`](/mnt/c/dev/proyectos/proyectoappgym/.env.example) y `./gym-start`.
 - Producción local validada: usa [`.env.prod.example`](/mnt/c/dev/proyectos/proyectoappgym/.env.prod.example) y `./gym-start --prod`.
 - Staging real: usa [`.env.staging.example`](/mnt/c/dev/proyectos/proyectoappgym/.env.staging.example) como plantilla y reemplaza dominios, secretos, cookies y SSL por valores reales antes de desplegar.
+- Base de datos: PostgreSQL vive en Supabase. No hay contenedor local `db`.
 
 ## Arranque
 ```bash
 cp .env.example .env
+# Edita .env con DATABASE_URL o DB_* de Supabase antes de levantar servicios.
 ./gym-start
 docker compose exec backend python manage.py migrate
 docker compose exec backend python manage.py seed_data
@@ -30,6 +32,7 @@ Antes de desplegar un staging accesible por internet:
 - activa `AUTH_COOKIE_SECURE`, `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE` y `SECURE_SSL_REDIRECT`
 - activa HSTS según tu terminación TLS
 - configura `USE_X_FORWARDED_PROTO=True` si hay proxy reverso con HTTPS
+- configura `DATABASE_URL` de Supabase con `sslmode=require` o `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_PORT`, `DB_SSLMODE`
 - confirma persistencia real para `MEDIA_ROOT` y acceso a `/media/charts/`
 
 ## Credenciales Demo Y Seed
@@ -51,19 +54,19 @@ Antes de desplegar un staging accesible por internet:
 ## Reset Operativo
 ```bash
 ./gym-stop
-docker compose up -d db redis
+docker compose up -d redis
 docker compose exec backend python manage.py migrate
 docker compose exec backend python manage.py seed_data
 ```
 
 ## Backup De Base De Datos
 ```bash
-docker compose exec -T db pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" > backup.sql
+pg_dump "$DATABASE_URL" > backup.sql
 ```
 
 ## Restore De Base De Datos
 ```bash
-docker compose exec -T db psql -U "$POSTGRES_USER" "$POSTGRES_DB" < backup.sql
+psql "$DATABASE_URL" < backup.sql
 docker compose exec backend python manage.py migrate
 ```
 
@@ -99,7 +102,7 @@ Confirma en cada ruta estado `loading`, `empty`, `error`, permisos y navegación
 
 ## Estrategia De Despliegue
 La entrega final debe fijar una sola estrategia operativa. Recomendación pragmática actual:
-- VPS con Docker Compose si el objetivo es control total, menor complejidad y continuidad con este repo
+- App Django/React en Docker Compose o plataforma compatible, con PostgreSQL gestionado por Supabase
 
 Alternativas posibles, pero no definidas aquí:
 - Render

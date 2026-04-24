@@ -1,10 +1,10 @@
 # Gimnasio Miembros Hub — Backend API
 
 ## Stack
-- **Backend**: Django 5.1+, DRF, simplejwt (httpOnly cookies), PostgreSQL 15+
+- **Backend**: Django 5.1+, DRF, simplejwt (httpOnly cookies), Supabase PostgreSQL
 - **Cola**: Celery 5+, django-celery-beat, Redis 7+
 - **IA**: motor contextual gratuito por reglas + mejora opcional con Ollama local
-- **Infra**: Docker + docker-compose (web, db, redis, celery, celerybeat)
+- **Infra**: Docker + docker-compose (web, redis, celery, celerybeat) + Supabase PostgreSQL
 - **Docs API**: drf-spectacular (Swagger UI en `/api/docs/`)
 
 ## Apps Django (9)
@@ -25,7 +25,7 @@
 ```bash
 # 1. Clonar y configurar variables de entorno
 cp ../.env.example ../.env
-# Editar .env con tus credenciales
+# Editar .env con tus credenciales de Supabase
 
 # 2. Levantar servicios desde la raíz
 ../gym-start
@@ -82,6 +82,9 @@ docker compose exec backend pytest tests/ -v
 
 | Variable | Descripción |
 |----------|-------------|
+| `DATABASE_URL` | URL PostgreSQL de Supabase con `sslmode=require` |
+| `DB_SSLMODE` | Modo SSL para PostgreSQL si usas variables `DB_*` |
+| `DB_CONN_MAX_AGE` | Persistencia de conexiones Django hacia Supabase |
 | `EMERGENT_LLM_KEY` | Clave universal Emergent (para AI chat) |
 | `OPENAI_API_KEY` | Tu propia API key de OpenAI (opcional, reemplaza EMERGENT_LLM_KEY) |
 | `OPENAI_MODEL` | Modelo a usar (default: `gpt-4.1-mini`) |

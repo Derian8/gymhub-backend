@@ -109,6 +109,10 @@ def check_overdue_payments():
             record.status = 'late'
             record.save()
             updated += 1
+            subscription = record.schedule.subscription
+            if subscription and subscription.status != 'cancelled':
+                subscription.status = 'past_due'
+                subscription.save(update_fields=['status'])
 
             member = record.schedule.member
             plan = record.schedule.resolved_plan

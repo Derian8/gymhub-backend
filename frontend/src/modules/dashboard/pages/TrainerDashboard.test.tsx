@@ -10,6 +10,7 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
       members_in_mora: 3,
       members_inactive_30d: 6,
       pending_alerts: 4,
+      active_subscriptions_count: 21,
       payments_due_soon: 2,
       payments_overdue: 3,
       members_without_progress_recently: 5,
@@ -38,6 +39,9 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
         },
       ],
       revenue_this_month: 3250,
+      estimated_mrr: 4120,
+      expected_revenue_this_month: 3890,
+      late_rate_pct: 14.3,
       new_members_this_month: 5,
       sessions_completed_this_week: 18,
       miembros_en_riesgo: [
@@ -89,6 +93,10 @@ describe('TrainerDashboard', () => {
     expect(getByTestId('stat-due-soon')).toHaveTextContent('2')
     expect(getByTestId('stat-without-plan')).toHaveTextContent('4')
     expect(getByTestId('stat-incomplete-prescriptions')).toHaveTextContent('6')
+    expect(getByTestId('stat-estimated-mrr')).toHaveTextContent('$4,120.00')
+    expect(getByTestId('stat-expected-revenue')).toHaveTextContent('$3,890.00')
+    expect(getByTestId('stat-late-rate')).toHaveTextContent('14.3%')
+    expect(getByTestId('stat-active-subscriptions')).toHaveTextContent('21')
     expect(getByTestId('risk-panel')).toBeInTheDocument()
     expect(getByTestId('risk-member-10')).toBeInTheDocument()
     expect(getByTestId('prescribe-member-10')).toHaveAttribute('href', '/members/10/program')

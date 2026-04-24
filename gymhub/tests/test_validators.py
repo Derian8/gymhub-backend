@@ -112,3 +112,53 @@ class TestExerciseValidators:
         )
         with pytest.raises(ValidationError):
             ex.full_clean()
+
+    def test_timed_exercise_requires_target_minutes(self, workout_day_a):
+        from plans.models import Exercise
+
+        ex = Exercise(
+            workout_day=workout_day_a,
+            name='Bici estatica',
+            muscle_group='cardio',
+            exercise_type='timed',
+            sets=None,
+            reps_range='',
+            target_minutes=None,
+            order=99,
+        )
+
+        with pytest.raises(ValidationError):
+            ex.full_clean()
+
+    def test_timed_exercise_with_minutes_is_valid(self, workout_day_a):
+        from plans.models import Exercise
+
+        ex = Exercise(
+            workout_day=workout_day_a,
+            name='Bici estatica',
+            muscle_group='cardio',
+            exercise_type='timed',
+            sets=None,
+            reps_range='',
+            target_minutes=20,
+            order=99,
+        )
+
+        ex.full_clean()
+
+    def test_timed_exercise_rejects_strength_fields(self, workout_day_a):
+        from plans.models import Exercise
+
+        ex = Exercise(
+            workout_day=workout_day_a,
+            name='Bici estatica',
+            muscle_group='cardio',
+            exercise_type='timed',
+            sets=3,
+            reps_range='10',
+            target_minutes=20,
+            order=99,
+        )
+
+        with pytest.raises(ValidationError):
+            ex.full_clean()

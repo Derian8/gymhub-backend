@@ -6,6 +6,7 @@ const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 15000)
 const TOKEN_REFRESH_PATH = '/auth/token/refresh/'
 const LOGIN_PATH = '/auth/login/'
 const LOGOUT_PATH = '/auth/logout/'
+const REGISTER_PATH = '/auth/register/'
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
@@ -55,6 +56,7 @@ apiClient.interceptors.response.use(
     const shouldSkipRefresh =
       requestPath.includes(TOKEN_REFRESH_PATH)
       || requestPath.includes(LOGIN_PATH)
+      || requestPath.includes(REGISTER_PATH)
       || requestPath.includes(LOGOUT_PATH)
 
     if (error.response?.status === 401 && !originalRequest._retry && !shouldSkipRefresh) {
@@ -88,7 +90,11 @@ apiClient.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    if (error.response?.status === 403) {
+    if (
+      error.response?.status === 403
+      && !requestPath.includes(LOGIN_PATH)
+      && !requestPath.includes(TOKEN_REFRESH_PATH)
+    ) {
       toast.error('No tienes permisos para realizar esta acción')
     }
 

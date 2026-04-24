@@ -1,0 +1,10 @@
+node_modules
+node_modules.inaccessible.bak
+dist
+dist.inaccessible.bak
+.vite
+coverage
+playwright-report
+test-results
+.playwright
+*.log

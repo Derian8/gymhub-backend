@@ -1,4 +1,4 @@
-import { act, fireEvent } from '@testing-library/react'
+import { act, fireEvent, within } from '@testing-library/react'
 import { renderWithProviders } from '@/test/utils'
 import { useAuthStore } from '@/shared/store/authStore'
 import { TrainerProgramPage } from './TrainerProgramPage'
@@ -94,8 +94,10 @@ const workoutDaysResponse = {
           workout_day: 301,
           name: 'Sentadilla',
           muscle_group: 'legs',
+          exercise_type: 'strength',
           sets: 4,
           reps_range: '8-10',
+          target_minutes: null,
           weight_suggestion_kg: 60,
           rest_seconds: 90,
           technique_notes: '',
@@ -106,8 +108,10 @@ const workoutDaysResponse = {
           workout_day: 301,
           name: 'Peso muerto rumano',
           muscle_group: 'glutes',
+          exercise_type: 'strength',
           sets: 3,
           reps_range: '10-12',
+          target_minutes: null,
           weight_suggestion_kg: 45,
           rest_seconds: 75,
           technique_notes: 'Controla la bajada',
@@ -200,8 +204,10 @@ const trainingTemplatesResponse = {
               dia: 1001,
               nombre: 'Sentadilla goblet',
               grupo_muscular: 'legs',
+              tipo_ejercicio: 'strength',
               series: 3,
               rango_repeticiones: '10-12',
+              minutos_objetivo: null,
               peso_sugerido_kg: null,
               descanso_segundos: 75,
               notas_tecnicas: '',
@@ -379,8 +385,8 @@ describe('TrainerProgramPage', () => {
     expect(getByText('1 dia y 1 ejercicios base')).toBeInTheDocument()
     expect(getByText('Sin progreso reciente')).toBeInTheDocument()
     expect(getByDisplayValue('Plan recomposicion')).toBeInTheDocument()
-    expect(getByText('Sentadilla · 4x8-10 · descanso 90s')).toBeInTheDocument()
-    expect(getByText('Peso muerto rumano · 3x10-12 · descanso 75s')).toBeInTheDocument()
+    expect(getByText(/Sentadilla · 4x8-10 · descanso 90s/)).toBeInTheDocument()
+    expect(getByText(/Peso muerto rumano · 3x10-12 · descanso 75s/)).toBeInTheDocument()
     expect(getByDisplayValue('140g diarios')).toBeInTheDocument()
     expect(getByTestId('guideline-link-701')).toBeInTheDocument()
     expect(getAllByText('Proteina en cada comida')).toHaveLength(2)
@@ -565,5 +571,40 @@ describe('TrainerProgramPage', () => {
         order: 1,
       }),
     )
+  })
+
+  it('switches cardio exercises to minutes automatically when creating a new exercise', () => {
+    const { getByTestId, getByText, getByDisplayValue, queryByDisplayValue } = renderWithProviders(<TrainerProgramPage />, {
+      route: '/members/15/program',
+      path: '/members/:id/program',
+    })
+
+    const addExerciseButton = getByTestId('add-exercise-inline-button')
+    const addExerciseForm = addExerciseButton.closest('form')
+    expect(addExerciseForm).not.toBeNull()
+    const formScope = within(addExerciseForm as HTMLFormElement)
+
+    fireEvent.click(within(getByTestId('muscle-group-options')).getByText('Cardio'))
+
+    expect(getByText(/Cardio se carga por minutos objetivo/i)).toBeInTheDocument()
+    expect(queryByDisplayValue('8-12')).not.toBeInTheDocument()
+
+    fireEvent.change(formScope.getAllByRole('textbox')[0], { target: { value: 'Bici estatica' } })
+    fireEvent.change(formScope.getByDisplayValue('10'), { target: { value: '20' } })
+    fireEvent.click(addExerciseButton)
+
+    expect(createExerciseMutate).toHaveBeenCalledWith({
+      workout_day: 301,
+      name: 'Bici estatica',
+      muscle_group: 'cardio',
+      exercise_type: 'timed',
+      sets: null,
+      reps_range: '',
+      target_minutes: 20,
+      weight_suggestion_kg: null,
+      rest_seconds: 60,
+      technique_notes: '',
+      order: 2,
+    })
   })
 })

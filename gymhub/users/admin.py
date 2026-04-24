@@ -29,4 +29,4 @@ class TrainerProfileAdmin(admin.ModelAdmin):
 class AuditLogAdmin(admin.ModelAdmin):
     list_display = ('user', 'action_type', 'target_model', 'target_id', 'created_at')
     list_filter = ('action_type', 'target_model')
-    readonly_fields = ('created_at',)
+    readonly_fields = ('details', 'created_at',)

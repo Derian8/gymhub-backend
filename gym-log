@@ -19,5 +19,5 @@ cd "${ROOT_DIR}"
 if [ "$#" -gt 0 ]; then
   "${DOCKER_BIN}" compose "${COMPOSE_FILES[@]}" logs -f "$@"
 else
-  "${DOCKER_BIN}" compose "${COMPOSE_FILES[@]}" logs -f frontend backend db redis celery celerybeat
+  "${DOCKER_BIN}" compose "${COMPOSE_FILES[@]}" logs -f frontend backend redis celery celerybeat
 fi

@@ -18,15 +18,16 @@ class ExerciseLogSerializer(serializers.ModelSerializer):
         model = ExerciseLog
         fields = (
             'id', 'session', 'exercise', 'sets_completed',
-            'reps_completed', 'weight_used_kg', 'rpe', 'notes'
+            'reps_completed', 'minutes_completed', 'weight_used_kg', 'rpe', 'notes'
         )
         read_only_fields = ('id',)
 
 
 class ExerciseLogInputSerializer(serializers.Serializer):
     exercise_id = serializers.IntegerField()
-    sets_completed = serializers.IntegerField(min_value=0)
-    reps_completed = serializers.IntegerField(min_value=0)
+    sets_completed = serializers.IntegerField(min_value=0, required=False)
+    reps_completed = serializers.IntegerField(min_value=0, required=False)
+    minutes_completed = serializers.IntegerField(min_value=0, required=False)
     weight_used_kg = serializers.FloatField(required=False, allow_null=True)
     rpe = serializers.IntegerField(required=False, allow_null=True, min_value=1, max_value=10)
     notes = serializers.CharField(required=False, allow_blank=True)

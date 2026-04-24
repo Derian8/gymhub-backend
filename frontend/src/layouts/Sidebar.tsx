@@ -3,12 +3,13 @@ import {
   LayoutDashboard, Users, Dumbbell,
   CreditCard, Utensils, Bell, Bot, User,
   LogOut, ChevronLeft, ChevronRight, Activity,
-  ClipboardList, CheckSquare,
+  ClipboardList, CheckSquare, MessageSquareMore,
 } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { useAuthStore } from '@/shared/store/authStore'
 import { useLogoutMutation } from '@/modules/auth/hooks/useAuthMutations'
 import { Avatar } from '@/shared/components/UI'
+import { BrandMark, BrandWordmark, SymbolFrame } from '@/shared/components/Brand'
 
 interface NavItem {
   label: string
@@ -33,6 +34,7 @@ const memberNav: NavItem[] = [
   { label: 'Dashboard', icon: <LayoutDashboard size={18} />, to: '/dashboard/member' },
   { label: 'Mi Plan', icon: <Dumbbell size={18} />, to: '/plans/my' },
   { label: 'Check-in', icon: <CheckSquare size={18} />, to: '/attendance/check-in' },
+  { label: 'Mensajes', icon: <MessageSquareMore size={18} />, to: '/messages' },
   { label: 'Progreso', icon: <Activity size={18} />, to: '/progress' },
   { label: 'Sesiones', icon: <ClipboardList size={18} />, to: '/sessions' },
   { label: 'Nutrición', icon: <Utensils size={18} />, to: '/nutrition' },
@@ -60,16 +62,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         collapsed ? 'w-16' : 'w-64',
       )}
     >
-      {/* Logo */}
       <div className="flex items-center justify-between px-4 h-16 border-b border-neutral-200 dark:border-neutral-800">
-        {!collapsed && (
-          <span className="font-heading font-black text-xl tracking-tight text-neutral-900 dark:text-white">
-            GYM<span className="text-primary">HUB</span>
-          </span>
-        )}
-        {collapsed && (
-          <span className="font-heading font-black text-xl text-primary mx-auto">G</span>
-        )}
+        {!collapsed ? <BrandWordmark compact /> : <BrandMark size="sm" className="mx-auto" />}
         <button
           onClick={onToggle}
           data-testid="sidebar-toggle"
@@ -98,7 +92,16 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             }
             title={collapsed ? item.label : undefined}
           >
-            <span className="flex-shrink-0">{item.icon}</span>
+            <SymbolFrame
+              size="sm"
+              tone="default"
+              className={cn(
+                'rounded-xl border-transparent bg-transparent shadow-none',
+                collapsed ? 'mx-auto' : '',
+              )}
+            >
+              {item.icon}
+            </SymbolFrame>
             {!collapsed && <span>{item.label}</span>}
           </NavLink>
         ))}
@@ -113,7 +116,9 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             cn('sidebar-link', isActive && 'sidebar-link-active', collapsed && 'justify-center px-0')
           }
         >
-          <User size={18} className="flex-shrink-0" />
+          <SymbolFrame size="sm" className="rounded-xl border-transparent bg-transparent shadow-none">
+            <User size={18} className="flex-shrink-0" />
+          </SymbolFrame>
           {!collapsed && <span>Perfil</span>}
         </NavLink>
 
@@ -126,18 +131,27 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             collapsed && 'justify-center px-0',
           )}
         >
-          <LogOut size={18} className="flex-shrink-0" />
+          <SymbolFrame size="sm" className="rounded-xl border-transparent bg-transparent shadow-none">
+            <LogOut size={18} className="flex-shrink-0" />
+          </SymbolFrame>
           {!collapsed && <span>Cerrar sesión</span>}
         </button>
 
         {!collapsed && user && (
-          <div className="flex items-center gap-2 px-4 py-2 mt-2 bg-neutral-50 dark:bg-neutral-900 rounded-sm">
-            <Avatar name={`${user.first_name} ${user.last_name}` || user.email} size="sm" />
+          <div className="mt-3 rounded-2xl border border-neutral-200/80 bg-neutral-50/80 px-3 py-3 dark:border-white/10 dark:bg-neutral-900/80">
+            <div className="mb-2 flex items-center gap-2">
+              <Avatar name={`${user.first_name} ${user.last_name}` || user.email} size="sm" />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-neutral-500 dark:text-neutral-400">
+                  Cuenta activa
+                </p>
+              </div>
+            </div>
             <div className="min-w-0">
-              <p className="text-xs font-medium text-neutral-900 dark:text-white truncate">
+              <p className="text-sm font-semibold text-neutral-900 dark:text-white truncate">
                 {user.first_name || user.username}
               </p>
-              <p className="text-[10px] text-neutral-500 capitalize">{user.role}</p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-neutral-500 capitalize">{user.role}</p>
             </div>
           </div>
         )}

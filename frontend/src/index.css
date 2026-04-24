@@ -51,7 +51,7 @@
   }
 
   .card {
-    @apply bg-white dark:bg-neutral-900/50 border border-neutral-200 dark:border-white/10 shadow-sm dark:shadow-none backdrop-blur-md rounded-lg;
+    @apply bg-white dark:bg-neutral-900/50 border border-neutral-200 dark:border-white/10 shadow-sm dark:shadow-none backdrop-blur-md rounded-[1.25rem];
   }
 
   .input-base {
@@ -77,27 +77,27 @@
   }
 
   .btn-primary {
-    @apply bg-primary text-white font-bold uppercase tracking-widest text-sm rounded-sm px-6 py-3 hover:bg-primary-hover transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
+    @apply bg-primary text-white font-bold uppercase tracking-widest text-sm rounded-2xl px-6 py-3 hover:bg-primary-hover transition-all duration-200 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
   }
 
   .btn-secondary {
-    @apply bg-transparent border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold uppercase tracking-widest text-sm rounded-sm px-6 py-3 hover:border-primary dark:hover:border-primary hover:text-primary transition-all duration-200;
+    @apply bg-transparent border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold uppercase tracking-widest text-sm rounded-2xl px-6 py-3 hover:border-primary dark:hover:border-primary hover:text-primary transition-all duration-200;
   }
 
   .btn-danger {
-    @apply bg-red-600 text-white font-bold uppercase tracking-widest text-sm rounded-sm px-6 py-3 hover:bg-red-700 transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
+    @apply bg-red-600 text-white font-bold uppercase tracking-widest text-sm rounded-2xl px-6 py-3 hover:bg-red-700 transition-all duration-200 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
   }
 
   .sidebar-link {
-    @apply flex items-center gap-3 px-4 py-3 text-sm font-medium text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-sm transition-all duration-200 cursor-pointer;
+    @apply flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-white transition-all duration-200 cursor-pointer;
   }
 
   .sidebar-link-active {
-    @apply text-primary border-l-2 border-primary bg-primary/5 pl-[14px];
+    @apply bg-primary/10 text-primary shadow-[inset_0_0_0_1px_rgba(255,59,48,0.12)];
   }
 
   .stat-card {
-    @apply card p-6 flex flex-col gap-2 hover:border-primary/50 transition-colors duration-300 cursor-default;
+    @apply card cursor-default p-6 flex flex-col gap-2 hover:border-primary/40 transition-colors duration-300;
   }
 
   .skeleton {
@@ -105,7 +105,7 @@
   }
 
   .badge {
-    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-semibold uppercase tracking-wider;
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em];
   }
 
   .badge-success { @apply bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400; }
@@ -131,7 +131,7 @@
   }
 
   .table-container {
-    @apply w-full overflow-auto rounded-lg border border-neutral-200 dark:border-neutral-800;
+    @apply w-full overflow-auto rounded-[1.25rem] border border-neutral-200 dark:border-neutral-800;
   }
 
   .table-base {
@@ -139,7 +139,7 @@
   }
 
   .th-base {
-    @apply px-4 py-3 text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800;
+    @apply px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800;
   }
 
   .td-base {

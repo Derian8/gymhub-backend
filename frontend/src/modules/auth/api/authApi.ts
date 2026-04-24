@@ -1,5 +1,5 @@
 import apiClient from '@/shared/api/client'
-import type { User, LoginCredentials, RegisterData } from '@/shared/types'
+import type { User, LoginCredentials, RegisterData, UpdateProfileData } from '@/shared/types'
 
 export const authApi = {
   login: async (credentials: LoginCredentials): Promise<{ user: User; message: string }> => {
@@ -18,6 +18,11 @@ export const authApi = {
 
   me: async (): Promise<User> => {
     const { data } = await apiClient.get('/auth/me/')
+    return data
+  },
+
+  updateMe: async (payload: UpdateProfileData): Promise<User> => {
+    const { data } = await apiClient.patch('/auth/me/', payload)
     return data
   },
 

@@ -85,6 +85,10 @@ class ExerciseLog(models.Model):
     )
     sets_completed = models.PositiveIntegerField(default=0)
     reps_completed = models.PositiveIntegerField(default=0)
+    minutes_completed = models.PositiveIntegerField(
+        null=True, blank=True,
+        validators=[MinValueValidator(0)]
+    )
     weight_used_kg = models.FloatField(
         null=True, blank=True,
         validators=[MinValueValidator(0)]
@@ -96,4 +100,6 @@ class ExerciseLog(models.Model):
     notes = models.TextField(blank=True)
 
     def __str__(self):
+        if self.minutes_completed is not None:
+            return f"{self.exercise.name} — {self.minutes_completed} min"
         return f"{self.exercise.name} — {self.sets_completed}×{self.reps_completed} @ {self.weight_used_kg}kg"

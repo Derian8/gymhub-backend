@@ -6,6 +6,13 @@ PAYMENT_STATUS_CHOICES = [
     ('late', 'Late'),
 ]
 
+SUBSCRIPTION_STATUS_CHOICES = [
+    ('active', 'Active'),
+    ('past_due', 'Past Due'),
+    ('suspended', 'Suspended'),
+    ('cancelled', 'Cancelled'),
+]
+
 PAYMENT_METHOD_TYPE_CHOICES = [
     ('cash', 'Cash'),
     ('transfer', 'Transfer'),
@@ -71,6 +78,15 @@ class MemberSubscription(models.Model):
     grace_period_days = models.PositiveIntegerField(default=7)
     auto_generate_next = models.BooleanField(default=True)
     is_active = models.BooleanField(default=True)
+    status = models.CharField(
+        max_length=20,
+        choices=SUBSCRIPTION_STATUS_CHOICES,
+        default='active',
+    )
+    renewal_date = models.DateField(null=True, blank=True)
+    cancellation_date = models.DateField(null=True, blank=True)
+    cancellation_reason = models.CharField(max_length=255, blank=True)
+    commercial_notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -80,6 +96,7 @@ class MemberSubscription(models.Model):
             models.Index(fields=['member', 'is_active']),
             models.Index(fields=['trainer', 'is_active']),
             models.Index(fields=['plan', 'is_active']),
+            models.Index(fields=['status', 'is_active']),
         ]
 
     def __str__(self):
@@ -167,6 +184,8 @@ class PaymentRecord(models.Model):
         on_delete=models.SET_NULL,
         related_name='payment_records'
     )
+    payment_reference = models.CharField(max_length=120, blank=True)
+    receipt_issued_at = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(blank=True)
 
     class Meta:

@@ -3,12 +3,15 @@
 ## Índice
 - [`../RUNBOOK.md`](/mnt/c/dev/proyectos/proyectoappgym/RUNBOOK.md): fuente principal de operación, soporte, recuperación y validación de entrega.
 - [`ARQUITECTURA.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/ARQUITECTURA.md): visión técnica del backend, roles, dominios y flujo general.
+- [`AUDITORIA_FUNCIONAL_Y_PRODUCTO.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/AUDITORIA_FUNCIONAL_Y_PRODUCTO.md): auditoría profunda por dominio con objetivos de negocio, riesgos y roadmap de mejora.
 - [`MODULOS_Y_API.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/MODULOS_Y_API.md): inventario funcional por app, entidades principales y rutas expuestas.
 - [`OPERACION.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/OPERACION.md): puesta en marcha local, dependencias, pruebas y consideraciones operativas.
+- [`AVANCE_DEPLOY.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/AVANCE_DEPLOY.md): estado actual del deploy en Supabase/Vercel, validaciones y limitaciones.
 - [`DEUDA_TECNICA.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/DEUDA_TECNICA.md): deuda técnica identificada, prioridad, impacto y recomendaciones.
 - [`MVP_FUNCIONAL.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/MVP_FUNCIONAL.md): definición operativa del producto mínimo viable, rutas activas y alcance por rol.
 - [`QA_MVP.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/QA_MVP.md): matriz manual de validación por rol y ruta del MVP.
 - [`RELEASE_CHECKLIST.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/RELEASE_CHECKLIST.md): checklist de validación para staging, producción local y entregas.
+- [`SUPABASE_VERCEL.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/SUPABASE_VERCEL.md): credenciales requeridas y flujo de conexión con Supabase PostgreSQL y Vercel.
 
 ## Resumen
 Este repositorio contiene el backend de GymHub, una API para gestión de miembros, entrenadores, clases, planes de entrenamiento, asistencia, progreso, facturación, nutrición, alertas, gráficas y chat con IA.

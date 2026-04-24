@@ -47,6 +47,7 @@ import {
 import type {
   DayLabel,
   ExercisePayload,
+  ExerciseType,
   GoalType,
   MuscleGroup,
   NutritionProfilePayload,
@@ -116,6 +117,64 @@ function formatTemplateCount(total: number, label: string) {
     return `1 ${label}`
   }
   return `${total} ${label}s`
+}
+
+function buildExercisePayloadByType(exercise: ExercisePayload): ExercisePayload {
+  if (exercise.exercise_type === 'timed') {
+    return {
+      ...exercise,
+      sets: null,
+      reps_range: '',
+      target_minutes: exercise.target_minutes ?? 10,
+      weight_suggestion_kg: null,
+    }
+  }
+
+  return {
+    ...exercise,
+    sets: exercise.sets ?? 3,
+    reps_range: exercise.reps_range || '8-12',
+    target_minutes: null,
+  }
+}
+
+function syncExerciseWithMuscleGroup(exercise: ExercisePayload, muscleGroup: MuscleGroup): ExercisePayload {
+  if (muscleGroup === 'cardio') {
+    return buildExercisePayloadByType({
+      ...exercise,
+      muscle_group: muscleGroup,
+      exercise_type: 'timed',
+    })
+  }
+
+  if (exercise.muscle_group === 'cardio' && exercise.exercise_type === 'timed') {
+    return buildExercisePayloadByType({
+      ...exercise,
+      muscle_group: muscleGroup,
+      exercise_type: 'strength',
+    })
+  }
+
+  return {
+    ...exercise,
+    muscle_group: muscleGroup,
+  }
+}
+
+function formatExercisePrescription(exercise: {
+  exercise_type: ExerciseType
+  sets: number | null
+  reps_range: string
+  target_minutes: number | null
+  rest_seconds: number
+  weight_suggestion_kg: number | null
+}) {
+  if (exercise.exercise_type === 'timed') {
+    return `${exercise.target_minutes ?? 0} min · descanso ${exercise.rest_seconds}s`
+  }
+
+  const weightLabel = exercise.weight_suggestion_kg != null ? ` · ${exercise.weight_suggestion_kg} kg sugeridos` : ''
+  return `${exercise.sets ?? 0}x${exercise.reps_range} · descanso ${exercise.rest_seconds}s${weightLabel}`
 }
 
 type DeleteTarget =
@@ -208,8 +267,10 @@ export function TrainerProgramPage() {
     workout_day: 0,
     name: '',
     muscle_group: 'full_body',
+    exercise_type: 'strength',
     sets: 3,
     reps_range: '8-12',
+    target_minutes: null,
     weight_suggestion_kg: null,
     rest_seconds: 60,
     technique_notes: '',
@@ -220,8 +281,10 @@ export function TrainerProgramPage() {
     workout_day: 0,
     name: '',
     muscle_group: 'full_body',
+    exercise_type: 'strength',
     sets: 3,
     reps_range: '8-12',
+    target_minutes: null,
     weight_suggestion_kg: null,
     rest_seconds: 60,
     technique_notes: '',
@@ -513,12 +576,13 @@ export function TrainerProgramPage() {
       return
     }
     createExercise.mutate({
-      ...exerciseForm,
+      ...buildExercisePayloadByType(exerciseForm),
       workout_day: selectedWorkoutDayId,
     })
-    setExerciseForm((current) => ({
+    setExerciseForm((current) => buildExercisePayloadByType({
       ...current,
       name: '',
+      target_minutes: current.exercise_type === 'timed' ? current.target_minutes ?? 10 : null,
       weight_suggestion_kg: null,
       technique_notes: '',
     }))
@@ -559,8 +623,10 @@ export function TrainerProgramPage() {
       workout_day: exercise.workout_day,
       name: exercise.name,
       muscle_group: exercise.muscle_group,
+      exercise_type: exercise.exercise_type,
       sets: exercise.sets,
       reps_range: exercise.reps_range,
+      target_minutes: exercise.target_minutes ?? null,
       weight_suggestion_kg: exercise.weight_suggestion_kg ?? null,
       rest_seconds: exercise.rest_seconds,
       technique_notes: exercise.technique_notes ?? '',
@@ -576,7 +642,7 @@ export function TrainerProgramPage() {
     updateExercise.mutate(
       {
         id: editingExerciseId,
-        payload: editingExerciseForm,
+        payload: buildExercisePayloadByType(editingExerciseForm),
       },
       { onSuccess: () => setEditingExerciseId(null) },
     )
@@ -609,7 +675,7 @@ export function TrainerProgramPage() {
   }
 
   const handleMoveExercise = (
-    day: { id: number; exercises: Array<{ id: number; name: string; muscle_group: MuscleGroup; sets: number; reps_range: string; weight_suggestion_kg: number | null; rest_seconds: number; technique_notes: string; order: number }> },
+    day: { id: number; exercises: Array<{ id: number; name: string; muscle_group: MuscleGroup; exercise_type: ExerciseType; sets: number | null; reps_range: string; target_minutes: number | null; weight_suggestion_kg: number | null; rest_seconds: number; technique_notes: string; order: number }> },
     exerciseId: number,
     direction: 'up' | 'down',
   ) => {
@@ -636,7 +702,7 @@ export function TrainerProgramPage() {
   }
 
   const handleDuplicateDay = (
-    day: { id: number; name: string; day_label: DayLabel; order: number; exercises: Array<{ name: string; muscle_group: MuscleGroup; sets: number; reps_range: string; weight_suggestion_kg: number | null; rest_seconds: number; technique_notes: string; order: number }> },
+    day: { id: number; name: string; day_label: DayLabel; order: number; exercises: Array<{ name: string; muscle_group: MuscleGroup; exercise_type: ExerciseType; sets: number | null; reps_range: string; target_minutes: number | null; weight_suggestion_kg: number | null; rest_seconds: number; technique_notes: string; order: number }> },
   ) => {
     if (!activePlan || !daysData?.results.length) {
       return
@@ -660,8 +726,10 @@ export function TrainerProgramPage() {
                 workout_day: newDay.id,
                 name: `${exercise.name} (copia)`,
                 muscle_group: exercise.muscle_group,
+                exercise_type: exercise.exercise_type,
                 sets: exercise.sets,
                 reps_range: exercise.reps_range,
+                target_minutes: exercise.target_minutes ?? null,
                 weight_suggestion_kg: exercise.weight_suggestion_kg ?? null,
                 rest_seconds: exercise.rest_seconds,
                 technique_notes: exercise.technique_notes ?? '',
@@ -677,15 +745,17 @@ export function TrainerProgramPage() {
 
   const handleDuplicateExercise = (
     day: { id: number; exercises: Array<{ order: number }> },
-    exercise: { name: string; muscle_group: MuscleGroup; sets: number; reps_range: string; weight_suggestion_kg: number | null; rest_seconds: number; technique_notes: string; order: number },
+    exercise: { name: string; muscle_group: MuscleGroup; exercise_type: ExerciseType; sets: number | null; reps_range: string; target_minutes: number | null; weight_suggestion_kg: number | null; rest_seconds: number; technique_notes: string; order: number },
   ) => {
     const nextOrder = day.exercises.length ? Math.max(...day.exercises.map((item) => item.order)) + 1 : 0
     createExercise.mutate({
       workout_day: day.id,
       name: `${exercise.name} (copia)`,
       muscle_group: exercise.muscle_group,
+      exercise_type: exercise.exercise_type,
       sets: exercise.sets,
       reps_range: exercise.reps_range,
+      target_minutes: exercise.target_minutes ?? null,
       weight_suggestion_kg: exercise.weight_suggestion_kg ?? null,
       rest_seconds: exercise.rest_seconds,
       technique_notes: exercise.technique_notes ?? '',
@@ -1660,25 +1730,62 @@ export function TrainerProgramPage() {
                                         <Field label="Nombre del ejercicio">
                                           <input className="input" value={editingExerciseForm.name} onChange={(e) => setEditingExerciseForm({ ...editingExerciseForm, name: e.target.value })} required />
                                         </Field>
+                                        <Field label="Tipo de ejercicio">
+                                          <OptionGroup
+                                            value={editingExerciseForm.exercise_type}
+                                            onChange={(value) => setEditingExerciseForm(buildExercisePayloadByType({ ...editingExerciseForm, exercise_type: value as ExerciseType }))}
+                                            options={[
+                                              { value: 'strength', label: 'Fuerza' },
+                                              { value: 'timed', label: 'Por tiempo' },
+                                            ]}
+                                            disabled={editingExerciseForm.muscle_group === 'cardio'}
+                                          />
+                                        </Field>
                                         <Field label="Grupo muscular">
                                           <OptionGroup
                                             value={editingExerciseForm.muscle_group}
-                                            onChange={(value) => setEditingExerciseForm({ ...editingExerciseForm, muscle_group: value as MuscleGroup })}
+                                            onChange={(value) => setEditingExerciseForm(syncExerciseWithMuscleGroup(editingExerciseForm, value as MuscleGroup))}
                                             options={muscleOptions}
                                           />
                                         </Field>
-                                        <Field label="Series">
-                                          <input className="input" type="number" min={1} value={editingExerciseForm.sets} onChange={(e) => setEditingExerciseForm({ ...editingExerciseForm, sets: Number(e.target.value) })} required />
-                                        </Field>
-                                        <Field label="Rango de repeticiones">
-                                          <input className="input" value={editingExerciseForm.reps_range} onChange={(e) => setEditingExerciseForm({ ...editingExerciseForm, reps_range: e.target.value })} required />
-                                        </Field>
+                                        {editingExerciseForm.muscle_group === 'cardio' ? (
+                                          <div className="md:col-span-2 rounded-sm border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-neutral-600 dark:border-primary/30 dark:bg-primary/10 dark:text-neutral-300">
+                                            Cardio se programa automáticamente por tiempo. Aquí defines minutos objetivo, no repeticiones ni peso.
+                                          </div>
+                                        ) : null}
+                                        {editingExerciseForm.exercise_type === 'timed' ? (
+                                          <Field label="Minutos objetivo">
+                                            <input
+                                              className="input"
+                                              type="number"
+                                              min={1}
+                                              value={editingExerciseForm.target_minutes ?? ''}
+                                              onChange={(e) => setEditingExerciseForm({ ...editingExerciseForm, target_minutes: e.target.value ? Number(e.target.value) : null })}
+                                              required
+                                            />
+                                          </Field>
+                                        ) : (
+                                          <>
+                                            <Field label="Series">
+                                              <input className="input" type="number" min={1} value={editingExerciseForm.sets ?? ''} onChange={(e) => setEditingExerciseForm({ ...editingExerciseForm, sets: e.target.value ? Number(e.target.value) : null })} required />
+                                            </Field>
+                                            <Field label="Rango de repeticiones">
+                                              <input className="input" value={editingExerciseForm.reps_range} onChange={(e) => setEditingExerciseForm({ ...editingExerciseForm, reps_range: e.target.value })} required />
+                                            </Field>
+                                          </>
+                                        )}
                                         <Field label="Descanso en segundos">
                                           <input className="input" type="number" min={15} value={editingExerciseForm.rest_seconds} onChange={(e) => setEditingExerciseForm({ ...editingExerciseForm, rest_seconds: Number(e.target.value) })} required />
                                         </Field>
-                                        <Field label="Peso sugerido (kg)">
-                                          <input className="input" type="number" min={0} value={editingExerciseForm.weight_suggestion_kg ?? ''} onChange={(e) => setEditingExerciseForm({ ...editingExerciseForm, weight_suggestion_kg: e.target.value ? Number(e.target.value) : null })} />
-                                        </Field>
+                                        {editingExerciseForm.exercise_type === 'strength' ? (
+                                          <Field label="Peso sugerido (kg)">
+                                            <input className="input" type="number" min={0} value={editingExerciseForm.weight_suggestion_kg ?? ''} onChange={(e) => setEditingExerciseForm({ ...editingExerciseForm, weight_suggestion_kg: e.target.value ? Number(e.target.value) : null })} />
+                                          </Field>
+                                        ) : (
+                                          <Field label="Peso sugerido (kg)">
+                                            <input className="input" value="No aplica" disabled />
+                                          </Field>
+                                        )}
                                         <Field label="Orden">
                                           <input className="input" type="number" min={0} value={editingExerciseForm.order} onChange={(e) => setEditingExerciseForm({ ...editingExerciseForm, order: Number(e.target.value) })} required />
                                         </Field>
@@ -1697,10 +1804,9 @@ export function TrainerProgramPage() {
                                     ) : (
                                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                         <div>
-                                          <p className="font-medium text-neutral-900 dark:text-white">{exercise.name} · {exercise.sets}x{exercise.reps_range} · descanso {exercise.rest_seconds}s</p>
+                                          <p className="font-medium text-neutral-900 dark:text-white">{exercise.name} · {formatExercisePrescription(exercise)}</p>
                                           <p className="text-sm text-neutral-500">
                                             {muscleOptions.find((option) => option.value === exercise.muscle_group)?.label ?? exercise.muscle_group}
-                                            {exercise.weight_suggestion_kg != null ? ` · ${exercise.weight_suggestion_kg} kg sugeridos` : ''}
                                           </p>
                                           {exercise.technique_notes ? (
                                             <p className="mt-1 text-sm text-neutral-500">{exercise.technique_notes}</p>
@@ -1767,26 +1873,56 @@ export function TrainerProgramPage() {
                               <Field label="Nombre del ejercicio">
                                 <input className="input" value={exerciseForm.name} onChange={(e) => setExerciseForm({ ...exerciseForm, name: e.target.value })} required />
                               </Field>
+                              <Field label="Tipo de ejercicio">
+                                <OptionGroup
+                                  value={exerciseForm.exercise_type}
+                                  onChange={(value) => setExerciseForm(buildExercisePayloadByType({ ...exerciseForm, exercise_type: value as ExerciseType }))}
+                                  options={[
+                                    { value: 'strength', label: 'Fuerza' },
+                                    { value: 'timed', label: 'Por tiempo' },
+                                  ]}
+                                  disabled={exerciseForm.muscle_group === 'cardio'}
+                                />
+                              </Field>
                               <Field label="Grupo muscular">
                                 <OptionGroup
                                   value={exerciseForm.muscle_group}
-                                  onChange={(value) => setExerciseForm({ ...exerciseForm, muscle_group: value as MuscleGroup })}
+                                  onChange={(value) => setExerciseForm(syncExerciseWithMuscleGroup(exerciseForm, value as MuscleGroup))}
                                   options={muscleOptions}
                                   data-testid="muscle-group-options"
                                 />
                               </Field>
-                              <Field label="Series">
-                                <input className="input" type="number" min={1} value={exerciseForm.sets} onChange={(e) => setExerciseForm({ ...exerciseForm, sets: Number(e.target.value) })} required />
-                              </Field>
-                              <Field label="Rango de repeticiones">
-                                <input className="input" value={exerciseForm.reps_range} onChange={(e) => setExerciseForm({ ...exerciseForm, reps_range: e.target.value })} required />
-                              </Field>
+                              {exerciseForm.muscle_group === 'cardio' ? (
+                                <div className="md:col-span-2 rounded-sm border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-neutral-600 dark:border-primary/30 dark:bg-primary/10 dark:text-neutral-300">
+                                  Cardio se carga por minutos objetivo. Series, repeticiones y peso no aplican a este bloque.
+                                </div>
+                              ) : null}
+                              {exerciseForm.exercise_type === 'timed' ? (
+                                <Field label="Minutos objetivo">
+                                  <input className="input" type="number" min={1} value={exerciseForm.target_minutes ?? ''} onChange={(e) => setExerciseForm({ ...exerciseForm, target_minutes: e.target.value ? Number(e.target.value) : null })} required />
+                                </Field>
+                              ) : (
+                                <>
+                                  <Field label="Series">
+                                    <input className="input" type="number" min={1} value={exerciseForm.sets ?? ''} onChange={(e) => setExerciseForm({ ...exerciseForm, sets: e.target.value ? Number(e.target.value) : null })} required />
+                                  </Field>
+                                  <Field label="Rango de repeticiones">
+                                    <input className="input" value={exerciseForm.reps_range} onChange={(e) => setExerciseForm({ ...exerciseForm, reps_range: e.target.value })} required />
+                                  </Field>
+                                </>
+                              )}
                               <Field label="Descanso en segundos">
                                 <input className="input" type="number" min={15} value={exerciseForm.rest_seconds} onChange={(e) => setExerciseForm({ ...exerciseForm, rest_seconds: Number(e.target.value) })} required />
                               </Field>
-                              <Field label="Peso sugerido (kg)">
-                                <input className="input" type="number" min={0} value={exerciseForm.weight_suggestion_kg ?? ''} onChange={(e) => setExerciseForm({ ...exerciseForm, weight_suggestion_kg: e.target.value ? Number(e.target.value) : null })} />
-                              </Field>
+                              {exerciseForm.exercise_type === 'strength' ? (
+                                <Field label="Peso sugerido (kg)">
+                                  <input className="input" type="number" min={0} value={exerciseForm.weight_suggestion_kg ?? ''} onChange={(e) => setExerciseForm({ ...exerciseForm, weight_suggestion_kg: e.target.value ? Number(e.target.value) : null })} />
+                                </Field>
+                              ) : (
+                                <Field label="Peso sugerido (kg)">
+                                  <input className="input" value="No aplica" disabled />
+                                </Field>
+                              )}
                               <Field label="Orden">
                                 <input className="input" type="number" min={0} value={exerciseForm.order} onChange={(e) => setExerciseForm({ ...exerciseForm, order: Number(e.target.value) })} required />
                               </Field>

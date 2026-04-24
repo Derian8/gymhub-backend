@@ -222,6 +222,9 @@ export function AiChatPage() {
                     </div>
                   </div>
                   <p className="mt-3 whitespace-pre-wrap text-sm text-neutral-700 dark:text-neutral-200">{sendableResponse.message_text}</p>
+                  <p className="mt-3 text-xs text-neutral-500 dark:text-neutral-400">
+                    Al enviarlo, el member lo verá en su bandeja de mensajes del trainer.
+                  </p>
                 </div>
               )}
 
@@ -425,28 +428,43 @@ function ChatContextPanel({
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <ContextTile label="Siguiente acción" value={context.member?.siguiente_accion || '—'} />
-        <ContextTile label="Plan activo" value={context.summary?.active_plan_name || 'Sin plan activo'} />
-        <ContextTile
-          label="Pago"
-          value={context.summary?.payment_status ? PAYMENT_STATUS_LABELS[context.summary.payment_status] : 'Sin registros'}
-        />
-        <ContextTile
-          label="Prescripción"
-          value={
-            context.member?.estado_prescripcion === 'lista'
-              ? 'Lista'
-              : context.member?.estado_prescripcion === 'incompleta'
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <ContextTile label="Siguiente acción" value={context.member?.siguiente_accion || '—'} />
+          <ContextTile label="Plan activo" value={context.summary?.active_plan_name || 'Sin plan activo'} />
+          <ContextTile
+            label="Pago"
+            value={context.summary?.payment_status ? PAYMENT_STATUS_LABELS[context.summary.payment_status] : 'Sin registros'}
+          />
+          <ContextTile
+            label="Prescripción"
+            value={
+              context.member?.estado_prescripcion === 'lista'
+                ? 'Lista'
+                : context.member?.estado_prescripcion === 'incompleta'
                 ? 'Incompleta'
                 : 'Sin plan'
-          }
-        />
-      </div>
+            }
+          />
+          <ContextTile label="Sesión de hoy" value={context.summary?.today_workout_name || 'Sin sesión visible'} />
+          <ContextTile
+            label="Fricción principal"
+            value={buildPrimaryFriction(context)}
+          />
+        </div>
 
       <div className="rounded-sm bg-neutral-100 p-4 dark:bg-neutral-900">
         <p className="text-xs uppercase tracking-wide text-neutral-500">Resumen operativo</p>
         <p className="mt-2 text-sm text-neutral-700 dark:text-neutral-300">{context.summary?.resumen_hoy}</p>
+        {context.summary?.risk_reasons?.length ? (
+          <p className="mt-2 text-xs text-neutral-500">
+            Señales clave: {context.summary.risk_reasons.join(', ')}
+          </p>
+        ) : null}
+        {context.analysis_context?.trainer_name ? (
+          <p className="mt-2 text-xs text-neutral-500">
+            Trainer en contexto: {context.analysis_context.trainer_name}
+          </p>
+        ) : null}
         {context.summary?.nutrition_goal ? (
           <p className="mt-2 text-xs text-neutral-500">Objetivo nutricional: {context.summary.nutrition_goal}</p>
         ) : null}
@@ -544,4 +562,24 @@ function parseMemberId(value: string | null): number | undefined {
   if (!value) return undefined
   const parsed = Number(value)
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined
+}
+
+function buildPrimaryFriction(context: NonNullable<Awaited<ReturnType<typeof useAiChatContextQuery>>['data']>) {
+  if (context.summary?.payment_status === 'late') {
+    return context.summary.days_overdue != null
+      ? `Mora activa (${context.summary.days_overdue} días)`
+      : 'Mora activa'
+  }
+  if (context.summary?.payment_status === 'pending') {
+    return context.summary.days_until_due != null
+      ? `Pago pendiente (${context.summary.days_until_due} días)`
+      : 'Pago pendiente'
+  }
+  if (context.summary?.inactivity_alert) {
+    return 'Inactividad abierta'
+  }
+  if (context.member?.estado_prescripcion === 'incompleta') {
+    return 'Prescripción incompleta'
+  }
+  return 'Sin bloqueo crítico'
 }
