@@ -4,6 +4,7 @@ import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import { useAuthStore } from '@/shared/store/authStore'
 import { cn } from '@/shared/lib/utils'
+import { BackendStatusBanner } from '@/shared/components/BackendStatusBanner'
 
 export function AppLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -50,6 +51,7 @@ export function AppLayout() {
 
         <main className="pt-16 min-h-screen">
           <div className="p-4 md:p-6 page-enter">
+            <BackendStatusBanner />
             <Outlet />
           </div>
         </main>

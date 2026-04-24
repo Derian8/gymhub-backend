@@ -4,11 +4,17 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/shared/store/authStore'
 import { authApi } from '@/modules/auth/api/authApi'
 import { QUERY_KEYS } from '@/shared/constants/queryKeys'
+import { useBackendStatusStore } from '@/shared/store/backendStatusStore'
+import { classifyBackendIssue } from '@/shared/api/backendStatus'
+import { BASE_URL } from '@/shared/api/client'
+import type { AxiosError } from 'axios'
 
 export function useAuth() {
   const { user, isAuthenticated, authResolved, setUser, setAuthResolved, logout } = useAuthStore()
+  const setBackendIssue = useBackendStatusStore((s) => s.setIssue)
+  const clearBackendIssue = useBackendStatusStore((s) => s.clearIssue)
 
-  const { data, isLoading, isError, isFetched } = useQuery({
+  const { data, isLoading, isError, isFetched, error } = useQuery({
     queryKey: QUERY_KEYS.ME,
     queryFn: authApi.me,
     retry: false,
@@ -18,17 +24,35 @@ export function useAuth() {
 
   useEffect(() => {
     if (data) {
+      clearBackendIssue()
       setUser(data)
       setAuthResolved(true)
     }
-  }, [data, setUser, setAuthResolved])
+  }, [clearBackendIssue, data, setUser, setAuthResolved])
 
   useEffect(() => {
-    if (isError) {
+    if (!isError) {
+      return
+    }
+
+    const authError = error as AxiosError | null
+    const issue = authError ? classifyBackendIssue(authError, BASE_URL) : null
+
+    if (issue) {
+      setBackendIssue(issue)
+      setAuthResolved(true)
+      return
+    }
+
+    if (authError?.response?.status === 401) {
+      clearBackendIssue()
       logout()
       setAuthResolved(true)
+      return
     }
-  }, [isError, logout, setAuthResolved])
+
+    setAuthResolved(true)
+  }, [clearBackendIssue, error, isError, logout, setAuthResolved, setBackendIssue])
 
   useEffect(() => {
     if (isFetched && !data && !isError) {
@@ -41,10 +65,11 @@ export function useAuth() {
     const handler = () => {
       logout()
       setAuthResolved(true)
+      clearBackendIssue()
     }
     window.addEventListener('auth:logout', handler)
     return () => window.removeEventListener('auth:logout', handler)
-  }, [logout, setAuthResolved])
+  }, [clearBackendIssue, logout, setAuthResolved])
 
   const currentUser = user || data || null
 

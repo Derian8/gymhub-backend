@@ -1,7 +1,9 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { toast } from 'sonner'
+import { classifyBackendIssue } from './backendStatus'
+import { useBackendStatusStore } from '@/shared/store/backendStatusStore'
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 15000)
 const TOKEN_REFRESH_PATH = '/auth/token/refresh/'
 const LOGIN_PATH = '/auth/login/'
@@ -49,7 +51,10 @@ function processQueue(error: unknown) {
 
 // Response interceptor — handle 401 and token refresh
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    useBackendStatusStore.getState().clearIssue()
+    return response
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
     const requestPath = originalRequest?.url ?? ''
@@ -77,12 +82,26 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest)
       } catch (refreshError) {
         processQueue(refreshError)
-        // Clear auth state and redirect to login
-        window.dispatchEvent(new CustomEvent('auth:logout'))
+        if ((refreshError as AxiosError).response?.status === 401) {
+          useBackendStatusStore.getState().clearIssue()
+          window.dispatchEvent(new CustomEvent('auth:logout'))
+        } else {
+          const issue = classifyBackendIssue(refreshError as AxiosError, BASE_URL)
+          if (issue) {
+            useBackendStatusStore.getState().setIssue(issue)
+          }
+        }
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false
       }
+    }
+
+    const issue = classifyBackendIssue(error, BASE_URL)
+    if (issue) {
+      useBackendStatusStore.getState().setIssue(issue)
+    } else if (error.response) {
+      useBackendStatusStore.getState().clearIssue()
     }
 
     if (!error.response) {
