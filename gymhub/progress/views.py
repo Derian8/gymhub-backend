@@ -1,6 +1,7 @@
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.utils import timezone
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -8,30 +9,111 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import ProgressLog, WorkoutSession, ExerciseLog
+from .services import build_member_physical_summary, user_can_manage_member_progress
 from .serializers import (
     ProgressLogSerializer, WorkoutSessionSerializer,
     CreateWorkoutSessionSerializer, CompleteWorkoutSessionSerializer,
     BulkExerciseLogSerializer, ExerciseLogSerializer
 )
-from users.permissions import IsTrainer
 
 
 class ProgressLogViewSet(viewsets.ModelViewSet):
     serializer_class = ProgressLogSerializer
     permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'post', 'patch', 'head', 'options']
 
     def get_queryset(self):
         user = self.request.user
         if user.role == 'member':
             return ProgressLog.objects.filter(member__user=user)
-        return ProgressLog.objects.all()
+        queryset = ProgressLog.objects.select_related('member__user').order_by('-recorded_at', '-id')
+        if user.is_staff:
+            member_id = self.request.query_params.get('member_id')
+            return queryset.filter(member_id=member_id) if member_id else queryset
+
+        try:
+            trainer_profile = user.trainerprofile
+        except ObjectDoesNotExist:
+            return ProgressLog.objects.none()
+        queryset = queryset.filter(member__trainer_asignado=trainer_profile)
+        member_id = self.request.query_params.get('member_id')
+        if member_id:
+            queryset = queryset.filter(member_id=member_id)
+        return queryset
+
+    def _resolve_target_member(self, request):
+        user = request.user
+        if user.role == 'member':
+            return user.memberprofile
+
+        member_id = request.data.get('member') or request.data.get('member_id')
+        if not member_id:
+            raise ValidationError({'member': 'Este campo es requerido.'})
+
+        from users.models import MemberProfile
+
+        try:
+            member = MemberProfile.objects.get(id=member_id)
+        except MemberProfile.DoesNotExist as exc:
+            raise ValidationError({'member': 'Miembro no encontrado.'}) from exc
+
+        if not user_can_manage_member_progress(user, member):
+            raise PermissionDenied('Solo puedes registrar progreso físico de clientes asignados a ti.')
+
+        return member
+
+    def list(self, request, *args, **kwargs):
+        if request.user.role == 'member':
+            return super().list(request, *args, **kwargs)
+        if not request.user.is_staff and not request.query_params.get('member_id'):
+            return Response(
+                {'error': 'Se requiere member_id para consultar progreso físico como trainer.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().list(request, *args, **kwargs)
 
     def perform_create(self, serializer):
+        member = self._resolve_target_member(self.request)
         user = self.request.user
         if user.role == 'member':
-            serializer.save(member=user.memberprofile)
+            raise PermissionDenied('Solo el trainer puede registrar mediciones físicas.')
+        source = serializer.validated_data.get('source')
+        serializer.save(member=member, source=source or 'manual')
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        user = request.user
+        if user.role == 'member':
+            return Response({'error': 'No puedes editar mediciones físicas.'}, status=status.HTTP_403_FORBIDDEN)
+        if not user_can_manage_member_progress(user, instance.member):
+            raise PermissionDenied('Solo puedes editar progreso físico de clientes asignados a ti.')
+
+        payload = request.data.copy()
+        payload['member'] = instance.member_id
+        serializer = self.get_serializer(instance, data=payload, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='member-summary')
+    def member_summary(self, request):
+        from users.models import MemberProfile
+
+        if request.user.role == 'member':
+            member = request.user.memberprofile
         else:
-            serializer.save()
+            member_id = request.query_params.get('member_id')
+            if not member_id:
+                return Response({'error': 'Se requiere member_id.'}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                member = MemberProfile.objects.get(id=member_id)
+            except MemberProfile.DoesNotExist:
+                return Response({'error': 'Miembro no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+            if not user_can_manage_member_progress(request.user, member):
+                raise PermissionDenied('No tienes permiso para consultar este resumen físico.')
+
+        return Response(build_member_physical_summary(member))
 
 
 class WorkoutSessionViewSet(viewsets.ModelViewSet):

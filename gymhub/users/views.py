@@ -13,6 +13,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
+from progress.services import build_member_physical_summary
 from .models import MemberProfile, TrainerProfile
 from .audit import registrar_auditoria
 from .permissions import IsStaffOrTrainer, IsTrainer, IsMember
@@ -316,7 +317,7 @@ class MemberViewSet(viewsets.ModelViewSet):
         return qs
 
     def get_permissions(self):
-        if self.action in ('list', 'retrieve', 'dashboard_summary', 'active_prescription', 'progress_by_exercise'):
+        if self.action in ('list', 'retrieve', 'dashboard_summary', 'active_prescription', 'progress_by_exercise', 'physical_summary'):
             return [IsAuthenticated()]
         if self.action == 'assign_trainer':
             return [IsAuthenticated(), IsTrainer()]
@@ -337,6 +338,11 @@ class MemberViewSet(viewsets.ModelViewSet):
     def active_prescription(self, request, pk=None):
         member = self.get_object()
         return Response(get_active_prescription(member))
+
+    @action(detail=True, methods=['get'], url_path='physical-summary')
+    def physical_summary(self, request, pk=None):
+        member = self.get_object()
+        return Response(build_member_physical_summary(member))
 
     @action(detail=True, methods=['post'], url_path='assign-trainer')
     def assign_trainer(self, request, pk=None):

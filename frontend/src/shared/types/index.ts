@@ -180,9 +180,24 @@ export interface MemberChartProgressPoint {
   date: string
   label: string
   weight_kg: number | null
+  height_cm: number | null
   body_fat_pct: number | null
   waist_cm: number | null
   muscle_mass_kg: number | null
+}
+
+export interface MemberPhysicalSummary {
+  latest_log_id: number | null
+  latest_recorded_at: string | null
+  current_weight_kg: number | null
+  previous_weight_kg: number | null
+  weight_change_kg: number | null
+  height_cm: number | null
+  body_fat_pct: number | null
+  muscle_mass_kg: number | null
+  waist_cm: number | null
+  bmi: number | null
+  notes: string
 }
 
 export interface MemberExerciseProgressPoint {
@@ -198,6 +213,8 @@ export interface MemberChartsOverview {
   summary: {
     current_weight: number | null
     weight_change_30d: number | null
+    current_height_cm: number | null
+    current_bmi: number | null
     sessions_this_week: number
     streak_asistencia: number
     cumplimiento_semanal: number | null
@@ -455,6 +472,7 @@ export interface ProgressLog {
   member: number
   recorded_at: string
   weight_kg: number | null
+  height_cm: number | null
   body_fat_pct: number | null
   muscle_mass_kg: number | null
   waist_cm: number | null

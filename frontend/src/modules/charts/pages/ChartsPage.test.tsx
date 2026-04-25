@@ -48,6 +48,8 @@ describe('ChartsPage', () => {
       summary: {
         current_weight: 80,
         weight_change_30d: -1.2,
+        current_height_cm: 176,
+        current_bmi: 25.8,
         sessions_this_week: 3,
         streak_asistencia: 4,
         cumplimiento_semanal: 75,
@@ -67,8 +69,8 @@ describe('ChartsPage', () => {
         },
       },
       physical_progress: [
-        { date: '2026-03-01', label: '01 Mar', weight_kg: 81, body_fat_pct: 18, waist_cm: 83, muscle_mass_kg: 34 },
-        { date: '2026-03-20', label: '20 Mar', weight_kg: 80, body_fat_pct: 17, waist_cm: 82, muscle_mass_kg: 34.5 },
+        { date: '2026-03-01', label: '01 Mar', weight_kg: 81, height_cm: 176, body_fat_pct: 18, waist_cm: 83, muscle_mass_kg: 34 },
+        { date: '2026-03-20', label: '20 Mar', weight_kg: 80, height_cm: 176, body_fat_pct: 17, waist_cm: 82, muscle_mass_kg: 34.5 },
       ],
       attendance_weekly: [{ label: '03 Mar', value: 2 }, { label: '10 Mar', value: 3 }],
       sessions_weekly: [{ label: '03 Mar', value: 1, goal: 3 }, { label: '10 Mar', value: 2, goal: 3 }],

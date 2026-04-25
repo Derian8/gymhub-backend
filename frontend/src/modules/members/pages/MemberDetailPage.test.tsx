@@ -1,3 +1,4 @@
+import { waitFor } from '@testing-library/react'
 import { renderWithProviders } from '@/test/utils'
 import { MemberDetailPage } from './MemberDetailPage'
 import { useAuthStore } from '@/shared/store/authStore'
@@ -63,6 +64,22 @@ vi.mock('../hooks/useMembers', () => ({
     },
     isLoading: false,
   }),
+  useMemberPhysicalSummaryQuery: () => ({
+    data: {
+      latest_log_id: 81,
+      latest_recorded_at: '2026-03-25T10:00:00Z',
+      current_weight_kg: 68.2,
+      previous_weight_kg: 69.4,
+      weight_change_kg: -1.2,
+      height_cm: 165,
+      body_fat_pct: 24,
+      muscle_mass_kg: 26,
+      waist_cm: 77,
+      bmi: 25,
+      notes: 'Progreso sostenido',
+    },
+    isLoading: false,
+  }),
   useMemberActivePrescriptionQuery: () => ({
     data: {
       trainer: null,
@@ -86,6 +103,33 @@ vi.mock('../hooks/useMembers', () => ({
     mutate: vi.fn(),
     isPending: false,
   }),
+}))
+
+vi.mock('@/modules/progress/api/progressApi', () => ({
+  progressApi: {
+    logs: vi.fn().mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [
+        {
+          id: 81,
+          member: 15,
+          recorded_at: '2026-03-25T10:00:00Z',
+          weight_kg: 68.2,
+          height_cm: 165,
+          body_fat_pct: 24,
+          muscle_mass_kg: 26,
+          waist_cm: 77,
+          notes: 'Progreso sostenido',
+          source: 'manual',
+        },
+      ],
+    }),
+    createLog: vi.fn(),
+    updateLog: vi.fn(),
+    memberSummary: vi.fn(),
+  },
 }))
 
 vi.mock('@/modules/billing/hooks/useBilling', () => ({
@@ -124,17 +168,21 @@ describe('MemberDetailPage', () => {
     })
   })
 
-  it('renders inactive member detail with activation and quick links', () => {
+  it('renders inactive member detail with activation and quick links', async () => {
     const { getAllByText, getByTestId } = renderWithProviders(<MemberDetailPage />, {
       route: '/members/15',
       path: '/members/:id',
     })
+
+    await waitFor(() => expect(getByTestId('measurement-row-81')).toBeInTheDocument())
 
     expect(getByTestId('member-detail-page')).toBeInTheDocument()
     expect(getByTestId('member-profile-card')).toBeInTheDocument()
     expect(getByTestId('member-prescription-panel')).toBeInTheDocument()
     expect(getByTestId('member-last-publication')).toHaveTextContent('Ultima publicacion: Nutrición')
     expect(getByTestId('member-risk-panel')).toBeInTheDocument()
+    expect(getByTestId('member-physical-panel')).toBeInTheDocument()
+    expect(getByTestId('member-physical-weight-change')).toHaveTextContent('-1.2 kg')
     expect(getAllByText('Maria Perez').length).toBeGreaterThan(1)
     expect(getByTestId('activation-panel')).toBeInTheDocument()
     expect(getByTestId('activate-member-btn')).toBeInTheDocument()

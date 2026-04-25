@@ -16,12 +16,26 @@ vi.mock('recharts', () => ({
 vi.mock('../api/progressApi', () => ({
   progressApi: {
     logs: vi.fn(),
+    summary: vi.fn(),
     sessions: vi.fn(),
   },
 }))
 
 describe('ProgressPage', () => {
   it('renders progress logs, sessions and chart when data exists', async () => {
+    vi.mocked(progressApi.summary).mockResolvedValue({
+      latest_log_id: 41,
+      latest_recorded_at: '2026-03-10T10:00:00Z',
+      current_weight_kg: 82,
+      previous_weight_kg: 83,
+      weight_change_kg: -1,
+      height_cm: 176,
+      body_fat_pct: 18,
+      muscle_mass_kg: 35,
+      waist_cm: 84,
+      bmi: 26.5,
+      notes: 'Buen avance',
+    })
     vi.mocked(progressApi.logs).mockResolvedValue({
       count: 1,
       next: null,
@@ -32,6 +46,7 @@ describe('ProgressPage', () => {
           member: 9,
           recorded_at: '2026-03-10T10:00:00Z',
           weight_kg: 82,
+          height_cm: 176,
           body_fat_pct: 18,
           muscle_mass_kg: 35,
           waist_cm: 84,
@@ -70,5 +85,7 @@ describe('ProgressPage', () => {
 
     expect(getByText('Buen avance')).toBeInTheDocument()
     expect(getByText('4/5')).toBeInTheDocument()
+    expect(getByText('176 cm')).toBeInTheDocument()
+    expect(getByText('26.5')).toBeInTheDocument()
   })
 })

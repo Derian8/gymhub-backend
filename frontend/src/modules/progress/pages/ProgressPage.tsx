@@ -1,7 +1,7 @@
-import { Activity, TrendingUp, Scale } from 'lucide-react'
+import { Activity, Ruler, Scale } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { progressApi } from '../api/progressApi'
-import { PageHeader, EmptyState } from '@/shared/components/UI'
+import { Badge, PageHeader, EmptyState } from '@/shared/components/UI'
 import { TableRowSkeleton } from '@/shared/components/Skeleton'
 import { QUERY_KEYS } from '@/shared/constants/queryKeys'
 import { formatDate } from '@/shared/lib/utils'
@@ -12,13 +12,18 @@ import {
 
 export function ProgressPage() {
   const { data: logs, isLoading: logsLoading } = useQuery({
-    queryKey: QUERY_KEYS.PROGRESS_LOGS,
-    queryFn: progressApi.logs,
+    queryKey: QUERY_KEYS.PROGRESS_LOGS(),
+    queryFn: () => progressApi.logs(),
   })
 
   const { data: sessions, isLoading: sessionsLoading } = useQuery({
     queryKey: QUERY_KEYS.WORKOUT_SESSIONS,
     queryFn: progressApi.sessions,
+  })
+
+  const { data: physicalSummary } = useQuery({
+    queryKey: ['progress-logs', 'summary', 'self'],
+    queryFn: () => progressApi.summary(),
   })
 
   const chartData = logs?.results
@@ -33,6 +38,41 @@ export function ProgressPage() {
   return (
     <div data-testid="progress-page" className="page-enter">
       <PageHeader title="Mi Progreso" subtitle="Seguimiento de métricas y evolución" />
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" data-testid="physical-summary-grid">
+        <div className="card p-5">
+          <p className="label-base mb-2">Peso actual</p>
+          <div className="text-2xl font-heading font-bold text-neutral-900 dark:text-white">
+            {physicalSummary?.current_weight_kg == null ? 'Sin dato' : `${physicalSummary.current_weight_kg} kg`}
+          </div>
+          {physicalSummary?.weight_change_kg != null && (
+            <p className="text-sm text-neutral-500 mt-2">
+              Cambio vs medición previa: {physicalSummary.weight_change_kg > 0 ? '+' : ''}
+              {physicalSummary.weight_change_kg} kg
+            </p>
+          )}
+        </div>
+        <div className="card p-5">
+          <div className="flex items-center justify-between mb-2">
+            <p className="label-base">Altura</p>
+            <Ruler size={16} className="text-sky-500" />
+          </div>
+          <div className="text-2xl font-heading font-bold text-neutral-900 dark:text-white">
+            {physicalSummary?.height_cm == null ? 'Sin dato' : `${physicalSummary.height_cm} cm`}
+          </div>
+        </div>
+        <div className="card p-5">
+          <div className="flex items-center justify-between mb-2">
+            <p className="label-base">IMC actual</p>
+            <Badge variant={physicalSummary?.bmi == null ? 'neutral' : 'info'}>
+              {physicalSummary?.latest_recorded_at ? formatDate(physicalSummary.latest_recorded_at) : 'Sin medición'}
+            </Badge>
+          </div>
+          <div className="text-2xl font-heading font-bold text-neutral-900 dark:text-white">
+            {physicalSummary?.bmi == null ? 'Sin dato' : physicalSummary.bmi}
+          </div>
+        </div>
+      </div>
 
       {/* Weight chart */}
       {chartData.length > 0 ? (
@@ -76,6 +116,7 @@ export function ProgressPage() {
                 <tr>
                   <th className="th-base">Fecha</th>
                   <th className="th-base">Peso (kg)</th>
+                  <th className="th-base">Altura (cm)</th>
                   <th className="th-base">Grasa (%)</th>
                   <th className="th-base">Notas</th>
                 </tr>
@@ -85,6 +126,7 @@ export function ProgressPage() {
                   <tr key={log.id} className="tr-hover" data-testid={`progress-row-${log.id}`}>
                     <td className="td-base">{formatDate(log.recorded_at)}</td>
                     <td className="td-base font-semibold">{log.weight_kg ?? '—'}</td>
+                    <td className="td-base">{log.height_cm ?? '—'}</td>
                     <td className="td-base">{log.body_fat_pct ?? '—'}</td>
                     <td className="td-base text-xs text-neutral-400">{log.notes || '—'}</td>
                   </tr>

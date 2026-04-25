@@ -6,11 +6,11 @@ class ProgressLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProgressLog
         fields = (
-            'id', 'member', 'recorded_at', 'weight_kg',
+            'id', 'member', 'recorded_at', 'weight_kg', 'height_cm',
             'body_fat_pct', 'muscle_mass_kg', 'waist_cm',
             'notes', 'source'
         )
-        read_only_fields = ('id', 'recorded_at')
+        read_only_fields = ('id',)
 
 
 class ExerciseLogSerializer(serializers.ModelSerializer):

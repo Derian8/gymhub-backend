@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils import timezone
 
 SOURCE_CHOICES = [
     ('manual', 'Manual'),
@@ -16,8 +17,9 @@ class ProgressLog(models.Model):
         on_delete=models.CASCADE,
         related_name='progress_logs'
     )
-    recorded_at = models.DateTimeField(auto_now_add=True)
+    recorded_at = models.DateTimeField(default=timezone.now)
     weight_kg = models.FloatField(null=True, blank=True, validators=[MinValueValidator(0)])
+    height_cm = models.FloatField(null=True, blank=True, validators=[MinValueValidator(0)])
     body_fat_pct = models.FloatField(null=True, blank=True, validators=[MinValueValidator(0), MaxValueValidator(100)])
     muscle_mass_kg = models.FloatField(null=True, blank=True, validators=[MinValueValidator(0)])
     waist_cm = models.FloatField(null=True, blank=True, validators=[MinValueValidator(0)])

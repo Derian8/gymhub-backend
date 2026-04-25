@@ -7,6 +7,7 @@ export const QUERY_KEYS = {
   MEMBERS_LIST: (params?: Record<string, string>) => ['members', 'list', params] as const,
   MEMBER_DETAIL: (id: number) => ['members', id] as const,
   MEMBER_DASHBOARD: (id: number) => ['members', id, 'dashboard'] as const,
+  MEMBER_PHYSICAL_SUMMARY: (id: number) => ['members', id, 'physical-summary'] as const,
   MEMBER_PRESCRIPTION: (id: number) => ['members', id, 'prescription'] as const,
   MEMBER_ACTIVE_PRESCRIPTION: (id: number) => ['members', id, 'active-prescription'] as const,
   MEMBER_PROGRAM: (id: number) => ['members', id, 'program'] as const,
@@ -31,7 +32,7 @@ export const QUERY_KEYS = {
   ATTENDANCE_LIST: (params?: Record<string, string>) => ['attendance', 'list', params] as const,
 
   // Progress
-  PROGRESS_LOGS: ['progress-logs'] as const,
+  PROGRESS_LOGS: (memberId?: number) => ['progress-logs', memberId ?? 'self'] as const,
   WORKOUT_SESSIONS: ['workout-sessions'] as const,
   WORKOUT_SESSION_DETAIL: (id: number) => ['workout-sessions', id] as const,
   PROGRESS_BY_EXERCISE: (memberId: number, exerciseId: number) => ['progress', memberId, 'exercise', exerciseId] as const,

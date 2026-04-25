@@ -7,6 +7,7 @@ from django.utils import timezone
 from attendance.models import Attendance
 from billing.models import MemberSubscription, PaymentRecord
 from progress.models import ExerciseLog, ProgressLog, WorkoutSession
+from progress.services import build_member_physical_summary
 from users.services import (
     annotate_member_metrics,
     get_member_dashboard_summary,
@@ -155,6 +156,7 @@ def build_member_charts(member):
             })
 
     current_weight = next((log.weight_kg for log in reversed(progress_logs) if log.weight_kg is not None), None)
+    physical_summary = build_member_physical_summary(member)
     weight_30d = None
     cutoff_30d = timezone.now() - timedelta(days=30)
     for log in progress_logs:
@@ -167,6 +169,8 @@ def build_member_charts(member):
         'summary': {
             'current_weight': current_weight,
             'weight_change_30d': round(current_weight - weight_30d, 1) if current_weight is not None and weight_30d is not None else None,
+            'current_height_cm': physical_summary['height_cm'],
+            'current_bmi': physical_summary['bmi'],
             'sessions_this_week': dashboard_summary['weekly_sessions_done'],
             'streak_asistencia': dashboard_summary['streak_asistencia'],
             'cumplimiento_semanal': dashboard_summary['cumplimiento_semanal'],
@@ -183,6 +187,7 @@ def build_member_charts(member):
                 'date': log.recorded_at.date().isoformat(),
                 'label': log.recorded_at.date().strftime('%d %b'),
                 'weight_kg': log.weight_kg,
+                'height_cm': log.height_cm,
                 'body_fat_pct': log.body_fat_pct,
                 'waist_cm': log.waist_cm,
                 'muscle_mass_kg': log.muscle_mass_kg,

@@ -1,19 +1,26 @@
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Phone, Calendar, Mail, Dumbbell, CreditCard, CheckSquare, Apple, AlertTriangle, Activity } from 'lucide-react'
-import { useMemberActivePrescriptionQuery, useMemberDetailQuery, useActivateMemberMutation, useAssignTrainerMutation, useMemberDashboardQuery } from '../hooks/useMembers'
+import { ArrowLeft, Phone, Calendar, Mail, Dumbbell, CreditCard, CheckSquare, Apple, AlertTriangle, Activity, Ruler, Scale, PencilLine } from 'lucide-react'
+import { useMemberActivePrescriptionQuery, useMemberDetailQuery, useActivateMemberMutation, useAssignTrainerMutation, useMemberDashboardQuery, useMemberPhysicalSummaryQuery } from '../hooks/useMembers'
 import { useMembershipPlansQuery } from '@/modules/billing/hooks/useBilling'
-import { Badge, PageHeader, Avatar } from '@/shared/components/UI'
+import { Badge, PageHeader, Avatar, EmptyState } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
-import { formatDate, formatDateTime, RISK_LEVEL_BADGE, RISK_LEVEL_LABELS } from '@/shared/lib/utils'
+import { extractApiError, formatDate, formatDateTime, RISK_LEVEL_BADGE, RISK_LEVEL_LABELS } from '@/shared/lib/utils'
 import { useEffect, useMemo, useState } from 'react'
 import { useAuthStore } from '@/shared/store/authStore'
 import { descripcionPublicacionPrescripcion, leerPublicacionPrescripcion } from '@/shared/lib/prescriptionPublication'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { QUERY_KEYS } from '@/shared/constants/queryKeys'
+import { progressApi } from '@/modules/progress/api/progressApi'
+import { toast } from 'sonner'
+import type { ProgressLog } from '@/shared/types'
 
 export function MemberDetailPage() {
   const { id } = useParams<{ id: string }>()
   const memberId = parseInt(id || '0')
+  const queryClient = useQueryClient()
   const { data: member, isLoading } = useMemberDetailQuery(memberId)
   const { data: dashboardSummary } = useMemberDashboardQuery(memberId)
+  const { data: physicalSummary } = useMemberPhysicalSummaryQuery(memberId)
   const { data: activePrescription } = useMemberActivePrescriptionQuery(memberId)
   const { data: plans } = useMembershipPlansQuery()
   const { mutate: activate, isPending: isActivating } = useActivateMemberMutation()
@@ -21,7 +28,45 @@ export function MemberDetailPage() {
   const { user } = useAuthStore()
   const [selectedPlanId, setSelectedPlanId] = useState<number | undefined>()
   const [agreedPrice, setAgreedPrice] = useState<number | undefined>()
+  const [isMeasurementFormOpen, setIsMeasurementFormOpen] = useState(false)
+  const [editingMeasurementId, setEditingMeasurementId] = useState<number | null>(null)
+  const [measurementForm, setMeasurementForm] = useState({
+    recorded_at: '',
+    weight_kg: '',
+    height_cm: '',
+    body_fat_pct: '',
+    muscle_mass_kg: '',
+    waist_cm: '',
+    notes: '',
+  })
   const lastPublication = useMemo(() => leerPublicacionPrescripcion(memberId), [memberId])
+  const { data: progressLogs, isLoading: isLoadingProgressLogs } = useQuery({
+    queryKey: QUERY_KEYS.PROGRESS_LOGS(memberId),
+    queryFn: () => progressApi.logs(memberId),
+    enabled: !!memberId && !!user && (user.role === 'trainer' || user.is_staff),
+  })
+
+  const upsertMeasurement = useMutation({
+    mutationFn: async (payload: Partial<ProgressLog>) => {
+      if (editingMeasurementId) {
+        return progressApi.updateLog(editingMeasurementId, payload)
+      }
+      return progressApi.createLog(payload)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROGRESS_LOGS(memberId) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_PHYSICAL_SUMMARY(memberId) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CHART_OVERVIEW })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_DETAIL(memberId) })
+      toast.success(editingMeasurementId ? 'Medición actualizada' : 'Medición registrada')
+      setIsMeasurementFormOpen(false)
+      setEditingMeasurementId(null)
+      resetMeasurementForm()
+    },
+    onError: (error) => {
+      toast.error(extractApiError(error))
+    },
+  })
 
   useEffect(() => {
     if (!member || !plans?.results.length || selectedPlanId) {
@@ -34,6 +79,24 @@ export function MemberDetailPage() {
     setSelectedPlanId(defaultPlan.id)
     setAgreedPrice(Number(member.precio_suscripcion_actual ?? defaultPlan.price_monthly))
   }, [member, plans, selectedPlanId])
+
+  function resetMeasurementForm() {
+    setMeasurementForm({
+      recorded_at: toDatetimeLocalInput(new Date().toISOString()),
+      weight_kg: '',
+      height_cm: '',
+      body_fat_pct: '',
+      muscle_mass_kg: '',
+      waist_cm: '',
+      notes: '',
+    })
+  }
+
+  useEffect(() => {
+    if (!isMeasurementFormOpen && !editingMeasurementId) {
+      resetMeasurementForm()
+    }
+  }, [isMeasurementFormOpen, editingMeasurementId])
 
   if (isLoading) {
     return (
@@ -59,6 +122,7 @@ export function MemberDetailPage() {
   }
 
   const canManagePrescription = user?.is_staff || (member.trainer_asignado !== null && member.trainer_asignado === user?.trainerprofile_id)
+  const canManagePhysical = user?.is_staff || (member.trainer_asignado !== null && member.trainer_asignado === user?.trainerprofile_id)
   const prescriptionStatus = !member.trainer_asignado
     ? 'Sin asignar'
     : activePrescription?.estado_prescripcion.esta_lista_para_member
@@ -276,6 +340,240 @@ export function MemberDetailPage() {
             </div>
           </div>
 
+          <div className="card p-6" data-testid="member-physical-panel">
+            <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+              <div>
+                <p className="label-base">Evaluación física</p>
+                <h3 className="font-heading font-bold text-lg text-neutral-900 dark:text-white">
+                  Lectura corporal del cliente
+                </h3>
+                <p className="text-sm text-neutral-500 mt-1">
+                  Peso, altura y métricas base para seguimiento del trainer.
+                </p>
+              </div>
+              {canManagePhysical ? (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  data-testid="open-measurement-form-btn"
+                  onClick={() => {
+                    setEditingMeasurementId(null)
+                    resetMeasurementForm()
+                    setIsMeasurementFormOpen((current) => !current)
+                  }}
+                >
+                  {isMeasurementFormOpen ? 'Cerrar formulario' : 'Registrar medición'}
+                </button>
+              ) : null}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
+              <PhysicalMetricTile icon={<Scale size={18} />} label="Peso actual" value={formatMetric(physicalSummary?.current_weight_kg, 'kg')} />
+              <PhysicalMetricTile icon={<Ruler size={18} />} label="Altura" value={formatMetric(physicalSummary?.height_cm, 'cm')} />
+              <PhysicalMetricTile icon={<Activity size={18} />} label="IMC" value={physicalSummary?.bmi == null ? 'Sin dato' : String(physicalSummary.bmi)} />
+              <PhysicalMetricTile
+                icon={<CheckSquare size={18} />}
+                label="Última medición"
+                value={physicalSummary?.latest_recorded_at ? formatDate(physicalSummary.latest_recorded_at) : 'Sin registro'}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+              <InsightTile
+                icon={<Activity size={18} />}
+                label="Grasa corporal"
+                value={formatMetric(physicalSummary?.body_fat_pct, '%')}
+              />
+              <InsightTile
+                icon={<Dumbbell size={18} />}
+                label="Masa muscular"
+                value={formatMetric(physicalSummary?.muscle_mass_kg, 'kg')}
+              />
+              <InsightTile
+                icon={<Ruler size={18} />}
+                label="Cintura"
+                value={formatMetric(physicalSummary?.waist_cm, 'cm')}
+              />
+            </div>
+
+            {physicalSummary?.weight_change_kg != null && (
+              <p className="text-sm text-neutral-500 mb-4" data-testid="member-physical-weight-change">
+                Cambio respecto a la medición previa: {physicalSummary.weight_change_kg > 0 ? '+' : ''}
+                {physicalSummary.weight_change_kg} kg
+              </p>
+            )}
+
+            {canManagePhysical && isMeasurementFormOpen ? (
+              <form
+                className="rounded-sm border border-neutral-200 dark:border-neutral-800 p-4 space-y-4 mb-5"
+                data-testid="measurement-form"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  upsertMeasurement.mutate({
+                    member: member.id,
+                    recorded_at: measurementForm.recorded_at ? new Date(measurementForm.recorded_at).toISOString() : undefined,
+                    weight_kg: parseOptionalNumber(measurementForm.weight_kg),
+                    height_cm: parseOptionalNumber(measurementForm.height_cm),
+                    body_fat_pct: parseOptionalNumber(measurementForm.body_fat_pct),
+                    muscle_mass_kg: parseOptionalNumber(measurementForm.muscle_mass_kg),
+                    waist_cm: parseOptionalNumber(measurementForm.waist_cm),
+                    notes: measurementForm.notes.trim(),
+                    source: 'manual',
+                  })
+                }}
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                  <MeasurementField label="Fecha y hora" testId="measurement-recorded-at-input">
+                    <input
+                      type="datetime-local"
+                      className="input"
+                      value={measurementForm.recorded_at}
+                      onChange={(event) => setMeasurementForm((current) => ({ ...current, recorded_at: event.target.value }))}
+                      required
+                    />
+                  </MeasurementField>
+                  <MeasurementField label="Peso (kg)" testId="measurement-weight-input">
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.1"
+                      className="input"
+                      value={measurementForm.weight_kg}
+                      onChange={(event) => setMeasurementForm((current) => ({ ...current, weight_kg: event.target.value }))}
+                    />
+                  </MeasurementField>
+                  <MeasurementField label="Altura (cm)" testId="measurement-height-input">
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.1"
+                      className="input"
+                      value={measurementForm.height_cm}
+                      onChange={(event) => setMeasurementForm((current) => ({ ...current, height_cm: event.target.value }))}
+                    />
+                  </MeasurementField>
+                  <MeasurementField label="Grasa corporal (%)">
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step="0.1"
+                      className="input"
+                      value={measurementForm.body_fat_pct}
+                      onChange={(event) => setMeasurementForm((current) => ({ ...current, body_fat_pct: event.target.value }))}
+                    />
+                  </MeasurementField>
+                  <MeasurementField label="Masa muscular (kg)">
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.1"
+                      className="input"
+                      value={measurementForm.muscle_mass_kg}
+                      onChange={(event) => setMeasurementForm((current) => ({ ...current, muscle_mass_kg: event.target.value }))}
+                    />
+                  </MeasurementField>
+                  <MeasurementField label="Cintura (cm)">
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.1"
+                      className="input"
+                      value={measurementForm.waist_cm}
+                      onChange={(event) => setMeasurementForm((current) => ({ ...current, waist_cm: event.target.value }))}
+                    />
+                  </MeasurementField>
+                </div>
+                <MeasurementField label="Notas">
+                  <textarea
+                    className="input min-h-24"
+                    value={measurementForm.notes}
+                    onChange={(event) => setMeasurementForm((current) => ({ ...current, notes: event.target.value }))}
+                    placeholder="Observaciones de la medición"
+                  />
+                </MeasurementField>
+                <div className="flex flex-wrap gap-2">
+                  <button type="submit" className="btn-primary" disabled={upsertMeasurement.isPending}>
+                    {upsertMeasurement.isPending ? 'Guardando...' : editingMeasurementId ? 'Guardar cambios' : 'Registrar medición'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => {
+                      setIsMeasurementFormOpen(false)
+                      setEditingMeasurementId(null)
+                      resetMeasurementForm()
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            ) : null}
+
+            {isLoadingProgressLogs ? (
+              <CardSkeleton lines={4} />
+            ) : !progressLogs?.results.length ? (
+              <EmptyState
+                icon={<Scale size={28} />}
+                title="Sin mediciones físicas"
+                description="Cuando registres la primera evaluación del cliente, aparecerá aquí."
+              />
+            ) : (
+              <div className="table-container">
+                <table className="table-base">
+                  <thead>
+                    <tr>
+                      <th className="th-base">Fecha</th>
+                      <th className="th-base">Peso</th>
+                      <th className="th-base">Altura</th>
+                      <th className="th-base">Grasa</th>
+                      <th className="th-base">Cintura</th>
+                      <th className="th-base">Notas</th>
+                      {canManagePhysical && <th className="th-base">Acción</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {progressLogs.results.map((log) => (
+                      <tr key={log.id} className="tr-hover" data-testid={`measurement-row-${log.id}`}>
+                        <td className="td-base">{formatDate(log.recorded_at)}</td>
+                        <td className="td-base">{formatMetric(log.weight_kg, 'kg')}</td>
+                        <td className="td-base">{formatMetric(log.height_cm, 'cm')}</td>
+                        <td className="td-base">{formatMetric(log.body_fat_pct, '%')}</td>
+                        <td className="td-base">{formatMetric(log.waist_cm, 'cm')}</td>
+                        <td className="td-base text-xs text-neutral-400">{log.notes || '—'}</td>
+                        {canManagePhysical && (
+                          <td className="td-base">
+                            <button
+                              type="button"
+                              className="btn-secondary"
+                              data-testid={`edit-measurement-btn-${log.id}`}
+                              onClick={() => {
+                                setEditingMeasurementId(log.id)
+                                setMeasurementForm({
+                                  recorded_at: toDatetimeLocalInput(log.recorded_at),
+                                  weight_kg: stringifyMetric(log.weight_kg),
+                                  height_cm: stringifyMetric(log.height_cm),
+                                  body_fat_pct: stringifyMetric(log.body_fat_pct),
+                                  muscle_mass_kg: stringifyMetric(log.muscle_mass_kg),
+                                  waist_cm: stringifyMetric(log.waist_cm),
+                                  notes: log.notes,
+                                })
+                                setIsMeasurementFormOpen(true)
+                              }}
+                            >
+                              <PencilLine size={14} />
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
           {/* Activation panel */}
           {!member.is_active && (
             <div className="card p-6 border-yellow-500/30" data-testid="activation-panel">
@@ -391,6 +689,35 @@ function InsightTile({ icon, label, value }: { icon: React.ReactNode; label: str
   )
 }
 
+function PhysicalMetricTile({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="rounded-sm border border-neutral-200 dark:border-neutral-800 p-3">
+      <div className="flex items-center gap-2 text-neutral-500 mb-1">
+        {icon}
+        <span className="text-xs uppercase tracking-wide">{label}</span>
+      </div>
+      <p className="text-sm font-semibold text-neutral-900 dark:text-white">{value}</p>
+    </div>
+  )
+}
+
+function MeasurementField({
+  label,
+  children,
+  testId,
+}: {
+  label: string
+  children: React.ReactNode
+  testId?: string
+}) {
+  return (
+    <label className="space-y-2 block" data-testid={testId}>
+      <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">{label}</span>
+      {children}
+    </label>
+  )
+}
+
 function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="flex items-start gap-2">
@@ -416,4 +743,26 @@ function QuickLink({ icon, label, to, testId }: { icon: React.ReactNode; label: 
       </span>
     </Link>
   )
+}
+
+function parseOptionalNumber(value: string) {
+  return value === '' ? null : Number(value)
+}
+
+function stringifyMetric(value: number | null) {
+  return value == null ? '' : String(value)
+}
+
+function formatMetric(value: number | null | undefined, unit: string) {
+  return value == null ? 'Sin dato' : `${value} ${unit}`
+}
+
+function toDatetimeLocalInput(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+  const offset = date.getTimezoneOffset()
+  const local = new Date(date.getTime() - offset * 60_000)
+  return local.toISOString().slice(0, 16)
 }

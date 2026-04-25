@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { membersApi } from '../api/membersApi'
 import { QUERY_KEYS } from '@/shared/constants/queryKeys'
 import { extractApiError } from '@/shared/lib/utils'
+import { progressApi } from '@/modules/progress/api/progressApi'
 
 interface MembersParams {
   search?: string
@@ -60,6 +61,14 @@ export function useActivateMemberMutation() {
     onError: (error) => {
       toast.error(extractApiError(error))
     },
+  })
+}
+
+export function useMemberPhysicalSummaryQuery(id: number) {
+  return useQuery({
+    queryKey: QUERY_KEYS.MEMBER_PHYSICAL_SUMMARY(id),
+    queryFn: () => progressApi.memberSummary(id),
+    enabled: !!id,
   })
 }
 
