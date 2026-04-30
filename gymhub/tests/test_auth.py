@@ -227,6 +227,17 @@ class TestTokenRefresh:
 
 @pytest.mark.django_db
 class TestMe:
+    def test_me_accepts_access_token_cookie(self, api_client, member_user):
+        from rest_framework_simplejwt.tokens import RefreshToken
+
+        refresh = RefreshToken.for_user(member_user)
+        api_client.cookies[settings.ACCESS_TOKEN_COOKIE_NAME] = str(refresh.access_token)
+
+        resp = api_client.get('/auth/me/')
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert resp.data['email'] == member_user.email
+
     def test_me_returns_authenticated_user(self, member_client, member_user):
         resp = member_client.get('/auth/me/')
 

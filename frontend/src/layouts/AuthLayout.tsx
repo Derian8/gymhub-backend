@@ -2,10 +2,11 @@ import { Outlet } from 'react-router-dom'
 import { useAuthStore } from '@/shared/store/authStore'
 import { useEffect } from 'react'
 import { BrandMark, BrandWordmark, SymbolFrame } from '@/shared/components/Brand'
-import { BackendStatusBanner } from '@/shared/components/BackendStatusBanner'
+import { useBackendStatusStore } from '@/shared/store/backendStatusStore'
 
 export function AuthLayout() {
   const { theme } = useAuthStore()
+  const clearBackendIssue = useBackendStatusStore((s) => s.clearIssue)
 
   useEffect(() => {
     const root = document.documentElement
@@ -15,6 +16,10 @@ export function AuthLayout() {
       root.classList.remove('dark')
     }
   }, [theme])
+
+  useEffect(() => {
+    clearBackendIssue()
+  }, [clearBackendIssue])
 
   return (
     <div className="min-h-screen flex bg-white dark:bg-neutral-950">
@@ -57,7 +62,6 @@ export function AuthLayout() {
       {/* Right: form */}
       <div className="w-full lg:w-[480px] flex flex-col justify-center px-8 py-12 bg-white dark:bg-neutral-950">
         <div className="max-w-sm mx-auto w-full">
-          <BackendStatusBanner />
           <div className="mb-8 flex items-center gap-3">
             <BrandMark />
             <div>

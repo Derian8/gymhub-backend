@@ -33,6 +33,16 @@ DAY_LABEL_CHOICES = [
     ('D', 'Day D'),
 ]
 
+WEEKDAY_CHOICES = [
+    ('mon', 'Lunes'),
+    ('tue', 'Martes'),
+    ('wed', 'Miercoles'),
+    ('thu', 'Jueves'),
+    ('fri', 'Viernes'),
+    ('sat', 'Sabado'),
+    ('sun', 'Domingo'),
+]
+
 EXERCISE_TYPE_CHOICES = [
     ('strength', 'Strength'),
     ('timed', 'Timed'),
@@ -76,13 +86,28 @@ class WorkoutDay(models.Model):
     )
     name = models.CharField(max_length=200)
     day_label = models.CharField(max_length=1, choices=DAY_LABEL_CHOICES)
+    day_of_week = models.CharField(max_length=3, choices=WEEKDAY_CHOICES, default='mon')
     order = models.PositiveIntegerField(default=0)
 
     class Meta:
         ordering = ['order']
 
     def __str__(self):
-        return f"Día {self.day_label}: {self.name}"
+        return f"Día {self.day_label} ({self.day_of_week}): {self.name}"
+
+
+class GymMachine(models.Model):
+    name = models.CharField(max_length=200, unique=True)
+    category = models.CharField(max_length=120, blank=True)
+    notes = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name', 'id']
+
+    def __str__(self):
+        return self.name
 
 
 class Exercise(models.Model):
@@ -115,6 +140,12 @@ class Exercise(models.Model):
     target_minutes = models.PositiveIntegerField(
         null=True, blank=True,
         validators=[MinValueValidator(1), MaxValueValidator(600)]
+    )
+    machine = models.ForeignKey(
+        GymMachine,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='exercises',
     )
     weight_suggestion_kg = models.FloatField(
         null=True, blank=True,

@@ -44,6 +44,13 @@ export function useWorkoutDaysByPlanQuery(planId: number) {
   })
 }
 
+export function useGymMachinesQuery() {
+  return useQuery({
+    queryKey: QUERY_KEYS.GYM_MACHINES,
+    queryFn: plansApi.gymMachines,
+  })
+}
+
 export function useTrainingTemplatesQuery() {
   return useQuery({
     queryKey: QUERY_KEYS.PLAN_TEMPLATES,
@@ -236,6 +243,46 @@ export function useDeleteExerciseMutation(planId?: number, memberId?: number) {
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TRAINER_OVERVIEW })
       }
       toast.success('Ejercicio eliminado de la rutina')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useCreateGymMachineMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: plansApi.createGymMachine,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GYM_MACHINES })
+      toast.success('Máquina agregada al catálogo del gym')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useUpdateGymMachineMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: Record<string, unknown> }) =>
+      plansApi.updateGymMachine(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GYM_MACHINES })
+      toast.success('Máquina actualizada')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useDeleteGymMachineMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id }: { id: number }) => plansApi.deleteGymMachine(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GYM_MACHINES })
+      toast.success('Máquina eliminada')
     },
     onError: (error) => toast.error(extractApiError(error)),
   })

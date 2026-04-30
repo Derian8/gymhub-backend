@@ -14,6 +14,9 @@ const updateTrainingTemplateMutate = vi.fn()
 const deleteTrainingTemplateMutate = vi.fn()
 const refreshTrainingTemplateMutate = vi.fn()
 const deleteNutritionTemplateMutate = vi.fn()
+const createGymMachineMutate = vi.fn()
+const updateGymMachineMutate = vi.fn()
+const deleteGymMachineMutate = vi.fn()
 
 const memberData = {
   id: 15,
@@ -87,6 +90,7 @@ const workoutDaysResponse = {
       plan: 101,
       name: 'Pierna y core',
       day_label: 'A',
+      day_of_week: 'mon',
       order: 0,
       exercises: [
         {
@@ -98,6 +102,8 @@ const workoutDaysResponse = {
           sets: 4,
           reps_range: '8-10',
           target_minutes: null,
+          machine: 1,
+          machine_detail: { id: 1, name: 'Prensa 45', category: 'Pierna', notes: '', is_active: true },
           weight_suggestion_kg: 60,
           rest_seconds: 90,
           technique_notes: '',
@@ -112,6 +118,7 @@ const workoutDaysResponse = {
           sets: 3,
           reps_range: '10-12',
           target_minutes: null,
+          machine: null,
           weight_suggestion_kg: 45,
           rest_seconds: 75,
           technique_notes: 'Controla la bajada',
@@ -124,9 +131,17 @@ const workoutDaysResponse = {
       plan: 101,
       name: 'Empuje superior',
       day_label: 'B',
+      day_of_week: 'wed',
       order: 1,
       exercises: [],
     },
+  ],
+}
+
+const gymMachinesResponse = {
+  results: [
+    { id: 1, name: 'Prensa 45', category: 'Pierna', notes: '', is_active: true },
+    { id: 2, name: 'Polea alta', category: 'Espalda', notes: '', is_active: true },
   ],
 }
 
@@ -288,6 +303,9 @@ vi.mock('@/modules/plans/hooks/usePlans', () => ({
     data: workoutDaysResponse,
     isLoading: false,
   }),
+  useGymMachinesQuery: () => ({
+    data: gymMachinesResponse,
+  }),
   useTrainingTemplatesQuery: () => ({
     data: trainingTemplatesResponse,
   }),
@@ -300,6 +318,9 @@ vi.mock('@/modules/plans/hooks/usePlans', () => ({
   useCreateExerciseMutation: () => ({ mutate: createExerciseMutate, isPending: false, isSuccess: false }),
   useUpdateExerciseMutation: () => ({ mutate: updateExerciseMutate, isPending: false, isSuccess: false }),
   useDeleteExerciseMutation: () => ({ mutate: deleteExerciseMutate, isPending: false, isSuccess: false }),
+  useCreateGymMachineMutation: () => ({ mutate: createGymMachineMutate, isPending: false, isSuccess: false }),
+  useUpdateGymMachineMutation: () => ({ mutate: updateGymMachineMutate, isPending: false, isSuccess: false }),
+  useDeleteGymMachineMutation: () => ({ mutate: deleteGymMachineMutate, isPending: false, isSuccess: false }),
   useSavePlanAsTemplateMutation: () => ({ mutate: vi.fn(), isPending: false }),
   useApplyTrainingTemplateMutation: () => ({ mutate: vi.fn(), isPending: false, isSuccess: false }),
   useUpdateTrainingTemplateMutation: () => ({ mutate: updateTrainingTemplateMutate, isPending: false, isSuccess: false }),
@@ -341,6 +362,9 @@ describe('TrainerProgramPage', () => {
     deleteTrainingTemplateMutate.mockReset()
     refreshTrainingTemplateMutate.mockReset()
     deleteNutritionTemplateMutate.mockReset()
+    createGymMachineMutate.mockReset()
+    updateGymMachineMutate.mockReset()
+    deleteGymMachineMutate.mockReset()
     localStorage.clear()
     localStorage.setItem(
       'gymhub:prescription-publication:15',
@@ -376,6 +400,7 @@ describe('TrainerProgramPage', () => {
     expect(getByTestId('publication-banner')).toHaveTextContent('Cambios del plan publicados para este member.')
     expect(getByTestId('prescription-summary-card')).toBeInTheDocument()
     expect(getByTestId('prescription-status-card')).toBeInTheDocument()
+    expect(getByTestId('machine-catalog-card')).toBeInTheDocument()
     expect(getByText('Asignacion para Maria Perez')).toBeInTheDocument()
     expect(getByText('Resumen prescriptivo')).toBeInTheDocument()
     expect(getByTestId('training-template-preview')).toBeInTheDocument()
@@ -386,6 +411,7 @@ describe('TrainerProgramPage', () => {
     expect(getByText('Sin progreso reciente')).toBeInTheDocument()
     expect(getByDisplayValue('Plan recomposicion')).toBeInTheDocument()
     expect(getByText(/Sentadilla · 4x8-10 · descanso 90s/)).toBeInTheDocument()
+    expect(getAllByText('Prensa 45').length).toBeGreaterThan(0)
     expect(getByText(/Peso muerto rumano · 3x10-12 · descanso 75s/)).toBeInTheDocument()
     expect(getByDisplayValue('140g diarios')).toBeInTheDocument()
     expect(getByTestId('guideline-link-701')).toBeInTheDocument()
@@ -601,6 +627,7 @@ describe('TrainerProgramPage', () => {
       sets: null,
       reps_range: '',
       target_minutes: 20,
+      machine: null,
       weight_suggestion_kg: null,
       rest_seconds: 60,
       technique_notes: '',

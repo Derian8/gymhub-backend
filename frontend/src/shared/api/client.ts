@@ -1,10 +1,10 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { toast } from 'sonner'
-import { classifyBackendIssue } from './backendStatus'
+import { classifyBackendIssue, diagnoseBackendIssue } from './backendStatus'
 import { useBackendStatusStore } from '@/shared/store/backendStatusStore'
 
 export const BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
-const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 15000)
+const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 60000)
 const TOKEN_REFRESH_PATH = '/auth/token/refresh/'
 const LOGIN_PATH = '/auth/login/'
 const LOGOUT_PATH = '/auth/logout/'
@@ -86,7 +86,7 @@ apiClient.interceptors.response.use(
           useBackendStatusStore.getState().clearIssue()
           window.dispatchEvent(new CustomEvent('auth:logout'))
         } else {
-          const issue = classifyBackendIssue(refreshError as AxiosError, BASE_URL)
+          const issue = await diagnoseBackendIssue(refreshError as AxiosError, BASE_URL)
           if (issue) {
             useBackendStatusStore.getState().setIssue(issue)
           }
@@ -97,7 +97,7 @@ apiClient.interceptors.response.use(
       }
     }
 
-    const issue = classifyBackendIssue(error, BASE_URL)
+    const issue = await diagnoseBackendIssue(error, BASE_URL)
     if (issue) {
       useBackendStatusStore.getState().setIssue(issue)
     } else if (error.response) {

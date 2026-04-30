@@ -26,6 +26,16 @@ RECURRENCE_MONTH_DIVISOR = {
     'annual': 12,
 }
 
+WEEKDAY_ORDER = {
+    'mon': 0,
+    'tue': 1,
+    'wed': 2,
+    'thu': 3,
+    'fri': 4,
+    'sat': 5,
+    'sun': 6,
+}
+
 
 def annotate_member_metrics(queryset):
     active_plans = TrainingPlan.objects.filter(
@@ -99,15 +109,10 @@ def annotate_member_metrics(queryset):
 
 
 def get_today_workout_day(plan):
-    workout_days = list(plan.workout_days.order_by('order'))
-    if not workout_days:
+    if not plan:
         return None
-
-    days_elapsed = (date.today() - plan.start_date).days
-    if days_elapsed < 0:
-        return workout_days[0]
-
-    return workout_days[days_elapsed % len(workout_days)]
+    weekday = date.today().strftime('%a').lower()[:3]
+    return plan.workout_days.filter(day_of_week=weekday).order_by('order', 'id').first()
 
 
 def get_active_plan(member):
@@ -304,13 +309,9 @@ def get_member_risk_snapshot(member):
         else:
             days_overdue = abs(delta)
 
-    if getattr(member, 'active_plan_id_cached', None) is not None:
-        active_plan = True
-        today_has_workout = getattr(member, 'active_plan_workout_days_count_cached', 0) > 0
-    else:
-        active_plan = get_active_plan(member)
-        workout_day = get_today_workout_day(active_plan) if active_plan else None
-        today_has_workout = workout_day is not None
+    active_plan = get_active_plan(member)
+    workout_day = get_today_workout_day(active_plan) if active_plan else None
+    today_has_workout = workout_day is not None
 
     score = 0
     reasons = []
@@ -473,7 +474,10 @@ def get_active_prescription(member):
     except ObjectDoesNotExist:
         nutrition_profile = None
 
-    workout_days = list(active_plan.workout_days.order_by('order'))
+    workout_days = sorted(
+        active_plan.workout_days.all(),
+        key=lambda day: (WEEKDAY_ORDER.get(day.day_of_week, 99), day.order, day.id),
+    )
     linked_guides = list(active_plan.nutrition_links.order_by('priority_order', 'id'))
     today_workout = get_today_workout_day(active_plan)
     trainer = active_plan.trainer.user

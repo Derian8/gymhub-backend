@@ -14,18 +14,22 @@ import {
 import { formatDateTime } from '@/shared/lib/utils'
 import { useMemberActivePrescriptionQuery, useMemberDetailQuery, useMemberPrescriptionQuery } from '../hooks/useMembers'
 import {
+  useCreateGymMachineMutation,
   useApplyTrainingTemplateMutation,
   useCreateExerciseMutation,
   useCreatePlanMutation,
   useCreateWorkoutDayMutation,
+  useDeleteGymMachineMutation,
   useDeleteTrainingTemplateMutation,
   useDeleteExerciseMutation,
   useDeletePlanMutation,
   useDeleteWorkoutDayMutation,
+  useGymMachinesQuery,
   usePlansQuery,
   useRefreshTrainingTemplateMutation,
   useSavePlanAsTemplateMutation,
   useTrainingTemplatesQuery,
+  useUpdateGymMachineMutation,
   useUpdateExerciseMutation,
   useUpdateTrainingTemplateMutation,
   useUpdateWorkoutDayMutation,
@@ -45,10 +49,12 @@ import {
   useUpdateNutritionProfileMutation,
 } from '@/modules/nutrition/hooks/useNutrition'
 import type {
+  DayOfWeek,
   DayLabel,
   ExercisePayload,
   ExerciseType,
   GoalType,
+  GymMachine,
   MuscleGroup,
   NutritionProfilePayload,
   TrainingPlanPayload,
@@ -79,6 +85,15 @@ const riskLabels: Record<'low' | 'medium' | 'high', string> = {
 }
 
 const dayOptions: DayLabel[] = ['A', 'B', 'C', 'D']
+const dayOfWeekOptions: Array<{ value: DayOfWeek; label: string }> = [
+  { value: 'mon', label: 'Lunes' },
+  { value: 'tue', label: 'Martes' },
+  { value: 'wed', label: 'Miércoles' },
+  { value: 'thu', label: 'Jueves' },
+  { value: 'fri', label: 'Viernes' },
+  { value: 'sat', label: 'Sábado' },
+  { value: 'sun', label: 'Domingo' },
+]
 const muscleOptions: Array<{ value: MuscleGroup; label: string }> = [
   { value: 'chest', label: 'Pecho' },
   { value: 'back', label: 'Espalda' },
@@ -181,6 +196,7 @@ type DeleteTarget =
   | { type: 'plan'; id: number; name: string; planActivo: boolean }
   | { type: 'day'; id: number; name: string }
   | { type: 'exercise'; id: number; name: string; workoutDayId: number }
+  | { type: 'machine'; id: number; name: string }
   | { type: 'training_template'; id: number; name: string }
   | { type: 'nutrition_template'; id: number; name: string }
 
@@ -202,6 +218,7 @@ export function TrainerProgramPage() {
   )
 
   const { data: daysData, isLoading: daysLoading } = useWorkoutDaysByPlanQuery(activePlan?.id ?? 0)
+  const { data: gymMachinesData } = useGymMachinesQuery()
   const { data: nutritionData } = useNutritionProfilesQuery({ member: String(memberId) })
   const { data: guidelinesData } = useNutritionGuidelinesQuery()
   const { data: planLinksData } = usePlanNutritionLinksQuery(activePlan ? { plan: String(activePlan.id) } : undefined)
@@ -255,12 +272,14 @@ export function TrainerProgramPage() {
   const [dayForm, setDayForm] = useState({
     name: '',
     day_label: 'A' as DayLabel,
+    day_of_week: 'mon' as DayOfWeek,
     order: 0,
   })
   const [editingDayId, setEditingDayId] = useState<number | null>(null)
   const [editingDayForm, setEditingDayForm] = useState({
     name: '',
     day_label: 'A' as DayLabel,
+    day_of_week: 'mon' as DayOfWeek,
     order: 0,
   })
   const [exerciseForm, setExerciseForm] = useState<ExercisePayload>({
@@ -271,6 +290,7 @@ export function TrainerProgramPage() {
     sets: 3,
     reps_range: '8-12',
     target_minutes: null,
+    machine: null,
     weight_suggestion_kg: null,
     rest_seconds: 60,
     technique_notes: '',
@@ -285,10 +305,24 @@ export function TrainerProgramPage() {
     sets: 3,
     reps_range: '8-12',
     target_minutes: null,
+    machine: null,
     weight_suggestion_kg: null,
     rest_seconds: 60,
     technique_notes: '',
     order: 0,
+  })
+  const [machineForm, setMachineForm] = useState({
+    name: '',
+    category: '',
+    notes: '',
+    is_active: true,
+  })
+  const [editingMachineId, setEditingMachineId] = useState<number | null>(null)
+  const [editingMachineForm, setEditingMachineForm] = useState({
+    name: '',
+    category: '',
+    notes: '',
+    is_active: true,
   })
   const [nutritionForm, setNutritionForm] = useState<NutritionProfilePayload>({
     training_plan: 0,
@@ -317,6 +351,9 @@ export function TrainerProgramPage() {
   const createExercise = useCreateExerciseMutation(memberId)
   const updateExercise = useUpdateExerciseMutation(activePlan?.id, memberId)
   const deleteExercise = useDeleteExerciseMutation(activePlan?.id, memberId)
+  const createGymMachine = useCreateGymMachineMutation()
+  const updateGymMachine = useUpdateGymMachineMutation()
+  const deleteGymMachine = useDeleteGymMachineMutation()
   const savePlanAsTemplate = useSavePlanAsTemplateMutation(memberId)
   const applyTrainingTemplate = useApplyTrainingTemplateMutation(memberId)
   const updateTrainingTemplate = useUpdateTrainingTemplateMutation()
@@ -347,6 +384,7 @@ export function TrainerProgramPage() {
       return matchesGoal && matchesRisk
     })
   }, [nutritionTemplates, nutritionTemplateGoalFilter, nutritionTemplateRiskFilter])
+  const gymMachines = gymMachinesData?.results ?? []
 
   const selectedTrainingTemplate = useMemo(
     () => filteredTrainingTemplates.find((template) => template.id === selectedTrainingTemplateId) ?? filteredTrainingTemplates[0] ?? null,
@@ -566,6 +604,7 @@ export function TrainerProgramPage() {
     setDayForm({
       name: '',
       day_label: 'A',
+      day_of_week: 'mon',
       order: daysData?.results.length ?? 0,
     })
   }
@@ -588,13 +627,14 @@ export function TrainerProgramPage() {
     }))
   }
 
-  const startDayEdit = (day: { id: number; name: string; day_label: DayLabel; order: number }) => {
+  const startDayEdit = (day: { id: number; name: string; day_label: DayLabel; day_of_week: DayOfWeek; order: number }) => {
     setSelectedWorkoutDayId(day.id)
     setEditingExerciseId(null)
     setEditingDayId(day.id)
     setEditingDayForm({
       name: day.name,
       day_label: day.day_label,
+      day_of_week: day.day_of_week,
       order: day.order,
     })
   }
@@ -628,6 +668,7 @@ export function TrainerProgramPage() {
       reps_range: exercise.reps_range,
       target_minutes: exercise.target_minutes ?? null,
       weight_suggestion_kg: exercise.weight_suggestion_kg ?? null,
+      machine: exercise.machine ?? null,
       rest_seconds: exercise.rest_seconds,
       technique_notes: exercise.technique_notes ?? '',
       order: exercise.order,
@@ -663,12 +704,12 @@ export function TrainerProgramPage() {
 
     updateWorkoutDay.mutate({
       id: currentDay.id,
-      payload: { plan: activePlan.id, name: currentDay.name, day_label: currentDay.day_label, order: targetDay.order },
+      payload: { plan: activePlan.id, name: currentDay.name, day_label: currentDay.day_label, day_of_week: currentDay.day_of_week, order: targetDay.order },
       silent: true,
     })
     updateWorkoutDay.mutate({
       id: targetDay.id,
-      payload: { plan: activePlan.id, name: targetDay.name, day_label: targetDay.day_label, order: currentDay.order },
+      payload: { plan: activePlan.id, name: targetDay.name, day_label: targetDay.day_label, day_of_week: targetDay.day_of_week, order: currentDay.order },
       silent: true,
     })
     toast.success('Orden de dias actualizado')
@@ -702,7 +743,7 @@ export function TrainerProgramPage() {
   }
 
   const handleDuplicateDay = (
-    day: { id: number; name: string; day_label: DayLabel; order: number; exercises: Array<{ name: string; muscle_group: MuscleGroup; exercise_type: ExerciseType; sets: number | null; reps_range: string; target_minutes: number | null; weight_suggestion_kg: number | null; rest_seconds: number; technique_notes: string; order: number }> },
+    day: { id: number; name: string; day_label: DayLabel; day_of_week: DayOfWeek; order: number; exercises: Array<{ name: string; muscle_group: MuscleGroup; exercise_type: ExerciseType; sets: number | null; reps_range: string; target_minutes: number | null; machine?: number | null; weight_suggestion_kg: number | null; rest_seconds: number; technique_notes: string; order: number }> },
   ) => {
     if (!activePlan || !daysData?.results.length) {
       return
@@ -714,6 +755,7 @@ export function TrainerProgramPage() {
         plan: activePlan.id,
         name: `${day.name} (copia)`,
         day_label: day.day_label,
+        day_of_week: day.day_of_week,
         order: duplicatedDayOrder,
       },
       {
@@ -730,6 +772,7 @@ export function TrainerProgramPage() {
                 sets: exercise.sets,
                 reps_range: exercise.reps_range,
                 target_minutes: exercise.target_minutes ?? null,
+                machine: exercise.machine ?? null,
                 weight_suggestion_kg: exercise.weight_suggestion_kg ?? null,
                 rest_seconds: exercise.rest_seconds,
                 technique_notes: exercise.technique_notes ?? '',
@@ -745,7 +788,7 @@ export function TrainerProgramPage() {
 
   const handleDuplicateExercise = (
     day: { id: number; exercises: Array<{ order: number }> },
-    exercise: { name: string; muscle_group: MuscleGroup; exercise_type: ExerciseType; sets: number | null; reps_range: string; target_minutes: number | null; weight_suggestion_kg: number | null; rest_seconds: number; technique_notes: string; order: number },
+    exercise: { name: string; muscle_group: MuscleGroup; exercise_type: ExerciseType; sets: number | null; reps_range: string; target_minutes: number | null; machine?: number | null; weight_suggestion_kg: number | null; rest_seconds: number; technique_notes: string; order: number },
   ) => {
     const nextOrder = day.exercises.length ? Math.max(...day.exercises.map((item) => item.order)) + 1 : 0
     createExercise.mutate({
@@ -756,11 +799,50 @@ export function TrainerProgramPage() {
       sets: exercise.sets,
       reps_range: exercise.reps_range,
       target_minutes: exercise.target_minutes ?? null,
+      machine: exercise.machine ?? null,
       weight_suggestion_kg: exercise.weight_suggestion_kg ?? null,
       rest_seconds: exercise.rest_seconds,
       technique_notes: exercise.technique_notes ?? '',
       order: nextOrder,
     })
+  }
+
+  const handleMachineSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    createGymMachine.mutate(machineForm, {
+      onSuccess: () => {
+        setMachineForm({
+          name: '',
+          category: '',
+          notes: '',
+          is_active: true,
+        })
+      },
+    })
+  }
+
+  const startMachineEdit = (machine: GymMachine) => {
+    setEditingMachineId(machine.id)
+    setEditingMachineForm({
+      name: machine.name,
+      category: machine.category,
+      notes: machine.notes,
+      is_active: machine.is_active,
+    })
+  }
+
+  const handleMachineUpdate = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!editingMachineId) {
+      return
+    }
+    updateGymMachine.mutate(
+      {
+        id: editingMachineId,
+        payload: editingMachineForm,
+      },
+      { onSuccess: () => setEditingMachineId(null) },
+    )
   }
 
   const handleNutritionSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -863,6 +945,14 @@ export function TrainerProgramPage() {
       return
     }
 
+    if (deleteTarget.type === 'machine') {
+      deleteGymMachine.mutate(
+        { id: deleteTarget.id },
+        { onSuccess: () => setDeleteTarget(null) },
+      )
+      return
+    }
+
     deleteExercise.mutate(
       { id: deleteTarget.id, workoutDayId: deleteTarget.workoutDayId },
       { onSuccess: () => setDeleteTarget(null) },
@@ -876,6 +966,8 @@ export function TrainerProgramPage() {
         ? `Se eliminara el dia "${deleteTarget.name}" y todos sus ejercicios.`
         : deleteTarget.type === 'exercise'
           ? `Se eliminara el ejercicio "${deleteTarget.name}" de la rutina del member.`
+          : deleteTarget.type === 'machine'
+            ? `Se eliminara la máquina "${deleteTarget.name}" del catálogo compartido del gym.`
           : deleteTarget.type === 'training_template'
             ? `Se eliminara la plantilla "${deleteTarget.name}". Esta accion solo borra la base reutilizable del trainer y no modifica el plan activo del member.`
             : `Se eliminara la plantilla nutricional "${deleteTarget.name}". Esta accion solo borra la base reutilizable del trainer y no modifica la nutricion ya publicada al member.`
@@ -884,6 +976,7 @@ export function TrainerProgramPage() {
     deletePlan.isPending ||
     deleteWorkoutDay.isPending ||
     deleteExercise.isPending ||
+    deleteGymMachine.isPending ||
     deleteTrainingTemplate.isPending ||
     deleteNutritionTemplate.isPending
 
@@ -1575,10 +1668,81 @@ export function TrainerProgramPage() {
         </form>
       </section>
 
+      <section className="card p-6 space-y-5" data-testid="machine-catalog-card">
+        <div className="flex items-center gap-2">
+          <Dumbbell size={18} className="text-primary" />
+          <h2 className="font-heading font-bold text-xl text-neutral-900 dark:text-white">2. Catálogo compartido de máquinas</h2>
+        </div>
+        <p className="text-sm text-neutral-500">
+          Solo trainers y staff pueden cambiar las máquinas disponibles. Este catálogo lo usa todo el gym para armar rutinas.
+        </p>
+
+        <form className="grid grid-cols-1 gap-3 md:grid-cols-4" onSubmit={handleMachineSubmit}>
+          <Field label="Nombre">
+            <input className="input" value={machineForm.name} onChange={(e) => setMachineForm({ ...machineForm, name: e.target.value })} required />
+          </Field>
+          <Field label="Categoría">
+            <input className="input" value={machineForm.category} onChange={(e) => setMachineForm({ ...machineForm, category: e.target.value })} />
+          </Field>
+          <Field label="Notas">
+            <input className="input" value={machineForm.notes} onChange={(e) => setMachineForm({ ...machineForm, notes: e.target.value })} />
+          </Field>
+          <div className="flex items-end justify-end">
+            <button className="btn-secondary w-full md:w-auto" type="submit" disabled={createGymMachine.isPending}>
+              Agregar máquina
+            </button>
+          </div>
+        </form>
+
+        {!gymMachines.length ? (
+          <p className="text-sm text-neutral-500">Todavía no hay máquinas cargadas.</p>
+        ) : (
+          <div className="space-y-3">
+            {gymMachines.map((machine) => (
+              <div key={machine.id} className="rounded-sm border border-neutral-200 p-4 dark:border-neutral-800" data-testid={`machine-row-${machine.id}`}>
+                {editingMachineId === machine.id ? (
+                  <form className="grid grid-cols-1 gap-3 md:grid-cols-4" onSubmit={handleMachineUpdate}>
+                    <Field label="Nombre">
+                      <input className="input" value={editingMachineForm.name} onChange={(e) => setEditingMachineForm({ ...editingMachineForm, name: e.target.value })} required />
+                    </Field>
+                    <Field label="Categoría">
+                      <input className="input" value={editingMachineForm.category} onChange={(e) => setEditingMachineForm({ ...editingMachineForm, category: e.target.value })} />
+                    </Field>
+                    <Field label="Notas">
+                      <input className="input" value={editingMachineForm.notes} onChange={(e) => setEditingMachineForm({ ...editingMachineForm, notes: e.target.value })} />
+                    </Field>
+                    <div className="flex items-end justify-end gap-2">
+                      <button type="button" className="btn-secondary" onClick={() => setEditingMachineId(null)}>Cancelar</button>
+                      <button type="submit" className="btn-primary" disabled={updateGymMachine.isPending}>Guardar</button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="font-semibold text-neutral-900 dark:text-white">{machine.name}</p>
+                      <p className="text-sm text-neutral-500">{machine.category || 'Sin categoría'}{machine.notes ? ` · ${machine.notes}` : ''}</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant={machine.is_active ? 'success' : 'neutral'}>{machine.is_active ? 'Activa' : 'Inactiva'}</Badge>
+                      <button type="button" className="text-xs font-semibold uppercase tracking-wide text-neutral-700 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white" onClick={() => startMachineEdit(machine)}>
+                        Editar
+                      </button>
+                      <button type="button" className="text-xs font-semibold uppercase tracking-wide text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300" onClick={() => setDeleteTarget({ type: 'machine', id: machine.id, name: machine.name })}>
+                        Borrar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       <section className="card p-6 space-y-5" data-testid="program-editor-card">
         <div className="flex items-center gap-2">
           <PlusCircle size={18} className="text-primary" />
-          <h2 className="font-heading font-bold text-xl text-neutral-900 dark:text-white">2. Dias y ejercicios del plan activo</h2>
+          <h2 className="font-heading font-bold text-xl text-neutral-900 dark:text-white">3. Días y ejercicios del plan activo</h2>
         </div>
         <p className="text-sm text-neutral-500">
           Organiza la rutina por dia y edita cada ejercicio en el mismo contexto. El orden aqui sera el mismo que vera el member.
@@ -1588,7 +1752,7 @@ export function TrainerProgramPage() {
           <p className="text-sm text-neutral-500">Crea primero un plan activo para empezar a estructurar la rutina.</p>
         ) : (
           <>
-            <form className="grid grid-cols-1 gap-3 border-b border-neutral-200 pb-5 md:grid-cols-4 dark:border-neutral-800" onSubmit={handleDaySubmit}>
+            <form className="grid grid-cols-1 gap-3 border-b border-neutral-200 pb-5 md:grid-cols-5 dark:border-neutral-800" onSubmit={handleDaySubmit}>
               <Field label="Nuevo dia">
                 <input className="input" value={dayForm.name} onChange={(e) => setDayForm({ ...dayForm, name: e.target.value })} required />
               </Field>
@@ -1598,6 +1762,13 @@ export function TrainerProgramPage() {
                   onChange={(value) => setDayForm({ ...dayForm, day_label: value as DayLabel })}
                   options={dayOptions.map((label) => ({ value: label, label }))}
                   data-testid="day-label-group"
+                />
+              </Field>
+              <Field label="Día de semana">
+                <OptionGroup
+                  value={dayForm.day_of_week}
+                  onChange={(value) => setDayForm({ ...dayForm, day_of_week: value as DayOfWeek })}
+                  options={dayOfWeekOptions}
                 />
               </Field>
               <Field label="Orden">
@@ -1633,7 +1804,7 @@ export function TrainerProgramPage() {
                         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                           <div>
                             <p className="font-semibold text-neutral-900 dark:text-white">{day.day_label} · {day.name}</p>
-                            <p className="text-sm text-neutral-500">{formatTemplateCount(day.exercises.length, 'ejercicio')} cargado para este dia</p>
+                            <p className="text-sm text-neutral-500">{dayOfWeekOptions.find((option) => option.value === day.day_of_week)?.label} · {formatTemplateCount(day.exercises.length, 'ejercicio')} cargado para este dia</p>
                           </div>
                           <div className="flex flex-wrap items-center gap-2">
                             <Badge variant="neutral">Orden {day.order}</Badge>
@@ -1694,7 +1865,7 @@ export function TrainerProgramPage() {
                         {isOpen && (
                           <div className="mt-4 space-y-4 border-t border-neutral-200 pt-4 dark:border-neutral-800">
                             {editingDayId === day.id ? (
-                              <form className="grid grid-cols-1 gap-3 md:grid-cols-4" onSubmit={handleDayUpdate}>
+                              <form className="grid grid-cols-1 gap-3 md:grid-cols-5" onSubmit={handleDayUpdate}>
                                 <Field label="Nombre del dia">
                                   <input className="input" value={editingDayForm.name} onChange={(e) => setEditingDayForm({ ...editingDayForm, name: e.target.value })} required />
                                 </Field>
@@ -1703,6 +1874,13 @@ export function TrainerProgramPage() {
                                     value={editingDayForm.day_label}
                                     onChange={(value) => setEditingDayForm({ ...editingDayForm, day_label: value as DayLabel })}
                                     options={dayOptions.map((label) => ({ value: label, label }))}
+                                  />
+                                </Field>
+                                <Field label="Día de semana">
+                                  <OptionGroup
+                                    value={editingDayForm.day_of_week}
+                                    onChange={(value) => setEditingDayForm({ ...editingDayForm, day_of_week: value as DayOfWeek })}
+                                    options={dayOfWeekOptions}
                                   />
                                 </Field>
                                 <Field label="Orden">
@@ -1747,6 +1925,14 @@ export function TrainerProgramPage() {
                                             onChange={(value) => setEditingExerciseForm(syncExerciseWithMuscleGroup(editingExerciseForm, value as MuscleGroup))}
                                             options={muscleOptions}
                                           />
+                                        </Field>
+                                        <Field label="Máquina del gym">
+                                          <select className="input" value={editingExerciseForm.machine ?? ''} onChange={(e) => setEditingExerciseForm({ ...editingExerciseForm, machine: e.target.value ? Number(e.target.value) : null })}>
+                                            <option value="">Sin máquina específica</option>
+                                            {gymMachines.filter((machine) => machine.is_active).map((machine) => (
+                                              <option key={machine.id} value={machine.id}>{machine.name}</option>
+                                            ))}
+                                          </select>
                                         </Field>
                                         {editingExerciseForm.muscle_group === 'cardio' ? (
                                           <div className="md:col-span-2 rounded-sm border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-neutral-600 dark:border-primary/30 dark:bg-primary/10 dark:text-neutral-300">
@@ -1808,6 +1994,9 @@ export function TrainerProgramPage() {
                                           <p className="text-sm text-neutral-500">
                                             {muscleOptions.find((option) => option.value === exercise.muscle_group)?.label ?? exercise.muscle_group}
                                           </p>
+                                          {exercise.machine_detail?.name ? (
+                                            <p className="text-sm text-primary">{exercise.machine_detail.name}</p>
+                                          ) : null}
                                           {exercise.technique_notes ? (
                                             <p className="mt-1 text-sm text-neutral-500">{exercise.technique_notes}</p>
                                           ) : null}
@@ -1891,6 +2080,14 @@ export function TrainerProgramPage() {
                                   options={muscleOptions}
                                   data-testid="muscle-group-options"
                                 />
+                              </Field>
+                              <Field label="Máquina del gym">
+                                <select className="input" value={exerciseForm.machine ?? ''} onChange={(e) => setExerciseForm({ ...exerciseForm, machine: e.target.value ? Number(e.target.value) : null })}>
+                                  <option value="">Sin máquina específica</option>
+                                  {gymMachines.filter((machine) => machine.is_active).map((machine) => (
+                                    <option key={machine.id} value={machine.id}>{machine.name}</option>
+                                  ))}
+                                </select>
                               </Field>
                               {exerciseForm.muscle_group === 'cardio' ? (
                                 <div className="md:col-span-2 rounded-sm border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-neutral-600 dark:border-primary/30 dark:bg-primary/10 dark:text-neutral-300">

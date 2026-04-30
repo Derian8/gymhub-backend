@@ -4,7 +4,7 @@ import { usePlansQuery } from '../hooks/usePlans'
 import { useMemberActivePrescriptionQuery, useMemberDashboardQuery } from '@/modules/members/hooks/useMembers'
 import { Badge, PageHeader, EmptyState } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
-import { formatDate, GOAL_LABELS } from '@/shared/lib/utils'
+import { DAY_OF_WEEK_LABELS, formatDate, GOAL_LABELS } from '@/shared/lib/utils'
 import { useAuthStore } from '@/shared/store/authStore'
 import { SymbolFrame } from '@/shared/components/Brand'
 import type { ActivePrescription, MemberDashboardSummary, TrainingPlan } from '@/shared/types'
@@ -131,7 +131,9 @@ export function PlansPage() {
                           </span>
                           <div>
                             <h4 className="font-semibold text-neutral-900 dark:text-white">{day.name}</h4>
-                            <p className="text-xs text-neutral-500 dark:text-neutral-400">{day.exercises.length} ejercicio(s) cargados</p>
+                            <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                              {DAY_OF_WEEK_LABELS[day.day_of_week]} · {day.exercises.length} ejercicio(s) cargados
+                            </p>
                           </div>
                         </div>
                         {activePrescription?.entrenamiento_hoy?.id === day.id ? (

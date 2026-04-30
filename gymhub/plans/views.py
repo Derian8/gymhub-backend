@@ -8,28 +8,24 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .models import (
-    TrainingPlan, WorkoutDay, Exercise,
+    TrainingPlan, WorkoutDay, Exercise, GymMachine,
     PlantillaEntrenamiento, PlantillaDiaEntrenamiento, PlantillaEjercicio,
 )
 from .serializers import (
     TrainingPlanSerializer, WorkoutDaySerializer,
     ExerciseSerializer, TodayWorkoutSerializer, PlantillaEntrenamientoSerializer,
+    GymMachineSerializer,
 )
 from users.permissions import IsTrainer
 from users.views import _get_trainer_profile
 
 
 def get_today_workout_day(plan):
-    """Retorna el WorkoutDay correspondiente a hoy según la rotación del plan."""
-    today = date.today()
-    if plan.start_date > today:
+    """Retorna el WorkoutDay correspondiente al día real de la semana."""
+    if not plan:
         return None
-    workout_days = list(plan.workout_days.order_by('order'))
-    if not workout_days:
-        return None
-    days_elapsed = (today - plan.start_date).days
-    day_index = days_elapsed % len(workout_days)
-    return workout_days[day_index]
+    weekday = date.today().strftime('%a').lower()[:3]
+    return plan.workout_days.filter(day_of_week=weekday).order_by('order', 'id').first()
 
 
 class TrainingPlanViewSet(viewsets.ModelViewSet):
@@ -103,12 +99,8 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
 
         for i in range(7):
             day_date = week_start + timedelta(days=i)
-            days_elapsed = (day_date - plan.start_date).days if day_date >= plan.start_date else -1
-
-            workout_day = None
-            if days_elapsed >= 0:
-                day_index = days_elapsed % len(workout_days)
-                workout_day = workout_days[day_index]
+            weekday = day_date.strftime('%a').lower()[:3]
+            workout_day = next((day for day in workout_days if day.day_of_week == weekday), None)
 
             session = None
             is_completed = False
@@ -125,6 +117,9 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
             result.append({
                 'date': day_date,
                 'workout_day_name': workout_day.name if workout_day else None,
+                'workout_day_id': workout_day.id if workout_day else None,
+                'day_of_week': weekday,
+                'day_label': workout_day.day_label if workout_day else None,
                 'session_id': session,
                 'is_completed': is_completed,
             })
@@ -208,6 +203,36 @@ class WorkoutDayViewSet(viewsets.ModelViewSet):
         if self.action in ('create', 'update', 'partial_update', 'destroy'):
             return [IsAuthenticated(), IsTrainer()]
         return [IsAuthenticated()]
+
+
+class GymMachineViewSet(viewsets.ModelViewSet):
+    serializer_class = GymMachineSerializer
+
+    def get_queryset(self):
+        queryset = GymMachine.objects.all()
+        if self.request.user.role == 'member':
+            return queryset.filter(is_active=True)
+        return queryset
+
+    def get_permissions(self):
+        return [IsAuthenticated()]
+
+    def _validate_manager(self):
+        user = self.request.user
+        if not user.is_staff and user.role != 'trainer':
+            raise PermissionDenied('Solo trainers o staff pueden modificar máquinas del gym.')
+
+    def perform_create(self, serializer):
+        self._validate_manager()
+        serializer.save()
+
+    def perform_update(self, serializer):
+        self._validate_manager()
+        serializer.save()
+
+    def destroy(self, request, *args, **kwargs):
+        self._validate_manager()
+        return super().destroy(request, *args, **kwargs)
 
 
 class ExerciseViewSet(viewsets.ModelViewSet):

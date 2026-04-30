@@ -71,6 +71,16 @@ export const MUSCLE_LABELS: Record<string, string> = {
   cardio: 'Cardio',
 }
 
+export const DAY_OF_WEEK_LABELS: Record<string, string> = {
+  mon: 'Lunes',
+  tue: 'Martes',
+  wed: 'Miércoles',
+  thu: 'Jueves',
+  fri: 'Viernes',
+  sat: 'Sábado',
+  sun: 'Domingo',
+}
+
 export const PAYMENT_STATUS_LABELS: Record<string, string> = {
   paid: 'Pagado',
   pending: 'Pendiente',

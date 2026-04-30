@@ -5,15 +5,8 @@ from .settings import *  # noqa
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env('DB_NAME', default='gymhub') + '_test',
-        'USER': env('DB_USER', default='gymhub_user'),
-        'PASSWORD': env('DB_PASSWORD', default='gymhub_pass'),
-        'HOST': env('DB_HOST', default='db'),
-        'PORT': env('DB_PORT', default='5432'),
-        'TEST': {
-            'NAME': env('DB_NAME', default='gymhub') + '_test',
-        },
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': ':memory:',
     }
 }
 
@@ -34,6 +27,7 @@ CACHES = {
 
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
+AUTH_PASSWORD_VALIDATORS = []
 
 AI_DAILY_LIMIT_PER_USER = 20
 INACTIVITY_DAYS_THRESHOLD = 30

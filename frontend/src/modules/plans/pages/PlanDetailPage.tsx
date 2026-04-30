@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Calendar, ChevronRight, NotebookTabs, UserRound } from 'lucide-react'
-import { useDeletePlanMutation, usePlanDetailQuery, useTodayWorkoutQuery, useWeeklyPlanQuery } from '../hooks/usePlans'
+import { useDeletePlanMutation, usePlanDetailQuery, useTodayWorkoutQuery } from '../hooks/usePlans'
 import { Badge, ConfirmDialog, PageHeader, EmptyState } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
-import { GOAL_LABELS, MUSCLE_LABELS } from '@/shared/lib/utils'
+import { DAY_OF_WEEK_LABELS, GOAL_LABELS, MUSCLE_LABELS } from '@/shared/lib/utils'
 import type { WorkoutDay, Exercise } from '@/shared/types'
 import { useAuthStore } from '@/shared/store/authStore'
 import { useMemberActivePrescriptionQuery, useMemberDashboardQuery } from '@/modules/members/hooks/useMembers'
@@ -26,7 +26,6 @@ export function PlanDetailPage() {
   const { user } = useAuthStore()
   const isMember = user?.role === 'member'
   const { data: plan, isLoading } = usePlanDetailQuery(planId)
-  const { data: weeklyView } = useWeeklyPlanQuery(planId)
   const { data: todayWorkout } = useTodayWorkoutQuery(planId)
   const { data: activePrescription } = useMemberActivePrescriptionQuery(isMember ? user?.memberprofile_id || 0 : 0)
   const { data: dashboardSummary } = useMemberDashboardQuery(isMember ? user?.memberprofile_id || 0 : 0)
@@ -157,13 +156,7 @@ export function PlanDetailPage() {
               ) : null}
             </div>
           </div>
-          {weeklyView?.workout_days ? (
-            <div className="space-y-3">
-              {weeklyView.workout_days.map((day: WorkoutDay) => (
-                <WorkoutDayCard key={day.id} day={day} planId={planId} />
-              ))}
-            </div>
-          ) : plan.workout_days ? (
+          {plan.workout_days ? (
             <div className="space-y-3">
               {plan.workout_days.map((day) => (
                 <WorkoutDayCard key={day.id} day={day} planId={planId} />
@@ -201,7 +194,10 @@ function WorkoutDayCard({ day, planId }: { day: WorkoutDay; planId: number }) {
           <span className="w-8 h-8 rounded-sm bg-primary text-white text-sm font-bold flex items-center justify-center font-heading">
             {day.day_label}
           </span>
-          <h4 className="font-semibold text-neutral-900 dark:text-white">{day.name}</h4>
+          <div>
+            <h4 className="font-semibold text-neutral-900 dark:text-white">{day.name}</h4>
+            <p className="text-xs text-neutral-500">{DAY_OF_WEEK_LABELS[day.day_of_week]}</p>
+          </div>
         </div>
         <span className="text-xs text-neutral-400">{day.exercises?.length || 0} ejercicios</span>
       </div>
@@ -227,6 +223,9 @@ function ExerciseRow({ exercise }: { exercise: Exercise }) {
       <div>
         <span className="text-sm text-neutral-700 dark:text-neutral-300">{exercise.name}</span>
         <span className="ml-2 text-xs text-neutral-400">{MUSCLE_LABELS[exercise.muscle_group]}</span>
+        {exercise.machine_detail?.name ? (
+          <span className="ml-2 text-xs text-primary">{exercise.machine_detail.name}</span>
+        ) : null}
       </div>
       <span className="text-xs font-mono text-neutral-500">
         {formatExercisePrescription(exercise)}

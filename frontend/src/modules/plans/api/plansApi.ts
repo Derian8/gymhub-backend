@@ -1,7 +1,9 @@
 import apiClient from '@/shared/api/client'
 import type {
+  GymMachine,
   TrainingPlan,
   WorkoutDay,
+  WeeklyWorkoutStatus,
   Exercise,
   PaginatedResponse,
   TodayWorkout,
@@ -31,7 +33,7 @@ export const plansApi = {
     return data
   },
 
-  weeklyView: async (planId: number): Promise<{ week_days: Array<{ date: string; workout_day: WorkoutDay | null }>; workout_days: WorkoutDay[] }> => {
+  weeklyView: async (planId: number): Promise<{ week_days: WeeklyWorkoutStatus[] }> => {
     const { data } = await apiClient.get(`/api/plans/${planId}/weekly-view/`)
     return data
   },
@@ -48,6 +50,11 @@ export const plansApi = {
 
   exercises: async (): Promise<PaginatedResponse<Exercise>> => {
     const { data } = await apiClient.get('/api/exercises/')
+    return data
+  },
+
+  gymMachines: async (): Promise<PaginatedResponse<GymMachine>> => {
+    const { data } = await apiClient.get('/api/gym-machines/')
     return data
   },
 
@@ -82,6 +89,20 @@ export const plansApi = {
   createExercise: async (payload: ExercisePayload): Promise<Exercise> => {
     const { data } = await apiClient.post('/api/exercises/', payload)
     return data
+  },
+
+  createGymMachine: async (payload: Pick<GymMachine, 'name' | 'category' | 'notes' | 'is_active'>): Promise<GymMachine> => {
+    const { data } = await apiClient.post('/api/gym-machines/', payload)
+    return data
+  },
+
+  updateGymMachine: async (id: number, payload: Partial<Pick<GymMachine, 'name' | 'category' | 'notes' | 'is_active'>>): Promise<GymMachine> => {
+    const { data } = await apiClient.patch(`/api/gym-machines/${id}/`, payload)
+    return data
+  },
+
+  deleteGymMachine: async (id: number): Promise<void> => {
+    await apiClient.delete(`/api/gym-machines/${id}/`)
   },
 
   updateExercise: async (id: number, payload: Partial<ExercisePayload>): Promise<Exercise> => {

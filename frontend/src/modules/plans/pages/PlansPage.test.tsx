@@ -56,7 +56,9 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
       dias: [
         {
           id: 101,
+          plan: 12,
           day_label: 'A',
+          day_of_week: 'mon',
           name: 'Torso',
           exercises: [
             { id: 1, name: 'Press banca' },
@@ -68,6 +70,7 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
         id: 101,
         day_label: 'A',
         name: 'Torso',
+        day_of_week: 'mon',
         exercises: [{ id: 1, name: 'Press banca' }],
       },
       perfil_nutricional: { id: 21 },
@@ -136,9 +139,10 @@ describe('PlansPage', () => {
 
     expect(getByText('Mi Programa')).toBeInTheDocument()
     expect(getByTestId('member-program-hero')).toBeInTheDocument()
+    expect(getByTestId('member-program-hero')).toHaveTextContent('Carlos Mendoza')
     expect(getByTestId('active-prescription-status')).toBeInTheDocument()
     expect(getByTestId('program-week-overview')).toBeInTheDocument()
-    expect(getByTestId('program-today-card')).toHaveTextContent('Carlos Mendoza')
+    expect(getByTestId('program-today-card')).toHaveTextContent('Día A: Torso')
     expect(getByTestId('active-plan-today-link')).toHaveAttribute('href', '/plans/12/today')
     expect(getByTestId('active-plan-detail-link')).toHaveAttribute('href', '/plans/12')
   })

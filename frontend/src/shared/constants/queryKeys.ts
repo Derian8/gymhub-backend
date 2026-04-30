@@ -25,6 +25,7 @@ export const QUERY_KEYS = {
   WORKOUT_DAYS_BY_PLAN: (planId: number) => ['workout-days', 'plan', planId] as const,
   EXERCISES: ['exercises'] as const,
   EXERCISES_BY_DAY: (workoutDayId: number) => ['exercises', 'day', workoutDayId] as const,
+  GYM_MACHINES: ['gym-machines'] as const,
   PLAN_TEMPLATES: ['plan-templates'] as const,
 
   // Attendance

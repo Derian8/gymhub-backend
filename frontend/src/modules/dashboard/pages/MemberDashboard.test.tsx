@@ -2,6 +2,10 @@ import { renderWithProviders } from '@/test/utils'
 import { MemberDashboard } from './MemberDashboard'
 import { useAuthStore } from '@/shared/store/authStore'
 
+const createSessionMutate = vi.fn()
+const completeSessionMutate = vi.fn()
+const bulkLogsMutate = vi.fn()
+
 vi.mock('@/modules/members/hooks/useMembers', () => ({
   useMemberDashboardQuery: () => ({
     data: {
@@ -27,9 +31,81 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
     },
     isLoading: false,
   }),
+  useMemberPhysicalSummaryQuery: () => ({
+    data: {
+      latest_log_id: 90,
+      latest_recorded_at: '2026-03-19T10:00:00Z',
+      current_weight_kg: 67.5,
+      previous_weight_kg: 68,
+      weight_change_kg: -0.5,
+      height_cm: 165,
+      body_fat_pct: 22,
+      muscle_mass_kg: 26,
+      waist_cm: 76,
+      bmi: 24.8,
+      notes: '',
+    },
+    isLoading: false,
+  }),
   useMemberActivePrescriptionQuery: () => ({
     data: {
-      plan_activo: { id: 11, name: 'Hipertrofia', goal: 'muscle_gain', days_per_week: 4, weeks_duration: 8, start_date: '2026-03-01', end_date: null, is_active: true },
+      trainer: {
+        id: 8,
+        nombre: 'Carlos Mendoza',
+        correo: 'trainer@gymhub.com',
+      },
+      plan_activo: { id: 11, member: 10, trainer: 8, name: 'Hipertrofia', goal: 'muscle_gain', days_per_week: 4, weeks_duration: 8, start_date: '2026-03-01', end_date: null, is_active: true, workout_days: [] },
+      dias: [
+        {
+          id: 201,
+          plan: 11,
+          name: 'Torso superior',
+          day_label: 'A',
+          day_of_week: 'mon',
+          order: 0,
+          exercises: [
+            {
+              id: 301,
+              workout_day: 201,
+              name: 'Press banca',
+              muscle_group: 'chest',
+              exercise_type: 'strength',
+              sets: 4,
+              reps_range: '8-10',
+              target_minutes: null,
+              machine: 1,
+              machine_detail: { id: 1, name: 'Smith', category: 'Pecho', notes: '', is_active: true },
+              weight_suggestion_kg: 60,
+              rest_seconds: 90,
+              technique_notes: '',
+              order: 0,
+            },
+          ],
+        },
+      ],
+      entrenamiento_hoy: {
+        id: 201,
+        name: 'Torso superior',
+        day_label: 'A',
+        exercises: [
+          {
+            id: 301,
+            workout_day: 201,
+            name: 'Press banca',
+            muscle_group: 'chest',
+            exercise_type: 'strength',
+            sets: 4,
+            reps_range: '8-10',
+            target_minutes: null,
+            machine: 1,
+            machine_detail: { id: 1, name: 'Smith', category: 'Pecho', notes: '', is_active: true },
+            weight_suggestion_kg: 60,
+            rest_seconds: 90,
+            technique_notes: '',
+            order: 0,
+          },
+        ],
+      },
       perfil_nutricional: {
         id: 21,
         training_plan: 11,
@@ -39,6 +115,15 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
         protein_focus: '150g',
         carb_strategy: 'Alto',
         hydration_recommendation: '3 litros',
+      },
+      guias_vinculadas: [],
+      estado_prescripcion: {
+        tiene_plan_activo: true,
+        tiene_dias: true,
+        tiene_ejercicios: true,
+        tiene_nutricion: true,
+        tiene_guias: false,
+        esta_lista_para_member: false,
       },
     },
     isLoading: false,
@@ -53,6 +138,19 @@ vi.mock('@/modules/alerts/hooks/useAlerts', () => ({
       ],
     },
   }),
+}))
+
+vi.mock('@/modules/plans/hooks/usePlans', () => ({
+  useWeeklyPlanQuery: () => ({
+    data: {
+      week_days: [
+        { date: '2026-03-23', workout_day_name: 'Torso superior', workout_day_id: 201, day_of_week: 'mon', day_label: 'A', session_id: null, is_completed: false },
+      ],
+    },
+  }),
+  useCreateSessionMutation: () => ({ mutate: createSessionMutate, isPending: false }),
+  useCompleteSessionMutation: () => ({ mutate: completeSessionMutate, isPending: false }),
+  useBulkExerciseLogsMutation: () => ({ mutate: bulkLogsMutate, isPending: false }),
 }))
 
 describe('MemberDashboard', () => {
@@ -76,18 +174,20 @@ describe('MemberDashboard', () => {
     })
   })
 
-  it('renders member cards and inactivity banner', () => {
+  it('renders the member training cabin', () => {
     const { getByTestId, getByText } = renderWithProviders(<MemberDashboard />)
 
     expect(getByTestId('member-dashboard')).toBeInTheDocument()
     expect(getByText('Hola, Ana')).toBeInTheDocument()
-    expect(getByTestId('inactivity-banner')).toBeInTheDocument()
-    expect(getByTestId('today-hero')).toBeInTheDocument()
+    expect(getByTestId('member-dashboard-header')).toBeInTheDocument()
+    expect(getByText('Carlos Mendoza')).toBeInTheDocument()
+    expect(getByTestId('member-week-plan')).toBeInTheDocument()
+    expect(getByTestId('member-today-cabin')).toBeInTheDocument()
     expect(getByTestId('card-payment')).toBeInTheDocument()
-    expect(getByTestId('card-workout')).toHaveAttribute('href', '/plans/11/today')
     expect(getByTestId('card-messages')).toHaveAttribute('href', '/messages')
     expect(getByTestId('card-messages')).toHaveTextContent('1')
-    expect(getByTestId('card-notifications')).toHaveTextContent('3')
-    expect(getByText('5 días de racha')).toBeInTheDocument()
+    expect(getByTestId('card-ai')).toHaveTextContent('3 notificación(es) sin leer')
+    expect(getByText('Smith')).toBeInTheDocument()
+    expect(getByTestId('member-plan-detail-link')).toHaveAttribute('href', '/plans/11')
   })
 })

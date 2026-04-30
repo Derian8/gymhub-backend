@@ -351,6 +351,7 @@ function ExerciseCard({ exercise, log, active, onUpdate }: ExerciseCardProps) {
           {isTimed ? (
             <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
               <StaticMetric label="Duración objetivo" value={`${exercise.target_minutes ?? 0} min`} />
+              <StaticMetric label="Máquina" value={exercise.machine_detail?.name || 'Libre'} />
               <StaticMetric label="Descanso" value={`${exercise.rest_seconds}s`} />
               <StaticMetric label="Tipo" value="Cardio por tiempo" />
               <StaticMetric label="Carga" value="No aplica" />
@@ -359,6 +360,7 @@ function ExerciseCard({ exercise, log, active, onUpdate }: ExerciseCardProps) {
             <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
               <StaticMetric label="Series" value={String(exercise.sets ?? 0)} />
               <StaticMetric label="Repeticiones" value={exercise.reps_range} />
+              <StaticMetric label="Máquina" value={exercise.machine_detail?.name || 'Libre'} />
               <StaticMetric label="Descanso" value={`${exercise.rest_seconds}s`} />
               <StaticMetric label="Peso sugerido" value={exercise.weight_suggestion_kg ? `${exercise.weight_suggestion_kg}kg` : 'Libre'} />
             </div>

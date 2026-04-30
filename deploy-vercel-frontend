@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENV_FILE="${ROOT_DIR}/.env.supabase-vercel.local"
+PROJECT_FILE="${ROOT_DIR}/frontend/.vercel/project.json"
+
+if [[ ! -f "${ENV_FILE}" ]]; then
+  echo "Falta ${ENV_FILE}" >&2
+  exit 1
+fi
+
+set -a
+source "${ENV_FILE}"
+set +a
+
+: "${VERCEL_TOKEN:?Falta VERCEL_TOKEN}"
+: "${VERCEL_TEAM_ID:?Falta VERCEL_TEAM_ID}"
+: "${VERCEL_PROJECT_ID:?Falta VERCEL_PROJECT_ID}"
+: "${VITE_API_BASE_URL:?Falta VITE_API_BASE_URL}"
+: "${VITE_API_TIMEOUT_MS:?Falta VITE_API_TIMEOUT_MS}"
+
+if [[ ! -f "${PROJECT_FILE}" ]]; then
+  echo "Falta ${PROJECT_FILE}. Ejecuta vercel link dentro de frontend/." >&2
+  exit 1
+fi
+
+PROJECT_NAME_LOCAL="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["projectName"])' "${PROJECT_FILE}")"
+PROJECT_ID_LOCAL="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["projectId"])' "${PROJECT_FILE}")"
+
+if [[ "${PROJECT_NAME_LOCAL}" != "proyectoappgym-frontend" ]]; then
+  echo "frontend/.vercel/project.json apunta a ${PROJECT_NAME_LOCAL}, no a proyectoappgym-frontend." >&2
+  exit 1
+fi
+
+if [[ "${PROJECT_ID_LOCAL}" != "${VERCEL_PROJECT_ID}" ]]; then
+  echo "frontend/.vercel/project.json usa ${PROJECT_ID_LOCAL}, no ${VERCEL_PROJECT_ID}." >&2
+  exit 1
+fi
+
+echo "Deploy frontend -> ${PROJECT_NAME_LOCAL} (${VERCEL_PROJECT_ID})"
+
+cd "${ROOT_DIR}/frontend"
+
+npx vercel@latest deploy . \
+  --yes \
+  --token "${VERCEL_TOKEN}" \
+  --scope "${VERCEL_TEAM_ID}" \
+  --prod \
+  --build-env "VITE_API_BASE_URL=${VITE_API_BASE_URL}" \
+  --build-env "VITE_API_TIMEOUT_MS=${VITE_API_TIMEOUT_MS}"

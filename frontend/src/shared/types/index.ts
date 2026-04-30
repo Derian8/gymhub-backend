@@ -284,7 +284,16 @@ export type ChartsOverview = MemberChartsOverview | TrainerChartsOverview
 export type GoalType = 'fat_loss' | 'muscle_gain' | 'endurance' | 'flexibility' | 'maintenance' | 'general'
 export type MuscleGroup = 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'legs' | 'glutes' | 'core' | 'full_body' | 'cardio'
 export type DayLabel = 'A' | 'B' | 'C' | 'D'
+export type DayOfWeek = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun'
 export type ExerciseType = 'strength' | 'timed'
+
+export interface GymMachine {
+  id: number
+  name: string
+  category: string
+  notes: string
+  is_active: boolean
+}
 
 export interface Exercise {
   id: number
@@ -295,6 +304,8 @@ export interface Exercise {
   sets: number | null
   reps_range: string
   target_minutes: number | null
+  machine: number | null
+  machine_detail?: GymMachine | null
   weight_suggestion_kg: number | null
   rest_seconds: number
   technique_notes: string
@@ -306,6 +317,7 @@ export interface WorkoutDay {
   plan: number
   name: string
   day_label: DayLabel
+  day_of_week: DayOfWeek
   order: number
   exercises: Exercise[]
 }
@@ -425,6 +437,7 @@ export interface WorkoutDayPayload {
   plan: number
   name: string
   day_label: DayLabel
+  day_of_week: DayOfWeek
   order: number
 }
 
@@ -436,6 +449,7 @@ export interface ExercisePayload {
   sets: number | null
   reps_range: string
   target_minutes: number | null
+  machine?: number | null
   weight_suggestion_kg?: number | null
   rest_seconds: number
   technique_notes?: string
@@ -447,6 +461,16 @@ export interface TodayWorkout {
   name: string
   day_label: DayLabel
   exercises: Exercise[]
+}
+
+export interface WeeklyWorkoutStatus {
+  date: string
+  workout_day_name: string | null
+  workout_day_id: number | null
+  day_of_week: DayOfWeek
+  day_label: DayLabel | null
+  session_id: number | null
+  is_completed: boolean
 }
 
 // --- Attendance ---

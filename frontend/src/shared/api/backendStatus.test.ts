@@ -1,8 +1,16 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AxiosError } from 'axios'
-import { classifyBackendIssue } from './backendStatus'
+import { classifyBackendIssue, diagnoseBackendIssue } from './backendStatus'
 
 describe('classifyBackendIssue', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   it('classifies placeholder backend URL as stale bundle', () => {
     const error = new AxiosError('Network Error', 'ERR_NETWORK')
 
@@ -32,5 +40,29 @@ describe('classifyBackendIssue', () => {
     const issue = classifyBackendIssue(error, 'https://proyectoappgym-backend.vercel.app')
 
     expect(issue?.kind).toBe('backend_error')
+  })
+
+  it('classifies timeout with healthy backend as backend_slow', async () => {
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: true }))
+
+    const error = new AxiosError('timeout', 'ECONNABORTED')
+
+    const issue = await diagnoseBackendIssue(error, 'https://proyectoappgym-backend.vercel.app')
+
+    expect(issue?.kind).toBe('backend_slow')
+  })
+
+  it('classifies timeout with failing readiness as backend_not_ready', async () => {
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: false }))
+
+    const error = new AxiosError('timeout', 'ECONNABORTED')
+
+    const issue = await diagnoseBackendIssue(error, 'https://proyectoappgym-backend.vercel.app')
+
+    expect(issue?.kind).toBe('backend_not_ready')
   })
 })

@@ -53,7 +53,21 @@ wait_for_backend() {
   local delay=2
 
   for _ in $(seq 1 "$attempts"); do
-    if curl -fsS "$BACKEND_URL/api/docs/" >/dev/null 2>&1; then
+    if curl -fsS "$BACKEND_URL/health/live/" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep "$delay"
+  done
+
+  return 1
+}
+
+wait_for_backend_ready() {
+  local attempts=30
+  local delay=2
+
+  for _ in $(seq 1 "$attempts"); do
+    if curl -fsS "$BACKEND_URL/health/ready/" >/dev/null 2>&1; then
       return 0
     fi
     sleep "$delay"
@@ -120,6 +134,7 @@ login() {
 
 echo "==> Validando disponibilidad del backend"
 wait_for_backend || fail "Backend no disponible en $BACKEND_URL"
+wait_for_backend_ready || fail "Backend no listo en $BACKEND_URL"
 
 TRAINER_COOKIE="$TMP_DIR/trainer.cookies"
 MEMBER_COOKIE="$TMP_DIR/member.cookies"

@@ -128,6 +128,10 @@ def member_client(db, member_user):
 @pytest.mark.django_db
 def training_plan(db, member_profile, trainer_profile):
     from plans.models import TrainingPlan, WorkoutDay, Exercise
+    weekday_codes = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+    today_index = date.today().weekday()
+    day_a_weekday = weekday_codes[today_index]
+    day_b_weekday = weekday_codes[(today_index + 1) % 7]
     plan = TrainingPlan.objects.create(
         member=member_profile,
         trainer=trainer_profile,
@@ -139,8 +143,8 @@ def training_plan(db, member_profile, trainer_profile):
         is_active=True,
     )
     # Crear WorkoutDays
-    wd_a = WorkoutDay.objects.create(plan=plan, name='Pecho y Tríceps', day_label='A', order=0)
-    wd_b = WorkoutDay.objects.create(plan=plan, name='Espalda y Bíceps', day_label='B', order=1)
+    wd_a = WorkoutDay.objects.create(plan=plan, name='Pecho y Tríceps', day_label='A', day_of_week=day_a_weekday, order=0)
+    wd_b = WorkoutDay.objects.create(plan=plan, name='Espalda y Bíceps', day_label='B', day_of_week=day_b_weekday, order=1)
 
     # Ejercicios para Día A
     bench = Exercise.objects.create(

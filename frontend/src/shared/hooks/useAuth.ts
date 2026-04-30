@@ -5,11 +5,11 @@ import { useAuthStore } from '@/shared/store/authStore'
 import { authApi } from '@/modules/auth/api/authApi'
 import { QUERY_KEYS } from '@/shared/constants/queryKeys'
 import { useBackendStatusStore } from '@/shared/store/backendStatusStore'
-import { classifyBackendIssue } from '@/shared/api/backendStatus'
+import { diagnoseBackendIssue } from '@/shared/api/backendStatus'
 import { BASE_URL } from '@/shared/api/client'
 import type { AxiosError } from 'axios'
 
-export function useAuth() {
+export function useAuth(enabled = true) {
   const { user, isAuthenticated, authResolved, setUser, setAuthResolved, logout } = useAuthStore()
   const setBackendIssue = useBackendStatusStore((s) => s.setIssue)
   const clearBackendIssue = useBackendStatusStore((s) => s.clearIssue)
@@ -17,6 +17,7 @@ export function useAuth() {
   const { data, isLoading, isError, isFetched, error } = useQuery({
     queryKey: QUERY_KEYS.ME,
     queryFn: authApi.me,
+    enabled,
     retry: false,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -31,34 +32,45 @@ export function useAuth() {
   }, [clearBackendIssue, data, setUser, setAuthResolved])
 
   useEffect(() => {
+    if (!enabled) {
+      return
+    }
+
     if (!isError) {
       return
     }
 
     const authError = error as AxiosError | null
-    const issue = authError ? classifyBackendIssue(authError, BASE_URL) : null
 
-    if (issue) {
-      setBackendIssue(issue)
+    void (async () => {
+      const issue = authError ? await diagnoseBackendIssue(authError, BASE_URL) : null
+
+      if (issue) {
+        setBackendIssue(issue)
+        setAuthResolved(true)
+        return
+      }
+
+      if (authError?.response?.status === 401) {
+        clearBackendIssue()
+        logout()
+        setAuthResolved(true)
+        return
+      }
+
       setAuthResolved(true)
-      return
-    }
-
-    if (authError?.response?.status === 401) {
-      clearBackendIssue()
-      logout()
-      setAuthResolved(true)
-      return
-    }
-
-    setAuthResolved(true)
-  }, [clearBackendIssue, error, isError, logout, setAuthResolved, setBackendIssue])
+    })()
+  }, [clearBackendIssue, enabled, error, isError, logout, setAuthResolved, setBackendIssue])
 
   useEffect(() => {
+    if (!enabled) {
+      return
+    }
+
     if (isFetched && !data && !isError) {
       setAuthResolved(true)
     }
-  }, [data, isError, isFetched, setAuthResolved])
+  }, [data, enabled, isError, isFetched, setAuthResolved])
 
   // Listen for forced logout from interceptor
   useEffect(() => {
@@ -76,7 +88,7 @@ export function useAuth() {
   return {
     user: currentUser,
     isAuthenticated: !!currentUser || isAuthenticated,
-    isLoading: isLoading || !authResolved,
+    isLoading: (enabled && isLoading) || !authResolved,
     authResolved,
     isTrainer: currentUser?.role === 'trainer' || !!currentUser?.is_staff,
     isMember: currentUser?.role === 'member',

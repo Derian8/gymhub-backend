@@ -1,11 +1,19 @@
 from rest_framework import serializers
 from .models import (
-    TrainingPlan, WorkoutDay, Exercise,
+    TrainingPlan, WorkoutDay, Exercise, GymMachine,
     PlantillaEntrenamiento, PlantillaDiaEntrenamiento, PlantillaEjercicio,
 )
 
 
+class GymMachineSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GymMachine
+        fields = ('id', 'name', 'category', 'notes', 'is_active')
+
+
 class ExerciseSerializer(serializers.ModelSerializer):
+    machine_detail = GymMachineSerializer(source='machine', read_only=True)
+
     def validate(self, attrs):
         exercise_type = attrs.get('exercise_type', getattr(self.instance, 'exercise_type', 'strength'))
         sets = attrs.get('sets', getattr(self.instance, 'sets', None))
@@ -33,8 +41,8 @@ class ExerciseSerializer(serializers.ModelSerializer):
         model = Exercise
         fields = (
             'id', 'workout_day', 'name', 'muscle_group', 'exercise_type',
-            'sets', 'reps_range', 'target_minutes', 'weight_suggestion_kg',
-            'rest_seconds', 'technique_notes', 'order'
+            'sets', 'reps_range', 'target_minutes', 'machine', 'machine_detail',
+            'weight_suggestion_kg', 'rest_seconds', 'technique_notes', 'order'
         )
 
 
@@ -43,13 +51,13 @@ class WorkoutDaySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = WorkoutDay
-        fields = ('id', 'plan', 'name', 'day_label', 'order', 'exercises')
+        fields = ('id', 'plan', 'name', 'day_label', 'day_of_week', 'order', 'exercises')
 
 
 class WorkoutDayBriefSerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkoutDay
-        fields = ('id', 'name', 'day_label', 'order')
+        fields = ('id', 'name', 'day_label', 'day_of_week', 'order')
 
 
 class TrainingPlanSerializer(serializers.ModelSerializer):

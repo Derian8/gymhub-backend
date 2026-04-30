@@ -16,20 +16,14 @@ echo "========================================"
 
 cd "${PROJECT_ROOT}"
 
-# Asegurarse de que los servicios están corriendo
-"${DOCKER_BIN}" compose up -d db redis
-
-echo "Esperando a que la base de datos esté lista..."
-"${DOCKER_BIN}" compose exec -T db sh -c 'until pg_isready -U "${POSTGRES_USER}" -d "${POSTGRES_DB}"; do sleep 1; done'
-
-# Ejecutar migraciones en modo test
-"${DOCKER_BIN}" compose run --rm backend sh -c "
-  python manage.py migrate --settings=gymhub.settings_test --noinput
-"
+echo "Usando settings_test con SQLite en memoria"
+"${DOCKER_BIN}" compose run --rm --no-deps \
+  -e DJANGO_SETTINGS_MODULE=gymhub.settings_test \
+  backend python manage.py migrate --settings=gymhub.settings_test --noinput
 
 # Ejecutar los tests
 echo "Ejecutando tests..."
-"${DOCKER_BIN}" compose run --rm \
+"${DOCKER_BIN}" compose run --rm --no-deps \
   -e DJANGO_SETTINGS_MODULE=gymhub.settings_test \
   backend pytest tests/ -v --tb=short "$@"
 

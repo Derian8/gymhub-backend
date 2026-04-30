@@ -32,26 +32,25 @@ vi.mock('../hooks/usePlans', () => ({
       days_per_week: 4,
       weeks_duration: 8,
       is_active: true,
-      workout_days: [],
-    },
-    isLoading: false,
-  }),
-  useWeeklyPlanQuery: () => ({
-    data: {
       workout_days: [
         {
           id: 101,
+          plan: 12,
           day_label: 'A',
+          day_of_week: 'mon',
+          order: 0,
           name: 'Torso',
           exercises: [
             {
               id: 501,
+              workout_day: 101,
               name: 'Press banca',
               muscle_group: 'chest',
               exercise_type: 'strength',
               sets: 4,
               reps_range: '8-10',
               target_minutes: null,
+              machine: null,
               weight_suggestion_kg: 60,
               rest_seconds: 90,
               technique_notes: '',
@@ -59,12 +58,14 @@ vi.mock('../hooks/usePlans', () => ({
             },
             {
               id: 502,
+              workout_day: 101,
               name: 'Bici estatica',
               muscle_group: 'cardio',
               exercise_type: 'timed',
               sets: null,
               reps_range: '',
               target_minutes: 20,
+              machine: null,
               weight_suggestion_kg: null,
               rest_seconds: 30,
               technique_notes: '',
@@ -74,12 +75,14 @@ vi.mock('../hooks/usePlans', () => ({
         },
       ],
     },
+    isLoading: false,
   }),
   useTodayWorkoutQuery: () => ({
     data: {
       id: 101,
       day_label: 'A',
       name: 'Torso',
+      day_of_week: 'mon',
       exercises: [],
     },
   }),
@@ -129,14 +132,14 @@ describe('PlanDetailPage', () => {
   })
 
   it('renders weekly view and today workout action', () => {
-    const { getByTestId, getByText } = renderWithProviders(<PlanDetailPage />)
+    const { getAllByText, getByTestId, getByText } = renderWithProviders(<PlanDetailPage />)
 
     expect(getByTestId('plan-detail-page')).toBeInTheDocument()
     expect(getByText('Hipertrofia base')).toBeInTheDocument()
     expect(getByText('Hoy: Día A')).toBeInTheDocument()
     expect(getByTestId('today-workout-btn')).toHaveAttribute('href', '/plans/12/today')
     expect(getByTestId('workout-day-101')).toBeInTheDocument()
-    expect(getByText('Press banca')).toBeInTheDocument()
+    expect(getAllByText('Press banca').length).toBeGreaterThan(0)
     expect(getByText('Bici estatica')).toBeInTheDocument()
   })
 

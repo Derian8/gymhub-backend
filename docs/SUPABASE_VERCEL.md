@@ -128,9 +128,22 @@ cd frontend
 vercel login
 vercel link
 vercel env pull .env.vercel.local
-vercel deploy
-vercel deploy --prod
+cd ..
+./deploy-vercel-frontend
+./deploy-vercel-backend
 ```
+
+No uses el mismo `VERCEL_PROJECT_ID` para ambos despliegues. Si despliegas el backend
+con el `project id` del frontend, Vercel intentará correr `vite build` dentro de
+`gymhub/` y fallará con:
+
+```text
+sh: line 1: vite: command not found
+Error: Command "vite build" exited with 127
+```
+
+Ese error no significa que falle Vite como dependencia del backend; significa que el
+deploy salió dirigido al proyecto equivocado en Vercel.
 
 `vercel env pull` descarga variables del proyecto a un archivo local. `vercel pull` descarga variables y settings bajo `.vercel/` para `vercel build` y `vercel dev`.
 

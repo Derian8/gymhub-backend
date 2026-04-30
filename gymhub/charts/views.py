@@ -4,11 +4,6 @@ import logging
 import os
 import time
 
-import matplotlib
-matplotlib.use('Agg')  # Non-interactive backend, MUST be before pyplot import
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-
 from django.conf import settings
 from django.core.cache import cache
 from rest_framework import status
@@ -32,8 +27,19 @@ VALID_CHART_TYPES = [
 ]
 
 
+def _load_matplotlib():
+    import matplotlib
+
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
+
+    return plt, mdates
+
+
 def _save_chart(fig, chart_type, cache_key_hash):
     """Guarda la figura matplotlib en MEDIA_ROOT/charts/ y retorna la URL relativa."""
+    plt, _ = _load_matplotlib()
     charts_dir = os.path.join(settings.MEDIA_ROOT, 'charts')
     os.makedirs(charts_dir, exist_ok=True)
 
@@ -46,6 +52,7 @@ def _save_chart(fig, chart_type, cache_key_hash):
 
 def generate_attendance_monthly(member):
     """Asistencias mensuales del miembro (últimos 6 meses)."""
+    plt, _ = _load_matplotlib()
     from attendance.models import Attendance
     from datetime import date
     from collections import defaultdict
@@ -80,6 +87,7 @@ def generate_attendance_monthly(member):
 
 def generate_retention_rate():
     """Tasa de retención: miembros activos vs inactivos (últimos 6 meses)."""
+    plt, _ = _load_matplotlib()
     from users.models import MemberProfile
     from attendance.models import Attendance
     from datetime import date, timedelta
@@ -113,6 +121,7 @@ def generate_retention_rate():
 
 def generate_payment_status():
     """Distribución del estado de pagos (pie chart)."""
+    plt, _ = _load_matplotlib()
     from billing.models import PaymentRecord
     from collections import Counter
 
@@ -136,6 +145,7 @@ def generate_payment_status():
 
 def generate_physical_progress(member):
     """Progresión física: peso, grasa corporal, masa muscular."""
+    plt, _ = _load_matplotlib()
     from progress.models import ProgressLog
 
     logs = ProgressLog.objects.filter(member=member).order_by('recorded_at')
@@ -170,6 +180,7 @@ def generate_physical_progress(member):
 
 def generate_exercise_progression(member, exercise):
     """Progresión de peso en un ejercicio específico."""
+    plt, _ = _load_matplotlib()
     from progress.models import ExerciseLog
 
     logs = ExerciseLog.objects.filter(

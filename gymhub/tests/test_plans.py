@@ -72,8 +72,8 @@ class TestTrainingPlans:
 
 @pytest.mark.django_db
 class TestTodayWorkout:
-    def test_today_workout_returns_correct_rotation(self, member_client, training_plan):
-        """today-workout retorna el WorkoutDay correcto según la rotación."""
+    def test_today_workout_returns_weekday_assigned_day(self, member_client, training_plan):
+        """today-workout retorna el WorkoutDay asignado al día real de la semana."""
         resp = member_client.get(f'/api/plans/{training_plan.id}/today-workout/')
         assert resp.status_code == status.HTTP_200_OK
         assert 'exercises' in resp.data
@@ -85,8 +85,8 @@ class TestTodayWorkout:
         assert resp.status_code == status.HTTP_200_OK
         assert len(resp.data['exercises']) > 0
 
-    def test_today_workout_rotation_consistency(self, member_client, training_plan):
-        """La rotación es consistente: mismo plan, mismo día → mismo resultado."""
+    def test_today_workout_weekday_consistency(self, member_client, training_plan):
+        """La resolución por día fijo es consistente: mismo plan, mismo día → mismo resultado."""
         resp1 = member_client.get(f'/api/plans/{training_plan.id}/today-workout/')
         resp2 = member_client.get(f'/api/plans/{training_plan.id}/today-workout/')
         assert resp1.data['id'] == resp2.data['id']
@@ -315,6 +315,7 @@ class TestBulkExerciseLogs:
             plan=training_plan,
             name='Dia externo',
             day_label='B',
+            day_of_week='sun',
             order=9,
         )
         foreign_exercise = Exercise.objects.create(
@@ -348,3 +349,28 @@ class TestWeeklyView:
         assert resp.status_code == status.HTTP_200_OK
         assert 'week_days' in resp.data
         assert len(resp.data['week_days']) == 7
+
+
+@pytest.mark.django_db
+class TestGymMachines:
+    def test_trainer_can_create_gym_machine(self, trainer_client):
+        resp = trainer_client.post('/api/gym-machines/', {
+            'name': 'Prensa 45',
+            'category': 'Pierna',
+            'notes': 'Uso general',
+            'is_active': True,
+        }, format='json')
+
+        assert resp.status_code == status.HTTP_201_CREATED
+        assert resp.data['name'] == 'Prensa 45'
+        assert resp.data['category'] == 'Pierna'
+
+    def test_member_cannot_create_gym_machine(self, member_client):
+        resp = member_client.post('/api/gym-machines/', {
+            'name': 'Smith',
+            'category': 'Pecho',
+            'notes': '',
+            'is_active': True,
+        }, format='json')
+
+        assert resp.status_code == status.HTTP_403_FORBIDDEN

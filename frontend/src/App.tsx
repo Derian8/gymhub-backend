@@ -1,8 +1,10 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AppLayout } from '@/layouts/AppLayout'
 import { AuthLayout } from '@/layouts/AuthLayout'
 import { ProtectedRoute, PublicRoute } from '@/shared/components/RouteGuards'
 import { useAuth } from '@/shared/hooks/useAuth'
+import { useAuthStore } from '@/shared/store/authStore'
 
 // Auth
 import { LoginPage } from '@/modules/auth/pages/LoginPage'
@@ -47,11 +49,35 @@ import { AiChatPage } from '@/modules/ai-chat/pages/AiChatPage'
 // Profile
 import { ProfilePage } from '@/modules/profile/pages/ProfilePage'
 
+const PUBLIC_PATHS = new Set(['/login', '/register', '/'])
+
+function AuthBootstrap() {
+  const location = useLocation()
+  const { user, isAuthenticated, authResolved, setAuthResolved } = useAuthStore()
+  const shouldCheckSession = !PUBLIC_PATHS.has(location.pathname)
+
+  useAuth(shouldCheckSession)
+
+  useEffect(() => {
+    if (!shouldCheckSession && !user && !isAuthenticated && !authResolved) {
+      setAuthResolved(true)
+      return
+    }
+
+    if (shouldCheckSession && !user && !isAuthenticated && authResolved) {
+      setAuthResolved(false)
+    }
+  }, [authResolved, isAuthenticated, setAuthResolved, shouldCheckSession, user])
+
+  return null
+}
+
 function App() {
-  useAuth()
 
   return (
-    <Routes>
+    <>
+      <AuthBootstrap />
+      <Routes>
       {/* Public routes */}
       <Route
         element={
@@ -162,7 +188,8 @@ function App() {
       {/* Root redirect */}
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="*" element={<NotFound />} />
-    </Routes>
+      </Routes>
+    </>
   )
 }
 
