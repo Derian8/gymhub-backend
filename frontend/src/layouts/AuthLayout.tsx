@@ -3,6 +3,7 @@ import { useAuthStore } from '@/shared/store/authStore'
 import { useEffect } from 'react'
 import { BrandMark, BrandWordmark, SymbolFrame } from '@/shared/components/Brand'
 import { useBackendStatusStore } from '@/shared/store/backendStatusStore'
+import { RuntimeStatusBadge } from '@/shared/components/RuntimeStatusBadge'
 
 export function AuthLayout() {
   const { theme } = useAuthStore()
@@ -62,6 +63,7 @@ export function AuthLayout() {
       {/* Right: form */}
       <div className="w-full lg:w-[480px] flex flex-col justify-center px-8 py-12 bg-white dark:bg-neutral-950">
         <div className="max-w-sm mx-auto w-full">
+          <RuntimeStatusBadge />
           <div className="mb-8 flex items-center gap-3">
             <BrandMark />
             <div>

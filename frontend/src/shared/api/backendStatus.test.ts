@@ -50,6 +50,20 @@ describe('classifyBackendIssue', () => {
     expect(issue?.kind).toBe('backend_error')
   })
 
+  it('classifies HTML platform responses separately from backend errors', () => {
+    const error = new AxiosError('Server Error', 'ERR_BAD_RESPONSE', undefined, undefined, {
+      status: 500,
+      statusText: 'Internal Server Error',
+      headers: { 'content-type': 'text/html; charset=utf-8' },
+      config: {} as never,
+      data: '<!doctype html><html><title>Authentication Required</title>Vercel Authentication</html>',
+    })
+
+    const issue = classifyBackendIssue(error, '')
+
+    expect(issue?.kind).toBe('platform_error')
+  })
+
   it('classifies timeout with healthy backend as backend_slow', async () => {
     vi.stubGlobal('fetch', vi.fn()
       .mockResolvedValueOnce({ ok: true })

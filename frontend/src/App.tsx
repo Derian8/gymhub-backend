@@ -5,6 +5,8 @@ import { AuthLayout } from '@/layouts/AuthLayout'
 import { ProtectedRoute, PublicRoute } from '@/shared/components/RouteGuards'
 import { useAuth } from '@/shared/hooks/useAuth'
 import { useAuthStore } from '@/shared/store/authStore'
+import { useBackendStatusStore } from '@/shared/store/backendStatusStore'
+import { syncClientBuildState } from '@/shared/lib/runtimeInfo'
 
 // Auth
 import { LoginPage } from '@/modules/auth/pages/LoginPage'
@@ -73,6 +75,18 @@ function AuthBootstrap() {
 }
 
 function App() {
+  const logout = useAuthStore((s) => s.logout)
+  const setAuthResolved = useAuthStore((s) => s.setAuthResolved)
+  const clearBackendIssue = useBackendStatusStore((s) => s.clearIssue)
+
+  useEffect(() => {
+    syncClientBuildState(() => {
+      window.localStorage.removeItem('gymhub-auth')
+      clearBackendIssue()
+      logout()
+      setAuthResolved(true)
+    })
+  }, [clearBackendIssue, logout, setAuthResolved])
 
   return (
     <>

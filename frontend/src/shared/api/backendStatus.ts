@@ -1,7 +1,8 @@
 import type { AxiosError } from 'axios'
+import { getRuntimeOrigin } from '@/shared/lib/runtimeInfo'
 
 export interface BackendIssue {
-  kind: 'network' | 'stale_bundle' | 'backend_error' | 'backend_not_ready' | 'backend_slow'
+  kind: 'network' | 'stale_bundle' | 'backend_error' | 'backend_not_ready' | 'backend_slow' | 'platform_error'
   title: string
   message: string
   backendUrl: string
@@ -17,7 +18,26 @@ interface BackendHealthProbeResult {
 
 export function classifyBackendIssue(error: AxiosError, backendUrl: string): BackendIssue | null {
   const normalizedUrl = backendUrl.trim()
-  const displayUrl = normalizedUrl || window.location.origin
+  const displayUrl = normalizedUrl || getRuntimeOrigin()
+  const contentType = String(error.response?.headers?.['content-type'] || '')
+  const responseBody = typeof error.response?.data === 'string' ? error.response.data : ''
+
+  if (
+    error.response
+    && contentType.includes('text/html')
+    && (
+      responseBody.includes('Authentication Required')
+      || responseBody.includes('Vercel Authentication')
+      || responseBody.includes('<!doctype html>')
+    )
+  ) {
+    return {
+      kind: 'platform_error',
+      title: 'La plataforma interceptó la petición',
+      message: `La ruta API en ${displayUrl} devolvió HTML de plataforma en lugar de JSON. Revisa protección de previews, rewrites o un deployment viejo en caché.`,
+      backendUrl: displayUrl,
+    }
+  }
 
   if (!error.response) {
     if (PLACEHOLDER_URLS.has(normalizedUrl)) {
@@ -74,7 +94,7 @@ async function probeBackendHealth(backendUrl: string): Promise<BackendHealthProb
     return { live: false, ready: false }
   }
 
-  const baseUrl = normalizedUrl || window.location.origin
+  const baseUrl = normalizedUrl || getRuntimeOrigin()
   const live = await fetchHealth(`${baseUrl}/health/live/`)
   if (!live) {
     return { live: false, ready: false }
@@ -89,10 +109,14 @@ export async function diagnoseBackendIssue(
   backendUrl: string,
 ): Promise<BackendIssue | null> {
   const normalizedUrl = backendUrl.trim()
-  const displayUrl = normalizedUrl || window.location.origin
+  const displayUrl = normalizedUrl || getRuntimeOrigin()
   const classified = classifyBackendIssue(error, backendUrl)
 
-  if (classified?.kind === 'stale_bundle' || classified?.kind === 'backend_error') {
+  if (
+    classified?.kind === 'stale_bundle'
+    || classified?.kind === 'backend_error'
+    || classified?.kind === 'platform_error'
+  ) {
     return classified
   }
 
