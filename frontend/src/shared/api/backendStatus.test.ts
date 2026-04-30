@@ -19,6 +19,14 @@ describe('classifyBackendIssue', () => {
     expect(issue?.kind).toBe('stale_bundle')
   })
 
+  it('classifies empty backend URL as same-origin network issue, not stale bundle', () => {
+    const error = new AxiosError('Network Error', 'ERR_NETWORK')
+
+    const issue = classifyBackendIssue(error, '')
+
+    expect(issue?.kind).toBe('network')
+  })
+
   it('classifies network errors as backend unreachable', () => {
     const error = new AxiosError('Network Error', 'ERR_NETWORK')
 

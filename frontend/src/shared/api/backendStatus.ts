@@ -7,7 +7,7 @@ export interface BackendIssue {
   backendUrl: string
 }
 
-const PLACEHOLDER_URLS = new Set(['', 'https://api.tu-dominio.com'])
+const PLACEHOLDER_URLS = new Set(['https://api.tu-dominio.com'])
 const HEALTH_TIMEOUT_MS = 5000
 
 interface BackendHealthProbeResult {
@@ -17,7 +17,7 @@ interface BackendHealthProbeResult {
 
 export function classifyBackendIssue(error: AxiosError, backendUrl: string): BackendIssue | null {
   const normalizedUrl = backendUrl.trim()
-  const displayUrl = normalizedUrl || 'sin configurar'
+  const displayUrl = normalizedUrl || window.location.origin
 
   if (!error.response) {
     if (PLACEHOLDER_URLS.has(normalizedUrl)) {
@@ -70,16 +70,17 @@ async function fetchHealth(url: string): Promise<boolean> {
 
 async function probeBackendHealth(backendUrl: string): Promise<BackendHealthProbeResult> {
   const normalizedUrl = backendUrl.trim().replace(/\/$/, '')
-  if (!normalizedUrl || PLACEHOLDER_URLS.has(normalizedUrl)) {
+  if (PLACEHOLDER_URLS.has(normalizedUrl)) {
     return { live: false, ready: false }
   }
 
-  const live = await fetchHealth(`${normalizedUrl}/health/live/`)
+  const baseUrl = normalizedUrl || window.location.origin
+  const live = await fetchHealth(`${baseUrl}/health/live/`)
   if (!live) {
     return { live: false, ready: false }
   }
 
-  const ready = await fetchHealth(`${normalizedUrl}/health/ready/`)
+  const ready = await fetchHealth(`${baseUrl}/health/ready/`)
   return { live, ready }
 }
 
@@ -88,7 +89,7 @@ export async function diagnoseBackendIssue(
   backendUrl: string,
 ): Promise<BackendIssue | null> {
   const normalizedUrl = backendUrl.trim()
-  const displayUrl = normalizedUrl || 'sin configurar'
+  const displayUrl = normalizedUrl || window.location.origin
   const classified = classifyBackendIssue(error, backendUrl)
 
   if (classified?.kind === 'stale_bundle' || classified?.kind === 'backend_error') {
