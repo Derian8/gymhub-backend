@@ -27,7 +27,7 @@ export function PlansPage() {
       <div data-testid="plans-page" className="page-enter">
         <PageHeader
           title="Mi Programa"
-          subtitle={activePlan ? 'Tu trainer ya publicó una rutina activa. Aquí ves qué te dejó preparado y cuál es tu siguiente paso.' : 'Tu trainer todavía no ha publicado una rutina activa completa para ti.'}
+          subtitle={activePlan ? 'Vista secundaria para revisar la estructura semanal completa y el contexto del plan que te publicó tu trainer.' : 'Tu trainer todavía no ha publicado una rutina activa completa para ti.'}
         />
 
         {!activePlan ? (
@@ -74,10 +74,10 @@ export function PlansPage() {
                 <div className="mt-5 flex flex-wrap gap-3">
                   <Link
                     to={`/plans/${activePlan.id}/today`}
-                    className="btn-primary"
+                    className="btn-secondary"
                     data-testid="active-plan-today-link"
                   >
-                    Ir a lo de hoy
+                    Volver a entrenamiento
                   </Link>
                   <Link
                     to={`/plans/${activePlan.id}`}
@@ -230,10 +230,10 @@ function ProgramSidebar({
   return (
     <div className="space-y-4">
       <div className="card p-6" data-testid="program-today-card">
-        <h3 className="font-heading text-lg font-bold text-neutral-900 dark:text-white">Lo de hoy</h3>
+        <h3 className="font-heading text-lg font-bold text-neutral-900 dark:text-white">Referencia de hoy</h3>
         {todayWorkout ? (
           <>
-            <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">Tu trainer dejó activo este bloque para hoy.</p>
+            <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">La ejecución principal ocurre en la página Entrenamiento; esto queda aquí solo como referencia rápida.</p>
             <p className="mt-3 text-lg font-semibold text-neutral-900 dark:text-white">
               Día {todayWorkout.day_label}: {todayWorkout.name}
             </p>

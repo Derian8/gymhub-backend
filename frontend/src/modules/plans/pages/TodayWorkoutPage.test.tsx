@@ -8,6 +8,47 @@ const crearSesion = vi.fn()
 const completarSesion = vi.fn()
 const guardarLogs = vi.fn()
 
+const mockTodayWorkout = {
+  id: 101,
+  day_label: 'A',
+  name: 'Torso',
+  exercises: [
+    {
+      id: 501,
+      workout_day: 101,
+      name: 'Press banca',
+      muscle_group: 'chest',
+      exercise_type: 'strength',
+      sets: 4,
+      reps_range: '8-10',
+      target_minutes: null,
+      machine: 1,
+      machine_detail: { id: 1, name: 'Smith', category: 'Pecho', notes: '', is_active: true },
+      weight_suggestion_kg: 60,
+      rest_seconds: 90,
+      technique_notes: '',
+      order: 0,
+    },
+    {
+      id: 502,
+      workout_day: 101,
+      name: 'Bici estatica',
+      muscle_group: 'cardio',
+      exercise_type: 'timed',
+      sets: null,
+      reps_range: '',
+      target_minutes: 20,
+      machine: null,
+      weight_suggestion_kg: null,
+      rest_seconds: 30,
+      technique_notes: 'Mantén ritmo constante',
+      order: 1,
+    },
+  ],
+}
+
+let mockTodayWorkoutData: typeof mockTodayWorkout | null = mockTodayWorkout
+
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom')
 
@@ -19,44 +60,7 @@ vi.mock('react-router-dom', async () => {
 
 vi.mock('../hooks/usePlans', () => ({
   useTodayWorkoutQuery: () => ({
-    data: {
-      id: 101,
-      day_label: 'A',
-      name: 'Torso',
-      exercises: [
-        {
-          id: 501,
-          workout_day: 101,
-          name: 'Press banca',
-          muscle_group: 'chest',
-          exercise_type: 'strength',
-          sets: 4,
-          reps_range: '8-10',
-          target_minutes: null,
-          machine: 1,
-          machine_detail: { id: 1, name: 'Smith', category: 'Pecho', notes: '', is_active: true },
-          weight_suggestion_kg: 60,
-          rest_seconds: 90,
-          technique_notes: '',
-          order: 0,
-        },
-        {
-          id: 502,
-          workout_day: 101,
-          name: 'Bici estatica',
-          muscle_group: 'cardio',
-          exercise_type: 'timed',
-          sets: null,
-          reps_range: '',
-          target_minutes: 20,
-          machine: null,
-          weight_suggestion_kg: null,
-          rest_seconds: 30,
-          technique_notes: 'Mantén ritmo constante',
-          order: 1,
-        },
-      ],
-    },
+    data: mockTodayWorkoutData,
     isLoading: false,
   }),
   useCreateSessionMutation: () => ({
@@ -85,6 +89,24 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
         id: 12,
         name: 'Hipertrofia base',
       },
+      dias: [
+        {
+          id: 101,
+          plan: 12,
+          day_label: 'A',
+          day_of_week: 'mon',
+          name: 'Torso',
+          exercises: [{ id: 501, name: 'Press banca' }, { id: 502, name: 'Bici estatica' }],
+        },
+        {
+          id: 102,
+          plan: 12,
+          day_label: 'B',
+          day_of_week: 'wed',
+          name: 'Pierna',
+          exercises: [{ id: 503, name: 'Sentadilla' }],
+        },
+      ],
       perfil_nutricional: {
         goal_type: 'muscle_gain',
       },
@@ -121,6 +143,7 @@ vi.mock('@/modules/alerts/hooks/useAlerts', () => ({
 
 describe('TodayWorkoutPage', () => {
   beforeEach(() => {
+    mockTodayWorkoutData = mockTodayWorkout
     crearSesion.mockReset()
     completarSesion.mockReset()
     guardarLogs.mockReset()
@@ -163,8 +186,10 @@ describe('TodayWorkoutPage', () => {
     expect(getAllByText('Hipertrofia base').length).toBeGreaterThan(0)
     expect(getByTestId('workout-primary')).toBeInTheDocument()
     expect(getByTestId('exercise-checklist')).toBeInTheDocument()
+    expect(getByTestId('weekly-program-section')).toBeInTheDocument()
     expect(getByText('Checklist del entrenamiento')).toBeInTheDocument()
-    expect(getByText('Ir al resumen')).toBeInTheDocument()
+    expect(getByText('La semana completa de tu rutina')).toBeInTheDocument()
+    expect(getAllByText('Ir al resumen').length).toBeGreaterThan(0)
     expect(getByTestId('card-messages')).toBeInTheDocument()
     expect(getByTestId('card-physical')).toBeInTheDocument()
     expect(getByTestId('card-nutrition')).toBeInTheDocument()
@@ -211,5 +236,19 @@ describe('TodayWorkoutPage', () => {
     })
 
     expect(queryByTestId('complete-session-btn')).not.toBeInTheDocument()
+  })
+
+  it('keeps training as home and shows weekly plan when there is no block today', () => {
+    mockTodayWorkoutData = null
+
+    const { getByTestId, getByText, queryByTestId } = renderWithProviders(<TodayWorkoutPage />)
+
+    expect(getByTestId('today-workout-page')).toBeInTheDocument()
+    expect(getByText('Hoy no tienes bloque puntual')).toBeInTheDocument()
+    expect(getByTestId('weekly-program-section')).toBeInTheDocument()
+    expect(getByTestId('weekly-day-101')).toHaveTextContent('Torso')
+    expect(getByTestId('weekly-day-102')).toHaveTextContent('Pierna')
+    expect(queryByTestId('start-session-btn')).not.toBeInTheDocument()
+    expect(queryByTestId('exercise-checklist')).not.toBeInTheDocument()
   })
 })

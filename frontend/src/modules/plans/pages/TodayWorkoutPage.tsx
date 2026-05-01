@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, CheckCircle, CreditCard, Dumbbell, Flame, Loader2, MessageSquareMore, Play, Scale, Sparkles, Target, Utensils } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { useParams, Link } from 'react-router-dom'
+import { ArrowLeft, CheckCircle, CreditCard, Dumbbell, Flame, Loader2, MessageSquareMore, NotebookTabs, Play, Scale, Sparkles, Target, Utensils } from 'lucide-react'
 
 import { useTodayWorkoutQuery, useCreateSessionMutation, useCompleteSessionMutation, useBulkExerciseLogsMutation } from '../hooks/usePlans'
 import { EmptyState, Badge } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
 import { SymbolFrame } from '@/shared/components/Brand'
-import { GOAL_LABELS, MUSCLE_LABELS, cn } from '@/shared/lib/utils'
-import type { Exercise, ExerciseLogPayload } from '@/shared/types'
+import { DAY_OF_WEEK_LABELS, GOAL_LABELS, MUSCLE_LABELS, cn } from '@/shared/lib/utils'
+import type { Exercise, ExerciseLogPayload, WorkoutDay } from '@/shared/types'
 import { useAuthStore } from '@/shared/store/authStore'
 import { useMemberActivePrescriptionQuery, useMemberDashboardQuery, useMemberPhysicalSummaryQuery } from '@/modules/members/hooks/useMembers'
 import { useNotificationsQuery } from '@/modules/alerts/hooks/useAlerts'
@@ -30,7 +30,6 @@ function getExercisePrescriptionLabel(exercise: Exercise) {
 }
 
 export function TodayWorkoutPage() {
-  const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const requestedPlanId = parseInt(id || '0')
   const { user } = useAuthStore()
@@ -59,16 +58,6 @@ export function TodayWorkoutPage() {
     }
     return activePrescription?.entrenamiento_hoy ?? null
   }, [activePrescription?.entrenamiento_hoy, data])
-
-  useEffect(() => {
-    if (isLoading) {
-      return
-    }
-
-    if (isMember && !requestedPlanId && !workoutDay?.id) {
-      navigate('/dashboard/member', { replace: true })
-    }
-  }, [isLoading, isMember, navigate, requestedPlanId, workoutDay?.id])
 
   const handleStartSession = () => {
     if (!workoutDay) return
@@ -169,12 +158,14 @@ export function TodayWorkoutPage() {
     )
   }
 
-  if (!workoutDay?.id) {
+  const diasPrograma = activePrescription?.dias || []
+
+  if (!workoutDay?.id && !isMember) {
     return (
       <div data-testid="no-workout-today" className="page-enter">
-        <Link to={isMember ? '/dashboard/member' : `/plans/${planId}`} className="mb-6 flex items-center gap-2 text-sm text-neutral-500 transition-colors hover:text-primary">
+        <Link to={`/plans/${planId}`} className="mb-6 flex items-center gap-2 text-sm text-neutral-500 transition-colors hover:text-primary">
           <ArrowLeft size={16} />
-          {isMember ? 'Volver al resumen' : 'Volver al plan'}
+          Volver al plan
         </Link>
         <EmptyState
           icon={<CheckCircle size={48} className="text-green-400" />}
@@ -185,7 +176,42 @@ export function TodayWorkoutPage() {
     )
   }
 
-  const ejercicios = workoutDay.exercises?.length || 0
+  const ejercicios = workoutDay?.exercises?.length || 0
+  const tieneProgramaActivo = !!activePrescription?.plan_activo
+  const mostrarFallbackSemanal = isMember && !workoutDay?.id && tieneProgramaActivo
+  const mostrarEstadoVacioMember = isMember && !workoutDay?.id && !tieneProgramaActivo
+  const tituloPrincipal = mostrarFallbackSemanal ? 'Hoy no tienes bloque puntual' : `Día ${workoutDay?.day_label} · ${workoutDay?.name}`
+
+  if (mostrarEstadoVacioMember) {
+    return (
+      <div data-testid="today-workout-page" className="page-enter mx-auto max-w-4xl space-y-6">
+        <section
+          data-testid="workout-primary"
+          className="rounded-[1.75rem] border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
+        >
+          <p className="label-base">Entrenamiento de hoy</p>
+          <h1 className="text-3xl font-heading font-black text-neutral-900 dark:text-white">
+            Aún no tienes un programa activo
+          </h1>
+          <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
+            Esta seguirá siendo tu página principal de entrenamiento. Cuando tu trainer publique el plan, aquí verás primero la rutina del día y la semana completa.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link to="/plans/my" className="btn-secondary">Ver mi plan</Link>
+            <Link to="/dashboard/member" className="text-sm font-medium text-neutral-500 transition-colors hover:text-primary self-center">
+              Ir al resumen
+            </Link>
+          </div>
+        </section>
+
+        <EmptyState
+          icon={<Dumbbell size={48} />}
+          title="Sin rutina publicada todavía"
+          description="Tu trainer aún no ha publicado un plan activo completo para ti."
+        />
+      </div>
+    )
+  }
 
   return (
     <div data-testid="today-workout-page" className="page-enter mx-auto max-w-4xl space-y-6">
@@ -202,16 +228,18 @@ export function TodayWorkoutPage() {
       >
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="label-base">Rutina del día</p>
+            <p className="label-base">{mostrarFallbackSemanal ? 'Entrenamiento de hoy' : 'Rutina del día'}</p>
             <h1 className="text-3xl font-heading font-black text-neutral-900 dark:text-white">
-              Día {workoutDay.day_label} · {workoutDay.name}
+              {tituloPrincipal}
             </h1>
             <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
-              Entra, sigue este bloque y marca lo que realmente hiciste durante la sesión.
+              {mostrarFallbackSemanal
+                ? 'Tu home sigue siendo entrenamiento. Como hoy no hay bloque asignado, aquí te dejamos visible toda tu semana para que mantengas el orden del plan.'
+                : 'Entra, sigue este bloque y marca lo que realmente hiciste durante la sesión.'}
             </p>
           </div>
-          <Badge variant={sessionStarted ? 'success' : 'info'}>
-            {sessionStarted ? 'Sesión activa' : 'Bloque listo'}
+          <Badge variant={sessionStarted ? 'success' : mostrarFallbackSemanal ? 'warning' : 'info'}>
+            {sessionStarted ? 'Sesión activa' : mostrarFallbackSemanal ? 'Sin bloque hoy' : 'Bloque listo'}
           </Badge>
         </div>
 
@@ -231,77 +259,81 @@ export function TodayWorkoutPage() {
           <div className="rounded-2xl border border-neutral-200 bg-neutral-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/70">
             <p className="text-[11px] uppercase tracking-wide text-neutral-500">Formato de registro</p>
             <p className="mt-2 text-sm font-semibold text-neutral-900 dark:text-white">
-              Peso, RPE o minutos
+              {mostrarFallbackSemanal ? 'Semana visible y ordenada' : 'Peso, RPE o minutos'}
             </p>
           </div>
         </div>
 
         <div className="mt-5 flex flex-wrap gap-3 text-sm">
-          <InlinePill icon={<Dumbbell size={14} />} label={`${ejercicios} ejercicios hoy`} />
+          <InlinePill icon={<Dumbbell size={14} />} label={mostrarFallbackSemanal ? `${diasPrograma.length} bloques esta semana` : `${ejercicios} ejercicios hoy`} />
           <InlinePill icon={<Target size={14} />} label="Orden ya definido" />
-          <InlinePill icon={<Flame size={14} />} label="Carga sugerida visible" />
+          <InlinePill icon={<Flame size={14} />} label={mostrarFallbackSemanal ? 'Consulta semanal activa' : 'Carga sugerida visible'} />
         </div>
 
-        <div className="mt-6">
-          {!sessionStarted ? (
-            <button
-              onClick={handleStartSession}
-              disabled={isCreating}
-              className="btn-primary flex w-full items-center justify-center gap-2 py-4 text-base"
-              data-testid="start-session-btn"
-            >
-              {isCreating ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
-              {isCreating ? 'Iniciando...' : 'INICIAR SESIÓN'}
-            </button>
-          ) : (
-            <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
-              <SymbolFrame size="sm" tone="success">
-                <CheckCircle size={16} />
-              </SymbolFrame>
-              <div>
-                <p className="text-sm font-semibold">Sesión activa</p>
-                <p className="text-xs opacity-80">Marca la carga usada o los minutos completados mientras avanzas por la rutina.</p>
+        {!mostrarFallbackSemanal ? (
+          <div className="mt-6">
+            {!sessionStarted ? (
+              <button
+                onClick={handleStartSession}
+                disabled={isCreating}
+                className="btn-primary flex w-full items-center justify-center gap-2 py-4 text-base"
+                data-testid="start-session-btn"
+              >
+                {isCreating ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
+                {isCreating ? 'Iniciando...' : 'INICIAR SESIÓN'}
+              </button>
+            ) : (
+              <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
+                <SymbolFrame size="sm" tone="success">
+                  <CheckCircle size={16} />
+                </SymbolFrame>
+                <div>
+                  <p className="text-sm font-semibold">Sesión activa</p>
+                  <p className="text-xs opacity-80">Marca la carga usada o los minutos completados mientras avanzas por la rutina.</p>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-      </section>
-
-      <section className="space-y-4" data-testid="exercise-checklist">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="label-base">Lo que haces hoy</p>
-            <h2 className="text-2xl font-heading font-bold text-neutral-900 dark:text-white">
-              Checklist del entrenamiento
-            </h2>
-            <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-              Cada ejercicio ya trae máquina, prescripción, descanso y peso sugerido para que no tengas que salir de esta pantalla.
-            </p>
+            )}
           </div>
-          {isMember ? (
-            <Link
-              to="/dashboard/member"
-              className="text-sm font-medium text-neutral-500 transition-colors hover:text-primary"
-            >
-              Ir al resumen
-            </Link>
-          ) : null}
-        </div>
-
-        <div className="space-y-4">
-          {workoutDay.exercises?.map((exercise) => (
-            <ExerciseCard
-              key={exercise.id}
-              exercise={exercise}
-              log={logs[exercise.id]}
-              active={sessionStarted}
-              onUpdate={(field, value) => updateLog(exercise.id, field as keyof ExerciseLogEntry, value)}
-            />
-          ))}
-        </div>
+        ) : null}
       </section>
 
-        {sessionStarted ? (
+      {!mostrarFallbackSemanal ? (
+        <section className="space-y-4" data-testid="exercise-checklist">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="label-base">Lo que haces hoy</p>
+              <h2 className="text-2xl font-heading font-bold text-neutral-900 dark:text-white">
+                Checklist del entrenamiento
+              </h2>
+              <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                Cada ejercicio ya trae máquina, prescripción, descanso y peso sugerido para que no tengas que salir de esta pantalla.
+              </p>
+            </div>
+            {isMember ? (
+              <Link
+                to="/dashboard/member"
+                className="text-sm font-medium text-neutral-500 transition-colors hover:text-primary"
+              >
+                Ir al resumen
+              </Link>
+            ) : null}
+          </div>
+
+          <div className="space-y-4">
+            {workoutDay?.exercises?.map((exercise) => (
+              <ExerciseCard
+                key={exercise.id}
+                exercise={exercise}
+                log={logs[exercise.id]}
+                active={sessionStarted}
+                onUpdate={(field, value) => updateLog(exercise.id, field as keyof ExerciseLogEntry, value)}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {sessionStarted ? (
           <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
             <h3 className="font-heading text-lg font-bold text-neutral-900 dark:text-white">Finalizar sesión</h3>
             <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
@@ -339,32 +371,70 @@ export function TodayWorkoutPage() {
               {isCompleting || isSaving ? 'Guardando...' : 'COMPLETAR SESIÓN'}
             </button>
           </div>
-        ) : null}
+      ) : null}
 
-        {isMember ? (
-          <section className="space-y-4 border-t border-neutral-200 pt-8 dark:border-neutral-800" data-testid="secondary-support">
+      {isMember && tieneProgramaActivo ? (
+        <section className="space-y-4" data-testid="weekly-program-section">
+          <div className="flex items-center gap-3">
+            <SymbolFrame size="sm" tone="primary" className="rounded-xl">
+              <NotebookTabs size={18} />
+            </SymbolFrame>
             <div>
-              <p className="label-base">Soporte secundario</p>
-              <h2 className="text-xl font-heading font-bold text-neutral-900 dark:text-white">
-                Lo demás sigue disponible sin quitarle el foco a tu rutina
+              <p className="label-base">Programa semanal</p>
+              <h2 className="text-2xl font-heading font-bold text-neutral-900 dark:text-white">
+                La semana completa de tu rutina
               </h2>
-              <p className="mt-1 text-sm text-neutral-500">
-                Úsalo cuando necesites contexto adicional, pero el entrenamiento del día sigue siendo la página principal.
+              <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                Aquí mantienes el contexto general del plan sin salir de la página principal de entrenamiento.
               </p>
             </div>
+          </div>
 
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <SupportCard
-                title="Mensajes del trainer"
-                icon={<MessageSquareMore size={18} className="text-primary" />}
-                to="/messages"
-                testId="card-messages"
-              >
-                <p className="text-sm font-semibold text-neutral-900 dark:text-white">
-                  {unreadTrainerMessages > 0 ? `${unreadTrainerMessages} sin leer` : 'Sin mensajes pendientes'}
-                </p>
-                <p className="text-xs text-neutral-500">Mantén visibles los ajustes o avisos que te dejó tu trainer.</p>
-              </SupportCard>
+          <div className="space-y-3">
+            {diasPrograma.map((day) => (
+              <WorkoutDayCard
+                key={day.id}
+                day={day}
+                isToday={activePrescription?.entrenamiento_hoy?.id === day.id}
+              />
+            ))}
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Link to="/plans/my" className="btn-secondary" data-testid="view-weekly-program-link">
+              Ver mi plan semanal
+            </Link>
+            <Link to="/dashboard/member" className="text-sm font-medium text-neutral-500 transition-colors hover:text-primary self-center">
+              Ir al resumen
+            </Link>
+          </div>
+        </section>
+      ) : null}
+
+      {isMember ? (
+        <section className="space-y-4 border-t border-neutral-200 pt-8 dark:border-neutral-800" data-testid="secondary-support">
+          <div>
+            <p className="label-base">Soporte secundario</p>
+            <h2 className="text-xl font-heading font-bold text-neutral-900 dark:text-white">
+              Lo demás sigue disponible sin quitarle el foco a tu rutina
+            </h2>
+            <p className="mt-1 text-sm text-neutral-500">
+              Úsalo cuando necesites contexto adicional, pero el entrenamiento del día sigue siendo la página principal.
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <SupportCard
+              title="Mensajes del trainer"
+              icon={<MessageSquareMore size={18} className="text-primary" />}
+              to="/messages"
+              testId="card-messages"
+            >
+              <p className="text-sm font-semibold text-neutral-900 dark:text-white">
+                {unreadTrainerMessages > 0 ? `${unreadTrainerMessages} sin leer` : 'Sin mensajes pendientes'}
+              </p>
+              <p className="text-xs text-neutral-500">Mantén visibles los ajustes o avisos que te dejó tu trainer.</p>
+            </SupportCard>
 
               <SupportCard
                 title="Físico actual"
@@ -419,9 +489,9 @@ export function TodayWorkoutPage() {
                 <p className="text-sm font-semibold text-neutral-900 dark:text-white">Consulta rápida durante el entrenamiento</p>
                 <p className="text-xs text-neutral-500">Úsalo como apoyo para dudas de ejecución o contexto del plan.</p>
               </SupportCard>
-            </div>
-          </section>
-        ) : null}
+          </div>
+        </section>
+      ) : null}
     </div>
   )
 }
@@ -462,6 +532,39 @@ function SupportCard({
       </div>
       {children}
     </Link>
+  )
+}
+
+function WorkoutDayCard({
+  day,
+  isToday,
+}: {
+  day: WorkoutDay
+  isToday: boolean
+}) {
+  return (
+    <div
+      className="rounded-[1.5rem] border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
+      data-testid={`weekly-day-${day.id}`}
+    >
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-sm font-bold text-white">
+            {day.day_label}
+          </span>
+          <div>
+            <h3 className="font-semibold text-neutral-900 dark:text-white">{day.name}</h3>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">
+              {DAY_OF_WEEK_LABELS[day.day_of_week]} · {day.exercises?.length || 0} ejercicio(s)
+            </p>
+          </div>
+        </div>
+        {isToday ? <Badge variant="info">Hoy</Badge> : null}
+      </div>
+      <p className="text-sm text-neutral-600 dark:text-neutral-300">
+        {day.exercises?.slice(0, 4).map((exercise) => exercise.name).join(' · ') || 'Este bloque todavía no tiene ejercicios visibles.'}
+      </p>
+    </div>
   )
 }
 
