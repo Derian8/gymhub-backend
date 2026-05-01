@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, CheckCircle, CreditCard, Dumbbell, Flame, Loader2, MessageSquareMore, Play, Scale, Sparkles, Target, UserRound, Utensils } from 'lucide-react'
+import { ArrowLeft, CheckCircle, CreditCard, Dumbbell, Flame, Loader2, MessageSquareMore, Play, Scale, Sparkles, Target, Utensils } from 'lucide-react'
 
 import { useTodayWorkoutQuery, useCreateSessionMutation, useCompleteSessionMutation, useBulkExerciseLogsMutation } from '../hooks/usePlans'
 import { EmptyState, Badge } from '@/shared/components/UI'
@@ -188,45 +188,62 @@ export function TodayWorkoutPage() {
   const ejercicios = workoutDay.exercises?.length || 0
 
   return (
-    <div data-testid="today-workout-page" className="page-enter mx-auto max-w-5xl space-y-6">
-      <Link to={isMember ? '/dashboard/member' : `/plans/${planId}`} className="flex items-center gap-2 text-sm text-neutral-500 transition-colors hover:text-primary">
-        <ArrowLeft size={16} />
-        {isMember ? 'Ver resumen completo' : 'Volver al plan'}
-      </Link>
+    <div data-testid="today-workout-page" className="page-enter mx-auto max-w-4xl space-y-6">
+      {!isMember ? (
+        <Link to={`/plans/${planId}`} className="flex items-center gap-2 text-sm text-neutral-500 transition-colors hover:text-primary">
+          <ArrowLeft size={16} />
+          Volver al plan
+        </Link>
+      ) : null}
 
-      <section className="rounded-[1.75rem] border border-neutral-200 bg-gradient-to-br from-white via-neutral-50 to-primary/5 p-6 shadow-sm dark:border-neutral-800 dark:from-neutral-950 dark:via-neutral-950 dark:to-primary/10">
+      <section
+        data-testid="workout-primary"
+        className="rounded-[1.75rem] border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
+      >
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="label-base">Entrenamiento de hoy</p>
+            <p className="label-base">Rutina del día</p>
             <h1 className="text-3xl font-heading font-black text-neutral-900 dark:text-white">
               Día {workoutDay.day_label} · {workoutDay.name}
             </h1>
             <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
-              {ejercicios} ejercicios definidos para que entres y sepas exactamente qué hacer hoy.
+              Entra, sigue este bloque y marca lo que realmente hiciste durante la sesión.
             </p>
-            <div className="mt-4 flex flex-wrap gap-3 text-sm">
-              <InlinePill icon={<Dumbbell size={14} />} label={activePrescription?.plan_activo?.name || 'Programa activo'} />
-              <InlinePill icon={<Target size={14} />} label={`${ejercicios} ejercicios`} />
-              <InlinePill icon={<Flame size={14} />} label="Peso, RPE o minutos" />
-            </div>
           </div>
           <Badge variant={sessionStarted ? 'success' : 'info'}>
-            {sessionStarted ? 'Sesión activa' : 'Listo para ejecutar'}
+            {sessionStarted ? 'Sesión activa' : 'Bloque listo'}
           </Badge>
         </div>
 
-        {isMember && activePrescription?.trainer ? (
-          <div className="mt-5 flex flex-wrap items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
-            <UserRound size={16} className="text-primary" />
-            <span className="font-medium">{activePrescription.trainer.nombre}</span>
-            <span className="text-neutral-400">·</span>
-            <span>{activePrescription.plan_activo?.name || 'Tu programa actual'}</span>
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-neutral-200 bg-neutral-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/70">
+            <p className="text-[11px] uppercase tracking-wide text-neutral-500">Plan activo</p>
+            <p className="mt-2 text-sm font-semibold text-neutral-900 dark:text-white">
+              {activePrescription?.plan_activo?.name || 'Programa activo'}
+            </p>
           </div>
-        ) : null}
-      </section>
+          <div className="rounded-2xl border border-neutral-200 bg-neutral-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/70">
+            <p className="text-[11px] uppercase tracking-wide text-neutral-500">Trainer</p>
+            <p className="mt-2 text-sm font-semibold text-neutral-900 dark:text-white">
+              {activePrescription?.trainer?.nombre || 'Trainer no asignado'}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-neutral-200 bg-neutral-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/70">
+            <p className="text-[11px] uppercase tracking-wide text-neutral-500">Formato de registro</p>
+            <p className="mt-2 text-sm font-semibold text-neutral-900 dark:text-white">
+              Peso, RPE o minutos
+            </p>
+          </div>
+        </div>
 
-      <div className="space-y-6">
-        {!sessionStarted ? (
+        <div className="mt-5 flex flex-wrap gap-3 text-sm">
+          <InlinePill icon={<Dumbbell size={14} />} label={`${ejercicios} ejercicios hoy`} />
+          <InlinePill icon={<Target size={14} />} label="Orden ya definido" />
+          <InlinePill icon={<Flame size={14} />} label="Carga sugerida visible" />
+        </div>
+
+        <div className="mt-6">
+          {!sessionStarted ? (
             <button
               onClick={handleStartSession}
               disabled={isCreating}
@@ -243,10 +260,33 @@ export function TodayWorkoutPage() {
               </SymbolFrame>
               <div>
                 <p className="text-sm font-semibold">Sesión activa</p>
-                <p className="text-xs opacity-80">Ejecuta el bloque definido por tu trainer y registra carga o minutos según el tipo de ejercicio.</p>
+                <p className="text-xs opacity-80">Marca la carga usada o los minutos completados mientras avanzas por la rutina.</p>
               </div>
             </div>
           )}
+        </div>
+      </section>
+
+      <section className="space-y-4" data-testid="exercise-checklist">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="label-base">Lo que haces hoy</p>
+            <h2 className="text-2xl font-heading font-bold text-neutral-900 dark:text-white">
+              Checklist del entrenamiento
+            </h2>
+            <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+              Cada ejercicio ya trae máquina, prescripción, descanso y peso sugerido para que no tengas que salir de esta pantalla.
+            </p>
+          </div>
+          {isMember ? (
+            <Link
+              to="/dashboard/member"
+              className="text-sm font-medium text-neutral-500 transition-colors hover:text-primary"
+            >
+              Ir al resumen
+            </Link>
+          ) : null}
+        </div>
 
         <div className="space-y-4">
           {workoutDay.exercises?.map((exercise) => (
@@ -259,6 +299,7 @@ export function TodayWorkoutPage() {
             />
           ))}
         </div>
+      </section>
 
         {sessionStarted ? (
           <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
@@ -303,12 +344,12 @@ export function TodayWorkoutPage() {
         {isMember ? (
           <section className="space-y-4 border-t border-neutral-200 pt-8 dark:border-neutral-800" data-testid="secondary-support">
             <div>
-              <p className="label-base">Apoyo secundario</p>
+              <p className="label-base">Soporte secundario</p>
               <h2 className="text-xl font-heading font-bold text-neutral-900 dark:text-white">
-                IA, nutrición, pagos, mensajes y datos físicos
+                Lo demás sigue disponible sin quitarle el foco a tu rutina
               </h2>
               <p className="mt-1 text-sm text-neutral-500">
-                Todo esto sigue disponible, pero ya no compite con tu rutina del día.
+                Úsalo cuando necesites contexto adicional, pero el entrenamiento del día sigue siendo la página principal.
               </p>
             </div>
 
@@ -381,7 +422,6 @@ export function TodayWorkoutPage() {
             </div>
           </section>
         ) : null}
-      </div>
     </div>
   )
 }
