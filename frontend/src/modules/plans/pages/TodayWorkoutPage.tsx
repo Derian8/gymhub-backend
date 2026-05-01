@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, CheckCircle, CreditCard, Dumbbell, Flame, Loader2, MessageSquareMore, Play, Scale, Sparkles, Target, UserRound, Utensils } from 'lucide-react'
 
 import { useTodayWorkoutQuery, useCreateSessionMutation, useCompleteSessionMutation, useBulkExerciseLogsMutation } from '../hooks/usePlans'
@@ -30,6 +30,7 @@ function getExercisePrescriptionLabel(exercise: Exercise) {
 }
 
 export function TodayWorkoutPage() {
+  const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const requestedPlanId = parseInt(id || '0')
   const { user } = useAuthStore()
@@ -58,6 +59,16 @@ export function TodayWorkoutPage() {
     }
     return activePrescription?.entrenamiento_hoy ?? null
   }, [activePrescription?.entrenamiento_hoy, data])
+
+  useEffect(() => {
+    if (isLoading) {
+      return
+    }
+
+    if (isMember && !requestedPlanId && !workoutDay?.id) {
+      navigate('/dashboard/member', { replace: true })
+    }
+  }, [isLoading, isMember, navigate, requestedPlanId, workoutDay?.id])
 
   const handleStartSession = () => {
     if (!workoutDay) return
