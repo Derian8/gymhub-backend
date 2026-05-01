@@ -28,7 +28,7 @@ export function classifyBackendIssue(error: AxiosError, backendUrl: string): Bac
     && (
       responseBody.includes('Authentication Required')
       || responseBody.includes('Vercel Authentication')
-      || responseBody.includes('<!doctype html>')
+      || responseBody.includes('The deployment could not be found')
     )
   ) {
     return {

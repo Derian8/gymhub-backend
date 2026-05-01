@@ -137,6 +137,14 @@ function App() {
         <Route path="/members/new" element={<ProtectedRoute requiredRole="trainer"><MemberDetailPage /></ProtectedRoute>} />
 
         {/* Plans */}
+        <Route
+          path="/today"
+          element={
+            <ProtectedRoute requiredRole="member">
+              <TodayWorkoutPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/plans" element={<PlansPage />} />
         <Route path="/plans/my" element={<PlansPage />} />
         <Route path="/plans/:id" element={<PlanDetailPage />} />

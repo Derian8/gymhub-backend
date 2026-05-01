@@ -7,6 +7,29 @@ La deuda principal ya no es conectar infraestructura base, sino cerrar operació
 
 ## Prioridad Alta
 
+### 0. Historial de migraciones desalineado con la base real
+Evidencia:
+- `plans.0005` y `progress.0004` aparecen como aplicadas en Django.
+- La base real en Supabase no tenía:
+  - `plans_workoutday.day_of_week`
+  - tabla `plans_gymmachine`
+  - `plans_exercise.machine_id`
+  - `progress_progresslog.height_cm`
+- Esto provocó `500` reales en:
+  - `/api/trainer/gym-overview/`
+  - `/api/charts/overview/`
+  - `/api/members/`
+- La reparación del 2026-04-30 se aplicó manualmente sobre Supabase con SQL idempotente.
+
+Impacto:
+- Producción puede romperse aunque `showmigrations` marque todo en verde.
+- Nuevos entornos no tienen una ruta confiable si dependen solo del historial actual.
+
+Acción recomendada:
+- Corregir permisos de `gymhub/*/migrations/`.
+- Crear migraciones formales de reparación para `plans` y `progress`.
+- Verificar esquema real vs historial antes de futuros deploys.
+
 ### 1. Workers, scheduler y Redis no desplegados en producción
 Evidencia:
 - Vercel ejecuta el backend como runtime web serverless.

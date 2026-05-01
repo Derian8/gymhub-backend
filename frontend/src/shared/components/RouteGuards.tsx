@@ -20,7 +20,7 @@ export function ProtectedRoute({ children, requiredRole = 'any' }: ProtectedRout
   }
 
   if (requiredRole === 'trainer' && user.role !== 'trainer' && !user.is_staff) {
-    return <Navigate to="/dashboard/member" replace />
+    return <Navigate to="/today" replace />
   }
 
   if (requiredRole === 'member' && user.role !== 'member') {
@@ -41,7 +41,7 @@ export function PublicRoute({ children }: { children: React.ReactNode }) {
     if (user.role === 'trainer' || user.is_staff) {
       return <Navigate to="/dashboard/trainer" replace />
     }
-    return <Navigate to="/dashboard/member" replace />
+    return <Navigate to="/today" replace />
   }
 
   return <>{children}</>

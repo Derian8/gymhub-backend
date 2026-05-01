@@ -85,6 +85,35 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
         id: 12,
         name: 'Hipertrofia base',
       },
+      perfil_nutricional: {
+        goal_type: 'muscle_gain',
+      },
+    },
+    isLoading: false,
+  }),
+  useMemberDashboardQuery: () => ({
+    data: {
+      payment_status: 'pending',
+      days_until_due: 2,
+    },
+    isLoading: false,
+  }),
+  useMemberPhysicalSummaryQuery: () => ({
+    data: {
+      current_weight_kg: 72.5,
+      height_cm: 170,
+      bmi: 25.1,
+    },
+    isLoading: false,
+  }),
+}))
+
+vi.mock('@/modules/alerts/hooks/useAlerts', () => ({
+  useNotificationsQuery: () => ({
+    data: {
+      results: [
+        { id: 1, type: 'trainer_message', read: false },
+      ],
     },
     isLoading: false,
   }),
@@ -131,7 +160,12 @@ describe('TodayWorkoutPage', () => {
     expect(getByText('Press banca')).toBeInTheDocument()
     expect(getByText('Bici estatica')).toBeInTheDocument()
     expect(getByText(/Carlos Mendoza dejó este bloque activo para hoy/)).toBeInTheDocument()
-    expect(getByText('Volver a mi programa')).toBeInTheDocument()
+    expect(getByText('Ver resumen completo')).toBeInTheDocument()
+    expect(getByTestId('card-messages')).toBeInTheDocument()
+    expect(getByTestId('card-physical')).toBeInTheDocument()
+    expect(getByTestId('card-nutrition')).toBeInTheDocument()
+    expect(getByTestId('card-billing')).toBeInTheDocument()
+    expect(getByTestId('card-ai')).toBeInTheDocument()
 
     await user.click(getByTestId('start-session-btn'))
 

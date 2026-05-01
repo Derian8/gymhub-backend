@@ -64,6 +64,20 @@ describe('classifyBackendIssue', () => {
     expect(issue?.kind).toBe('platform_error')
   })
 
+  it('keeps Django HTML 500 responses as backend errors', () => {
+    const error = new AxiosError('Server Error', 'ERR_BAD_RESPONSE', undefined, undefined, {
+      status: 500,
+      statusText: 'Internal Server Error',
+      headers: { 'content-type': 'text/html; charset=utf-8' },
+      config: {} as never,
+      data: '<!doctype html><html><title>Server Error (500)</title><body><h1>Server Error (500)</h1></body></html>',
+    })
+
+    const issue = classifyBackendIssue(error, '')
+
+    expect(issue?.kind).toBe('backend_error')
+  })
+
   it('classifies timeout with healthy backend as backend_slow', async () => {
     vi.stubGlobal('fetch', vi.fn()
       .mockResolvedValueOnce({ ok: true })

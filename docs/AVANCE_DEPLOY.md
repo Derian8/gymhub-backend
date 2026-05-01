@@ -13,6 +13,12 @@ El despliegue inicial ya esta operativo con:
 ## Validaciones Realizadas
 
 - Supabase PostgreSQL: migraciones aplicadas correctamente.
+- Reparación directa 2026-04-30 sobre Supabase:
+  - se añadió `plans_workoutday.day_of_week`
+  - se creó `plans_gymmachine`
+  - se añadió `plans_exercise.machine_id`
+  - se añadió `progress_progresslog.height_cm`
+  - motivo: el historial marcaba migraciones como aplicadas, pero el esquema real no tenía esos cambios
 - Supabase seed: `seed_data` completado con usuarios demo, miembros, planes, asistencia, sesiones, pagos, alertas y notificaciones.
 - Backend Vercel: `/api/schema/` responde `HTTP 200`.
 - Frontend Vercel: responde `HTTP 200`.
@@ -22,6 +28,11 @@ El despliegue inicial ya esta operativo con:
   - CORS: correcto desde `https://proyectoappgym-frontend.vercel.app`
   - cookies JWT: emitidas correctamente.
 - Build frontend remoto en Vercel: correcto.
+- Revalidación post-reparación:
+  - `/auth/me/` por preview/frontend: `200`
+  - `/api/trainer/gym-overview/`: `200`
+  - `/api/charts/overview/`: `200`
+  - `/api/members/`: `200`
 
 ## Credenciales Demo
 
@@ -41,6 +52,8 @@ Las credenciales demo no deben publicarse en documentacion externa. Para QA inte
 
 ## Limitaciones Actuales
 
+- El repo tiene un problema de permisos en `gymhub/*/migrations/`: no permite crear nuevas migraciones en este workspace.
+- Por esa razón, la reparación de esquema del 2026-04-30 se aplicó directamente sobre Supabase y todavía falta dejar una migración formal versionada.
 - Vercel ejecuta el backend como runtime web serverless, no como proceso persistente.
 - Celery worker y Celery Beat no estan desplegados en Vercel.
 - Redis gestionado no esta configurado en produccion.

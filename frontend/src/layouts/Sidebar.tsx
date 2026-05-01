@@ -31,7 +31,8 @@ const trainerNav: NavItem[] = [
 ]
 
 const memberNav: NavItem[] = [
-  { label: 'Dashboard', icon: <LayoutDashboard size={18} />, to: '/dashboard/member' },
+  { label: 'Entrenamiento', icon: <Dumbbell size={18} />, to: '/today' },
+  { label: 'Resumen', icon: <LayoutDashboard size={18} />, to: '/dashboard/member' },
   { label: 'Mi Plan', icon: <Dumbbell size={18} />, to: '/plans/my' },
   { label: 'Check-in', icon: <CheckSquare size={18} />, to: '/attendance/check-in' },
   { label: 'Mensajes', icon: <MessageSquareMore size={18} />, to: '/messages' },
