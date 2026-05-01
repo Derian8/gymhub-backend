@@ -11,6 +11,7 @@ const guardarLogs = vi.fn()
 const mockTodayWorkout = {
   id: 101,
   day_label: 'A',
+  day_of_week: 'mon',
   name: 'Torso',
   exercises: [
     {
@@ -63,6 +64,20 @@ vi.mock('../hooks/usePlans', () => ({
     data: mockTodayWorkoutData,
     isLoading: false,
   }),
+  useWeeklyPlanQuery: () => ({
+    data: {
+      week_days: [
+        { date: '2026-03-23', workout_day_name: 'Torso', workout_day_id: 101, day_of_week: 'mon', day_label: 'A', has_workout: true, is_rest_day: false, session_id: null, is_completed: false },
+        { date: '2026-03-24', workout_day_name: null, workout_day_id: null, day_of_week: 'tue', day_label: null, has_workout: false, is_rest_day: true, session_id: null, is_completed: false },
+        { date: '2026-03-25', workout_day_name: null, workout_day_id: null, day_of_week: 'wed', day_label: null, has_workout: false, is_rest_day: true, session_id: null, is_completed: false },
+        { date: '2026-03-26', workout_day_name: null, workout_day_id: null, day_of_week: 'thu', day_label: null, has_workout: false, is_rest_day: true, session_id: null, is_completed: false },
+        { date: '2026-03-27', workout_day_name: 'Pierna', workout_day_id: 102, day_of_week: 'fri', day_label: 'B', has_workout: true, is_rest_day: false, session_id: null, is_completed: false },
+        { date: '2026-03-28', workout_day_name: null, workout_day_id: null, day_of_week: 'sat', day_label: null, has_workout: false, is_rest_day: true, session_id: null, is_completed: false },
+        { date: '2026-03-29', workout_day_name: null, workout_day_id: null, day_of_week: 'sun', day_label: null, has_workout: false, is_rest_day: true, session_id: null, is_completed: false },
+      ],
+    },
+    isLoading: false,
+  }),
   useCreateSessionMutation: () => ({
     mutate: crearSesion,
     isPending: false,
@@ -102,7 +117,7 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
           id: 102,
           plan: 12,
           day_label: 'B',
-          day_of_week: 'wed',
+          day_of_week: 'fri',
           name: 'Pierna',
           exercises: [{ id: 503, name: 'Sentadilla' }],
         },
@@ -187,6 +202,8 @@ describe('TodayWorkoutPage', () => {
     expect(getByTestId('workout-primary')).toBeInTheDocument()
     expect(getByTestId('exercise-checklist')).toBeInTheDocument()
     expect(getByTestId('weekly-program-section')).toBeInTheDocument()
+    expect(getAllByText('Lunes · Torso').length).toBeGreaterThan(0)
+    expect(getByText('Miércoles · Descanso')).toBeInTheDocument()
     expect(getByText('Checklist del entrenamiento')).toBeInTheDocument()
     expect(getByText('La semana completa de tu rutina')).toBeInTheDocument()
     expect(getAllByText('Ir al resumen').length).toBeGreaterThan(0)
@@ -246,8 +263,8 @@ describe('TodayWorkoutPage', () => {
     expect(getByTestId('today-workout-page')).toBeInTheDocument()
     expect(getByText('Hoy no tienes bloque puntual')).toBeInTheDocument()
     expect(getByTestId('weekly-program-section')).toBeInTheDocument()
-    expect(getByTestId('weekly-day-101')).toHaveTextContent('Torso')
-    expect(getByTestId('weekly-day-102')).toHaveTextContent('Pierna')
+    expect(getByTestId('weekly-status-mon')).toHaveTextContent('Lunes · Torso')
+    expect(getByTestId('weekly-status-wed')).toHaveTextContent('Miércoles · Descanso')
     expect(queryByTestId('start-session-btn')).not.toBeInTheDocument()
     expect(queryByTestId('exercise-checklist')).not.toBeInTheDocument()
   })

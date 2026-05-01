@@ -117,7 +117,7 @@ export function PlanDetailPage() {
 
           {todayWorkout?.id && (
             <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800">
-              <p className="label-base mb-2">Hoy: Día {todayWorkout.day_label}</p>
+              <p className="label-base mb-2">Hoy: {DAY_OF_WEEK_LABELS[todayWorkout.day_of_week]}</p>
               <p className="text-sm font-medium text-neutral-900 dark:text-white">{todayWorkout.name}</p>
             </div>
           )}
@@ -195,8 +195,8 @@ function WorkoutDayCard({ day, planId }: { day: WorkoutDay; planId: number }) {
             {day.day_label}
           </span>
           <div>
-            <h4 className="font-semibold text-neutral-900 dark:text-white">{day.name}</h4>
-            <p className="text-xs text-neutral-500">{DAY_OF_WEEK_LABELS[day.day_of_week]}</p>
+            <h4 className="font-semibold text-neutral-900 dark:text-white">{DAY_OF_WEEK_LABELS[day.day_of_week]} · {day.name}</h4>
+            <p className="text-xs text-neutral-500">{day.day_label ? `Día ${day.day_label}` : 'Bloque semanal'}</p>
           </div>
         </div>
         <span className="text-xs text-neutral-400">{day.exercises?.length || 0} ejercicios</span>

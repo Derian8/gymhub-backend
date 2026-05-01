@@ -350,6 +350,36 @@ class TestWeeklyView:
         assert 'week_days' in resp.data
         assert len(resp.data['week_days']) == 7
 
+    def test_weekly_view_marks_rest_days_explicitly(self, member_client, training_plan):
+        resp = member_client.get(f'/api/plans/{training_plan.id}/weekly-view/')
+        assert resp.status_code == status.HTTP_200_OK
+
+        rest_days = [day for day in resp.data['week_days'] if day['is_rest_day']]
+        workout_days = [day for day in resp.data['week_days'] if day['has_workout']]
+
+        assert rest_days
+        assert workout_days
+        assert all(day['workout_day_name'] is None for day in rest_days)
+        assert all(day['workout_day_id'] is None for day in rest_days)
+
+
+@pytest.mark.django_db
+class TestWorkoutDayWeekdayValidation:
+    def test_trainer_cannot_duplicate_weekday_in_same_plan(self, trainer_client, training_plan):
+        existing_day = training_plan.workout_days.order_by('order').first()
+        assert existing_day is not None
+
+        resp = trainer_client.post('/api/workout-days/', {
+            'plan': training_plan.id,
+            'name': 'Bloque duplicado',
+            'day_label': 'C',
+            'day_of_week': existing_day.day_of_week,
+            'order': 9,
+        }, format='json')
+
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'day_of_week' in resp.data or 'non_field_errors' in resp.data
+
 
 @pytest.mark.django_db
 class TestGymMachines:

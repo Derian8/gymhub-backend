@@ -2,12 +2,12 @@ import { useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, CheckCircle, CreditCard, Dumbbell, Flame, Loader2, MessageSquareMore, NotebookTabs, Play, Scale, Sparkles, Target, Utensils } from 'lucide-react'
 
-import { useTodayWorkoutQuery, useCreateSessionMutation, useCompleteSessionMutation, useBulkExerciseLogsMutation } from '../hooks/usePlans'
+import { useTodayWorkoutQuery, useWeeklyPlanQuery, useCreateSessionMutation, useCompleteSessionMutation, useBulkExerciseLogsMutation } from '../hooks/usePlans'
 import { EmptyState, Badge } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
 import { SymbolFrame } from '@/shared/components/Brand'
 import { DAY_OF_WEEK_LABELS, GOAL_LABELS, MUSCLE_LABELS, cn } from '@/shared/lib/utils'
-import type { Exercise, ExerciseLogPayload, WorkoutDay } from '@/shared/types'
+import type { Exercise, ExerciseLogPayload } from '@/shared/types'
 import { useAuthStore } from '@/shared/store/authStore'
 import { useMemberActivePrescriptionQuery, useMemberDashboardQuery, useMemberPhysicalSummaryQuery } from '@/modules/members/hooks/useMembers'
 import { useNotificationsQuery } from '@/modules/alerts/hooks/useAlerts'
@@ -38,6 +38,7 @@ export function TodayWorkoutPage() {
   const { data: activePrescription } = useMemberActivePrescriptionQuery(isMember ? memberId : 0)
   const planId = requestedPlanId || activePrescription?.plan_activo?.id || 0
   const { data, isLoading } = useTodayWorkoutQuery(planId)
+  const { data: weeklyView } = useWeeklyPlanQuery(planId)
   const { data: dashboardSummary } = useMemberDashboardQuery(isMember ? memberId : 0)
   const { data: physicalSummary } = useMemberPhysicalSummaryQuery(isMember ? memberId : 0)
   const { data: notifications } = useNotificationsQuery()
@@ -180,7 +181,9 @@ export function TodayWorkoutPage() {
   const tieneProgramaActivo = !!activePrescription?.plan_activo
   const mostrarFallbackSemanal = isMember && !workoutDay?.id && tieneProgramaActivo
   const mostrarEstadoVacioMember = isMember && !workoutDay?.id && !tieneProgramaActivo
-  const tituloPrincipal = mostrarFallbackSemanal ? 'Hoy no tienes bloque puntual' : `Día ${workoutDay?.day_label} · ${workoutDay?.name}`
+  const tituloPrincipal = mostrarFallbackSemanal
+    ? 'Hoy no tienes bloque puntual'
+    : `${DAY_OF_WEEK_LABELS[workoutDay?.day_of_week || 'mon']} · ${workoutDay?.name}`
 
   if (mostrarEstadoVacioMember) {
     return (
@@ -391,11 +394,10 @@ export function TodayWorkoutPage() {
           </div>
 
           <div className="space-y-3">
-            {diasPrograma.map((day) => (
-              <WorkoutDayCard
-                key={day.id}
+            {(weeklyView?.week_days || []).map((day) => (
+              <WeeklyStatusCard
+                key={day.date}
                 day={day}
-                isToday={activePrescription?.entrenamiento_hoy?.id === day.id}
               />
             ))}
           </div>
@@ -535,35 +537,43 @@ function SupportCard({
   )
 }
 
-function WorkoutDayCard({
+function WeeklyStatusCard({
   day,
-  isToday,
 }: {
-  day: WorkoutDay
-  isToday: boolean
+  day: {
+    date: string
+    workout_day_name: string | null
+    workout_day_id: number | null
+    day_of_week: string
+    day_label: string | null
+    has_workout: boolean
+    is_rest_day: boolean
+    session_id: number | null
+    is_completed: boolean
+  }
 }) {
+  const weekdayLabel = DAY_OF_WEEK_LABELS[day.day_of_week] || day.day_of_week
+
   return (
     <div
       className="rounded-[1.5rem] border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
-      data-testid={`weekly-day-${day.id}`}
+      data-testid={`weekly-status-${day.day_of_week}`}
     >
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-sm font-bold text-white">
-            {day.day_label}
-          </span>
-          <div>
-            <h3 className="font-semibold text-neutral-900 dark:text-white">{day.name}</h3>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">
-              {DAY_OF_WEEK_LABELS[day.day_of_week]} · {day.exercises?.length || 0} ejercicio(s)
-            </p>
-          </div>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <div>
+          <h3 className="font-semibold text-neutral-900 dark:text-white">
+            {day.has_workout ? `${weekdayLabel} · ${day.workout_day_name}` : `${weekdayLabel} · Descanso`}
+          </h3>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            {day.has_workout
+              ? `${day.day_label ? `Día ${day.day_label} · ` : ''}${day.is_completed ? 'Sesión completada' : 'Bloque asignado'}`
+              : 'Recuperación o descanso programado'}
+          </p>
         </div>
-        {isToday ? <Badge variant="info">Hoy</Badge> : null}
+        <Badge variant={day.has_workout ? (day.is_completed ? 'success' : 'info') : 'neutral'}>
+          {day.has_workout ? (day.is_completed ? 'Completado' : 'Activo') : 'Descanso'}
+        </Badge>
       </div>
-      <p className="text-sm text-neutral-600 dark:text-neutral-300">
-        {day.exercises?.slice(0, 4).map((exercise) => exercise.name).join(' · ') || 'Este bloque todavía no tiene ejercicios visibles.'}
-      </p>
     </div>
   )
 }

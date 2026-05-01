@@ -290,9 +290,9 @@ export function MemberDashboard() {
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <p className="text-xs uppercase tracking-wide text-neutral-500">
-                            {DAY_OF_WEEK_LABELS[day.day_of_week]} · Día {day.day_label}
+                            {day.day_label ? `Día ${day.day_label}` : 'Bloque semanal'}
                           </p>
-                          <p className="font-semibold text-neutral-900 dark:text-white">{day.name}</p>
+                          <p className="font-semibold text-neutral-900 dark:text-white">{DAY_OF_WEEK_LABELS[day.day_of_week]} · {day.name}</p>
                         </div>
                         {isToday ? (
                           <Badge variant="info">Hoy</Badge>

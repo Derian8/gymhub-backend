@@ -142,7 +142,7 @@ describe('PlansPage', () => {
     expect(getByTestId('member-program-hero')).toHaveTextContent('Carlos Mendoza')
     expect(getByTestId('active-prescription-status')).toBeInTheDocument()
     expect(getByTestId('program-week-overview')).toBeInTheDocument()
-    expect(getByTestId('program-today-card')).toHaveTextContent('Día A: Torso')
+    expect(getByTestId('program-today-card')).toHaveTextContent('Lunes · Torso')
     expect(getByText('Vista secundaria para revisar la estructura semanal completa y el contexto del plan que te publicó tu trainer.')).toBeInTheDocument()
     expect(getByText('Volver a entrenamiento')).toBeInTheDocument()
     expect(getByTestId('active-plan-today-link')).toHaveAttribute('href', '/plans/12/today')

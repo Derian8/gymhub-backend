@@ -130,9 +130,11 @@ export function PlansPage() {
                             {day.day_label}
                           </span>
                           <div>
-                            <h4 className="font-semibold text-neutral-900 dark:text-white">{day.name}</h4>
+                            <h4 className="font-semibold text-neutral-900 dark:text-white">
+                              {DAY_OF_WEEK_LABELS[day.day_of_week]} · {day.name}
+                            </h4>
                             <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                              {DAY_OF_WEEK_LABELS[day.day_of_week]} · {day.exercises.length} ejercicio(s) cargados
+                              {day.day_label ? `Día ${day.day_label} · ` : ''}{day.exercises.length} ejercicio(s) cargados
                             </p>
                           </div>
                         </div>
@@ -235,7 +237,7 @@ function ProgramSidebar({
           <>
             <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">La ejecución principal ocurre en la página Entrenamiento; esto queda aquí solo como referencia rápida.</p>
             <p className="mt-3 text-lg font-semibold text-neutral-900 dark:text-white">
-              Día {todayWorkout.day_label}: {todayWorkout.name}
+              {DAY_OF_WEEK_LABELS[todayWorkout.day_of_week]} · {todayWorkout.name}
             </p>
             <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
               {todayWorkout.exercises.length} ejercicio(s) listos para registrar.

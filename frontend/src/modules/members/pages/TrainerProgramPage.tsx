@@ -1745,7 +1745,7 @@ export function TrainerProgramPage() {
           <h2 className="font-heading font-bold text-xl text-neutral-900 dark:text-white">3. Días y ejercicios del plan activo</h2>
         </div>
         <p className="text-sm text-neutral-500">
-          Organiza la rutina por dia y edita cada ejercicio en el mismo contexto. El orden aqui sera el mismo que vera el member.
+          Organiza la rutina por día real de la semana y edita cada ejercicio en el mismo contexto. El member verá este mismo orden de lunes a domingo.
         </p>
 
         {!activePlan ? (
@@ -1756,7 +1756,7 @@ export function TrainerProgramPage() {
               <Field label="Nuevo dia">
                 <input className="input" value={dayForm.name} onChange={(e) => setDayForm({ ...dayForm, name: e.target.value })} required />
               </Field>
-              <Field label="Etiqueta">
+              <Field label="Etiqueta secundaria">
                 <OptionGroup
                   value={dayForm.day_label}
                   onChange={(value) => setDayForm({ ...dayForm, day_label: value as DayLabel })}
@@ -1764,7 +1764,7 @@ export function TrainerProgramPage() {
                   data-testid="day-label-group"
                 />
               </Field>
-              <Field label="Día de semana">
+                  <Field label="Día real de la semana">
                 <OptionGroup
                   value={dayForm.day_of_week}
                   onChange={(value) => setDayForm({ ...dayForm, day_of_week: value as DayOfWeek })}
@@ -1776,7 +1776,7 @@ export function TrainerProgramPage() {
               </Field>
               <div className="flex items-end justify-end">
                 <button className="btn-secondary w-full md:w-auto" type="submit" disabled={createWorkoutDay.isPending}>
-                  Agregar dia
+                  Agregar bloque
                 </button>
               </div>
             </form>
@@ -1803,8 +1803,12 @@ export function TrainerProgramPage() {
                       >
                         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                           <div>
-                            <p className="font-semibold text-neutral-900 dark:text-white">{day.day_label} · {day.name}</p>
-                            <p className="text-sm text-neutral-500">{dayOfWeekOptions.find((option) => option.value === day.day_of_week)?.label} · {formatTemplateCount(day.exercises.length, 'ejercicio')} cargado para este dia</p>
+                            <p className="font-semibold text-neutral-900 dark:text-white">
+                              {dayOfWeekOptions.find((option) => option.value === day.day_of_week)?.label} · {day.name}
+                            </p>
+                            <p className="text-sm text-neutral-500">
+                              {day.day_label ? `Día ${day.day_label} · ` : ''}{formatTemplateCount(day.exercises.length, 'ejercicio')} cargado para este día
+                            </p>
                           </div>
                           <div className="flex flex-wrap items-center gap-2">
                             <Badge variant="neutral">Orden {day.order}</Badge>
@@ -1814,7 +1818,7 @@ export function TrainerProgramPage() {
                               onClick={() => setSelectedWorkoutDayId(day.id)}
                               data-testid={`select-day-${day.id}`}
                             >
-                              {isOpen ? 'Dia abierto' : 'Abrir'}
+                              {isOpen ? 'Bloque abierto' : 'Abrir'}
                             </button>
                             <button
                               type="button"
@@ -1840,7 +1844,7 @@ export function TrainerProgramPage() {
                               onClick={() => startDayEdit(day)}
                               data-testid={`edit-day-${day.id}`}
                             >
-                              Editar dia
+                              Editar bloque
                             </button>
                             <button
                               type="button"
@@ -1849,7 +1853,7 @@ export function TrainerProgramPage() {
                               disabled={createWorkoutDay.isPending || createExercise.isPending}
                               data-testid={`duplicate-day-${day.id}`}
                             >
-                              Duplicar dia
+                              Duplicar bloque
                             </button>
                             <button
                               type="button"
@@ -1857,7 +1861,7 @@ export function TrainerProgramPage() {
                               onClick={() => setDeleteTarget({ type: 'day', id: day.id, name: `${day.day_label} · ${day.name}` })}
                               data-testid={`delete-day-${day.id}`}
                             >
-                              Borrar dia
+                              Borrar bloque
                             </button>
                           </div>
                         </div>
@@ -1866,17 +1870,17 @@ export function TrainerProgramPage() {
                           <div className="mt-4 space-y-4 border-t border-neutral-200 pt-4 dark:border-neutral-800">
                             {editingDayId === day.id ? (
                               <form className="grid grid-cols-1 gap-3 md:grid-cols-5" onSubmit={handleDayUpdate}>
-                                <Field label="Nombre del dia">
+                                <Field label="Nombre del bloque">
                                   <input className="input" value={editingDayForm.name} onChange={(e) => setEditingDayForm({ ...editingDayForm, name: e.target.value })} required />
                                 </Field>
-                                <Field label="Etiqueta">
+                                <Field label="Etiqueta secundaria">
                                   <OptionGroup
                                     value={editingDayForm.day_label}
                                     onChange={(value) => setEditingDayForm({ ...editingDayForm, day_label: value as DayLabel })}
                                     options={dayOptions.map((label) => ({ value: label, label }))}
                                   />
                                 </Field>
-                                <Field label="Día de semana">
+                                <Field label="Día real de la semana">
                                   <OptionGroup
                                     value={editingDayForm.day_of_week}
                                     onChange={(value) => setEditingDayForm({ ...editingDayForm, day_of_week: value as DayOfWeek })}
@@ -1891,7 +1895,7 @@ export function TrainerProgramPage() {
                                     Cancelar
                                   </button>
                                   <button type="submit" className="btn-primary" disabled={updateWorkoutDay.isPending}>
-                                    Guardar dia
+                                    Guardar bloque
                                   </button>
                                 </div>
                               </form>

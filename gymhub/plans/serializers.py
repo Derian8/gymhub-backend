@@ -49,6 +49,22 @@ class ExerciseSerializer(serializers.ModelSerializer):
 class WorkoutDaySerializer(serializers.ModelSerializer):
     exercises = ExerciseSerializer(many=True, read_only=True)
 
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        plan = attrs.get('plan', getattr(self.instance, 'plan', None))
+        day_of_week = attrs.get('day_of_week', getattr(self.instance, 'day_of_week', None))
+
+        if plan and day_of_week:
+            duplicated = WorkoutDay.objects.filter(plan=plan, day_of_week=day_of_week)
+            if self.instance:
+                duplicated = duplicated.exclude(pk=self.instance.pk)
+            if duplicated.exists():
+                raise serializers.ValidationError({
+                    'day_of_week': 'Ya existe un bloque asignado para este día de la semana en el plan.'
+                })
+
+        return attrs
+
     class Meta:
         model = WorkoutDay
         fields = ('id', 'plan', 'name', 'day_label', 'day_of_week', 'order', 'exercises')
@@ -78,7 +94,7 @@ class TodayWorkoutSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = WorkoutDay
-        fields = ('id', 'name', 'day_label', 'exercises')
+        fields = ('id', 'name', 'day_label', 'day_of_week', 'exercises')
 
 
 class PlantillaEjercicioSerializer(serializers.ModelSerializer):

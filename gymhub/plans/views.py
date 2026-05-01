@@ -120,6 +120,8 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                 'workout_day_id': workout_day.id if workout_day else None,
                 'day_of_week': weekday,
                 'day_label': workout_day.day_label if workout_day else None,
+                'has_workout': bool(workout_day),
+                'is_rest_day': not bool(workout_day),
                 'session_id': session,
                 'is_completed': is_completed,
             })

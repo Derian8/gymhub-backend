@@ -92,6 +92,16 @@ class WorkoutDay(models.Model):
     class Meta:
         ordering = ['order']
 
+    def clean(self):
+        super().clean()
+        if not self.plan_id or not self.day_of_week:
+            return
+        duplicated = WorkoutDay.objects.filter(plan_id=self.plan_id, day_of_week=self.day_of_week)
+        if self.pk:
+            duplicated = duplicated.exclude(pk=self.pk)
+        if duplicated.exists():
+            raise ValidationError({'day_of_week': 'Ya existe un bloque asignado para este día de la semana en el plan.'})
+
     def __str__(self):
         return f"Día {self.day_label} ({self.day_of_week}): {self.name}"
 
