@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, CheckCircle, CreditCard, Dumbbell, Flame, Loader2, MessageSquareMore, Play, Scale, Sparkles, Target, UserRound, Utensils } from 'lucide-react'
 
 import { useTodayWorkoutQuery, useCreateSessionMutation, useCompleteSessionMutation, useBulkExerciseLogsMutation } from '../hooks/usePlans'
-import { PageHeader, EmptyState, Badge } from '@/shared/components/UI'
+import { EmptyState, Badge } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
 import { SymbolFrame } from '@/shared/components/Brand'
 import { GOAL_LABELS, MUSCLE_LABELS, cn } from '@/shared/lib/utils'
@@ -188,78 +188,49 @@ export function TodayWorkoutPage() {
   const ejercicios = workoutDay.exercises?.length || 0
 
   return (
-    <div data-testid="today-workout-page" className="page-enter space-y-6">
+    <div data-testid="today-workout-page" className="page-enter mx-auto max-w-5xl space-y-6">
       <Link to={isMember ? '/dashboard/member' : `/plans/${planId}`} className="flex items-center gap-2 text-sm text-neutral-500 transition-colors hover:text-primary">
         <ArrowLeft size={16} />
         {isMember ? 'Ver resumen completo' : 'Volver al plan'}
       </Link>
 
-      <PageHeader
-        title={isMember ? `Entrenamiento de hoy · Día ${workoutDay.day_label}` : `Día ${workoutDay.day_label}: ${workoutDay.name}`}
-        subtitle={
-          isMember
-            ? `${ejercicios} ejercicios definidos para que entres y sepas exactamente qué hacer hoy`
-            : `${ejercicios} ejercicios en este bloque`
-        }
-      />
-
-      <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
-        <div className="space-y-6">
-          <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="rounded-[1.75rem] border border-neutral-200 bg-gradient-to-br from-white via-neutral-50 to-primary/5 p-5 shadow-sm dark:border-neutral-800 dark:from-neutral-950 dark:via-neutral-950 dark:to-primary/10">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3">
-                  <SymbolFrame size="md" tone="primary">
-                    <Dumbbell size={18} />
-                  </SymbolFrame>
-                  <div>
-                    <p className="label-base">Bloque de hoy</p>
-                    <p className="text-lg font-heading font-bold text-neutral-900 dark:text-white">{workoutDay.name}</p>
-                    <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-                      {activePrescription?.plan_activo?.name || 'Programa activo'} · {ejercicios} ejercicios
-                    </p>
-                  </div>
-                </div>
-                <Badge variant={sessionStarted ? 'success' : 'info'}>
-                  {sessionStarted ? 'Sesión activa' : 'Listo para ejecutar'}
-                </Badge>
-              </div>
-
-              {isMember && activePrescription?.trainer ? (
-                <div className="mt-5 rounded-2xl border border-neutral-200 bg-white/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/80">
-                  <div className="flex items-start gap-3">
-                    <SymbolFrame size="sm" tone="primary" className="rounded-xl">
-                      <UserRound size={16} />
-                    </SymbolFrame>
-                    <div>
-                      <p className="label-base">Trainer asignado</p>
-                      <p className="text-sm font-semibold text-neutral-900 dark:text-white">
-                        {activePrescription.trainer.nombre} dejó este bloque activo para hoy dentro de {activePrescription.plan_activo?.name || 'tu programa'}.
-                      </p>
-                      <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                        La estructura del bloque queda fijada por el plan. Aquí registras tu ejecución personal sin perder el contexto del trainer.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-            </div>
-
-            <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
-              <p className="label-base">Resumen de ejecución</p>
-              <div className="mt-4 space-y-3">
-                <SummaryRow icon={<Target size={16} />} label="Objetivo" value={`${ejercicios} ejercicios publicados`} />
-                <SummaryRow icon={<Flame size={16} />} label="Registro" value="Peso y RPE en fuerza, minutos reales en cardio" />
-                <SummaryRow icon={<CheckCircle size={16} />} label="Cierre" value="Evalúa cómo te sentiste al terminar" />
-              </div>
+      <section className="rounded-[1.75rem] border border-neutral-200 bg-gradient-to-br from-white via-neutral-50 to-primary/5 p-6 shadow-sm dark:border-neutral-800 dark:from-neutral-950 dark:via-neutral-950 dark:to-primary/10">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="label-base">Entrenamiento de hoy</p>
+            <h1 className="text-3xl font-heading font-black text-neutral-900 dark:text-white">
+              Día {workoutDay.day_label} · {workoutDay.name}
+            </h1>
+            <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
+              {ejercicios} ejercicios definidos para que entres y sepas exactamente qué hacer hoy.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3 text-sm">
+              <InlinePill icon={<Dumbbell size={14} />} label={activePrescription?.plan_activo?.name || 'Programa activo'} />
+              <InlinePill icon={<Target size={14} />} label={`${ejercicios} ejercicios`} />
+              <InlinePill icon={<Flame size={14} />} label="Peso, RPE o minutos" />
             </div>
           </div>
+          <Badge variant={sessionStarted ? 'success' : 'info'}>
+            {sessionStarted ? 'Sesión activa' : 'Listo para ejecutar'}
+          </Badge>
+        </div>
 
-          {!sessionStarted ? (
+        {isMember && activePrescription?.trainer ? (
+          <div className="mt-5 flex flex-wrap items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
+            <UserRound size={16} className="text-primary" />
+            <span className="font-medium">{activePrescription.trainer.nombre}</span>
+            <span className="text-neutral-400">·</span>
+            <span>{activePrescription.plan_activo?.name || 'Tu programa actual'}</span>
+          </div>
+        ) : null}
+      </section>
+
+      <div className="space-y-6">
+        {!sessionStarted ? (
             <button
               onClick={handleStartSession}
               disabled={isCreating}
-              className="btn-primary flex w-full items-center justify-center gap-2"
+              className="btn-primary flex w-full items-center justify-center gap-2 py-4 text-base"
               data-testid="start-session-btn"
             >
               {isCreating ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
@@ -277,143 +248,149 @@ export function TodayWorkoutPage() {
             </div>
           )}
 
-          <div className="space-y-4">
-            {workoutDay.exercises?.map((exercise) => (
-              <ExerciseCard
-                key={exercise.id}
-                exercise={exercise}
-                log={logs[exercise.id]}
-                active={sessionStarted}
-                onUpdate={(field, value) => updateLog(exercise.id, field as keyof ExerciseLogEntry, value)}
-              />
-            ))}
-          </div>
-
-          {sessionStarted && (
-            <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
-              <h3 className="font-heading text-lg font-bold text-neutral-900 dark:text-white">Finalizar sesión</h3>
-              <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-                Cierra el bloque con una percepción general para que el progreso quede mejor registrado.
-              </p>
-              <div className="mt-4">
-                <label className="label-base mb-2 block">
-                  ¿Cómo te sentiste? ({overallFeeling}/5)
-                </label>
-                <input
-                  type="range"
-                  min={1}
-                  max={5}
-                  value={overallFeeling}
-                  onChange={(e) => setOverallFeeling(parseInt(e.target.value))}
-                  className="w-full accent-primary"
-                  data-testid="feeling-slider"
-                />
-                <div className="mt-1 flex justify-between text-xs text-neutral-400">
-                  <span>Muy difícil</span>
-                  <span>Excelente</span>
-                </div>
-              </div>
-              <button
-                onClick={handleCompleteSession}
-                disabled={isCompleting || isSaving}
-                className="btn-primary mt-5 flex w-full items-center justify-center gap-2"
-                data-testid="complete-session-btn"
-              >
-                {isCompleting || isSaving ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <CheckCircle size={16} />
-                )}
-                {isCompleting || isSaving ? 'Guardando...' : 'COMPLETAR SESIÓN'}
-              </button>
-            </div>
-          )}
+        <div className="space-y-4">
+          {workoutDay.exercises?.map((exercise) => (
+            <ExerciseCard
+              key={exercise.id}
+              exercise={exercise}
+              log={logs[exercise.id]}
+              active={sessionStarted}
+              onUpdate={(field, value) => updateLog(exercise.id, field as keyof ExerciseLogEntry, value)}
+            />
+          ))}
         </div>
 
+        {sessionStarted ? (
+          <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
+            <h3 className="font-heading text-lg font-bold text-neutral-900 dark:text-white">Finalizar sesión</h3>
+            <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+              Cierra el bloque con una percepción general para que el progreso quede mejor registrado.
+            </p>
+            <div className="mt-4">
+              <label className="label-base mb-2 block">
+                ¿Cómo te sentiste? ({overallFeeling}/5)
+              </label>
+              <input
+                type="range"
+                min={1}
+                max={5}
+                value={overallFeeling}
+                onChange={(e) => setOverallFeeling(parseInt(e.target.value))}
+                className="w-full accent-primary"
+                data-testid="feeling-slider"
+              />
+              <div className="mt-1 flex justify-between text-xs text-neutral-400">
+                <span>Muy difícil</span>
+                <span>Excelente</span>
+              </div>
+            </div>
+            <button
+              onClick={handleCompleteSession}
+              disabled={isCompleting || isSaving}
+              className="btn-primary mt-5 flex w-full items-center justify-center gap-2"
+              data-testid="complete-session-btn"
+            >
+              {isCompleting || isSaving ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <CheckCircle size={16} />
+              )}
+              {isCompleting || isSaving ? 'Guardando...' : 'COMPLETAR SESIÓN'}
+            </button>
+          </div>
+        ) : null}
+
         {isMember ? (
-          <aside className="space-y-4">
-            <SupportCard
-              title="Mensajes del trainer"
-              icon={<MessageSquareMore size={18} className="text-primary" />}
-              to="/messages"
-              testId="card-messages"
-            >
-              <p className="text-sm font-semibold text-neutral-900 dark:text-white">
-                {unreadTrainerMessages > 0 ? `${unreadTrainerMessages} sin leer` : 'Sin mensajes pendientes'}
+          <section className="space-y-4 border-t border-neutral-200 pt-8 dark:border-neutral-800" data-testid="secondary-support">
+            <div>
+              <p className="label-base">Apoyo secundario</p>
+              <h2 className="text-xl font-heading font-bold text-neutral-900 dark:text-white">
+                IA, nutrición, pagos, mensajes y datos físicos
+              </h2>
+              <p className="mt-1 text-sm text-neutral-500">
+                Todo esto sigue disponible, pero ya no compite con tu rutina del día.
               </p>
-              <p className="text-xs text-neutral-500">Mantén visibles los ajustes o avisos que te dejó tu trainer.</p>
-            </SupportCard>
+            </div>
 
-            <SupportCard
-              title="Físico actual"
-              icon={<Scale size={18} className="text-primary" />}
-              to="/progress"
-              testId="card-physical"
-            >
-              <p className="text-sm font-semibold text-neutral-900 dark:text-white">
-                {physicalSummary?.current_weight_kg == null ? 'Peso sin dato' : `${physicalSummary.current_weight_kg} kg`}
-              </p>
-              <p className="text-xs text-neutral-500">
-                {physicalSummary?.height_cm == null ? 'Estatura sin dato' : `${physicalSummary.height_cm} cm`} · IMC {physicalSummary?.bmi ?? '—'}
-              </p>
-            </SupportCard>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <SupportCard
+                title="Mensajes del trainer"
+                icon={<MessageSquareMore size={18} className="text-primary" />}
+                to="/messages"
+                testId="card-messages"
+              >
+                <p className="text-sm font-semibold text-neutral-900 dark:text-white">
+                  {unreadTrainerMessages > 0 ? `${unreadTrainerMessages} sin leer` : 'Sin mensajes pendientes'}
+                </p>
+                <p className="text-xs text-neutral-500">Mantén visibles los ajustes o avisos que te dejó tu trainer.</p>
+              </SupportCard>
 
-            <SupportCard
-              title="Nutrición"
-              icon={<Utensils size={18} className="text-primary" />}
-              to="/nutrition"
-              testId="card-nutrition"
-            >
-              <p className="text-sm font-semibold text-neutral-900 dark:text-white">
-                {activePrescription?.perfil_nutricional?.goal_type
-                  ? GOAL_LABELS[activePrescription.perfil_nutricional.goal_type] || activePrescription.perfil_nutricional.goal_type
-                  : 'Sin perfil nutricional'}
-              </p>
-              <p className="text-xs text-neutral-500">Tu guía nutricional sigue disponible sin sacarte del bloque principal.</p>
-            </SupportCard>
+              <SupportCard
+                title="Físico actual"
+                icon={<Scale size={18} className="text-primary" />}
+                to="/progress"
+                testId="card-physical"
+              >
+                <p className="text-sm font-semibold text-neutral-900 dark:text-white">
+                  {physicalSummary?.current_weight_kg == null ? 'Peso sin dato' : `${physicalSummary.current_weight_kg} kg`}
+                </p>
+                <p className="text-xs text-neutral-500">
+                  {physicalSummary?.height_cm == null ? 'Estatura sin dato' : `${physicalSummary.height_cm} cm`} · IMC {physicalSummary?.bmi ?? '—'}
+                </p>
+              </SupportCard>
 
-            <SupportCard
-              title="Cobros y avisos"
-              icon={<CreditCard size={18} className="text-primary" />}
-              to="/billing"
-              testId="card-billing"
-            >
-              <p className="text-sm font-semibold text-neutral-900 dark:text-white">
-                {dashboardSummary?.payment_status === 'late'
-                  ? 'Tienes mora activa'
-                  : dashboardSummary?.days_until_due != null
-                    ? `Próximo cobro en ${dashboardSummary.days_until_due} día(s)`
-                    : 'Sin alertas de pago'}
-              </p>
-              <p className="text-xs text-neutral-500">El entrenamiento sigue al frente, pero los cobros no quedan ocultos.</p>
-            </SupportCard>
+              <SupportCard
+                title="Nutrición"
+                icon={<Utensils size={18} className="text-primary" />}
+                to="/nutrition"
+                testId="card-nutrition"
+              >
+                <p className="text-sm font-semibold text-neutral-900 dark:text-white">
+                  {activePrescription?.perfil_nutricional?.goal_type
+                    ? GOAL_LABELS[activePrescription.perfil_nutricional.goal_type] || activePrescription.perfil_nutricional.goal_type
+                    : 'Sin perfil nutricional'}
+                </p>
+                <p className="text-xs text-neutral-500">Tu guía nutricional sigue disponible sin sacarte del bloque principal.</p>
+              </SupportCard>
 
-            <SupportCard
-              title="Asistente IA"
-              icon={<Sparkles size={18} className="text-primary" />}
-              to="/ai-chat"
-              testId="card-ai"
-            >
-              <p className="text-sm font-semibold text-neutral-900 dark:text-white">Consulta rápida durante el entrenamiento</p>
-              <p className="text-xs text-neutral-500">Úsalo como apoyo para dudas de ejecución o contexto del plan.</p>
-            </SupportCard>
-          </aside>
+              <SupportCard
+                title="Cobros y avisos"
+                icon={<CreditCard size={18} className="text-primary" />}
+                to="/billing"
+                testId="card-billing"
+              >
+                <p className="text-sm font-semibold text-neutral-900 dark:text-white">
+                  {dashboardSummary?.payment_status === 'late'
+                    ? 'Tienes mora activa'
+                    : dashboardSummary?.days_until_due != null
+                      ? `Próximo cobro en ${dashboardSummary.days_until_due} día(s)`
+                      : 'Sin alertas de pago'}
+                </p>
+                <p className="text-xs text-neutral-500">El entrenamiento sigue al frente, pero los cobros no quedan ocultos.</p>
+              </SupportCard>
+
+              <SupportCard
+                title="Asistente IA"
+                icon={<Sparkles size={18} className="text-primary" />}
+                to="/ai-chat"
+                testId="card-ai"
+              >
+                <p className="text-sm font-semibold text-neutral-900 dark:text-white">Consulta rápida durante el entrenamiento</p>
+                <p className="text-xs text-neutral-500">Úsalo como apoyo para dudas de ejecución o contexto del plan.</p>
+              </SupportCard>
+            </div>
+          </section>
         ) : null}
       </div>
     </div>
   )
 }
 
-function SummaryRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function InlinePill({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-neutral-200 px-3 py-3 dark:border-neutral-800">
-      <SymbolFrame size="sm" tone="default">
-        {icon}
-      </SymbolFrame>
-      <div>
-        <p className="text-[11px] uppercase tracking-wide text-neutral-500">{label}</p>
-        <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{value}</p>
-      </div>
+    <div className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white/85 px-3 py-1.5 text-sm text-neutral-700 shadow-sm dark:border-neutral-800 dark:bg-neutral-900/80 dark:text-neutral-200">
+      {icon}
+      <span>{label}</span>
     </div>
   )
 }
