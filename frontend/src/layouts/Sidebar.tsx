@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, Dumbbell,
   CreditCard, Utensils, Bell, Bot, User,
   LogOut, ChevronLeft, ChevronRight, Activity,
-  ClipboardList, CheckSquare, MessageSquareMore,
+  ClipboardList, CheckSquare, MessageSquareMore, NotebookTabs,
 } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { useAuthStore } from '@/shared/store/authStore'
@@ -33,7 +33,7 @@ const trainerNav: NavItem[] = [
 const memberNav: NavItem[] = [
   { label: 'Entrenamiento', icon: <Dumbbell size={18} />, to: '/today' },
   { label: 'Resumen', icon: <LayoutDashboard size={18} />, to: '/dashboard/member' },
-  { label: 'Mi Plan', icon: <Dumbbell size={18} />, to: '/plans/my' },
+  { label: 'Mi Plan', icon: <NotebookTabs size={18} />, to: '/plans/my' },
   { label: 'Check-in', icon: <CheckSquare size={18} />, to: '/attendance/check-in' },
   { label: 'Mensajes', icon: <MessageSquareMore size={18} />, to: '/messages' },
   { label: 'Progreso', icon: <Activity size={18} />, to: '/progress' },
