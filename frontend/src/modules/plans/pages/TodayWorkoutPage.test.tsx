@@ -3,16 +3,20 @@ import { waitFor } from '@testing-library/react'
 import { renderWithProviders } from '@/test/utils'
 import { TodayWorkoutPage } from './TodayWorkoutPage'
 import { useAuthStore } from '@/shared/store/authStore'
+import type { TodayWorkout } from '@/shared/types'
 
 const crearSesion = vi.fn()
 const completarSesion = vi.fn()
 const guardarLogs = vi.fn()
 
-const mockTodayWorkout = {
+const mockTodayWorkout: TodayWorkout = {
   id: 101,
   day_label: 'A',
   day_of_week: 'mon',
   name: 'Torso',
+  today_session_id: null,
+  today_session_completed: false,
+  today_session_started: false,
   exercises: [
     {
       id: 501,
@@ -267,5 +271,20 @@ describe('TodayWorkoutPage', () => {
     expect(getByTestId('weekly-status-wed')).toHaveTextContent('Miércoles · Descanso')
     expect(queryByTestId('start-session-btn')).not.toBeInTheDocument()
     expect(queryByTestId('exercise-checklist')).not.toBeInTheDocument()
+  })
+
+  it('hides the start button when today workout was already completed', () => {
+    mockTodayWorkoutData = {
+      ...mockTodayWorkout,
+      today_session_id: 901,
+      today_session_completed: true,
+      today_session_started: false,
+    }
+
+    const { getByText, queryByTestId } = renderWithProviders(<TodayWorkoutPage />)
+
+    expect(getByText('Rutina completada hoy')).toBeInTheDocument()
+    expect(queryByTestId('start-session-btn')).not.toBeInTheDocument()
+    expect(queryByTestId('complete-session-btn')).not.toBeInTheDocument()
   })
 })

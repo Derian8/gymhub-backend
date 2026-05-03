@@ -494,7 +494,7 @@ def get_active_prescription(member):
         },
         'plan_activo': TrainingPlanSerializer(active_plan).data,
         'dias': WorkoutDaySerializer(workout_days, many=True).data,
-        'entrenamiento_hoy': TodayWorkoutSerializer(today_workout).data if today_workout else None,
+        'entrenamiento_hoy': TodayWorkoutSerializer(today_workout, context={'member': member}).data if today_workout else None,
         'perfil_nutricional': NutritionProfileSerializer(nutrition_profile).data if nutrition_profile else None,
         'guias_vinculadas': PlanNutritionLinkSerializer(linked_guides, many=True).data,
         'estado_prescripcion': estado_prescripcion,

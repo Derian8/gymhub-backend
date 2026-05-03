@@ -372,6 +372,8 @@ export function useCreateSessionMutation() {
     mutationFn: plansApi.createSession,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WORKOUT_SESSIONS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLANS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERS })
       toast.success('Sesión de entrenamiento iniciada')
     },
     onError: (error) => toast.error(extractApiError(error)),
@@ -386,6 +388,8 @@ export function useCompleteSessionMutation() {
       plansApi.completeSession(sessionId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WORKOUT_SESSIONS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLANS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERS })
       toast.success('¡Sesión completada! Excelente trabajo')
     },
     onError: (error) => toast.error(extractApiError(error)),

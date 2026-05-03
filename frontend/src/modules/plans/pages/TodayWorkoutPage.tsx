@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, CheckCircle, CreditCard, Dumbbell, Flame, Loader2, MessageSquareMore, NotebookTabs, Play, Scale, Sparkles, Target, Utensils } from 'lucide-react'
 
@@ -50,6 +50,7 @@ export function TodayWorkoutPage() {
   const [sessionStarted, setSessionStarted] = useState(false)
   const [logs, setLogs] = useState<Record<number, ExerciseLogEntry>>({})
   const [overallFeeling, setOverallFeeling] = useState(4)
+  const [sessionCompletedToday, setSessionCompletedToday] = useState(false)
   const unreadTrainerMessages =
     notifications?.results?.filter((message) => message.type === 'trainer_message' && !message.read).length || 0
 
@@ -60,33 +61,94 @@ export function TodayWorkoutPage() {
     return activePrescription?.entrenamiento_hoy ?? null
   }, [activePrescription?.entrenamiento_hoy, data])
 
+  const initializeLogs = (day: typeof workoutDay) => {
+    if (!day?.exercises?.length) {
+      setLogs({})
+      return
+    }
+
+    const initialLogs: Record<number, ExerciseLogEntry> = {}
+    day.exercises.forEach((exercise) => {
+      if (exercise.exercise_type === 'timed') {
+        initialLogs[exercise.id] = {
+          exercise_id: exercise.id,
+          minutes_completed: exercise.target_minutes || undefined,
+        }
+        return
+      }
+
+      initialLogs[exercise.id] = {
+        exercise_id: exercise.id,
+        sets_completed: exercise.sets || undefined,
+        reps_completed: parseInt(exercise.reps_range.split('-')[0]) || 10,
+        weight_used_kg: exercise.weight_suggestion_kg || undefined,
+        rpe: 7,
+      }
+    })
+    setLogs(initialLogs)
+  }
+
+  useEffect(() => {
+    if (!workoutDay?.id) {
+      setSessionId(null)
+      setSessionStarted(false)
+      setSessionCompletedToday(false)
+      setLogs({})
+      return
+    }
+
+    if (workoutDay.today_session_completed) {
+      setSessionId(workoutDay.today_session_id)
+      setSessionStarted(false)
+      setSessionCompletedToday(true)
+      return
+    }
+
+    if (workoutDay.today_session_started && workoutDay.today_session_id) {
+      setSessionId(workoutDay.today_session_id)
+      setSessionStarted(true)
+      setSessionCompletedToday(false)
+      setLogs((current) => (Object.keys(current).length ? current : (() => {
+        const initialLogs: Record<number, ExerciseLogEntry> = {}
+        workoutDay.exercises?.forEach((exercise) => {
+          if (exercise.exercise_type === 'timed') {
+            initialLogs[exercise.id] = {
+              exercise_id: exercise.id,
+              minutes_completed: exercise.target_minutes || undefined,
+            }
+            return
+          }
+          initialLogs[exercise.id] = {
+            exercise_id: exercise.id,
+            sets_completed: exercise.sets || undefined,
+            reps_completed: parseInt(exercise.reps_range.split('-')[0]) || 10,
+            weight_used_kg: exercise.weight_suggestion_kg || undefined,
+            rpe: 7,
+          }
+        })
+        return initialLogs
+      })()))
+      return
+    }
+
+    setSessionCompletedToday(false)
+  }, [
+    workoutDay?.id,
+    workoutDay?.today_session_id,
+    workoutDay?.today_session_completed,
+    workoutDay?.today_session_started,
+  ])
+
   const handleStartSession = () => {
-    if (!workoutDay) return
+    if (!workoutDay || sessionCompletedToday) return
     createSession(
       { workout_day_id: workoutDay.id },
       {
         onSuccess: (session) => {
           setSessionId(session.id)
           setSessionStarted(true)
-          const initialLogs: Record<number, ExerciseLogEntry> = {}
-          workoutDay.exercises?.forEach((exercise) => {
-            if (exercise.exercise_type === 'timed') {
-              initialLogs[exercise.id] = {
-                exercise_id: exercise.id,
-                minutes_completed: exercise.target_minutes || undefined,
-              }
-              return
-            }
-
-            initialLogs[exercise.id] = {
-              exercise_id: exercise.id,
-              sets_completed: exercise.sets || undefined,
-              reps_completed: parseInt(exercise.reps_range.split('-')[0]) || 10,
-              weight_used_kg: exercise.weight_suggestion_kg || undefined,
-              rpe: 7,
-            }
-          })
-          setLogs(initialLogs)
+          setSessionCompletedToday(false)
+          initializeLogs(workoutDay)
         },
       },
     )
@@ -134,7 +196,7 @@ export function TodayWorkoutPage() {
             {
               onSuccess: () => {
                 setSessionStarted(false)
-                setSessionId(null)
+                setSessionCompletedToday(true)
               },
             },
           )
@@ -241,8 +303,8 @@ export function TodayWorkoutPage() {
                 : 'Entra, sigue este bloque y marca lo que realmente hiciste durante la sesión.'}
             </p>
           </div>
-          <Badge variant={sessionStarted ? 'success' : mostrarFallbackSemanal ? 'warning' : 'info'}>
-            {sessionStarted ? 'Sesión activa' : mostrarFallbackSemanal ? 'Sin bloque hoy' : 'Bloque listo'}
+          <Badge variant={sessionCompletedToday ? 'success' : sessionStarted ? 'success' : mostrarFallbackSemanal ? 'warning' : 'info'}>
+            {sessionCompletedToday ? 'Completado hoy' : sessionStarted ? 'Sesión activa' : mostrarFallbackSemanal ? 'Sin bloque hoy' : 'Bloque listo'}
           </Badge>
         </div>
 
@@ -275,7 +337,17 @@ export function TodayWorkoutPage() {
 
         {!mostrarFallbackSemanal ? (
           <div className="mt-6">
-            {!sessionStarted ? (
+            {sessionCompletedToday ? (
+              <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
+                <SymbolFrame size="sm" tone="success">
+                  <CheckCircle size={16} />
+                </SymbolFrame>
+                <div>
+                  <p className="text-sm font-semibold">Rutina completada hoy</p>
+                  <p className="text-xs opacity-80">Este bloque se habilitará de nuevo cuando vuelva a tocar este día de la semana.</p>
+                </div>
+              </div>
+            ) : !sessionStarted ? (
               <button
                 onClick={handleStartSession}
                 disabled={isCreating}

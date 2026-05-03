@@ -78,6 +78,9 @@ class TestTodayWorkout:
         assert resp.status_code == status.HTTP_200_OK
         assert 'exercises' in resp.data
         assert 'day_label' in resp.data
+        assert 'today_session_id' in resp.data
+        assert 'today_session_completed' in resp.data
+        assert 'today_session_started' in resp.data
 
     def test_today_workout_has_exercises(self, member_client, training_plan):
         """El workout de hoy incluye ejercicios."""
@@ -126,6 +129,55 @@ class TestWorkoutSessions:
         session = WorkoutSession.objects.get(id=workout_session.id)
         assert session.completed_at >= before
         assert session.completed_at <= after
+
+    def test_reuses_open_session_for_same_workout_day_on_same_date(self, member_client, workout_day_a):
+        first_resp = member_client.post('/api/workout-sessions/', {
+            'workout_day_id': workout_day_a.id,
+        })
+        second_resp = member_client.post('/api/workout-sessions/', {
+            'workout_day_id': workout_day_a.id,
+        })
+
+        assert first_resp.status_code == status.HTTP_201_CREATED
+        assert second_resp.status_code == status.HTTP_200_OK
+        assert second_resp.data['id'] == first_resp.data['id']
+        assert second_resp.data['is_completed'] is False
+
+    def test_cannot_recreate_completed_session_for_same_workout_day_on_same_date(self, member_client, workout_day_a):
+        created_resp = member_client.post('/api/workout-sessions/', {
+            'workout_day_id': workout_day_a.id,
+        })
+        complete_resp = member_client.patch(
+            f"/api/workout-sessions/{created_resp.data['id']}/complete/",
+            {'overall_feeling': 4},
+        )
+        repeated_resp = member_client.post('/api/workout-sessions/', {
+            'workout_day_id': workout_day_a.id,
+        })
+
+        assert created_resp.status_code == status.HTTP_201_CREATED
+        assert complete_resp.status_code == status.HTTP_200_OK
+        assert repeated_resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'ya fue completada' in repeated_resp.data['error']
+
+    def test_today_workout_reports_completed_session_state(self, member_client, training_plan):
+        today_weekday = date.today().strftime('%a').lower()[:3]
+        workout_day = training_plan.workout_days.get(day_of_week=today_weekday)
+
+        create_resp = member_client.post('/api/workout-sessions/', {
+            'workout_day_id': workout_day.id,
+        })
+        member_client.patch(
+            f"/api/workout-sessions/{create_resp.data['id']}/complete/",
+            {'overall_feeling': 5},
+        )
+
+        resp = member_client.get(f'/api/plans/{training_plan.id}/today-workout/')
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert resp.data['today_session_id'] == create_resp.data['id']
+        assert resp.data['today_session_completed'] is True
+        assert resp.data['today_session_started'] is False
 
 
 @pytest.mark.django_db

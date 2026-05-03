@@ -79,7 +79,7 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                 {'message': 'No hay entrenamiento programado para hoy.'},
                 status=status.HTTP_200_OK
             )
-        serializer = TodayWorkoutSerializer(workout_day)
+        serializer = TodayWorkoutSerializer(workout_day, context={'request': request, 'member': plan.member})
         return Response(serializer.data)
 
     @action(detail=True, methods=['get'], url_path='weekly-view')

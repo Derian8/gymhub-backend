@@ -87,6 +87,10 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
         id: 201,
         name: 'Torso superior',
         day_label: 'A',
+        day_of_week: 'mon',
+        today_session_id: null,
+        today_session_completed: false,
+        today_session_started: false,
         exercises: [
           {
             id: 301,

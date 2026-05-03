@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import serializers
 from .models import (
     TrainingPlan, WorkoutDay, Exercise, GymMachine,
@@ -91,10 +92,62 @@ class TrainingPlanSerializer(serializers.ModelSerializer):
 
 class TodayWorkoutSerializer(serializers.ModelSerializer):
     exercises = ExerciseSerializer(many=True, read_only=True)
+    today_session_id = serializers.SerializerMethodField()
+    today_session_completed = serializers.SerializerMethodField()
+    today_session_started = serializers.SerializerMethodField()
+
+    def _get_member(self):
+        member = self.context.get('member')
+        if member:
+            return member
+
+        request = self.context.get('request')
+        if request and getattr(request.user, 'role', None) == 'member':
+            return getattr(request.user, 'memberprofile', None)
+        return None
+
+    def _get_today_session(self, obj):
+        cache = getattr(self, '_today_session_cache', None)
+        if cache is None:
+            cache = {}
+            self._today_session_cache = cache
+
+        if obj.pk in cache:
+            return cache[obj.pk]
+
+        member = self._get_member()
+        if not member:
+            cache[obj.pk] = None
+            return None
+
+        from progress.models import WorkoutSession
+
+        session = WorkoutSession.objects.filter(
+            member=member,
+            workout_day=obj,
+            started_at__date=timezone.localdate(),
+        ).order_by('-started_at', '-id').first()
+        cache[obj.pk] = session
+        return session
+
+    def get_today_session_id(self, obj):
+        session = self._get_today_session(obj)
+        return session.id if session else None
+
+    def get_today_session_completed(self, obj):
+        session = self._get_today_session(obj)
+        return bool(session and session.is_completed)
+
+    def get_today_session_started(self, obj):
+        session = self._get_today_session(obj)
+        return bool(session and not session.is_completed)
 
     class Meta:
         model = WorkoutDay
-        fields = ('id', 'name', 'day_label', 'day_of_week', 'exercises')
+        fields = (
+            'id', 'name', 'day_label', 'day_of_week', 'exercises',
+            'today_session_id', 'today_session_completed', 'today_session_started',
+        )
 
 
 class PlantillaEjercicioSerializer(serializers.ModelSerializer):

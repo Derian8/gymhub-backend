@@ -462,6 +462,9 @@ export interface TodayWorkout {
   day_label: DayLabel
   day_of_week: DayOfWeek
   exercises: Exercise[]
+  today_session_id: number | null
+  today_session_completed: boolean
+  today_session_started: boolean
 }
 
 export interface WeeklyWorkoutStatus {

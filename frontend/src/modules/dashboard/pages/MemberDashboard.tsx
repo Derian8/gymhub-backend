@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Activity,
@@ -74,6 +74,7 @@ export function MemberDashboard() {
   const { mutate: bulkLogs, isPending: isSavingLogs } = useBulkExerciseLogsMutation()
   const [sessionId, setSessionId] = useState<number | null>(null)
   const [sessionStarted, setSessionStarted] = useState(false)
+  const [sessionCompletedToday, setSessionCompletedToday] = useState(false)
   const [overallFeeling, setOverallFeeling] = useState(4)
   const [exerciseDrafts, setExerciseDrafts] = useState<Record<number, ExerciseProgressDraft>>({})
 
@@ -94,8 +95,51 @@ export function MemberDashboard() {
     setExerciseDrafts(nextDrafts)
   }
 
+  useEffect(() => {
+    if (!todayWorkout?.id) {
+      setSessionId(null)
+      setSessionStarted(false)
+      setSessionCompletedToday(false)
+      setExerciseDrafts({})
+      return
+    }
+
+    if (todayWorkout.today_session_completed) {
+      setSessionId(todayWorkout.today_session_id)
+      setSessionStarted(false)
+      setSessionCompletedToday(true)
+      return
+    }
+
+    if (todayWorkout.today_session_started && todayWorkout.today_session_id) {
+      setSessionId(todayWorkout.today_session_id)
+      setSessionStarted(true)
+      setSessionCompletedToday(false)
+      setExerciseDrafts((current) => {
+        if (Object.keys(current).length) {
+          return current
+        }
+        const nextDrafts: Record<number, ExerciseProgressDraft> = {}
+        todayWorkout.exercises.forEach((exercise) => {
+          nextDrafts[exercise.id] = exercise.exercise_type === 'timed'
+            ? { done: false, minutes_completed: exercise.target_minutes ?? 0 }
+            : { done: false, weight_used_kg: exercise.weight_suggestion_kg ?? 0, rpe: 7 }
+        })
+        return nextDrafts
+      })
+      return
+    }
+
+    setSessionCompletedToday(false)
+  }, [
+    todayWorkout?.id,
+    todayWorkout?.today_session_id,
+    todayWorkout?.today_session_completed,
+    todayWorkout?.today_session_started,
+  ])
+
   const handleStartWorkout = () => {
-    if (!todayWorkout) {
+    if (!todayWorkout || sessionCompletedToday) {
       return
     }
     createSession(
@@ -104,6 +148,7 @@ export function MemberDashboard() {
         onSuccess: (session) => {
           setSessionId(session.id)
           setSessionStarted(true)
+          setSessionCompletedToday(false)
           initializeDrafts(todayWorkout)
         },
       },
@@ -156,7 +201,7 @@ export function MemberDashboard() {
             {
               onSuccess: () => {
                 setSessionStarted(false)
-                setSessionId(null)
+                setSessionCompletedToday(true)
                 setExerciseDrafts({})
               },
             },
@@ -326,8 +371,8 @@ export function MemberDashboard() {
                 </p>
               </div>
               {todayWorkout ? (
-                <Badge variant={sessionStarted ? 'success' : 'info'}>
-                  {sessionStarted ? 'Sesión activa' : 'Listo para entrenar'}
+                <Badge variant={sessionCompletedToday ? 'success' : sessionStarted ? 'success' : 'info'}>
+                  {sessionCompletedToday ? 'Completado hoy' : sessionStarted ? 'Sesión activa' : 'Listo para entrenar'}
                 </Badge>
               ) : null}
             </div>
@@ -340,7 +385,12 @@ export function MemberDashboard() {
               />
             ) : (
               <>
-                {!sessionStarted ? (
+                {sessionCompletedToday ? (
+                  <div className="mb-5 rounded-sm border border-emerald-200 bg-emerald-50/60 p-4 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-300">
+                    <p className="text-sm font-semibold">Rutina completada hoy</p>
+                    <p className="mt-1 text-xs opacity-80">No puedes reiniciar este bloque hasta que vuelva a tocar este día en tu plan semanal.</p>
+                  </div>
+                ) : !sessionStarted ? (
                   <button
                     type="button"
                     className="btn-primary mb-5 flex items-center gap-2"

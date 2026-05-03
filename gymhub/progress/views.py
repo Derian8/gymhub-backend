@@ -166,6 +166,25 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
             except MemberProfile.DoesNotExist:
                 return Response({'error': 'Miembro no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
+        existing_session = WorkoutSession.objects.filter(
+            member=member,
+            workout_day=workout_day,
+            started_at__date=timezone.localdate(),
+        ).order_by('-started_at', '-id').first()
+
+        if existing_session:
+            if existing_session.is_completed:
+                return Response(
+                    {
+                        'error': (
+                            'La rutina de hoy ya fue completada. '
+                            'Podras volver a realizarla cuando este dia corresponda otra vez.'
+                        )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            return Response(WorkoutSessionSerializer(existing_session).data, status=status.HTTP_200_OK)
+
         session = WorkoutSession.objects.create(
             member=member,
             workout_day=workout_day,
