@@ -5,6 +5,7 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Count, DateTimeField, Exists, OuterRef, Q, Subquery, Sum
 from django.db.models.functions import Coalesce
+from django.utils import timezone
 
 from alerts.models import InactivityAlert, Notification
 from attendance.models import Attendance
@@ -111,7 +112,7 @@ def annotate_member_metrics(queryset):
 def get_today_workout_day(plan):
     if not plan:
         return None
-    weekday = date.today().strftime('%a').lower()[:3]
+    weekday = timezone.localdate().strftime('%a').lower()[:3]
     return plan.workout_days.filter(day_of_week=weekday).order_by('order', 'id').first()
 
 
@@ -226,7 +227,7 @@ def get_member_payment_access_status(member, overdue_days_threshold=30):
 def _days_since(value):
     if value is None:
         return None
-    return (date.today() - value).days
+    return (timezone.localdate() - value).days
 
 
 def _get_risk_level(score):
@@ -259,7 +260,7 @@ def _attendance_streak(member):
         return 0
 
     streak = 0
-    expected_day = date.today()
+    expected_day = timezone.localdate()
     for attendance_day in attendance_dates:
         if attendance_day == expected_day:
             streak += 1
@@ -303,7 +304,7 @@ def get_member_risk_snapshot(member):
     days_until_due = None
     days_overdue = None
     if latest_payment:
-        delta = (latest_payment.schedule.due_date - date.today()).days
+        delta = (latest_payment.schedule.due_date - timezone.localdate()).days
         if delta >= 0:
             days_until_due = delta
         else:
@@ -404,7 +405,8 @@ def get_member_dashboard_summary(member):
     if inactivity_alert is None:
         inactivity_alert = InactivityAlert.objects.filter(member=member, resolved=False).exists()
 
-    week_start = date.today() - timedelta(days=date.today().weekday())
+    today = timezone.localdate()
+    week_start = today - timedelta(days=today.weekday())
     weekly_sessions_done = WorkoutSession.objects.filter(
         member=member,
         is_completed=True,

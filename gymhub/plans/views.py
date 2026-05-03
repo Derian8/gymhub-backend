@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 from django.db import transaction
+from django.utils import timezone
 
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -24,7 +25,7 @@ def get_today_workout_day(plan):
     """Retorna el WorkoutDay correspondiente al día real de la semana."""
     if not plan:
         return None
-    weekday = date.today().strftime('%a').lower()[:3]
+    weekday = timezone.localdate().strftime('%a').lower()[:3]
     return plan.workout_days.filter(day_of_week=weekday).order_by('order', 'id').first()
 
 
@@ -93,7 +94,7 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
 
         from progress.models import WorkoutSession
 
-        today = date.today()
+        today = timezone.localdate()
         week_start = today - timedelta(days=today.weekday())
         result = []
 

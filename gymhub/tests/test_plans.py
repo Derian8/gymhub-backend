@@ -94,6 +94,32 @@ class TestTodayWorkout:
         resp2 = member_client.get(f'/api/plans/{training_plan.id}/today-workout/')
         assert resp1.data['id'] == resp2.data['id']
 
+    def test_today_workout_uses_local_business_day(self, member_client, training_plan, monkeypatch):
+        from django.utils import timezone as django_timezone
+        from plans.models import WorkoutDay
+        from plans import views as plan_views
+        from users import services as user_services
+
+        local_saturday = date(2026, 5, 2)
+        expected_day, _ = WorkoutDay.objects.get_or_create(
+            plan=training_plan,
+            day_of_week='sat',
+            defaults={
+                'name': 'Sabado fuerte',
+                'day_label': 'C',
+                'order': 2,
+            },
+        )
+
+        monkeypatch.setattr(plan_views.timezone, 'localdate', lambda: local_saturday)
+        monkeypatch.setattr(user_services.timezone, 'localdate', lambda: local_saturday)
+        monkeypatch.setattr(django_timezone, 'localdate', lambda: local_saturday)
+
+        resp = member_client.get(f'/api/plans/{training_plan.id}/today-workout/')
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert resp.data['id'] == expected_day.id
+
 
 @pytest.mark.django_db
 class TestWorkoutSessions:

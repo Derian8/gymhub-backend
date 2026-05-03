@@ -132,7 +132,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = 'es-es'
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Costa_Rica'
 USE_I18N = True
 USE_TZ = True
 
@@ -187,7 +187,7 @@ REFRESH_TOKEN_COOKIE_NAME = 'refresh_token'
 # Celery
 CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='redis://redis:6379/0')
 CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default='redis://redis:6379/1')
-CELERY_TIMEZONE = 'UTC'
+CELERY_TIMEZONE = 'America/Costa_Rica'
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_ACCEPT_CONTENT = ['json']
