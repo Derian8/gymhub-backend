@@ -51,6 +51,7 @@ export function TodayWorkoutPage() {
   const [logs, setLogs] = useState<Record<number, ExerciseLogEntry>>({})
   const [overallFeeling, setOverallFeeling] = useState(4)
   const [sessionCompletedToday, setSessionCompletedToday] = useState(false)
+  const [selectedDayOfWeek, setSelectedDayOfWeek] = useState<string | null>(null)
   const unreadTrainerMessages =
     notifications?.results?.filter((message) => message.type === 'trainer_message' && !message.read).length || 0
 
@@ -222,6 +223,7 @@ export function TodayWorkoutPage() {
   }
 
   const diasPrograma = activePrescription?.dias || []
+  const weeklyDays = weeklyView?.week_days || []
 
   if (!workoutDay?.id && !isMember) {
     return (
@@ -243,9 +245,27 @@ export function TodayWorkoutPage() {
   const tieneProgramaActivo = !!activePrescription?.plan_activo
   const mostrarFallbackSemanal = isMember && !workoutDay?.id && tieneProgramaActivo
   const mostrarEstadoVacioMember = isMember && !workoutDay?.id && !tieneProgramaActivo
+  const selectedWeeklyDay = weeklyDays.find((day) => day.day_of_week === selectedDayOfWeek) || weeklyDays[0] || null
+  const selectedWorkoutDay = selectedWeeklyDay?.has_workout
+    ? diasPrograma.find((day) => day.id === selectedWeeklyDay.workout_day_id)
+      || diasPrograma.find((day) => day.day_of_week === selectedWeeklyDay.day_of_week)
+      || null
+    : null
   const tituloPrincipal = mostrarFallbackSemanal
     ? 'Hoy no tienes bloque puntual'
     : `${DAY_OF_WEEK_LABELS[workoutDay?.day_of_week || 'mon']} · ${workoutDay?.name}`
+
+  useEffect(() => {
+    if (!mostrarFallbackSemanal) {
+      setSelectedDayOfWeek(null)
+      return
+    }
+
+    if (!selectedDayOfWeek && weeklyDays.length > 0) {
+      const firstWorkoutDay = weeklyDays.find((day) => day.has_workout) || weeklyDays[0]
+      setSelectedDayOfWeek(firstWorkoutDay.day_of_week)
+    }
+  }, [mostrarFallbackSemanal, selectedDayOfWeek, weeklyDays])
 
   if (mostrarEstadoVacioMember) {
     return (
@@ -335,7 +355,59 @@ export function TodayWorkoutPage() {
           <InlinePill icon={<Flame size={14} />} label={mostrarFallbackSemanal ? 'Consulta semanal activa' : 'Carga sugerida visible'} />
         </div>
 
-        {!mostrarFallbackSemanal ? (
+        {mostrarFallbackSemanal ? (
+          <div className="mt-6 space-y-5" data-testid="day-selector-panel">
+            <div>
+              <p className="label-base">Escoge un día</p>
+              <h2 className="text-2xl font-heading font-bold text-neutral-900 dark:text-white">
+                Revisa exactamente qué toca en cada día
+              </h2>
+              <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                Puedes consultar cualquier bloque semanal desde aquí. Solo el día real de hoy puede iniciar sesión.
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {weeklyDays.map((day) => (
+                <button
+                  key={day.date}
+                  type="button"
+                  onClick={() => setSelectedDayOfWeek(day.day_of_week)}
+                  className={cn(
+                    'rounded-[1.25rem] border p-4 text-left transition-colors',
+                    selectedWeeklyDay?.day_of_week === day.day_of_week
+                      ? 'border-primary bg-primary/5'
+                      : 'border-neutral-200 bg-neutral-50/70 hover:border-primary/30 dark:border-neutral-800 dark:bg-neutral-900/60',
+                  )}
+                  data-testid={`day-selector-${day.day_of_week}`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-neutral-900 dark:text-white">
+                        {day.has_workout ? `${DAY_OF_WEEK_LABELS[day.day_of_week]} · ${day.workout_day_name}` : `${DAY_OF_WEEK_LABELS[day.day_of_week]} · Descanso`}
+                      </p>
+                      <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                        {day.has_workout
+                          ? `${day.day_label ? `Día ${day.day_label} · ` : ''}${day.is_completed ? 'Completado' : 'Disponible para consulta'}`
+                          : 'Recuperación o descanso programado'}
+                      </p>
+                    </div>
+                    <Badge variant={day.has_workout ? (selectedWeeklyDay?.day_of_week === day.day_of_week ? 'info' : 'neutral') : 'neutral'}>
+                      {day.has_workout ? 'Ver' : 'Descanso'}
+                    </Badge>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {selectedWeeklyDay ? (
+              <SelectedDayDetail
+                day={selectedWeeklyDay}
+                workoutDay={selectedWorkoutDay}
+              />
+            ) : null}
+          </div>
+        ) : (
           <div className="mt-6">
             {sessionCompletedToday ? (
               <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
@@ -369,7 +441,7 @@ export function TodayWorkoutPage() {
               </div>
             )}
           </div>
-        ) : null}
+        )}
       </section>
 
       {!mostrarFallbackSemanal ? (
@@ -645,6 +717,123 @@ function WeeklyStatusCard({
         <Badge variant={day.has_workout ? (day.is_completed ? 'success' : 'info') : 'neutral'}>
           {day.has_workout ? (day.is_completed ? 'Completado' : 'Activo') : 'Descanso'}
         </Badge>
+      </div>
+    </div>
+  )
+}
+
+function SelectedDayDetail({
+  day,
+  workoutDay,
+}: {
+  day: {
+    date: string
+    workout_day_name: string | null
+    workout_day_id: number | null
+    day_of_week: string
+    day_label: string | null
+    has_workout: boolean
+    is_rest_day: boolean
+    session_id: number | null
+    is_completed: boolean
+  }
+  workoutDay: {
+    id: number
+    plan: number
+    name: string
+    day_label: string
+    day_of_week: string
+    order: number
+    exercises: Exercise[]
+  } | null
+}) {
+  const weekdayLabel = DAY_OF_WEEK_LABELS[day.day_of_week] || day.day_of_week
+
+  if (!day.has_workout || !workoutDay) {
+    return (
+      <div
+        className="rounded-[1.5rem] border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
+        data-testid="selected-day-detail"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="label-base">Detalle del día</p>
+            <h3 className="text-xl font-heading font-bold text-neutral-900 dark:text-white">
+              {weekdayLabel} · Descanso
+            </h3>
+            <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+              No hay bloque asignado para este día en el plan actual.
+            </p>
+          </div>
+          <Badge variant="neutral">Descanso</Badge>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className="rounded-[1.5rem] border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
+      data-testid="selected-day-detail"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="label-base">Detalle del día</p>
+          <h3 className="text-xl font-heading font-bold text-neutral-900 dark:text-white">
+            {weekdayLabel} · {workoutDay.name}
+          </h3>
+          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+            Consulta este bloque en modo lectura. Solo el día real correspondiente permite iniciar sesión.
+          </p>
+        </div>
+        <Badge variant={day.is_completed ? 'success' : 'info'}>
+          {day.is_completed ? 'Completado' : 'Consulta'}
+        </Badge>
+      </div>
+
+      <div className="mt-5 space-y-4">
+        {workoutDay.exercises.length ? (
+          workoutDay.exercises.map((exercise) => (
+            <div
+              key={exercise.id}
+              className="rounded-[1.25rem] border border-neutral-200 bg-neutral-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/60"
+              data-testid={`selected-exercise-${exercise.id}`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h4 className="font-semibold text-neutral-900 dark:text-white">{exercise.name}</h4>
+                  <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                    {MUSCLE_LABELS[exercise.muscle_group]} · {exercise.machine_detail?.name || 'Ejercicio libre'}
+                  </p>
+                </div>
+                <Badge variant="neutral">{getExercisePrescriptionLabel(exercise)}</Badge>
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <StaticMetric label="Máquina" value={exercise.machine_detail?.name || 'Libre'} />
+                <StaticMetric
+                  label="Prescripción"
+                  value={exercise.exercise_type === 'timed' ? `${exercise.target_minutes ?? 0} min` : `${exercise.sets ?? 0}×${exercise.reps_range}`}
+                />
+                <StaticMetric label="Descanso" value={`${exercise.rest_seconds}s`} />
+                <StaticMetric
+                  label="Peso sugerido"
+                  value={exercise.weight_suggestion_kg != null ? `${exercise.weight_suggestion_kg}kg` : 'Libre'}
+                />
+              </div>
+
+              {exercise.technique_notes ? (
+                <p className="mt-3 text-xs italic text-neutral-500 dark:text-neutral-400">{exercise.technique_notes}</p>
+              ) : null}
+            </div>
+          ))
+        ) : (
+          <EmptyState
+            icon={<Dumbbell size={32} />}
+            title="Este bloque no tiene ejercicios cargados"
+            description="Tu trainer asignó el día, pero aún no ha cargado ejercicios en ese bloque."
+          />
+        )}
       </div>
     </div>
   )

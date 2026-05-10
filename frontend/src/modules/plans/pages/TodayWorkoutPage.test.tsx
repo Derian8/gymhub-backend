@@ -266,11 +266,41 @@ describe('TodayWorkoutPage', () => {
 
     expect(getByTestId('today-workout-page')).toBeInTheDocument()
     expect(getByText('Hoy no tienes bloque puntual')).toBeInTheDocument()
+    expect(getByTestId('day-selector-panel')).toBeInTheDocument()
     expect(getByTestId('weekly-program-section')).toBeInTheDocument()
     expect(getByTestId('weekly-status-mon')).toHaveTextContent('Lunes · Torso')
     expect(getByTestId('weekly-status-wed')).toHaveTextContent('Miércoles · Descanso')
     expect(queryByTestId('start-session-btn')).not.toBeInTheDocument()
     expect(queryByTestId('exercise-checklist')).not.toBeInTheDocument()
+  })
+
+  it('allows consulting a specific workout day when today has no assigned block', async () => {
+    mockTodayWorkoutData = null
+    const user = userEvent.setup()
+
+    const { getByTestId, getByText, queryByTestId } = renderWithProviders(<TodayWorkoutPage />)
+
+    expect(getByTestId('selected-day-detail')).toHaveTextContent('Lunes · Torso')
+    expect(getByText('Press banca')).toBeInTheDocument()
+    expect(queryByTestId('start-session-btn')).not.toBeInTheDocument()
+
+    await user.click(getByTestId('day-selector-fri'))
+
+    expect(getByTestId('selected-day-detail')).toHaveTextContent('Viernes · Pierna')
+    expect(getByText('Sentadilla')).toBeInTheDocument()
+    expect(queryByTestId('start-session-btn')).not.toBeInTheDocument()
+  })
+
+  it('shows explicit rest state when selecting a day without workout', async () => {
+    mockTodayWorkoutData = null
+    const user = userEvent.setup()
+
+    const { getByTestId } = renderWithProviders(<TodayWorkoutPage />)
+
+    await user.click(getByTestId('day-selector-wed'))
+
+    expect(getByTestId('selected-day-detail')).toHaveTextContent('Miércoles · Descanso')
+    expect(getByTestId('selected-day-detail')).toHaveTextContent('No hay bloque asignado para este día')
   })
 
   it('hides the start button when today workout was already completed', () => {
