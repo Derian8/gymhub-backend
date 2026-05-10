@@ -52,6 +52,7 @@ export function TodayWorkoutPage() {
   const [overallFeeling, setOverallFeeling] = useState(4)
   const [sessionCompletedToday, setSessionCompletedToday] = useState(false)
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState<string | null>(null)
+  const [isDaySelectorOpen, setIsDaySelectorOpen] = useState(false)
   const unreadTrainerMessages =
     notifications?.results?.filter((message) => message.type === 'trainer_message' && !message.read).length || 0
 
@@ -256,16 +257,27 @@ export function TodayWorkoutPage() {
     : `${DAY_OF_WEEK_LABELS[workoutDay?.day_of_week || 'mon']} · ${workoutDay?.name}`
 
   useEffect(() => {
-    if (!mostrarFallbackSemanal) {
+    if (!tieneProgramaActivo) {
       setSelectedDayOfWeek(null)
+      setIsDaySelectorOpen(false)
       return
     }
 
     if (!selectedDayOfWeek && weeklyDays.length > 0) {
-      const firstWorkoutDay = weeklyDays.find((day) => day.has_workout) || weeklyDays[0]
-      setSelectedDayOfWeek(firstWorkoutDay.day_of_week)
+      const firstAvailableDay = mostrarFallbackSemanal
+        ? (weeklyDays.find((day) => day.has_workout) || weeklyDays[0])
+        : (
+            weeklyDays.find((day) => day.day_of_week !== workoutDay?.day_of_week && day.has_workout)
+            || weeklyDays.find((day) => day.day_of_week !== workoutDay?.day_of_week)
+            || weeklyDays[0]
+          )
+      setSelectedDayOfWeek(firstAvailableDay.day_of_week)
     }
-  }, [mostrarFallbackSemanal, selectedDayOfWeek, weeklyDays])
+  }, [tieneProgramaActivo, mostrarFallbackSemanal, selectedDayOfWeek, weeklyDays, workoutDay?.day_of_week])
+
+  useEffect(() => {
+    setIsDaySelectorOpen(mostrarFallbackSemanal)
+  }, [mostrarFallbackSemanal])
 
   if (mostrarEstadoVacioMember) {
     return (
@@ -355,56 +367,72 @@ export function TodayWorkoutPage() {
           <InlinePill icon={<Flame size={14} />} label={mostrarFallbackSemanal ? 'Consulta semanal activa' : 'Carga sugerida visible'} />
         </div>
 
-        {mostrarFallbackSemanal ? (
+        {isMember && tieneProgramaActivo ? (
           <div className="mt-6 space-y-5" data-testid="day-selector-panel">
-            <div>
-              <p className="label-base">Escoge un día</p>
-              <h2 className="text-2xl font-heading font-bold text-neutral-900 dark:text-white">
-                Revisa exactamente qué toca en cada día
-              </h2>
-              <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-                Puedes consultar cualquier bloque semanal desde aquí. Solo el día real de hoy puede iniciar sesión.
-              </p>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="label-base">{mostrarFallbackSemanal ? 'Escoge un día' : 'Consulta semanal'}</p>
+                <h2 className="text-2xl font-heading font-bold text-neutral-900 dark:text-white">
+                  Revisa exactamente qué toca en cada día
+                </h2>
+                <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                  {mostrarFallbackSemanal
+                    ? 'Puedes consultar cualquier bloque semanal desde aquí. Solo el día real de hoy puede iniciar sesión.'
+                    : 'Abre el panel para consultar otros días sin quitarle el foco a la rutina real de hoy.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsDaySelectorOpen((current) => !current)}
+                className="btn-secondary"
+                data-testid="toggle-day-selector-btn"
+              >
+                {isDaySelectorOpen ? 'Ocultar otros días' : 'Ver otro día'}
+              </button>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {weeklyDays.map((day) => (
-                <button
-                  key={day.date}
-                  type="button"
-                  onClick={() => setSelectedDayOfWeek(day.day_of_week)}
-                  className={cn(
-                    'rounded-[1.25rem] border p-4 text-left transition-colors',
-                    selectedWeeklyDay?.day_of_week === day.day_of_week
-                      ? 'border-primary bg-primary/5'
-                      : 'border-neutral-200 bg-neutral-50/70 hover:border-primary/30 dark:border-neutral-800 dark:bg-neutral-900/60',
-                  )}
-                  data-testid={`day-selector-${day.day_of_week}`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-neutral-900 dark:text-white">
-                        {day.has_workout ? `${DAY_OF_WEEK_LABELS[day.day_of_week]} · ${day.workout_day_name}` : `${DAY_OF_WEEK_LABELS[day.day_of_week]} · Descanso`}
-                      </p>
-                      <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                        {day.has_workout
-                          ? `${day.day_label ? `Día ${day.day_label} · ` : ''}${day.is_completed ? 'Completado' : 'Disponible para consulta'}`
-                          : 'Recuperación o descanso programado'}
-                      </p>
-                    </div>
-                    <Badge variant={day.has_workout ? (selectedWeeklyDay?.day_of_week === day.day_of_week ? 'info' : 'neutral') : 'neutral'}>
-                      {day.has_workout ? 'Ver' : 'Descanso'}
-                    </Badge>
-                  </div>
-                </button>
-              ))}
-            </div>
+            {isDaySelectorOpen ? (
+              <>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {weeklyDays.map((day) => (
+                    <button
+                      key={day.date}
+                      type="button"
+                      onClick={() => setSelectedDayOfWeek(day.day_of_week)}
+                      className={cn(
+                        'rounded-[1.25rem] border p-4 text-left transition-colors',
+                        selectedWeeklyDay?.day_of_week === day.day_of_week
+                          ? 'border-primary bg-primary/5'
+                          : 'border-neutral-200 bg-neutral-50/70 hover:border-primary/30 dark:border-neutral-800 dark:bg-neutral-900/60',
+                      )}
+                      data-testid={`day-selector-${day.day_of_week}`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-neutral-900 dark:text-white">
+                            {day.has_workout ? `${DAY_OF_WEEK_LABELS[day.day_of_week]} · ${day.workout_day_name}` : `${DAY_OF_WEEK_LABELS[day.day_of_week]} · Descanso`}
+                          </p>
+                          <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                            {day.has_workout
+                              ? `${day.day_label ? `Día ${day.day_label} · ` : ''}${day.is_completed ? 'Completado' : 'Disponible para consulta'}`
+                              : 'Recuperación o descanso programado'}
+                          </p>
+                        </div>
+                        <Badge variant={day.has_workout ? (selectedWeeklyDay?.day_of_week === day.day_of_week ? 'info' : 'neutral') : 'neutral'}>
+                          {day.has_workout ? 'Ver' : 'Descanso'}
+                        </Badge>
+                      </div>
+                    </button>
+                  ))}
+                </div>
 
-            {selectedWeeklyDay ? (
-              <SelectedDayDetail
-                day={selectedWeeklyDay}
-                workoutDay={selectedWorkoutDay}
-              />
+                {selectedWeeklyDay ? (
+                  <SelectedDayDetail
+                    day={selectedWeeklyDay}
+                    workoutDay={selectedWorkoutDay}
+                  />
+                ) : null}
+              </>
             ) : null}
           </div>
         ) : (

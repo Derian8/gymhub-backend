@@ -204,6 +204,7 @@ describe('TodayWorkoutPage', () => {
     expect(getByText('Carlos Mendoza')).toBeInTheDocument()
     expect(getAllByText('Hipertrofia base').length).toBeGreaterThan(0)
     expect(getByTestId('workout-primary')).toBeInTheDocument()
+    expect(getByTestId('toggle-day-selector-btn')).toBeInTheDocument()
     expect(getByTestId('exercise-checklist')).toBeInTheDocument()
     expect(getByTestId('weekly-program-section')).toBeInTheDocument()
     expect(getAllByText('Lunes · Torso').length).toBeGreaterThan(0)
@@ -259,6 +260,21 @@ describe('TodayWorkoutPage', () => {
     expect(queryByTestId('complete-session-btn')).not.toBeInTheDocument()
   })
 
+  it('allows opening another day while keeping today as the main workout', async () => {
+    const user = userEvent.setup()
+
+    const { getByTestId, getByText, queryByTestId } = renderWithProviders(<TodayWorkoutPage />)
+
+    expect(queryByTestId('selected-day-detail')).not.toBeInTheDocument()
+
+    await user.click(getByTestId('toggle-day-selector-btn'))
+
+    expect(getByTestId('selected-day-detail')).toBeInTheDocument()
+    expect(getByTestId('selected-day-detail')).toHaveTextContent('Viernes · Pierna')
+    expect(getByText('Sentadilla')).toBeInTheDocument()
+    expect(getByTestId('start-session-btn')).toBeInTheDocument()
+  })
+
   it('keeps training as home and shows weekly plan when there is no block today', () => {
     mockTodayWorkoutData = null
 
@@ -267,6 +283,7 @@ describe('TodayWorkoutPage', () => {
     expect(getByTestId('today-workout-page')).toBeInTheDocument()
     expect(getByText('Hoy no tienes bloque puntual')).toBeInTheDocument()
     expect(getByTestId('day-selector-panel')).toBeInTheDocument()
+    expect(getByTestId('toggle-day-selector-btn')).toHaveTextContent('Ocultar otros días')
     expect(getByTestId('weekly-program-section')).toBeInTheDocument()
     expect(getByTestId('weekly-status-mon')).toHaveTextContent('Lunes · Torso')
     expect(getByTestId('weekly-status-wed')).toHaveTextContent('Miércoles · Descanso')
