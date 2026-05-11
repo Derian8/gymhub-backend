@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import React, { useEffect, useMemo, useState } from 'react'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, CheckCircle, CreditCard, Dumbbell, Flame, Loader2, MessageSquareMore, NotebookTabs, Play, Scale, Sparkles, Target, Utensils } from 'lucide-react'
 
 import { useTodayWorkoutQuery, useWeeklyPlanQuery, useCreateSessionMutation, useCompleteSessionMutation, useBulkExerciseLogsMutation } from '../hooks/usePlans'
@@ -29,16 +29,28 @@ function getExercisePrescriptionLabel(exercise: Exercise) {
   return `${exercise.sets ?? 0}×${exercise.reps_range}`
 }
 
-export function TodayWorkoutPage() {
+function TodayWorkoutPageContent() {
   const { id } = useParams<{ id: string }>()
   const requestedPlanId = parseInt(id || '0')
   const { user } = useAuthStore()
   const isMember = user?.role === 'member'
   const memberId = user?.memberprofile_id || 0
-  const { data: activePrescription } = useMemberActivePrescriptionQuery(isMember ? memberId : 0)
+  const {
+    data: activePrescription,
+    isLoading: isLoadingPrescription,
+    isError: isPrescriptionError,
+  } = useMemberActivePrescriptionQuery(isMember ? memberId : 0)
   const planId = requestedPlanId || activePrescription?.plan_activo?.id || 0
-  const { data, isLoading } = useTodayWorkoutQuery(planId)
-  const { data: weeklyView } = useWeeklyPlanQuery(planId)
+  const {
+    data,
+    isLoading: isLoadingTodayWorkout,
+    isError: isTodayWorkoutError,
+  } = useTodayWorkoutQuery(planId)
+  const {
+    data: weeklyView,
+    isLoading: isLoadingWeeklyView,
+    isError: isWeeklyViewError,
+  } = useWeeklyPlanQuery(planId)
   const { data: dashboardSummary } = useMemberDashboardQuery(isMember ? memberId : 0)
   const { data: physicalSummary } = useMemberPhysicalSummaryQuery(isMember ? memberId : 0)
   const { data: notifications } = useNotificationsQuery()
@@ -214,38 +226,16 @@ export function TodayWorkoutPage() {
     }))
   }
 
-  if (isLoading) {
-    return (
-      <div className="page-enter space-y-4">
-        <div className="h-8 w-32 skeleton rounded mb-6" />
-        <CardSkeleton lines={8} />
-      </div>
-    )
-  }
-
   const diasPrograma = activePrescription?.dias || []
   const weeklyDays = weeklyView?.week_days || []
-
-  if (!workoutDay?.id && !isMember) {
-    return (
-      <div data-testid="no-workout-today" className="page-enter">
-        <Link to={`/plans/${planId}`} className="mb-6 flex items-center gap-2 text-sm text-neutral-500 transition-colors hover:text-primary">
-          <ArrowLeft size={16} />
-          Volver al plan
-        </Link>
-        <EmptyState
-          icon={<CheckCircle size={48} className="text-green-400" />}
-          title="Sin entrenamiento hoy"
-          description="No hay sesión programada para hoy en este plan."
-        />
-      </div>
-    )
-  }
-
-  const ejercicios = workoutDay?.exercises?.length || 0
   const tieneProgramaActivo = !!activePrescription?.plan_activo
   const mostrarFallbackSemanal = isMember && !workoutDay?.id && tieneProgramaActivo
   const mostrarEstadoVacioMember = isMember && !workoutDay?.id && !tieneProgramaActivo
+  const needsWeeklyContext = isMember && tieneProgramaActivo
+  const isInitialLoading = isLoadingTodayWorkout || (isMember && (isLoadingPrescription || (needsWeeklyContext && isLoadingWeeklyView)))
+  const hasCriticalQueryError = isMember && (isPrescriptionError || (tieneProgramaActivo && isWeeklyViewError))
+  const lacksTrainingContext = isMember && tieneProgramaActivo && !workoutDay?.id && weeklyDays.length === 0 && diasPrograma.length === 0
+  const ejercicios = workoutDay?.exercises?.length || 0
   const selectedWeeklyDay = weeklyDays.find((day) => day.day_of_week === selectedDayOfWeek) || weeklyDays[0] || null
   const selectedWorkoutDay = selectedWeeklyDay?.has_workout
     ? diasPrograma.find((day) => day.id === selectedWeeklyDay.workout_day_id)
@@ -278,6 +268,35 @@ export function TodayWorkoutPage() {
   useEffect(() => {
     setIsDaySelectorOpen(mostrarFallbackSemanal)
   }, [mostrarFallbackSemanal])
+
+  if (isInitialLoading) {
+    return (
+      <div className="page-enter space-y-4">
+        <div className="h-8 w-32 skeleton rounded mb-6" />
+        <CardSkeleton lines={8} />
+      </div>
+    )
+  }
+
+  if (hasCriticalQueryError || lacksTrainingContext || (!isMember && isTodayWorkoutError)) {
+    return <MemberTrainingFallback />
+  }
+
+  if (!workoutDay?.id && !isMember) {
+    return (
+      <div data-testid="no-workout-today" className="page-enter">
+        <Link to={`/plans/${planId}`} className="mb-6 flex items-center gap-2 text-sm text-neutral-500 transition-colors hover:text-primary">
+          <ArrowLeft size={16} />
+          Volver al plan
+        </Link>
+        <EmptyState
+          icon={<CheckCircle size={48} className="text-green-400" />}
+          title="Sin entrenamiento hoy"
+          description="No hay sesión programada para hoy en este plan."
+        />
+      </div>
+    )
+  }
 
   if (mostrarEstadoVacioMember) {
     return (
@@ -668,6 +687,70 @@ export function TodayWorkoutPage() {
       ) : null}
     </div>
   )
+}
+
+export function TodayWorkoutPage() {
+  return (
+    <TrainingPageErrorBoundary>
+      <TodayWorkoutPageContent />
+    </TrainingPageErrorBoundary>
+  )
+}
+
+function MemberTrainingFallback() {
+  const navigate = useNavigate()
+  const user = useAuthStore((s) => s.user)
+
+  useEffect(() => {
+    const target = user?.role === 'member' ? '/dashboard/member' : '/plans'
+    const timer = window.setTimeout(() => {
+      navigate(target, { replace: true, state: { trainingFallback: true } })
+    }, 250)
+
+    return () => window.clearTimeout(timer)
+  }, [navigate, user?.role])
+
+  return (
+    <div data-testid="training-fallback" className="page-enter mx-auto max-w-3xl space-y-6">
+      <section className="rounded-[1.75rem] border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
+        <p className="label-base">Entrenamiento</p>
+        <h1 className="text-3xl font-heading font-black text-neutral-900 dark:text-white">
+          No se pudo cargar esta vista
+        </h1>
+        <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
+          Estamos abriendo una vista más estable para que no te quedes con la pantalla en negro.
+        </p>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <Link to={user?.role === 'member' ? '/dashboard/member' : '/plans'} className="btn-secondary">
+            Ir ahora
+          </Link>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+class TrainingPageErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('TodayWorkoutPage render failed', error)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <MemberTrainingFallback />
+    }
+
+    return this.props.children
+  }
 }
 
 function InlinePill({ icon, label }: { icon: React.ReactNode; label: string }) {

@@ -53,6 +53,10 @@ const mockTodayWorkout: TodayWorkout = {
 }
 
 let mockTodayWorkoutData: typeof mockTodayWorkout | null = mockTodayWorkout
+let mockTodayWorkoutLoading = false
+let mockPrescriptionError = false
+let mockPrescriptionLoading = false
+let mockWeeklyViewError = false
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom')
@@ -66,7 +70,8 @@ vi.mock('react-router-dom', async () => {
 vi.mock('../hooks/usePlans', () => ({
   useTodayWorkoutQuery: () => ({
     data: mockTodayWorkoutData,
-    isLoading: false,
+    isLoading: mockTodayWorkoutLoading,
+    isError: false,
   }),
   useWeeklyPlanQuery: () => ({
     data: {
@@ -81,6 +86,7 @@ vi.mock('../hooks/usePlans', () => ({
       ],
     },
     isLoading: false,
+    isError: mockWeeklyViewError,
   }),
   useCreateSessionMutation: () => ({
     mutate: crearSesion,
@@ -130,7 +136,8 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
         goal_type: 'muscle_gain',
       },
     },
-    isLoading: false,
+    isLoading: mockPrescriptionLoading,
+    isError: mockPrescriptionError,
   }),
   useMemberDashboardQuery: () => ({
     data: {
@@ -163,6 +170,10 @@ vi.mock('@/modules/alerts/hooks/useAlerts', () => ({
 describe('TodayWorkoutPage', () => {
   beforeEach(() => {
     mockTodayWorkoutData = mockTodayWorkout
+    mockTodayWorkoutLoading = false
+    mockPrescriptionError = false
+    mockPrescriptionLoading = false
+    mockWeeklyViewError = false
     crearSesion.mockReset()
     completarSesion.mockReset()
     guardarLogs.mockReset()
@@ -333,5 +344,29 @@ describe('TodayWorkoutPage', () => {
     expect(getByText('Rutina completada hoy')).toBeInTheDocument()
     expect(queryByTestId('start-session-btn')).not.toBeInTheDocument()
     expect(queryByTestId('complete-session-btn')).not.toBeInTheDocument()
+  })
+
+  it('shows a fallback instead of leaving the page blank when critical data fails', () => {
+    mockPrescriptionError = true
+
+    const { getByTestId, getByText } = renderWithProviders(<TodayWorkoutPage />)
+
+    expect(getByTestId('training-fallback')).toBeInTheDocument()
+    expect(getByText('No se pudo cargar esta vista')).toBeInTheDocument()
+  })
+
+  it('survives the loading-to-ready transition without crashing the training screen', () => {
+    mockTodayWorkoutLoading = true
+
+    const { rerender, getByText, getByTestId } = renderWithProviders(<TodayWorkoutPage />)
+
+    expect(getByText('Cargando vista de entrenamiento')).toBeInTheDocument()
+
+    mockTodayWorkoutLoading = false
+
+    rerender(<TodayWorkoutPage />)
+
+    expect(getByTestId('today-workout-page')).toBeInTheDocument()
+    expect(getByText('Press banca')).toBeInTheDocument()
   })
 })
