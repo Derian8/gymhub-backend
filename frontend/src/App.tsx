@@ -6,7 +6,7 @@ import { ProtectedRoute, PublicRoute } from '@/shared/components/RouteGuards'
 import { useAuth } from '@/shared/hooks/useAuth'
 import { useAuthStore } from '@/shared/store/authStore'
 import { useBackendStatusStore } from '@/shared/store/backendStatusStore'
-import { syncClientBuildState } from '@/shared/lib/runtimeInfo'
+import { getProductionRedirectUrl, shouldRedirectPreviewToProduction, syncClientBuildState } from '@/shared/lib/runtimeInfo'
 
 // Auth
 import { LoginPage } from '@/modules/auth/pages/LoginPage'
@@ -53,6 +53,28 @@ import { ProfilePage } from '@/modules/profile/pages/ProfilePage'
 
 const PUBLIC_PATHS = new Set(['/login', '/register', '/'])
 
+function PreviewRedirectGuard({ pathname, search, hash }: { pathname: string; search: string; hash: string }) {
+  useEffect(() => {
+    window.location.replace(
+      getProductionRedirectUrl(pathname, search, hash),
+    )
+  }, [hash, pathname, search])
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-neutral-950 px-6 text-center">
+      <div className="max-w-md space-y-3">
+        <p className="label-base">Redirigiendo</p>
+        <h1 className="text-3xl font-heading font-black text-neutral-900 dark:text-white">
+          Abriendo la versión estable
+        </h1>
+        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+          Este deployment preview puede estar desactualizado. Te estamos llevando al alias principal.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 function AuthBootstrap() {
   const location = useLocation()
   const { user, isAuthenticated, authResolved, setAuthResolved } = useAuthStore()
@@ -75,9 +97,11 @@ function AuthBootstrap() {
 }
 
 function App() {
+  const location = useLocation()
   const logout = useAuthStore((s) => s.logout)
   const setAuthResolved = useAuthStore((s) => s.setAuthResolved)
   const clearBackendIssue = useBackendStatusStore((s) => s.clearIssue)
+  const previewRedirectRequired = shouldRedirectPreviewToProduction(window.location.hostname, window.location.search)
 
   useEffect(() => {
     syncClientBuildState(() => {
@@ -87,6 +111,16 @@ function App() {
       setAuthResolved(true)
     })
   }, [clearBackendIssue, logout, setAuthResolved])
+
+  if (previewRedirectRequired) {
+    return (
+      <PreviewRedirectGuard
+        pathname={location.pathname}
+        search={location.search}
+        hash={location.hash}
+      />
+    )
+  }
 
   return (
     <>
