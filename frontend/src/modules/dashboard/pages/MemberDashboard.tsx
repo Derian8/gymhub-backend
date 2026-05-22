@@ -222,12 +222,250 @@ export function MemberDashboard() {
     )
   }
 
+  const todayCabin = (
+    <div className="card p-6" data-testid="member-today-cabin">
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+        <div>
+          <p className="label-base">Rutina del día</p>
+          <h3 className="text-2xl font-heading font-bold text-neutral-900 dark:text-white">
+            {todayWorkout ? `Hoy toca: ${DAY_OF_WEEK_LABELS[weeklyDays.find((day) => day.id === todayWorkout.id)?.day_of_week || 'mon']} · ${todayWorkout.name}` : 'Hoy no toca bloque activo'}
+          </h3>
+          <p className="text-sm text-neutral-500 mt-1">
+            {todayWorkout
+              ? 'Empieza aquí: ejercicios, máquinas, prescripción y registro rápido del entrenamiento específico de hoy.'
+              : 'Tu semana sigue visible abajo aunque hoy no tengas un bloque específico asignado.'}
+          </p>
+        </div>
+        {todayWorkout ? (
+          <Badge variant={sessionCompletedToday ? 'success' : sessionStarted ? 'success' : 'info'}>
+            {sessionCompletedToday ? 'Completado hoy' : sessionStarted ? 'Sesión activa' : 'Listo para entrenar'}
+          </Badge>
+        ) : null}
+      </div>
+
+      {!todayWorkout ? (
+        <EmptyState
+          icon={<Activity size={32} />}
+          title="Sin sesión del día"
+          description="Revisa la semana del plan o consulta a tu trainer si necesitas un bloque para hoy."
+        />
+      ) : (
+        <>
+          {sessionCompletedToday ? (
+            <div className="mb-5 rounded-sm border border-emerald-200 bg-emerald-50/60 p-4 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-300">
+              <p className="text-sm font-semibold">Rutina completada hoy</p>
+              <p className="mt-1 text-xs opacity-80">No puedes reiniciar este bloque hasta que vuelva a tocar este día en tu plan semanal.</p>
+            </div>
+          ) : !sessionStarted ? (
+            <button
+              type="button"
+              className="btn-primary mb-5 flex items-center gap-2"
+              onClick={handleStartWorkout}
+              disabled={isCreatingSession}
+              data-testid="start-session-btn"
+            >
+              {isCreatingSession ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
+              {isCreatingSession ? 'Iniciando...' : 'Iniciar entrenamiento de hoy'}
+            </button>
+          ) : null}
+
+          <div className="space-y-3">
+            {todayWorkout.exercises.map((exercise) => {
+              const draft = exerciseDrafts[exercise.id]
+              const isTimed = exercise.exercise_type === 'timed'
+              return (
+                <div
+                  key={exercise.id}
+                  className={cn(
+                    'rounded-sm border p-4',
+                    draft?.done ? 'border-emerald-400 bg-emerald-50/60 dark:border-emerald-700 dark:bg-emerald-950/20' : 'border-neutral-200 dark:border-neutral-800',
+                  )}
+                  data-testid={`today-exercise-${exercise.id}`}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-semibold text-neutral-900 dark:text-white">{exercise.name}</h4>
+                        <Badge variant="neutral">{getExercisePrescriptionLabel(exercise)}</Badge>
+                      </div>
+                      <p className="mt-1 text-sm text-neutral-500">
+                        {MUSCLE_LABELS[exercise.muscle_group]} · {exercise.machine_detail?.name || 'Ejercicio libre'}
+                      </p>
+                      {exercise.machine_detail?.category ? (
+                        <p className="text-xs text-neutral-400">{exercise.machine_detail.category}</p>
+                      ) : null}
+                      {exercise.technique_notes ? (
+                        <p className="mt-2 text-xs text-neutral-500">{exercise.technique_notes}</p>
+                      ) : null}
+                    </div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                      <input
+                        type="checkbox"
+                        checked={draft?.done || false}
+                        disabled={!sessionStarted}
+                        onChange={(event) => updateDraft(exercise.id, { done: event.target.checked })}
+                      />
+                      Hecho
+                    </label>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
+                    <DashboardMetric
+                      label="Máquina"
+                      value={exercise.machine_detail?.name || 'Libre'}
+                    />
+                    <DashboardMetric
+                      label="Prescripción"
+                      value={isTimed ? `${exercise.target_minutes ?? 0} min` : `${exercise.sets ?? 0}x${exercise.reps_range}`}
+                    />
+                    <DashboardMetric
+                      label="Descanso"
+                      value={`${exercise.rest_seconds}s`}
+                    />
+                    <DashboardMetric
+                      label="Peso sugerido"
+                      value={exercise.weight_suggestion_kg != null ? `${exercise.weight_suggestion_kg} kg` : 'Libre'}
+                    />
+                  </div>
+
+                  {sessionStarted ? (
+                    <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+                      {isTimed ? (
+                        <QuickNumberField
+                          label="Minutos realizados"
+                          value={draft?.minutes_completed ?? exercise.target_minutes ?? 0}
+                          onChange={(value) => updateDraft(exercise.id, { minutes_completed: value })}
+                          step={1}
+                          testId={`minutes-input-${exercise.id}`}
+                        />
+                      ) : (
+                        <>
+                          <QuickNumberField
+                            label="Peso usado (kg)"
+                            value={draft?.weight_used_kg ?? 0}
+                            onChange={(value) => updateDraft(exercise.id, { weight_used_kg: value })}
+                            step={2.5}
+                            testId={`weight-input-${exercise.id}`}
+                          />
+                          <QuickNumberField
+                            label="RPE"
+                            value={draft?.rpe ?? 7}
+                            onChange={(value) => updateDraft(exercise.id, { rpe: value })}
+                            step={1}
+                            min={1}
+                            max={10}
+                            testId={`rpe-input-${exercise.id}`}
+                          />
+                        </>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              )
+            })}
+          </div>
+
+          {sessionStarted ? (
+            <div className="mt-6 rounded-sm border border-neutral-200 p-4 dark:border-neutral-800">
+              <label className="label-base block mb-2">
+                Sensación general ({overallFeeling}/5)
+              </label>
+              <input
+                type="range"
+                min={1}
+                max={5}
+                value={overallFeeling}
+                onChange={(event) => setOverallFeeling(Number(event.target.value))}
+                className="w-full accent-primary"
+                data-testid="feeling-slider"
+              />
+              <button
+                type="button"
+                className="btn-primary mt-4 flex items-center gap-2"
+                onClick={handleCompleteWorkout}
+                disabled={isSavingLogs || isCompletingSession}
+                data-testid="complete-session-btn"
+              >
+                {isSavingLogs || isCompletingSession ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+                {isSavingLogs || isCompletingSession ? 'Guardando...' : 'Cerrar sesión de hoy'}
+              </button>
+            </div>
+          ) : null}
+        </>
+      )}
+    </div>
+  )
+
+  const weekPlan = (
+    <div className="card p-6" data-testid="member-week-plan">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <p className="label-base">Semana del plan</p>
+          <h3 className="text-xl font-heading font-bold text-neutral-900 dark:text-white">
+            {activePrescription?.plan_activo?.name || 'Sin plan publicado'}
+          </h3>
+        </div>
+        {activePrescription?.plan_activo ? (
+          <Link to={`/plans/${activePrescription.plan_activo.id}`} className="btn-secondary" data-testid="member-plan-detail-link">
+            Ver plan completo
+          </Link>
+        ) : null}
+      </div>
+
+      {!weeklyDays.length ? (
+        <EmptyState
+          icon={<Dumbbell size={32} />}
+          title="Aún no hay días cargados"
+          description="Tu trainer necesita publicar tu semana de entrenamiento para que puedas seguirla desde aquí."
+        />
+      ) : (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          {weeklyDays.map((day) => {
+            const completion = weeklyView?.week_days.find((item) => item.workout_day_id === day.id)
+            const isToday = todayWorkout?.id === day.id
+            return (
+              <div
+                key={day.id}
+                className={cn(
+                  'rounded-sm border p-4 transition-colors',
+                  isToday ? 'border-primary bg-primary/5' : 'border-neutral-200 dark:border-neutral-800',
+                )}
+                data-testid={`week-day-${day.id}`}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-neutral-500">
+                      {day.day_label ? `Día ${day.day_label}` : 'Bloque semanal'}
+                    </p>
+                    <p className="font-semibold text-neutral-900 dark:text-white">{DAY_OF_WEEK_LABELS[day.day_of_week]} · {day.name}</p>
+                  </div>
+                  {isToday ? (
+                    <Badge variant="info">Hoy</Badge>
+                  ) : completion?.is_completed ? (
+                    <Badge variant="success">Hecho</Badge>
+                  ) : (
+                    <Badge variant="neutral">Pendiente</Badge>
+                  )}
+                </div>
+                <p className="mt-2 text-sm text-neutral-500">
+                  {day.exercises.length} ejercicio(s) · {day.exercises.slice(0, 2).map((exercise) => exercise.name).join(' · ') || 'Sin ejercicios'}
+                </p>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+
   return (
     <div data-testid="member-dashboard" className="page-enter space-y-6">
       <PageHeader
         title={`Hola, ${user?.first_name || 'Atleta'}`}
         subtitle="Tu cabina del gym para seguir el plan exactamente como te lo dejó tu trainer."
       />
+
+      {todayCabin}
 
       <section className="grid grid-cols-1 gap-4 xl:grid-cols-[1.3fr_0.7fr]" data-testid="member-dashboard-header">
         <div className="card p-6">
@@ -297,237 +535,7 @@ export function MemberDashboard() {
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.35fr_0.65fr]">
         <div className="space-y-6">
-          <div className="card p-6" data-testid="member-week-plan">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <p className="label-base">Semana del plan</p>
-                <h3 className="text-xl font-heading font-bold text-neutral-900 dark:text-white">
-                  {activePrescription?.plan_activo?.name || 'Sin plan publicado'}
-                </h3>
-              </div>
-              {activePrescription?.plan_activo ? (
-                <Link to={`/plans/${activePrescription.plan_activo.id}`} className="btn-secondary" data-testid="member-plan-detail-link">
-                  Ver plan completo
-                </Link>
-              ) : null}
-            </div>
-
-            {!weeklyDays.length ? (
-              <EmptyState
-                icon={<Dumbbell size={32} />}
-                title="Aún no hay días cargados"
-                description="Tu trainer necesita publicar tu semana de entrenamiento para que puedas seguirla desde aquí."
-              />
-            ) : (
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                {weeklyDays.map((day) => {
-                  const completion = weeklyView?.week_days.find((item) => item.workout_day_id === day.id)
-                  const isToday = todayWorkout?.id === day.id
-                  return (
-                    <div
-                      key={day.id}
-                      className={cn(
-                        'rounded-sm border p-4 transition-colors',
-                        isToday ? 'border-primary bg-primary/5' : 'border-neutral-200 dark:border-neutral-800',
-                      )}
-                      data-testid={`week-day-${day.id}`}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-xs uppercase tracking-wide text-neutral-500">
-                            {day.day_label ? `Día ${day.day_label}` : 'Bloque semanal'}
-                          </p>
-                          <p className="font-semibold text-neutral-900 dark:text-white">{DAY_OF_WEEK_LABELS[day.day_of_week]} · {day.name}</p>
-                        </div>
-                        {isToday ? (
-                          <Badge variant="info">Hoy</Badge>
-                        ) : completion?.is_completed ? (
-                          <Badge variant="success">Hecho</Badge>
-                        ) : (
-                          <Badge variant="neutral">Pendiente</Badge>
-                        )}
-                      </div>
-                      <p className="mt-2 text-sm text-neutral-500">
-                        {day.exercises.length} ejercicio(s) · {day.exercises.slice(0, 2).map((exercise) => exercise.name).join(' · ') || 'Sin ejercicios'}
-                      </p>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-
-          <div className="card p-6" data-testid="member-today-cabin">
-            <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
-              <div>
-                <p className="label-base">Bloque del día</p>
-                <h3 className="text-2xl font-heading font-bold text-neutral-900 dark:text-white">
-                  {todayWorkout ? `${DAY_OF_WEEK_LABELS[weeklyDays.find((day) => day.id === todayWorkout.id)?.day_of_week || 'mon']} · ${todayWorkout.name}` : 'Hoy no toca bloque activo'}
-                </h3>
-                <p className="text-sm text-neutral-500 mt-1">
-                  {todayWorkout
-                    ? 'Marca lo que ya hiciste mientras entrenas. Aquí ves ejercicios, máquinas y registro rápido.'
-                    : 'Tu semana sigue visible arriba aunque hoy no tengas un bloque específico asignado.'}
-                </p>
-              </div>
-              {todayWorkout ? (
-                <Badge variant={sessionCompletedToday ? 'success' : sessionStarted ? 'success' : 'info'}>
-                  {sessionCompletedToday ? 'Completado hoy' : sessionStarted ? 'Sesión activa' : 'Listo para entrenar'}
-                </Badge>
-              ) : null}
-            </div>
-
-            {!todayWorkout ? (
-              <EmptyState
-                icon={<Activity size={32} />}
-                title="Sin sesión del día"
-                description="Revisa la semana del plan o consulta a tu trainer si necesitas un bloque para hoy."
-              />
-            ) : (
-              <>
-                {sessionCompletedToday ? (
-                  <div className="mb-5 rounded-sm border border-emerald-200 bg-emerald-50/60 p-4 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-300">
-                    <p className="text-sm font-semibold">Rutina completada hoy</p>
-                    <p className="mt-1 text-xs opacity-80">No puedes reiniciar este bloque hasta que vuelva a tocar este día en tu plan semanal.</p>
-                  </div>
-                ) : !sessionStarted ? (
-                  <button
-                    type="button"
-                    className="btn-primary mb-5 flex items-center gap-2"
-                    onClick={handleStartWorkout}
-                    disabled={isCreatingSession}
-                    data-testid="start-session-btn"
-                  >
-                    {isCreatingSession ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
-                    {isCreatingSession ? 'Iniciando...' : 'Iniciar entrenamiento de hoy'}
-                  </button>
-                ) : null}
-
-                <div className="space-y-3">
-                  {todayWorkout.exercises.map((exercise) => {
-                    const draft = exerciseDrafts[exercise.id]
-                    const isTimed = exercise.exercise_type === 'timed'
-                    return (
-                      <div
-                        key={exercise.id}
-                        className={cn(
-                          'rounded-sm border p-4',
-                          draft?.done ? 'border-emerald-400 bg-emerald-50/60 dark:border-emerald-700 dark:bg-emerald-950/20' : 'border-neutral-200 dark:border-neutral-800',
-                        )}
-                        data-testid={`today-exercise-${exercise.id}`}
-                      >
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-semibold text-neutral-900 dark:text-white">{exercise.name}</h4>
-                              <Badge variant="neutral">{getExercisePrescriptionLabel(exercise)}</Badge>
-                            </div>
-                            <p className="mt-1 text-sm text-neutral-500">
-                              {MUSCLE_LABELS[exercise.muscle_group]} · {exercise.machine_detail?.name || 'Ejercicio libre'}
-                            </p>
-                            {exercise.machine_detail?.category ? (
-                              <p className="text-xs text-neutral-400">{exercise.machine_detail.category}</p>
-                            ) : null}
-                            {exercise.technique_notes ? (
-                              <p className="mt-2 text-xs text-neutral-500">{exercise.technique_notes}</p>
-                            ) : null}
-                          </div>
-                          <label className="flex items-center gap-2 text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                            <input
-                              type="checkbox"
-                              checked={draft?.done || false}
-                              disabled={!sessionStarted}
-                              onChange={(event) => updateDraft(exercise.id, { done: event.target.checked })}
-                            />
-                            Hecho
-                          </label>
-                        </div>
-
-                        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
-                          <DashboardMetric
-                            label="Máquina"
-                            value={exercise.machine_detail?.name || 'Libre'}
-                          />
-                          <DashboardMetric
-                            label="Prescripción"
-                            value={isTimed ? `${exercise.target_minutes ?? 0} min` : `${exercise.sets ?? 0}x${exercise.reps_range}`}
-                          />
-                          <DashboardMetric
-                            label="Descanso"
-                            value={`${exercise.rest_seconds}s`}
-                          />
-                          <DashboardMetric
-                            label="Peso sugerido"
-                            value={exercise.weight_suggestion_kg != null ? `${exercise.weight_suggestion_kg} kg` : 'Libre'}
-                          />
-                        </div>
-
-                        {sessionStarted ? (
-                          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-                            {isTimed ? (
-                              <QuickNumberField
-                                label="Minutos realizados"
-                                value={draft?.minutes_completed ?? exercise.target_minutes ?? 0}
-                                onChange={(value) => updateDraft(exercise.id, { minutes_completed: value })}
-                                step={1}
-                                testId={`minutes-input-${exercise.id}`}
-                              />
-                            ) : (
-                              <>
-                                <QuickNumberField
-                                  label="Peso usado (kg)"
-                                  value={draft?.weight_used_kg ?? 0}
-                                  onChange={(value) => updateDraft(exercise.id, { weight_used_kg: value })}
-                                  step={2.5}
-                                  testId={`weight-input-${exercise.id}`}
-                                />
-                                <QuickNumberField
-                                  label="RPE"
-                                  value={draft?.rpe ?? 7}
-                                  onChange={(value) => updateDraft(exercise.id, { rpe: value })}
-                                  step={1}
-                                  min={1}
-                                  max={10}
-                                  testId={`rpe-input-${exercise.id}`}
-                                />
-                              </>
-                            )}
-                          </div>
-                        ) : null}
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {sessionStarted ? (
-                  <div className="mt-6 rounded-sm border border-neutral-200 p-4 dark:border-neutral-800">
-                    <label className="label-base block mb-2">
-                      Sensación general ({overallFeeling}/5)
-                    </label>
-                    <input
-                      type="range"
-                      min={1}
-                      max={5}
-                      value={overallFeeling}
-                      onChange={(event) => setOverallFeeling(Number(event.target.value))}
-                      className="w-full accent-primary"
-                      data-testid="feeling-slider"
-                    />
-                    <button
-                      type="button"
-                      className="btn-primary mt-4 flex items-center gap-2"
-                      onClick={handleCompleteWorkout}
-                      disabled={isSavingLogs || isCompletingSession}
-                      data-testid="complete-session-btn"
-                    >
-                      {isSavingLogs || isCompletingSession ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-                      {isSavingLogs || isCompletingSession ? 'Guardando...' : 'Cerrar sesión de hoy'}
-                    </button>
-                  </div>
-                ) : null}
-              </>
-            )}
-          </div>
+          {weekPlan}
         </div>
 
         <div className="space-y-4">

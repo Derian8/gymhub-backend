@@ -187,6 +187,16 @@ describe('MemberDashboard', () => {
     expect(getByText('Carlos Mendoza')).toBeInTheDocument()
     expect(getByTestId('member-week-plan')).toBeInTheDocument()
     expect(getByTestId('member-today-cabin')).toBeInTheDocument()
+    expect(
+      getByTestId('member-today-cabin').compareDocumentPosition(getByTestId('member-dashboard-header'))
+      & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(
+      getByTestId('member-today-cabin').compareDocumentPosition(getByTestId('member-week-plan'))
+      & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(getByText('Hoy toca: Lunes · Torso superior')).toBeInTheDocument()
+    expect(getByTestId('start-session-btn')).toHaveTextContent('Iniciar entrenamiento de hoy')
     expect(getByTestId('card-payment')).toBeInTheDocument()
     expect(getByTestId('card-messages')).toHaveAttribute('href', '/messages')
     expect(getByTestId('card-messages')).toHaveTextContent('1')
