@@ -215,6 +215,8 @@ describe('TodayWorkoutPage', () => {
     expect(getByText('Carlos Mendoza')).toBeInTheDocument()
     expect(getAllByText('Hipertrofia base').length).toBeGreaterThan(0)
     expect(getByTestId('workout-primary')).toBeInTheDocument()
+    expect(getByTestId('workout-primary')).toHaveTextContent('Rutina del día')
+    expect(getByTestId('start-session-btn')).toHaveTextContent('Iniciar rutina de hoy')
     expect(getByTestId('toggle-day-selector-btn')).toBeInTheDocument()
     expect(getByTestId('exercise-checklist')).toBeInTheDocument()
     expect(getByTestId('weekly-program-section')).toBeInTheDocument()
@@ -358,15 +360,16 @@ describe('TodayWorkoutPage', () => {
   it('survives the loading-to-ready transition without crashing the training screen', () => {
     mockTodayWorkoutLoading = true
 
-    const { rerender, getByText, getByTestId } = renderWithProviders(<TodayWorkoutPage />)
+    const loadingView = renderWithProviders(<TodayWorkoutPage />)
 
-    expect(getByText('Cargando vista de entrenamiento')).toBeInTheDocument()
+    expect(loadingView.getByText('Cargando vista de entrenamiento')).toBeInTheDocument()
 
     mockTodayWorkoutLoading = false
+    loadingView.unmount()
 
-    rerender(<TodayWorkoutPage />)
+    const readyView = renderWithProviders(<TodayWorkoutPage />)
 
-    expect(getByTestId('today-workout-page')).toBeInTheDocument()
-    expect(getByText('Press banca')).toBeInTheDocument()
+    expect(readyView.getByTestId('today-workout-page')).toBeInTheDocument()
+    expect(readyView.getByText('Press banca')).toBeInTheDocument()
   })
 })

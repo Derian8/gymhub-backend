@@ -272,6 +272,7 @@ function TodayWorkoutPageContent() {
   if (isInitialLoading) {
     return (
       <div className="page-enter space-y-4">
+        <p className="sr-only">Cargando vista de entrenamiento</p>
         <div className="h-8 w-32 skeleton rounded mb-6" />
         <CardSkeleton lines={8} />
       </div>
@@ -386,6 +387,42 @@ function TodayWorkoutPageContent() {
           <InlinePill icon={<Flame size={14} />} label={mostrarFallbackSemanal ? 'Consulta semanal activa' : 'Carga sugerida visible'} />
         </div>
 
+        {!mostrarFallbackSemanal ? (
+          <div className="mt-6">
+            {sessionCompletedToday ? (
+              <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
+                <SymbolFrame size="sm" tone="success">
+                  <CheckCircle size={16} />
+                </SymbolFrame>
+                <div>
+                  <p className="text-sm font-semibold">Rutina completada hoy</p>
+                  <p className="text-xs opacity-80">Este bloque se habilitará de nuevo cuando vuelva a tocar este día de la semana.</p>
+                </div>
+              </div>
+            ) : !sessionStarted ? (
+              <button
+                onClick={handleStartSession}
+                disabled={isCreating}
+                className="btn-primary flex w-full items-center justify-center gap-2 py-4 text-base"
+                data-testid="start-session-btn"
+              >
+                {isCreating ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
+                {isCreating ? 'Iniciando...' : 'Iniciar rutina de hoy'}
+              </button>
+            ) : (
+              <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
+                <SymbolFrame size="sm" tone="success">
+                  <CheckCircle size={16} />
+                </SymbolFrame>
+                <div>
+                  <p className="text-sm font-semibold">Sesión activa</p>
+                  <p className="text-xs opacity-80">Marca la carga usada o los minutos completados mientras avanzas por la rutina.</p>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : null}
+
         {isMember && tieneProgramaActivo ? (
           <div className="mt-6 space-y-5" data-testid="day-selector-panel">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -454,41 +491,7 @@ function TodayWorkoutPageContent() {
               </>
             ) : null}
           </div>
-        ) : (
-          <div className="mt-6">
-            {sessionCompletedToday ? (
-              <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
-                <SymbolFrame size="sm" tone="success">
-                  <CheckCircle size={16} />
-                </SymbolFrame>
-                <div>
-                  <p className="text-sm font-semibold">Rutina completada hoy</p>
-                  <p className="text-xs opacity-80">Este bloque se habilitará de nuevo cuando vuelva a tocar este día de la semana.</p>
-                </div>
-              </div>
-            ) : !sessionStarted ? (
-              <button
-                onClick={handleStartSession}
-                disabled={isCreating}
-                className="btn-primary flex w-full items-center justify-center gap-2 py-4 text-base"
-                data-testid="start-session-btn"
-              >
-                {isCreating ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
-                {isCreating ? 'Iniciando...' : 'INICIAR SESIÓN'}
-              </button>
-            ) : (
-              <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
-                <SymbolFrame size="sm" tone="success">
-                  <CheckCircle size={16} />
-                </SymbolFrame>
-                <div>
-                  <p className="text-sm font-semibold">Sesión activa</p>
-                  <p className="text-xs opacity-80">Marca la carga usada o los minutos completados mientras avanzas por la rutina.</p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        ) : null}
       </section>
 
       {!mostrarFallbackSemanal ? (
