@@ -360,33 +360,6 @@ function TodayWorkoutPageContent() {
           </Badge>
         </div>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-2xl border border-neutral-200 bg-neutral-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/70">
-            <p className="text-[11px] uppercase tracking-wide text-neutral-500">Plan activo</p>
-            <p className="mt-2 text-sm font-semibold text-neutral-900 dark:text-white">
-              {activePrescription?.plan_activo?.name || 'Programa activo'}
-            </p>
-          </div>
-          <div className="rounded-2xl border border-neutral-200 bg-neutral-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/70">
-            <p className="text-[11px] uppercase tracking-wide text-neutral-500">Trainer</p>
-            <p className="mt-2 text-sm font-semibold text-neutral-900 dark:text-white">
-              {activePrescription?.trainer?.nombre || 'Trainer no asignado'}
-            </p>
-          </div>
-          <div className="rounded-2xl border border-neutral-200 bg-neutral-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/70">
-            <p className="text-[11px] uppercase tracking-wide text-neutral-500">Formato de registro</p>
-            <p className="mt-2 text-sm font-semibold text-neutral-900 dark:text-white">
-              {mostrarFallbackSemanal ? 'Semana visible y ordenada' : 'Peso, RPE o minutos'}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-5 flex flex-wrap gap-3 text-sm">
-          <InlinePill icon={<Dumbbell size={14} />} label={mostrarFallbackSemanal ? `${diasPrograma.length} bloques esta semana` : `${ejercicios} ejercicios hoy`} />
-          <InlinePill icon={<Target size={14} />} label="Orden ya definido" />
-          <InlinePill icon={<Flame size={14} />} label={mostrarFallbackSemanal ? 'Consulta semanal activa' : 'Carga sugerida visible'} />
-        </div>
-
         {!mostrarFallbackSemanal ? (
           <div className="mt-6">
             {sessionCompletedToday ? (
@@ -420,76 +393,6 @@ function TodayWorkoutPageContent() {
                 </div>
               </div>
             )}
-          </div>
-        ) : null}
-
-        {isMember && tieneProgramaActivo ? (
-          <div className="mt-6 space-y-5" data-testid="day-selector-panel">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="label-base">{mostrarFallbackSemanal ? 'Escoge un día' : 'Consulta semanal'}</p>
-                <h2 className="text-2xl font-heading font-bold text-neutral-900 dark:text-white">
-                  Revisa exactamente qué toca en cada día
-                </h2>
-                <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-                  {mostrarFallbackSemanal
-                    ? 'Puedes consultar cualquier bloque semanal desde aquí. Solo el día real de hoy puede iniciar sesión.'
-                    : 'Abre el panel para consultar otros días sin quitarle el foco a la rutina real de hoy.'}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsDaySelectorOpen((current) => !current)}
-                className="btn-secondary"
-                data-testid="toggle-day-selector-btn"
-              >
-                {isDaySelectorOpen ? 'Ocultar otros días' : 'Ver otro día'}
-              </button>
-            </div>
-
-            {isDaySelectorOpen ? (
-              <>
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {weeklyDays.map((day) => (
-                    <button
-                      key={day.date}
-                      type="button"
-                      onClick={() => setSelectedDayOfWeek(day.day_of_week)}
-                      className={cn(
-                        'rounded-[1.25rem] border p-4 text-left transition-colors',
-                        selectedWeeklyDay?.day_of_week === day.day_of_week
-                          ? 'border-primary bg-primary/5'
-                          : 'border-neutral-200 bg-neutral-50/70 hover:border-primary/30 dark:border-neutral-800 dark:bg-neutral-900/60',
-                      )}
-                      data-testid={`day-selector-${day.day_of_week}`}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-neutral-900 dark:text-white">
-                            {day.has_workout ? `${DAY_OF_WEEK_LABELS[day.day_of_week]} · ${day.workout_day_name}` : `${DAY_OF_WEEK_LABELS[day.day_of_week]} · Descanso`}
-                          </p>
-                          <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                            {day.has_workout
-                              ? `${day.day_label ? `Día ${day.day_label} · ` : ''}${day.is_completed ? 'Completado' : 'Disponible para consulta'}`
-                              : 'Recuperación o descanso programado'}
-                          </p>
-                        </div>
-                        <Badge variant={day.has_workout ? (selectedWeeklyDay?.day_of_week === day.day_of_week ? 'info' : 'neutral') : 'neutral'}>
-                          {day.has_workout ? 'Ver' : 'Descanso'}
-                        </Badge>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-
-                {selectedWeeklyDay ? (
-                  <SelectedDayDetail
-                    day={selectedWeeklyDay}
-                    workoutDay={selectedWorkoutDay}
-                  />
-                ) : null}
-              </>
-            ) : null}
           </div>
         ) : null}
       </section>
@@ -569,6 +472,108 @@ function TodayWorkoutPageContent() {
             </button>
           </div>
       ) : null}
+
+      <section
+        className="rounded-[1.75rem] border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
+        data-testid="training-context"
+      >
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-neutral-200 bg-neutral-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/70">
+            <p className="text-[11px] uppercase tracking-wide text-neutral-500">Plan activo</p>
+            <p className="mt-2 text-sm font-semibold text-neutral-900 dark:text-white">
+              {activePrescription?.plan_activo?.name || 'Programa activo'}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-neutral-200 bg-neutral-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/70">
+            <p className="text-[11px] uppercase tracking-wide text-neutral-500">Trainer</p>
+            <p className="mt-2 text-sm font-semibold text-neutral-900 dark:text-white">
+              {activePrescription?.trainer?.nombre || 'Trainer no asignado'}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-neutral-200 bg-neutral-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/70">
+            <p className="text-[11px] uppercase tracking-wide text-neutral-500">Formato de registro</p>
+            <p className="mt-2 text-sm font-semibold text-neutral-900 dark:text-white">
+              {mostrarFallbackSemanal ? 'Semana visible y ordenada' : 'Peso, RPE o minutos'}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-3 text-sm">
+          <InlinePill icon={<Dumbbell size={14} />} label={mostrarFallbackSemanal ? `${diasPrograma.length} bloques esta semana` : `${ejercicios} ejercicios hoy`} />
+          <InlinePill icon={<Target size={14} />} label="Orden ya definido" />
+          <InlinePill icon={<Flame size={14} />} label={mostrarFallbackSemanal ? 'Consulta semanal activa' : 'Carga sugerida visible'} />
+        </div>
+
+        {isMember && tieneProgramaActivo ? (
+          <div className="mt-6 space-y-5" data-testid="day-selector-panel">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="label-base">{mostrarFallbackSemanal ? 'Escoge un día' : 'Consulta semanal'}</p>
+                <h2 className="text-2xl font-heading font-bold text-neutral-900 dark:text-white">
+                  Revisa exactamente qué toca en cada día
+                </h2>
+                <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                  {mostrarFallbackSemanal
+                    ? 'Puedes consultar cualquier bloque semanal desde aquí. Solo el día real de hoy puede iniciar sesión.'
+                    : 'Abre el panel para consultar otros días sin quitarle el foco a la rutina real de hoy.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsDaySelectorOpen((current) => !current)}
+                className="btn-secondary"
+                data-testid="toggle-day-selector-btn"
+              >
+                {isDaySelectorOpen ? 'Ocultar otros días' : 'Ver otro día'}
+              </button>
+            </div>
+
+            {isDaySelectorOpen ? (
+              <>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {weeklyDays.map((day) => (
+                    <button
+                      key={day.date}
+                      type="button"
+                      onClick={() => setSelectedDayOfWeek(day.day_of_week)}
+                      className={cn(
+                        'rounded-[1.25rem] border p-4 text-left transition-colors',
+                        selectedWeeklyDay?.day_of_week === day.day_of_week
+                          ? 'border-primary bg-primary/5'
+                          : 'border-neutral-200 bg-neutral-50/70 hover:border-primary/30 dark:border-neutral-800 dark:bg-neutral-900/60',
+                      )}
+                      data-testid={`day-selector-${day.day_of_week}`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-neutral-900 dark:text-white">
+                            {day.has_workout ? `${DAY_OF_WEEK_LABELS[day.day_of_week]} · ${day.workout_day_name}` : `${DAY_OF_WEEK_LABELS[day.day_of_week]} · Descanso`}
+                          </p>
+                          <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                            {day.has_workout
+                              ? `${day.day_label ? `Día ${day.day_label} · ` : ''}${day.is_completed ? 'Completado' : 'Disponible para consulta'}`
+                              : 'Recuperación o descanso programado'}
+                          </p>
+                        </div>
+                        <Badge variant={day.has_workout ? (selectedWeeklyDay?.day_of_week === day.day_of_week ? 'info' : 'neutral') : 'neutral'}>
+                          {day.has_workout ? 'Ver' : 'Descanso'}
+                        </Badge>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {selectedWeeklyDay ? (
+                  <SelectedDayDetail
+                    day={selectedWeeklyDay}
+                    workoutDay={selectedWorkoutDay}
+                  />
+                ) : null}
+              </>
+            ) : null}
+          </div>
+        ) : null}
+      </section>
 
       {isMember && tieneProgramaActivo ? (
         <section className="space-y-4" data-testid="weekly-program-section">

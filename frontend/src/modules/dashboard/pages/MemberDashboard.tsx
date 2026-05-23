@@ -265,7 +265,7 @@ export function MemberDashboard() {
               data-testid="start-session-btn"
             >
               {isCreatingSession ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
-              {isCreatingSession ? 'Iniciando...' : 'Iniciar entrenamiento de hoy'}
+              {isCreatingSession ? 'Iniciando...' : 'Iniciar rutina de hoy'}
             </button>
           ) : null}
 

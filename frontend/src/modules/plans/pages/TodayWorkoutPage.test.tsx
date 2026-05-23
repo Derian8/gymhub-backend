@@ -217,6 +217,18 @@ describe('TodayWorkoutPage', () => {
     expect(getByTestId('workout-primary')).toBeInTheDocument()
     expect(getByTestId('workout-primary')).toHaveTextContent('Rutina del día')
     expect(getByTestId('start-session-btn')).toHaveTextContent('Iniciar rutina de hoy')
+    expect(
+      getByTestId('start-session-btn').compareDocumentPosition(getByTestId('exercise-checklist'))
+      & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(
+      getByTestId('exercise-checklist').compareDocumentPosition(getByTestId('day-selector-panel'))
+      & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(
+      getByTestId('exercise-checklist').compareDocumentPosition(getByTestId('weekly-program-section'))
+      & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
     expect(getByTestId('toggle-day-selector-btn')).toBeInTheDocument()
     expect(getByTestId('exercise-checklist')).toBeInTheDocument()
     expect(getByTestId('weekly-program-section')).toBeInTheDocument()
