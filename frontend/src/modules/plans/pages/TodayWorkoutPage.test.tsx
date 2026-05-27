@@ -215,8 +215,8 @@ describe('TodayWorkoutPage', () => {
     expect(getByText('Carlos Mendoza')).toBeInTheDocument()
     expect(getAllByText('Hipertrofia base').length).toBeGreaterThan(0)
     expect(getByTestId('workout-primary')).toBeInTheDocument()
-    expect(getByTestId('workout-primary')).toHaveTextContent('Rutina del día')
-    expect(getByTestId('start-session-btn')).toHaveTextContent('Iniciar rutina de hoy')
+    expect(getByTestId('workout-primary')).toHaveTextContent('Bloque del día')
+    expect(getByTestId('start-session-btn')).toHaveTextContent('Registrar entrenamiento')
     expect(
       getByTestId('start-session-btn').compareDocumentPosition(getByTestId('exercise-checklist'))
       & Node.DOCUMENT_POSITION_FOLLOWING,

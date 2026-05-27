@@ -196,7 +196,8 @@ describe('MemberDashboard', () => {
       & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
     expect(getByText('Hoy toca: Lunes · Torso superior')).toBeInTheDocument()
-    expect(getByTestId('start-session-btn')).toHaveTextContent('Iniciar rutina de hoy')
+    expect(getByTestId('member-today-cabin')).toHaveTextContent('Bloque del día')
+    expect(getByTestId('start-session-btn')).toHaveTextContent('Registrar entrenamiento')
     expect(getByTestId('card-payment')).toBeInTheDocument()
     expect(getByTestId('card-messages')).toHaveAttribute('href', '/messages')
     expect(getByTestId('card-messages')).toHaveTextContent('1')

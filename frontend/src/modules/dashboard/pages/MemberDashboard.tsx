@@ -226,7 +226,7 @@ export function MemberDashboard() {
     <div className="card p-6" data-testid="member-today-cabin">
       <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
         <div>
-          <p className="label-base">Rutina del día</p>
+          <p className="label-base">Bloque del día</p>
           <h3 className="text-2xl font-heading font-bold text-neutral-900 dark:text-white">
             {todayWorkout ? `Hoy toca: ${DAY_OF_WEEK_LABELS[weeklyDays.find((day) => day.id === todayWorkout.id)?.day_of_week || 'mon']} · ${todayWorkout.name}` : 'Hoy no toca bloque activo'}
           </h3>
@@ -265,7 +265,7 @@ export function MemberDashboard() {
               data-testid="start-session-btn"
             >
               {isCreatingSession ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
-              {isCreatingSession ? 'Iniciando...' : 'Iniciar rutina de hoy'}
+              {isCreatingSession ? 'Iniciando...' : 'Registrar entrenamiento'}
             </button>
           ) : null}
 

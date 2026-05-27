@@ -345,7 +345,7 @@ function TodayWorkoutPageContent() {
       >
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="label-base">{mostrarFallbackSemanal ? 'Entrenamiento de hoy' : 'Rutina del día'}</p>
+            <p className="label-base">Bloque del día</p>
             <h1 className="text-3xl font-heading font-black text-neutral-900 dark:text-white">
               {tituloPrincipal}
             </h1>
@@ -380,7 +380,7 @@ function TodayWorkoutPageContent() {
                 data-testid="start-session-btn"
               >
                 {isCreating ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
-                {isCreating ? 'Iniciando...' : 'Iniciar rutina de hoy'}
+                {isCreating ? 'Iniciando...' : 'Registrar entrenamiento'}
               </button>
             ) : (
               <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
