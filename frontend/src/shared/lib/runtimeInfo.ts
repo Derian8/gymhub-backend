@@ -10,8 +10,7 @@ export function getRuntimeOrigin(): string {
   return window.location.origin
 }
 
-export function isPreviewDeployment(): boolean {
-  const hostname = window.location.hostname
+export function isPreviewDeployment(hostname: string = window.location.hostname): boolean {
   return hostname !== 'proyectoappgym-frontend.vercel.app' && hostname.endsWith('.vercel.app')
 }
 
@@ -29,7 +28,7 @@ export function shouldRedirectPreviewToProduction(
 ): boolean {
   return hostname !== 'localhost'
     && hostname !== '127.0.0.1'
-    && isPreviewDeployment()
+    && isPreviewDeployment(hostname)
     && !isProductionAlias()
     && !isPreviewBypassEnabled(search)
 }
