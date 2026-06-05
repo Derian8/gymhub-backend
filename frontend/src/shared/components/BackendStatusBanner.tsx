@@ -1,6 +1,5 @@
 import { AlertTriangle, RefreshCw, Trash2 } from 'lucide-react'
 import { useBackendStatusStore } from '@/shared/store/backendStatusStore'
-import { APP_BUILD_ID, getRuntimeOrigin, isPreviewDeployment } from '@/shared/lib/runtimeInfo'
 
 export function BackendStatusBanner() {
   const issue = useBackendStatusStore((s) => s.issue)
@@ -34,9 +33,6 @@ export function BackendStatusBanner() {
           <p className="mt-1 break-words text-amber-800 dark:text-amber-200">{issue.message}</p>
           <p className="mt-2 text-xs uppercase tracking-wide text-amber-700 dark:text-amber-300">
             Backend esperado: {issue.backendUrl}
-          </p>
-          <p className="mt-1 text-[11px] uppercase tracking-wide text-amber-700 dark:text-amber-300">
-            Origen actual: {getRuntimeOrigin()} · build {APP_BUILD_ID}{isPreviewDeployment() ? ' · preview' : ' · production'}
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <button
