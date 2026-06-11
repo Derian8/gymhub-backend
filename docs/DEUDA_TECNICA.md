@@ -7,7 +7,7 @@ La deuda principal ya no es conectar infraestructura base, sino cerrar operació
 
 ## Prioridad Alta
 
-### 0. Historial de migraciones desalineado con la base real
+### 0. Validación continua de migraciones vs esquema real
 Evidencia:
 - `plans.0005` y `progress.0004` aparecen como aplicadas en Django.
 - La base real en Supabase no tenía:
@@ -20,15 +20,17 @@ Evidencia:
   - `/api/charts/overview/`
   - `/api/members/`
 - La reparación del 2026-04-30 se aplicó manualmente sobre Supabase con SQL idempotente.
+- Las migraciones formales que representan ese estado ya existen en `plans/0005` y `progress/0004`.
+- Algunas carpetas de migraciones siguen con ownership `nobody:nogroup`, lo que puede bloquear migraciones futuras desde este workspace.
 
 Impacto:
 - Producción puede romperse aunque `showmigrations` marque todo en verde.
 - Nuevos entornos no tienen una ruta confiable si dependen solo del historial actual.
 
 Acción recomendada:
-- Corregir permisos de `gymhub/*/migrations/`.
-- Crear migraciones formales de reparación para `plans` y `progress`.
-- Verificar esquema real vs historial antes de futuros deploys.
+- Corregir ownership/permisos de `gymhub/*/migrations/` para permitir nuevas migraciones.
+- Ejecutar una verificación de esquema real vs historial antes de futuros deploys.
+- Evitar aplicar SQL manual en Supabase sin dejar migración o runbook asociado.
 
 ### 1. Workers, scheduler y Redis no desplegados en producción
 Evidencia:

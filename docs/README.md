@@ -10,6 +10,7 @@
 - [`DEUDA_TECNICA.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/DEUDA_TECNICA.md): deuda técnica identificada, prioridad, impacto y recomendaciones.
 - [`MVP_FUNCIONAL.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/MVP_FUNCIONAL.md): definición operativa del producto mínimo viable, rutas activas y alcance por rol.
 - [`QA_MVP.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/QA_MVP.md): matriz manual de validación por rol y ruta del MVP.
+- [`RECOMENDACIONES_GYM.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/RECOMENDACIONES_GYM.md): mejoras priorizadas para operación diaria de gimnasio, miembros, entrenadores y administración.
 - [`RELEASE_CHECKLIST.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/RELEASE_CHECKLIST.md): checklist de validación para staging, producción local y entregas.
 - [`SUPABASE_VERCEL.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/SUPABASE_VERCEL.md): credenciales requeridas y flujo de conexión con Supabase PostgreSQL y Vercel.
 

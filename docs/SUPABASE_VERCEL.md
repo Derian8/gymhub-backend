@@ -74,11 +74,11 @@ Para el frontend necesitas:
 Variables Vercel para el frontend:
 
 ```env
-VITE_API_BASE_URL=https://api.tu-dominio.com
+VITE_API_BASE_URL=
 VITE_API_TIMEOUT_MS=15000
 ```
 
-En Vercel, estas variables deben configurarse para `Production` y, si aplica, `Preview`.
+En el despliegue actual se recomienda dejar `VITE_API_BASE_URL` vacio y usar rewrites same-origin en `frontend/vercel.json`. Esto mantiene `/auth/`, `/api/`, `/health/` y `/media/` bajo el dominio del frontend y reduce problemas de cookies. Si decides consumir un backend en otro origen sin proxy, entonces configura `VITE_API_BASE_URL=https://api.tu-dominio.com` y alinea CORS/CSRF/cookies.
 
 ## Variables Backend Para Dominio Vercel
 

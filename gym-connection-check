@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+FRONTEND_URL="${FRONTEND_URL:-https://proyectoappgym-frontend.vercel.app}"
+BACKEND_URL="${BACKEND_URL:-https://proyectoappgym-backend.vercel.app}"
+
+for bin in curl python3 rg; do
+  if ! command -v "$bin" >/dev/null 2>&1; then
+    echo "Falta dependencia requerida: $bin" >&2
+    exit 1
+  fi
+done
+
+trim_slash() {
+  printf '%s' "${1%/}"
+}
+
+FRONTEND_URL="$(trim_slash "$FRONTEND_URL")"
+BACKEND_URL="$(trim_slash "$BACKEND_URL")"
+
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+
+fail() {
+  echo "[ERROR] $*" >&2
+  exit 1
+}
+
+request() {
+  local label="$1"
+  local url="$2"
+  local expected_content_type="$3"
+  local output_file="$TMP_DIR/${label//[^a-zA-Z0-9]/_}.body"
+  local headers_file="$TMP_DIR/${label//[^a-zA-Z0-9]/_}.headers"
+  local status
+
+  status="$(curl -sS -L \
+    --connect-timeout 10 \
+    --max-time 30 \
+    -D "$headers_file" \
+    -o "$output_file" \
+    -w '%{http_code}' \
+    "$url")" || fail "$label no respondió: $url"
+
+  if [[ "$status" -lt 200 || "$status" -ge 300 ]]; then
+    echo "Respuesta HTTP inesperada para $label: $status" >&2
+    sed -n '1,40p' "$output_file" >&2 || true
+    exit 1
+  fi
+
+  if [[ -n "$expected_content_type" ]] && ! rg -i "^content-type: .*${expected_content_type}" "$headers_file" >/dev/null; then
+    echo "Content-Type inesperado para $label. Esperado: $expected_content_type" >&2
+    sed -n '1,20p' "$headers_file" >&2 || true
+    exit 1
+  fi
+
+  printf '%s\n' "$output_file"
+}
+
+assert_json_field() {
+  local file="$1"
+  local expression="$2"
+  local label="$3"
+
+  python3 - "$file" "$expression" "$label" <<'PY'
+import json
+import sys
+
+path, expression, label = sys.argv[1:]
+with open(path, encoding='utf-8') as handle:
+    data = json.load(handle)
+
+value = eval(expression, {"__builtins__": {}}, {"data": data})
+if not value:
+    raise SystemExit(f"Valor inválido en {label}: {value!r}")
+PY
+}
+
+echo "==> Validando frontend: $FRONTEND_URL"
+frontend_html="$(request frontend "$FRONTEND_URL" "text/html")"
+rg '<div id="root"' "$frontend_html" >/dev/null || fail "El frontend no parece ser la app Vite esperada."
+rg 'assets/index-.*\.js' "$frontend_html" >/dev/null || fail "El frontend no referencia bundle JS de producción."
+
+echo "==> Validando backend schema: $BACKEND_URL/api/schema/"
+backend_schema="$(request backend_schema "$BACKEND_URL/api/schema/" "")"
+rg -i 'openapi|swagger|paths' "$backend_schema" >/dev/null || fail "El schema del backend no parece OpenAPI."
+
+echo "==> Validando backend live: $BACKEND_URL/health/live/"
+backend_live="$(request backend_live "$BACKEND_URL/health/live/" "application/json")"
+assert_json_field "$backend_live" "data.get('status') == 'ok'" "backend live"
+
+echo "==> Validando backend ready: $BACKEND_URL/health/ready/"
+backend_ready="$(request backend_ready "$BACKEND_URL/health/ready/" "application/json")"
+assert_json_field "$backend_ready" "data.get('status') == 'ok'" "backend ready status"
+assert_json_field "$backend_ready" "data.get('checks', {}).get('database', {}).get('status') == 'ok'" "backend database"
+assert_json_field "$backend_ready" "data.get('checks', {}).get('cache', {}).get('status') == 'ok'" "backend cache"
+
+echo "==> Validando rewrite frontend -> backend: $FRONTEND_URL/health/ready/"
+frontend_ready="$(request frontend_ready "$FRONTEND_URL/health/ready/" "application/json")"
+assert_json_field "$frontend_ready" "data.get('status') == 'ok'" "frontend health proxy"
+assert_json_field "$frontend_ready" "data.get('checks', {}).get('database', {}).get('status') == 'ok'" "frontend proxy database"
+assert_json_field "$frontend_ready" "data.get('checks', {}).get('cache', {}).get('status') == 'ok'" "frontend proxy cache"
+
+cat <<EOF
+
+Conexión OK
+  Frontend: $FRONTEND_URL
+  Backend: $BACKEND_URL
+  Base de datos: ok
+  Cache: ok
+  Rewrite /health: ok
+EOF

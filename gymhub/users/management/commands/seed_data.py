@@ -2,14 +2,14 @@
 Management command: python manage.py seed_data
 Genera datos de prueba para el entorno de desarrollo/testing.
 """
-from datetime import date, timedelta, datetime
+from datetime import date, timedelta
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.db import transaction
 
 
 class Command(BaseCommand):
-    help = 'Seed de datos para desarrollo: 2 trainers, 20 miembros, planes, pagos, asistencias, etc.'
+    help = 'Seed de datos para desarrollo: trainer1, member1 y datos mínimos de demo.'
 
     def add_arguments(self, parser):
         parser.add_argument('--clear', action='store_true', help='Limpiar datos existentes antes del seed.')
@@ -33,6 +33,26 @@ class Command(BaseCommand):
             self._seed_notifications(members, trainers)
 
         self.stdout.write(self.style.SUCCESS('seed_data completado exitosamente.'))
+
+    def _get_or_create_demo_user(self, User, data, password, role):
+        username = data['email'].split('@')[0]
+        user = (
+            User.objects.filter(email=data['email']).first()
+            or User.objects.filter(username=username).first()
+        )
+        created = user is None
+
+        if created:
+            user = User(username=username, email=data['email'])
+
+        user.username = username
+        user.email = data['email']
+        user.first_name = data['first_name']
+        user.last_name = data['last_name']
+        user.role = role
+        user.set_password(password)
+        user.save()
+        return user, created
 
     def _clear_data(self):
         from users.models import User, MemberProfile, TrainerProfile, AuditLog
@@ -77,23 +97,14 @@ class Command(BaseCommand):
             {'email': 'trainer1@gymhub.com', 'first_name': 'Carlos', 'last_name': 'Mendoza',
              'specialization': 'Fuerza y Potencia', 'bio': 'Especialista en entrenamiento de fuerza con 10 años de experiencia.',
              'certification': 'NSCA-CSCS'},
-            {'email': 'trainer2@gymhub.com', 'first_name': 'Ana', 'last_name': 'García',
-             'specialization': 'Fitness y Pérdida de Peso', 'bio': 'Coach de fitness y nutrición deportiva.',
-             'certification': 'ACE-CPT'},
         ]
         for td in trainer_data:
-            user, created = User.objects.get_or_create(
-                email=td['email'],
-                defaults={
-                    'username': td['email'].split('@')[0],
-                    'first_name': td['first_name'],
-                    'last_name': td['last_name'],
-                    'role': 'trainer',
-                }
+            user, _ = self._get_or_create_demo_user(
+                User,
+                td,
+                'trainer123!',
+                'trainer',
             )
-            if created:
-                user.set_password('trainer123!')
-                user.save()
             profile, _ = TrainerProfile.objects.get_or_create(
                 user=user,
                 defaults={
@@ -113,29 +124,21 @@ class Command(BaseCommand):
         members = []
 
         member_names = [
-            ('Luis', 'Hernández'), ('María', 'López'), ('Pedro', 'Martínez'),
-            ('Sofía', 'González'), ('Diego', 'Rodríguez'), ('Valentina', 'Sánchez'),
-            ('Andrés', 'Pérez'), ('Isabella', 'Torres'), ('Sebastián', 'Ramírez'),
-            ('Camila', 'Flores'), ('Mateo', 'Morales'), ('Lucía', 'Jiménez'),
-            ('Nicolás', 'Ruiz'), ('Emma', 'Díaz'), ('Santiago', 'Vargas'),
-            ('Paula', 'Castro'), ('Emilio', 'Romero'), ('Alejandra', 'Suárez'),
-            ('Tomás', 'Ortega'), ('Daniela', 'Ríos'),
+            ('Luis', 'Hernández'),
         ]
 
         for i, (first, last) in enumerate(member_names):
             email = f'member{i+1}@gymhub.com'
-            user, created = User.objects.get_or_create(
-                email=email,
-                defaults={
-                    'username': f'member{i+1}',
+            user, _ = self._get_or_create_demo_user(
+                User,
+                {
+                    'email': email,
                     'first_name': first,
                     'last_name': last,
-                    'role': 'member',
-                }
+                },
+                'member123!',
+                'member',
             )
-            if created:
-                user.set_password('member123!')
-                user.save()
 
             plan = plans_list[i % len(plans_list)]
             profile, _ = MemberProfile.objects.get_or_create(
@@ -160,7 +163,9 @@ class Command(BaseCommand):
         from plans.models import TrainingPlan, WorkoutDay, Exercise
 
         training_plans = []
-        goals = ['muscle_gain', 'fat_loss', 'endurance', 'muscle_gain', 'fat_loss']
+        weekday_codes = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+        today_index = date.today().weekday()
+        goals = ['muscle_gain']
         # Ejercicios por día
         exercises_by_day = {
             'A': [  # Pecho + Tríceps
@@ -190,15 +195,15 @@ class Command(BaseCommand):
             ],
         }
 
-        for i in range(5):
-            member = members[i]
+        for i, member in enumerate(members):
             trainer = member.trainer_asignado or trainers[0]
+            goal = goals[i % len(goals)]
             plan, _ = TrainingPlan.objects.get_or_create(
                 member=member,
                 trainer=trainer,
-                name=f'Plan {goals[i].replace("_", " ").title()} — {member.user.first_name}',
+                name=f'Plan {goal.replace("_", " ").title()} — {member.user.first_name}',
                 defaults={
-                    'goal': goals[i],
+                    'goal': goal,
                     'start_date': date.today() - timedelta(days=60),
                     'end_date': date.today() + timedelta(days=60),
                     'weeks_duration': 12,
@@ -209,15 +214,19 @@ class Command(BaseCommand):
 
             # Crear workout days
             days_config = [
-                ('Pecho y Tríceps', 'A', 0),
-                ('Espalda y Bíceps', 'B', 1),
-                ('Piernas y Glúteos', 'C', 2),
+                ('Pecho y Tríceps', 'A', 0, weekday_codes[today_index]),
+                ('Espalda y Bíceps', 'B', 1, weekday_codes[(today_index + 1) % 7]),
+                ('Piernas y Glúteos', 'C', 2, weekday_codes[(today_index + 2) % 7]),
             ]
-            for day_name, day_label, order in days_config:
+            for day_name, day_label, order, day_of_week in days_config:
                 wd, _ = WorkoutDay.objects.get_or_create(
                     plan=plan, day_label=day_label,
-                    defaults={'name': day_name, 'order': order}
+                    defaults={'name': day_name, 'order': order, 'day_of_week': day_of_week}
                 )
+                wd.name = day_name
+                wd.order = order
+                wd.day_of_week = day_of_week
+                wd.save(update_fields=['name', 'order', 'day_of_week'])
                 # Crear ejercicios
                 for j, ex_data in enumerate(exercises_by_day[day_label]):
                     Exercise.objects.get_or_create(
@@ -336,43 +345,21 @@ class Command(BaseCommand):
         today = date.today()
         created_count = 0
 
-        # Primeros 5 miembros: sin check-in hace 45+ días (activarán InactivityAlert)
-        inactive_members = members[:5]
-        # Resto: asistencias en últimos 90 días
-        active_members = members[5:]
-
-        for member in inactive_members:
-            # Solo asistencias antiguas (>45 días)
-            for i in range(3):
-                days_ago = 50 + i * 10
+        for member in members:
+            for days_ago in (21, 14, 7, 1):
                 check_time = timezone.now() - timedelta(days=days_ago)
-                Attendance.objects.get_or_create(
+                _, att_created = Attendance.objects.get_or_create(
                     member=member,
                     check_in_time__date=(today - timedelta(days=days_ago)),
                     defaults={'check_in_time': check_time}
                 )
-                created_count += 1
-
-        for i, member in enumerate(active_members):
-            # 8-15 asistencias en los últimos 90 días
-            num_attendances = 8 + (i % 8)
-            for j in range(num_attendances):
-                days_ago = (j * (90 // num_attendances)) + 1
-                if days_ago <= 90:
-                    check_time = timezone.now() - timedelta(days=days_ago)
-                    _, att_created = Attendance.objects.get_or_create(
-                        member=member,
-                        check_in_time__date=(today - timedelta(days=days_ago)),
-                        defaults={'check_in_time': check_time}
-                    )
-                    if att_created:
-                        created_count += 1
+                if att_created:
+                    created_count += 1
 
         self.stdout.write(f'  ~{created_count} Attendance records creados.')
 
     def _seed_workout_sessions(self, members, training_plans):
         from progress.models import WorkoutSession, ExerciseLog
-        from plans.models import Exercise
 
         sessions_created = 0
         logs_created = 0
@@ -382,11 +369,6 @@ class Command(BaseCommand):
             workout_days = list(plan.workout_days.order_by('order'))
             if not workout_days:
                 continue
-
-            # 5 miembros con Press de Banca: 40kg → 60kg en 8 semanas (16 sesiones)
-            bench_exercise = Exercise.objects.filter(
-                workout_day__plan=plan, name='Press de Banca'
-            ).first()
 
             for week in range(8):
                 for day_idx, workout_day in enumerate(workout_days):
@@ -434,16 +416,11 @@ class Command(BaseCommand):
         today = date.today()
         records_created = 0
 
-        # Payment states según spec:
-        # 5 late (due_date=today-35d), 5 pending (today-8d), 3 late (today-30d), 7 paid
-        payment_configs = (
-            [(today - timedelta(days=35), 'pending', True)] * 5 +    # → se vuelven 'late' (>7 días grace)
-            [(today - timedelta(days=8), 'pending', False)] * 5 +    # pending próximos a vencer
-            [(today - timedelta(days=30), 'pending', True)] * 3 +    # → se vuelven 'late'
-            [(today, 'paid', False)] * 7                              # pagados
-        )
+        payment_configs = [
+            (today, 'paid', False),
+        ]
 
-        for i, member in enumerate(members[:20]):
+        for i, member in enumerate(members):
             if i >= len(payment_configs):
                 break
 
@@ -484,24 +461,7 @@ class Command(BaseCommand):
         self.stdout.write(f'  {records_created} PaymentRecords creados.')
 
     def _seed_inactivity_alerts(self, members, trainers):
-        from alerts.models import InactivityAlert
-
-        today = date.today()
         alerts_created = 0
-
-        # 5 primeros miembros (sin check-in 45+ días) → InactivityAlert
-        for member in members[:5]:
-            last_checkin = today - timedelta(days=50)
-            days_inactive = 50
-            _, created = InactivityAlert.objects.get_or_create(
-                member=member, resolved=False,
-                defaults={
-                    'last_checkin_date': last_checkin,
-                    'days_inactive': days_inactive,
-                }
-            )
-            if created:
-                alerts_created += 1
 
         self.stdout.write(f'  {alerts_created} InactivityAlerts creados.')
 
@@ -510,13 +470,11 @@ class Command(BaseCommand):
 
         notifications_created = 0
 
-        # 3 notificaciones no leídas para el trainer
+        # Notificación mínima para el trainer demo.
         for trainer_profile in trainers:
             trainer_user = trainer_profile.user
             messages = [
-                ('Hay 3 miembros con pagos vencidos esta semana.', 'payment_overdue'),
-                ('El miembro Luis Hernández lleva 50 días inactivo.', 'inactivity'),
-                ('Nuevo miembro registrado: Daniela Ríos (Plan Premium).', 'system'),
+                ('member1 tiene su plan activo y rutina lista para hoy.', 'system'),
             ]
             for msg, msg_type in messages:
                 Notification.objects.get_or_create(
@@ -527,12 +485,9 @@ class Command(BaseCommand):
                 notifications_created += 1
             break  # Solo para el primer trainer
 
-        # 2 notificaciones para miembros en mora (primeros 8: 5 + 3 en late)
-        late_members = members[:8]
-        for member in late_members:
+        for member in members:
             msgs = [
-                ('Tu pago está vencido. Por favor regulariza tu cuenta.', 'payment_overdue'),
-                ('Tienes acceso restringido por mora en el pago.', 'payment_overdue'),
+                ('Tu rutina de hoy ya está disponible para registrar.', 'system'),
             ]
             for msg, msg_type in msgs:
                 Notification.objects.get_or_create(

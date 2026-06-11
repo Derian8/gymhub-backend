@@ -37,6 +37,8 @@ Antes de desplegar un staging accesible por internet:
 
 ## Credenciales Demo Y Seed
 - El entorno demo debe reconstruirse con `docker compose exec backend python manage.py seed_data`.
+- El seed oficial deja solo `trainer1@gymhub.com` y `member1@gymhub.com` como cuentas demo.
+- Para limpiar demos antiguos sin tocar usuarios reales, primero revisa candidatos con `docker compose exec backend python manage.py prune_demo_users` y luego confirma con `docker compose exec backend python manage.py prune_demo_users --yes`.
 - Las credenciales oficiales de demo deben documentarse junto al despliegue final o en un secreto compartido del equipo. No deben quedar hardcodeadas en documentación pública.
 - Si el entorno requiere datos limpios, recrea base de datos y vuelve a correr `seed_data` antes de QA o demos.
 
@@ -77,7 +79,17 @@ Ejecuta en este orden:
 3. Frontend build: `docker compose exec frontend npm run build`
 4. Playwright: `docker compose exec frontend npm run test:e2e`
 5. Smoke dev o prod local: `./gym-smoke --seed` o `./gym-smoke --prod --seed`
-6. QA manual sobre todas las rutas de [`docs/MVP_FUNCIONAL.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/MVP_FUNCIONAL.md)
+6. Conexión pública Vercel/Supabase: `./gym-connection-check`
+7. Smoke contra backend desplegado: `BACKEND_URL=https://proyectoappgym-backend.vercel.app ./gym-smoke`
+8. QA manual sobre todas las rutas de [`docs/MVP_FUNCIONAL.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/MVP_FUNCIONAL.md)
+
+## Diagnóstico De Conexión
+```bash
+./gym-connection-check
+FRONTEND_URL=https://app.tu-dominio.com BACKEND_URL=https://api.tu-dominio.com ./gym-connection-check
+```
+
+El check valida HTML del frontend, schema OpenAPI del backend, `/health/live/`, `/health/ready/` directo y `/health/ready/` pasando por el rewrite del frontend. Si falla, el mensaje separa problemas de frontend, backend, base de datos, cache o proxy.
 
 ## Umbrales Mínimos De Cobertura
 - Backend total objetivo: 80%
