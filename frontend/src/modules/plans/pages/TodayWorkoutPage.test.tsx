@@ -236,6 +236,8 @@ describe('TodayWorkoutPage', () => {
     expect(getByText('Miércoles · Descanso')).toBeInTheDocument()
     expect(getByText('Checklist del entrenamiento')).toBeInTheDocument()
     expect(getByText('La semana completa de tu rutina')).toBeInTheDocument()
+    expect(getByTestId('weekly-day-detail-link-mon')).toHaveAttribute('href', '/plans/12/days/101')
+    expect(getByTestId('weekly-day-detail-link-fri')).toHaveAttribute('href', '/plans/12/days/102')
     expect(getAllByText('Ir al resumen').length).toBeGreaterThan(0)
     expect(getByTestId('card-messages')).toBeInTheDocument()
     expect(getByTestId('card-physical')).toBeInTheDocument()
@@ -296,6 +298,7 @@ describe('TodayWorkoutPage', () => {
 
     expect(getByTestId('selected-day-detail')).toBeInTheDocument()
     expect(getByTestId('selected-day-detail')).toHaveTextContent('Viernes · Pierna')
+    expect(getByTestId('selected-day-detail-link')).toHaveAttribute('href', '/plans/12/days/102')
     expect(getByText('Sentadilla')).toBeInTheDocument()
     expect(getByTestId('start-session-btn')).toBeInTheDocument()
   })
@@ -323,12 +326,14 @@ describe('TodayWorkoutPage', () => {
     const { getByTestId, getByText, queryByTestId } = renderWithProviders(<TodayWorkoutPage />)
 
     expect(getByTestId('selected-day-detail')).toHaveTextContent('Lunes · Torso')
+    expect(getByTestId('selected-day-detail-link')).toHaveAttribute('href', '/plans/12/days/101')
     expect(getByText('Press banca')).toBeInTheDocument()
     expect(queryByTestId('start-session-btn')).not.toBeInTheDocument()
 
     await user.click(getByTestId('day-selector-fri'))
 
     expect(getByTestId('selected-day-detail')).toHaveTextContent('Viernes · Pierna')
+    expect(getByTestId('selected-day-detail-link')).toHaveAttribute('href', '/plans/12/days/102')
     expect(getByText('Sentadilla')).toBeInTheDocument()
     expect(queryByTestId('start-session-btn')).not.toBeInTheDocument()
   })
@@ -337,12 +342,14 @@ describe('TodayWorkoutPage', () => {
     mockTodayWorkoutData = null
     const user = userEvent.setup()
 
-    const { getByTestId } = renderWithProviders(<TodayWorkoutPage />)
+    const { getByTestId, queryByTestId } = renderWithProviders(<TodayWorkoutPage />)
 
     await user.click(getByTestId('day-selector-wed'))
 
     expect(getByTestId('selected-day-detail')).toHaveTextContent('Miércoles · Descanso')
     expect(getByTestId('selected-day-detail')).toHaveTextContent('No hay bloque asignado para este día')
+    expect(queryByTestId('selected-day-detail-link')).not.toBeInTheDocument()
+    expect(queryByTestId('weekly-day-detail-link-wed')).not.toBeInTheDocument()
   })
 
   it('hides the start button when today workout was already completed', () => {

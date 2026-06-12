@@ -597,6 +597,7 @@ function TodayWorkoutPageContent() {
               <WeeklyStatusCard
                 key={day.date}
                 day={day}
+                planId={planId}
               />
             ))}
           </div>
@@ -802,6 +803,7 @@ function SupportCard({
 
 function WeeklyStatusCard({
   day,
+  planId,
 }: {
   day: {
     date: string
@@ -814,8 +816,10 @@ function WeeklyStatusCard({
     session_id: number | null
     is_completed: boolean
   }
+  planId: number
 }) {
   const weekdayLabel = DAY_OF_WEEK_LABELS[day.day_of_week] || day.day_of_week
+  const detailHref = day.has_workout && day.workout_day_id ? `/plans/${planId}/days/${day.workout_day_id}` : null
 
   return (
     <div
@@ -837,6 +841,15 @@ function WeeklyStatusCard({
           {day.has_workout ? (day.is_completed ? 'Completado' : 'Activo') : 'Descanso'}
         </Badge>
       </div>
+      {detailHref ? (
+        <Link
+          to={detailHref}
+          className="mt-3 inline-flex text-sm font-semibold text-primary transition-colors hover:text-primary-hover"
+          data-testid={`weekly-day-detail-link-${day.day_of_week}`}
+        >
+          Ver día
+        </Link>
+      ) : null}
     </div>
   )
 }
@@ -908,6 +921,16 @@ function SelectedDayDetail({
         <Badge variant={day.is_completed ? 'success' : 'info'}>
           {day.is_completed ? 'Completado' : 'Consulta'}
         </Badge>
+      </div>
+
+      <div className="mt-4">
+        <Link
+          to={`/plans/${workoutDay.plan}/days/${workoutDay.id}`}
+          className="btn-secondary inline-flex w-full items-center justify-center sm:w-auto"
+          data-testid="selected-day-detail-link"
+        >
+          Ver plan completo del día
+        </Link>
       </div>
 
       <div className="mt-5 space-y-4">
