@@ -139,6 +139,7 @@ describe('PlanDetailPage', () => {
     expect(getByText('Hoy: Lunes')).toBeInTheDocument()
     expect(getByTestId('today-workout-btn')).toHaveAttribute('href', '/plans/12/today')
     expect(getByTestId('workout-day-101')).toBeInTheDocument()
+    expect(getByTestId('workout-day-101')).toHaveAttribute('href', '/plans/12/days/101')
     expect(getAllByText('Press banca').length).toBeGreaterThan(0)
     expect(getByText('Bici estatica')).toBeInTheDocument()
   })

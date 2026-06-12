@@ -25,6 +25,7 @@ import { TrainerProgramPage } from '@/modules/members/pages/TrainerProgramPage'
 import { PlansPage } from '@/modules/plans/pages/PlansPage'
 import { PlanDetailPage } from '@/modules/plans/pages/PlanDetailPage'
 import { TodayWorkoutPage } from '@/modules/plans/pages/TodayWorkoutPage'
+import { WorkoutDayDetailPage } from '@/modules/plans/pages/WorkoutDayDetailPage'
 
 // Attendance
 import { CheckInPage } from '@/modules/attendance/pages/CheckInPage'
@@ -181,6 +182,7 @@ function App() {
         />
         <Route path="/plans" element={<PlansPage />} />
         <Route path="/plans/my" element={<PlansPage />} />
+        <Route path="/plans/:planId/days/:dayId" element={<WorkoutDayDetailPage />} />
         <Route path="/plans/:id" element={<PlanDetailPage />} />
         <Route path="/plans/:id/today" element={<TodayWorkoutPage />} />
 

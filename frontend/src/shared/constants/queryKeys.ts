@@ -22,6 +22,7 @@ export const QUERY_KEYS = {
   PLAN_TODAY: (id: number) => ['plans', id, 'today'] as const,
   PLAN_WEEKLY: (id: number) => ['plans', id, 'weekly'] as const,
   WORKOUT_DAYS: ['workout-days'] as const,
+  WORKOUT_DAY_DETAIL: (id: number) => ['workout-days', id] as const,
   WORKOUT_DAYS_BY_PLAN: (planId: number) => ['workout-days', 'plan', planId] as const,
   EXERCISES: ['exercises'] as const,
   EXERCISES_BY_DAY: (workoutDayId: number) => ['exercises', 'day', workoutDayId] as const,

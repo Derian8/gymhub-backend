@@ -43,6 +43,11 @@ export const plansApi = {
     return data
   },
 
+  workoutDayDetail: async (id: number): Promise<WorkoutDay> => {
+    const { data } = await apiClient.get(`/api/workout-days/${id}/`)
+    return data
+  },
+
   workoutDaysByPlan: async (planId: number): Promise<PaginatedResponse<WorkoutDay>> => {
     const { data } = await apiClient.get('/api/workout-days/', { params: { plan: planId } })
     return data

@@ -44,6 +44,14 @@ export function useWorkoutDaysByPlanQuery(planId: number) {
   })
 }
 
+export function useWorkoutDayDetailQuery(dayId: number) {
+  return useQuery({
+    queryKey: QUERY_KEYS.WORKOUT_DAY_DETAIL(dayId),
+    queryFn: () => plansApi.workoutDayDetail(dayId),
+    enabled: !!dayId,
+  })
+}
+
 export function useGymMachinesQuery() {
   return useQuery({
     queryKey: QUERY_KEYS.GYM_MACHINES,

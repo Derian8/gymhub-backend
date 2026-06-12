@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Calendar, ChevronRight, NotebookTabs, UserRound } from 'lucide-react'
+import { ArrowLeft, Calendar, NotebookTabs, UserRound } from 'lucide-react'
 import { useDeletePlanMutation, usePlanDetailQuery, useTodayWorkoutQuery } from '../hooks/usePlans'
 import { Badge, ConfirmDialog, PageHeader, EmptyState } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
@@ -188,7 +188,11 @@ export function PlanDetailPage() {
 
 function WorkoutDayCard({ day, planId }: { day: WorkoutDay; planId: number }) {
   return (
-    <div className="card p-5" data-testid={`workout-day-${day.id}`}>
+    <Link
+      to={`/plans/${planId}/days/${day.id}`}
+      className="card block p-5 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg"
+      data-testid={`workout-day-${day.id}`}
+    >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
           <span className="w-8 h-8 rounded-sm bg-primary text-white text-sm font-bold flex items-center justify-center font-heading">
@@ -199,7 +203,7 @@ function WorkoutDayCard({ day, planId }: { day: WorkoutDay; planId: number }) {
             <p className="text-xs text-neutral-500">{day.day_label ? `Día ${day.day_label}` : 'Bloque semanal'}</p>
           </div>
         </div>
-        <span className="text-xs text-neutral-400">{day.exercises?.length || 0} ejercicios</span>
+        <span className="text-xs font-semibold text-primary">Ver día</span>
       </div>
       {day.exercises && (
         <div className="space-y-1">
@@ -213,7 +217,7 @@ function WorkoutDayCard({ day, planId }: { day: WorkoutDay; planId: number }) {
           )}
         </div>
       )}
-    </div>
+    </Link>
   )
 }
 
