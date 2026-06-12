@@ -45,35 +45,40 @@ const memberNav: NavItem[] = [
 
 interface SidebarProps {
   collapsed: boolean
+  mobileOpen: boolean
   onToggle: () => void
+  onCloseMobile: () => void
 }
 
-export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export function Sidebar({ collapsed, mobileOpen, onToggle, onCloseMobile }: SidebarProps) {
   const { user } = useAuthStore()
   const { mutate: logout, isPending } = useLogoutMutation()
   const isTrainer = user?.role === 'trainer' || user?.is_staff
   const navItems = isTrainer ? trainerNav : memberNav
+  const compact = collapsed && !mobileOpen
 
   return (
     <aside
       data-testid="sidebar"
       className={cn(
-        'fixed left-0 top-0 h-full z-40 flex flex-col transition-all duration-300',
+        'fixed left-0 top-0 z-40 flex h-full flex-col transition-all duration-300',
         'bg-white dark:bg-neutral-950 border-r border-neutral-200 dark:border-neutral-800',
-        collapsed ? 'w-16' : 'w-64',
+        'w-72 max-w-[86vw] shadow-2xl lg:max-w-none lg:shadow-none',
+        mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+        collapsed ? 'lg:w-16' : 'lg:w-64',
       )}
     >
       <div className="flex items-center justify-between px-4 h-16 border-b border-neutral-200 dark:border-neutral-800">
-        {!collapsed ? <BrandWordmark compact /> : <BrandMark size="sm" className="mx-auto" />}
+        {!compact ? <BrandWordmark compact /> : <BrandMark size="sm" className="mx-auto" />}
         <button
           onClick={onToggle}
           data-testid="sidebar-toggle"
           className={cn(
-            'p-1.5 rounded-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 transition-colors',
-            collapsed && 'mx-auto',
+            'hidden p-1.5 rounded-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 transition-colors lg:inline-flex',
+            compact && 'mx-auto',
           )}
         >
-          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          {compact ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
       </div>
 
@@ -83,27 +88,28 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           <NavLink
             key={item.to}
             to={item.to}
+            onClick={onCloseMobile}
             data-testid={`nav-${item.to.replace('/', '').replace('/', '-')}`}
             className={({ isActive }) =>
               cn(
                 'sidebar-link',
                 isActive && 'sidebar-link-active',
-                collapsed && 'justify-center px-0',
+                compact && 'justify-center px-0',
               )
             }
-            title={collapsed ? item.label : undefined}
+            title={compact ? item.label : undefined}
           >
             <SymbolFrame
               size="sm"
               tone="default"
               className={cn(
                 'rounded-xl border-transparent bg-transparent shadow-none',
-                collapsed ? 'mx-auto' : '',
+                compact ? 'mx-auto' : '',
               )}
             >
               {item.icon}
             </SymbolFrame>
-            {!collapsed && <span>{item.label}</span>}
+            {!compact && <span>{item.label}</span>}
           </NavLink>
         ))}
       </nav>
@@ -112,15 +118,16 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <div className="border-t border-neutral-200 dark:border-neutral-800 p-3 space-y-1">
         <NavLink
           to="/profile"
+          onClick={onCloseMobile}
           data-testid="nav-profile"
           className={({ isActive }) =>
-            cn('sidebar-link', isActive && 'sidebar-link-active', collapsed && 'justify-center px-0')
+            cn('sidebar-link', isActive && 'sidebar-link-active', compact && 'justify-center px-0')
           }
         >
           <SymbolFrame size="sm" className="rounded-xl border-transparent bg-transparent shadow-none">
             <User size={18} className="flex-shrink-0" />
           </SymbolFrame>
-          {!collapsed && <span>Perfil</span>}
+          {!compact && <span>Perfil</span>}
         </NavLink>
 
         <button
@@ -129,16 +136,16 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           disabled={isPending}
           className={cn(
             'sidebar-link w-full text-left hover:text-red-500 dark:hover:text-red-400',
-            collapsed && 'justify-center px-0',
+            compact && 'justify-center px-0',
           )}
         >
           <SymbolFrame size="sm" className="rounded-xl border-transparent bg-transparent shadow-none">
             <LogOut size={18} className="flex-shrink-0" />
           </SymbolFrame>
-          {!collapsed && <span>Cerrar sesión</span>}
+          {!compact && <span>Cerrar sesión</span>}
         </button>
 
-        {!collapsed && user && (
+        {!compact && user && (
           <div className="mt-3 rounded-2xl border border-neutral-200/80 bg-neutral-50/80 px-3 py-3 dark:border-white/10 dark:bg-neutral-900/80">
             <div className="mb-2 flex items-center gap-2">
               <Avatar name={`${user.first_name} ${user.last_name}` || user.email} size="sm" />

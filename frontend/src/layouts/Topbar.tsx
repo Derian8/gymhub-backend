@@ -27,7 +27,8 @@ export function Topbar({ onMenuClick, sidebarCollapsed }: TopbarProps) {
         'fixed top-0 right-0 h-16 z-30 flex items-center justify-between px-4 gap-4',
         'bg-white/80 dark:bg-neutral-950/80 backdrop-blur-xl border-b border-neutral-200 dark:border-white/10',
         'transition-all duration-300',
-        sidebarCollapsed ? 'left-16' : 'left-64',
+        'left-0',
+        sidebarCollapsed ? 'lg:left-16' : 'lg:left-64',
       )}
     >
       {/* Left: hamburger (mobile) */}

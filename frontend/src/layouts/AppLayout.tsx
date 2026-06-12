@@ -26,7 +26,9 @@ export function AppLayout() {
       {/* Sidebar */}
       <Sidebar
         collapsed={sidebarCollapsed}
+        mobileOpen={mobileSidebarOpen}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        onCloseMobile={() => setMobileSidebarOpen(false)}
       />
 
       {/* Mobile overlay */}
@@ -49,8 +51,8 @@ export function AppLayout() {
           sidebarCollapsed={sidebarCollapsed}
         />
 
-        <main className="pt-16 min-h-screen">
-          <div className="p-4 md:p-6 page-enter">
+        <main className="min-h-screen pt-16">
+          <div className="page-enter px-3 py-4 pb-8 sm:px-4 md:p-6 md:pb-10">
             <BackendStatusBanner />
             <Outlet />
           </div>
