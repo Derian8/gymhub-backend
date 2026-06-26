@@ -50,4 +50,14 @@ class Migration(migrations.Migration):
             model_name='membersubscription',
             index=models.Index(fields=['status', 'is_active'], name='billing_mem_status_cd8675_idx'),
         ),
+        migrations.AlterField(
+            model_name='membersubscription',
+            name='recurrence_type',
+            field=models.CharField(choices=[('daily', 'Daily'), ('weekly', 'Weekly'), ('biweekly', 'Biweekly'), ('monthly', 'Monthly'), ('quarterly', 'Quarterly'), ('annual', 'Annual')], default='monthly', max_length=20),
+        ),
+        migrations.AlterField(
+            model_name='paymentschedule',
+            name='recurrence_type',
+            field=models.CharField(choices=[('daily', 'Daily'), ('weekly', 'Weekly'), ('biweekly', 'Biweekly'), ('monthly', 'Monthly'), ('quarterly', 'Quarterly'), ('annual', 'Annual')], default='monthly', max_length=20),
+        ),
     ]

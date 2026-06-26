@@ -36,6 +36,15 @@ const SUBSCRIPTION_STATUS_VARIANT: Record<MemberSubscription['status'], 'success
   cancelled: 'neutral',
 }
 
+const RECURRENCE_TYPE_LABELS: Record<MemberSubscription['recurrence_type'], string> = {
+  daily: 'Diario',
+  weekly: 'Semanal',
+  biweekly: 'Quincenal',
+  monthly: 'Mensual',
+  quarterly: 'Trimestral',
+  annual: 'Anual',
+}
+
 export function BillingPage() {
   const [searchParams] = useSearchParams()
   const memberId = searchParams.get('member')
@@ -315,6 +324,9 @@ export function BillingPage() {
                     Precio acordado: <span className="font-semibold text-neutral-900 dark:text-white">{formatCurrency(activeSubscription.agreed_price)}</span>
                   </p>
                   <p className="text-sm text-neutral-600 dark:text-neutral-300">
+                    Recurrencia: <span className="font-semibold text-neutral-900 dark:text-white">{RECURRENCE_TYPE_LABELS[activeSubscription.recurrence_type]}</span>
+                  </p>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-300">
                     Próximo cobro: <span className="font-semibold text-neutral-900 dark:text-white">{formatDate(activeSubscription.next_billing_date)}</span>
                   </p>
                   <p className="text-sm text-neutral-600 dark:text-neutral-300">
@@ -384,7 +396,15 @@ export function BillingPage() {
                 <input className="input" type="date" value={subscriptionForm.next_billing_date} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, next_billing_date: event.target.value })} required />
               </div>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <select className="input" value={subscriptionForm.recurrence_type} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, recurrence_type: event.target.value as MemberSubscription['recurrence_type'] })}>
+                <select
+                  className="input"
+                  data-testid="subscription-recurrence-select"
+                  value={subscriptionForm.recurrence_type}
+                  onChange={(event) => setSubscriptionForm({ ...subscriptionForm, recurrence_type: event.target.value as MemberSubscription['recurrence_type'] })}
+                >
+                  <option value="daily">Diario</option>
+                  <option value="weekly">Semanal</option>
+                  <option value="biweekly">Quincenal</option>
                   <option value="monthly">Mensual</option>
                   <option value="quarterly">Trimestral</option>
                   <option value="annual">Anual</option>

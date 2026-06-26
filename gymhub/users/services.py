@@ -22,6 +22,9 @@ RISK_LEVEL_THRESHOLDS = (
 )
 
 RECURRENCE_MONTH_DIVISOR = {
+    'daily': 1 / 30,
+    'weekly': 1 / 4.345,
+    'biweekly': 1 / 2,
     'monthly': 1,
     'quarterly': 3,
     'annual': 12,

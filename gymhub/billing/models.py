@@ -20,6 +20,9 @@ PAYMENT_METHOD_TYPE_CHOICES = [
 ]
 
 RECURRENCE_TYPE_CHOICES = [
+    ('daily', 'Daily'),
+    ('weekly', 'Weekly'),
+    ('biweekly', 'Biweekly'),
     ('monthly', 'Monthly'),
     ('quarterly', 'Quarterly'),
     ('annual', 'Annual'),

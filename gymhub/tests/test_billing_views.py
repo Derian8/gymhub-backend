@@ -79,6 +79,35 @@ class TestBillingViews:
         assert subscription.status == 'active'
         assert subscription.commercial_notes == 'Primer cierre comercial'
 
+    @pytest.mark.parametrize('recurrence_type', ['daily', 'weekly', 'biweekly'])
+    def test_trainer_can_create_short_recurrence_member_subscription(
+        self,
+        trainer_client,
+        member_profile,
+        membership_plan,
+        recurrence_type,
+    ):
+        from billing.models import MemberSubscription, PaymentSchedule
+
+        resp = trainer_client.post('/api/member-subscriptions/', {
+            'member': member_profile.id,
+            'plan': membership_plan.id,
+            'agreed_price': '25.00',
+            'start_date': timezone.now().date().isoformat(),
+            'next_billing_date': timezone.now().date().isoformat(),
+            'recurrence_type': recurrence_type,
+            'grace_period_days': 7,
+            'auto_generate_next': True,
+            'is_active': True,
+            'status': 'active',
+        })
+
+        assert resp.status_code == status.HTTP_201_CREATED
+        subscription = MemberSubscription.objects.get(member=member_profile, is_active=True)
+        schedule = PaymentSchedule.objects.get(subscription=subscription)
+        assert subscription.recurrence_type == recurrence_type
+        assert schedule.recurrence_type == recurrence_type
+
     def test_trainer_cannot_create_subscription_for_member_of_another_trainer(
         self,
         trainer_client,

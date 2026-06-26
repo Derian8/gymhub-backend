@@ -62,7 +62,7 @@ describe('BillingPage', () => {
     expect(getByTestId('payment-row-2')).toBeInTheDocument()
     expect(getByTestId('payment-row-3')).toBeInTheDocument()
     expect(getByTestId('plan-card-8')).toBeInTheDocument()
-    expect(getByText('Premium')).toBeInTheDocument()
+    expect(getAllByText('Premium').length).toBeGreaterThan(0)
     expect(getByText('Planes configurables del trainer')).toBeInTheDocument()
   })
 
@@ -79,6 +79,7 @@ describe('BillingPage', () => {
 
     fireEvent.change(getAllByTestId('subscription-plan-select')[0], { target: { value: '8' } })
     fireEvent.change(getAllByTestId('subscription-agreed-price-input')[0], { target: { value: '72.00' } })
+    fireEvent.change(getAllByTestId('subscription-recurrence-select')[0], { target: { value: 'biweekly' } })
     fireEvent.click(getAllByRole('button', { name: 'Crear suscripción' })[0])
 
     expect(createSubscriptionMock).toHaveBeenCalledWith(
@@ -86,9 +87,17 @@ describe('BillingPage', () => {
         member: 15,
         plan: 8,
         agreed_price: '72.00',
-        recurrence_type: 'monthly',
+        recurrence_type: 'biweekly',
       }),
     )
+  })
+
+  it('offers short billing recurrences for subscriptions', () => {
+    const { getAllByTestId } = renderWithProviders(<BillingPage />, { route: '/billing?member=15' })
+    const recurrenceSelect = getAllByTestId('subscription-recurrence-select')[0] as HTMLSelectElement
+    const labels = Array.from(recurrenceSelect.options).map((option) => option.text)
+
+    expect(labels).toEqual(expect.arrayContaining(['Diario', 'Semanal', 'Quincenal', 'Mensual', 'Trimestral', 'Anual']))
   })
 
   it('registers a payment from the billing table', () => {

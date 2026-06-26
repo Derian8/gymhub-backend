@@ -58,7 +58,7 @@ export interface MemberSubscription {
   agreed_price: string
   start_date: string
   next_billing_date: string
-  recurrence_type: 'monthly' | 'quarterly' | 'annual'
+  recurrence_type: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'annual'
   grace_period_days: number
   auto_generate_next: boolean
   is_active: boolean
