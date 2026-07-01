@@ -1,4 +1,4 @@
-\section{Viabilidad técnica y estado del prototipo}
+\section{Desarrollo tecnológico y estado del prototipo}
 
 \subsection{Arquitectura implementada}
 
@@ -16,7 +16,7 @@ Compose; en la demostración publicada en Vercel no están desplegados como proc
 persistentes. Esta diferencia limita alertas y automatizaciones programadas en
 producción.
 
-\begin{table}[H]
+\begin{table}[htbp]
 \caption{Tecnologías verificadas en el repositorio}
 \begin{tabularx}{\textwidth}{>{\bfseries}p{3cm}p{4cm}X}
 \toprule
@@ -108,3 +108,10 @@ almacenamiento persistente de media; definir respaldos y recuperación; formaliz
 soporte, términos y privacidad; ejecutar QA de navegador; y aislar los datos por
 gimnasio. El último punto es crítico: la arquitectura actual no debe venderse como
 multiempresa hasta implementar y probar separación de cuentas o tenants.
+
+El modelo comercial acordado exige crear una entidad de gimnasio y asociar a ella
+miembros, entrenadores, administradores y registros operativos. Toda consulta y
+permiso deberá limitarse al gimnasio autenticado. La configuración del tenant
+almacenará nombre, logo y colores permitidos; también deberá existir un conteo
+auditable de membresías activas para la facturación. Estas capacidades se describen
+como requisitos futuros y no como funciones disponibles del MVP.

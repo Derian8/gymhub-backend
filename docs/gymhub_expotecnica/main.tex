@@ -1,0 +1,133 @@
+\documentclass[12pt,letterpaper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla,es-nodecimaldot]{babel}
+\usepackage{mathptmx}
+\usepackage{courier}
+\usepackage[letterpaper,margin=2.54cm,headheight=15pt]{geometry}
+\usepackage{setspace}
+\usepackage{ragged2e}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage[hidelinks,pdfpagelabels]{hyperref}
+\usepackage{csquotes}
+\usepackage[
+  backend=biber,
+  style=apa,
+  sorting=nyt,
+  sortcites=true
+]{biblatex}
+
+\DeclareLanguageMapping{spanish}{spanish-apa}
+\addbibresource{referencias.bib}
+
+\setstretch{2.0}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\raggedbottom
+\setlist{itemsep=0pt,parsep=0pt,topsep=0.25\baselineskip}
+\titlespacing*{\section}{0pt}{1.5\baselineskip}{0.5\baselineskip}
+\titlespacing*{\subsection}{0pt}{1.0\baselineskip}{0.25\baselineskip}
+\AtBeginEnvironment{table}{\singlespacing\small}
+\AtBeginEnvironment{longtable}{\singlespacing\small}
+\AtBeginEnvironment{figure}{\singlespacing}
+\captionsetup{
+  font=normalsize,
+  labelfont=bf,
+  labelsep=newline,
+  justification=raggedright,
+  singlelinecheck=false
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+\newcommand{\fuentepropia}{\textit{Nota}. Elaboración propia, 2026.}
+\newcommand{\datoencuestapendiente}[1]{\textcolor{red}{\textbf{Pendiente de resultados de encuesta:} #1}}
+\newcommand{\seccionnueva}[1]{\input{#1}}
+
+\begin{document}
+\justifying
+\hypersetup{pageanchor=false}
+
+\begin{titlepage}
+  \begin{singlespace}
+  \thispagestyle{empty}
+  \centering
+  \noindent
+  \begin{minipage}[c]{0.20\textwidth}
+    \raggedright
+    \includegraphics[height=2cm]{imagenes/logo_mep.png}
+  \end{minipage}%
+  \begin{minipage}[c]{0.58\textwidth}
+    \centering
+    {\fontsize{10}{12}\selectfont\textbf{Ministerio de Educación Pública}\par}
+  \end{minipage}%
+  \begin{minipage}[c]{0.20\textwidth}
+    \raggedleft
+    \includegraphics[height=2cm]{imagenes/logo_ctp_platanares.jpg}
+  \end{minipage}
+  \par\vspace{0.75cm}
+  {\fontsize{24}{28}\selectfont\textbf{GymHub: plataforma digital para la gestión de gimnasios locales en Pérez Zeledón, 2026}\par}
+  \vspace{0.65cm}
+  {\fontsize{20}{24}\selectfont Modelo de negocio\par}
+  \vspace{0.5cm}
+  {\fontsize{20}{24}\selectfont Categoría: Emprendimiento e innovación\par}
+  {\fontsize{20}{24}\selectfont Eje temático: Mercadeo\par}
+  \vfill
+  {\fontsize{11}{13}\selectfont\textbf{Participantes}\par}
+  {\fontsize{11}{13}\selectfont Derian Acuña Rojas\par}
+  {\fontsize{11}{13}\selectfont Ignacio Masis Cascante\par}
+  \vspace{0.45cm}
+  {\fontsize{11}{13}\selectfont\textbf{Docente tutor}\par}
+  {\fontsize{11}{13}\selectfont Andrés Mena Abarca\par}
+  \vspace{0.45cm}
+  {\fontsize{10}{12}\selectfont Colegio Técnico Profesional de Platanares\par}
+  {\fontsize{10}{12}\selectfont CORVEC La Amistad\par}
+  \vspace{0.45cm}
+  {\ttfamily\fontsize{9}{11}\selectfont derianisaac.ar@gmail.com\par}
+  {\ttfamily\fontsize{9}{11}\selectfont ignaciomasis947@gmail.com\par}
+  \vfill
+  {\fontsize{10}{12}\selectfont Pérez Zeledón, Costa Rica\par}
+  {\fontsize{10}{12}\selectfont 2026\par}
+  \end{singlespace}
+\end{titlepage}
+
+\hypersetup{pageanchor=true}
+\pagenumbering{roman}
+\tableofcontents
+\clearpage
+\listoftables
+\clearpage
+\listoffigures
+
+\clearpage
+\pagenumbering{arabic}
+
+\input{secciones/01-resumen-justificacion-objetivos}
+\seccionnueva{secciones/03-antecedentes}
+\seccionnueva{secciones/05-viabilidad-tecnica}
+\seccionnueva{secciones/02-idea-modelo-negocio}
+\seccionnueva{secciones/04-modelo-canvas}
+\seccionnueva{secciones/06-costos-ingresos}
+\seccionnueva{secciones/07-validacion-cumplimiento}
+\seccionnueva{secciones/08-conclusiones}
+
+\clearpage
+\printbibliography[title={Referencias}]
+
+\seccionnueva{secciones/09-anexos}
+
+\end{document}

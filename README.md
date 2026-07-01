@@ -9,7 +9,7 @@
 - Checklist de release: [`docs/RELEASE_CHECKLIST.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/RELEASE_CHECKLIST.md)
 - Supabase y Vercel: [`docs/SUPABASE_VERCEL.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/SUPABASE_VERCEL.md)
 - Avance deploy: [`docs/AVANCE_DEPLOY.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/AVANCE_DEPLOY.md)
-- Documento académico en LaTeX (APA 7): [`docs/latex/README.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/latex/README.md)
+- Proyecto escrito ExpoTÉCNICA en LaTeX y APA 7: [`docs/gymhub_expotecnica/README.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/gymhub_expotecnica/README.md)
 
 ## Deploy Actual
 - Frontend: `https://proyectoappgym-frontend.vercel.app`

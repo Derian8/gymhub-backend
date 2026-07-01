@@ -1,4 +1,4 @@
-\section{Costos, ingresos y viabilidad inicial}
+\section{Viabilidad comercial y económica}
 
 \subsection{Criterio de estimación}
 
@@ -8,13 +8,15 @@ venta de CRC 456,94 por USD consultado el 1 de julio de 2026
 \parencite{bccr_tipo_cambio}. Las tarifas pueden cambiar; por ello, deben
 actualizarse antes de una decisión de compra.
 
-Se distinguen tres conceptos: desembolso actual, aporte en especie y costo
-comercial proyectado. Las horas de trabajo no se convierten en cero por no existir
-salario; su valoración queda pendiente hasta registrar tiempo y acordar una tarifa.
+Se distinguen cuatro conceptos: desarrollo, operación, aporte en especie e ingreso.
+ChatGPT Plus apoya el desarrollo, pero no es necesario para que cada gimnasio use
+la plataforma y, por tanto, no se carga automáticamente como costo operativo. Las
+horas de trabajo no se convierten en cero por no existir salario; su valoración
+queda pendiente hasta registrar tiempo y acordar una tarifa.
 
 \subsection{Costos actuales del prototipo}
 
-\begin{table}[H]
+\begin{table}[htbp]
 \caption{Desembolso mensual actual del prototipo}
 \begin{tabularx}{\textwidth}{>{\bfseries}p{3.2cm}r r X}
 \toprule
@@ -35,7 +37,7 @@ Vercel limita el plan Hobby al uso personal o no comercial
 \parencite{vercel_terms}. En consecuencia, el costo cero del prototipo no puede
 usarse como presupuesto definitivo para vender el servicio.
 
-\begin{table}[H]
+\begin{table}[htbp]
 \caption{Aportes en especie pendientes de valorar}
 \begin{tabularx}{\textwidth}{>{\bfseries}p{3.3cm}p{3cm}X}
 \toprule
@@ -59,7 +61,7 @@ Para un proceso persistente se reserva una base de USD 5 en Railway, cuyo cobro
 depende del consumo \parencite{railway_pricing}. Upstash dispone de un nivel
 gratuito limitado para Redis \parencite{upstash_pricing}.
 
-\begin{table}[H]
+\begin{table}[htbp]
 \caption{Infraestructura mensual comercial de referencia}
 \label{tab:costos-comerciales}
 \begin{tabularx}{\textwidth}{>{\bfseries}p{3.5cm}r r X}
@@ -71,14 +73,16 @@ Supabase Pro & 25 & 11\,424 & Base de datos, almacenamiento y respaldos del plan
 Worker/cron & 5 & 2\,285 & Base de consumo; validar recursos reales. \\
 Redis & 0 & 0 & Nivel gratuito inicial sujeto a límites. \\
 \midrule
-\textbf{Subtotal infraestructura} & \textbf{50} & \textbf{22\,847} & Antes de dominio, impuestos y excedentes. \\
-Herramienta de desarrollo & 20 & 9\,139 & ChatGPT Plus, separable de la operación. \\
-\midrule
-\textbf{Total conservador} & \textbf{70} & \textbf{31\,986} & Base usada para punto de equilibrio de caja. \\
+\textbf{Total operativo de referencia} & \textbf{50} & \textbf{22\,847} & Antes de dominio, impuestos y excedentes. \\
 \bottomrule
 \end{tabularx}
 \caption*{\textit{Nota}. Estimación propia con tarifas públicas consultadas el 1 de julio de 2026.}
 \end{table}
+
+Como presupuesto separado de desarrollo, ChatGPT Plus representa USD 20 o
+aproximadamente CRC 9\,139 mensuales. Si se sumara temporalmente a la salida de
+caja, el total sería USD 70 o CRC 31\,986; mezclarlo con la operación ocultaría
+la diferencia entre construir el producto y mantener el servicio disponible.
 
 No se incluyen dominio, comisiones de pago, formalización, impuestos, soporte
 profesional, salario ni contingencia. Esos rubros deben cotizarse antes de iniciar
@@ -86,32 +90,53 @@ ventas. El escenario tampoco garantiza disponibilidad o cumplimiento normativo.
 
 \subsection{Escenarios de ingreso}
 
-Los precios se diseñan para preguntar por disposición de pago y no como resultado
-de una encuesta. La Tabla~\ref{tab:ingresos} combina planes para mostrar
-sensibilidad financiera.
+La hipótesis establece una cuota de CRC 30\,000 por gimnasio, con hasta 50
+miembros activos, y CRC 350 por cada miembro adicional. La fórmula es:
 
-\begin{table}[H]
-\caption{Escenarios mensuales ilustrativos de ingreso}
+\begin{quote}
+Ingreso mensual = CRC 30\,000 + CRC 350 $\times \max\{0,$ miembros activos $- 50\}$.
+\end{quote}
+
+Se factura al gimnasio y no a cada miembro. La Tabla~\ref{tab:ingresos} muestra
+la sensibilidad por tamaño; no constituye una predicción de ventas.
+
+\begin{table}[htbp]
+\caption{Ingreso y contribución de caja por tamaño de gimnasio}
 \label{tab:ingresos}
-\begin{tabularx}{\textwidth}{>{\bfseries}p{2.3cm}X r r}
+\begin{tabularx}{\textwidth}{>{\bfseries}r r r r}
 \toprule
-Escenario & Mezcla hipotética & Ingreso CRC & Flujo sobre CRC 31\,986 \\
+Miembros activos & Ingreso mensual & Ingreso anual & Contribución sobre CRC 22\,847 \\
 \midrule
-Bajo & 2 gimnasios básicos. & 30\,000 & -1\,986 \\
-Medio & 2 básicos y 2 intermedios. & 80\,000 & 48\,014 \\
-Alto & 2 básicos, 3 intermedios y 1 avanzado. & 145\,000 & 113\,014 \\
+50 & 30\,000 & 360\,000 & 7\,153 \\
+100 & 47\,500 & 570\,000 & 24\,653 \\
+200 & 82\,500 & 990\,000 & 59\,653 \\
+300 & 117\,500 & 1\,410\,000 & 94\,653 \\
 \bottomrule
 \end{tabularx}
-\caption*{\textit{Nota}. Escenarios de análisis, no pronósticos de ventas. No deducen trabajo, impuestos ni otros costos pendientes.}
+\caption*{\textit{Nota}. La contribución resta una sola infraestructura compartida de referencia. No deduce desarrollo, trabajo, dominio, soporte, impuestos, comisiones, contingencias ni crecimiento por consumo.}
 \end{table}
+
+\datoencuestapendiente{comparar estos escenarios proyectados con el número de
+miembros y el rango de pago informado por los gimnasios participantes.}
+
+Con el tipo de cambio de referencia, el precio de GymHub se aproxima a USD 66
+para 50 miembros, USD 104 para 100 y USD 181 para 200. Frente a Gymdesk, la
+hipótesis es menor para 50, similar para 100 y mayor para 200 miembros
+\parencite{gymdesk_pricing}. El excedente de CRC 350 podría perder competitividad
+en gimnasios medianos; la encuesta y el piloto deberán determinar si se conserva,
+se reduce progresivamente o se establece un límite por banda.
+
+\datoencuestapendiente{decidir si el excedente de CRC 350 se mantiene, disminuye
+por volumen o se sustituye por bandas de precio.}
 
 \subsection{Punto de equilibrio}
 
 El punto de equilibrio de caja se calcula como costos fijos mensuales divididos
-entre el ingreso promedio por cliente. Con CRC 31\,986 de costo conservador, se
-requieren tres clientes si todos adquieren el plan básico de CRC 15\,000, o dos
-clientes si el ingreso promedio alcanza CRC 25\,000. El resultado se redondea
-hacia arriba porque no puede adquirirse una fracción de cliente.
+entre el ingreso promedio por cliente. Un gimnasio de hasta 50 miembros cubre la
+infraestructura de referencia de CRC 22\,847 y deja CRC 7\,153 antes de los rubros
+omitidos. Si también se exige recuperar inmediatamente la herramienta mensual de
+desarrollo, una sola cuota de CRC 30\,000 no cubre la salida combinada de
+CRC 31\,986 y se requieren dos gimnasios del tamaño mínimo.
 
 Este cálculo no representa rentabilidad integral. Una vez valoradas las horas,
 se aplicará:
@@ -120,9 +145,11 @@ se aplicará:
 Costo económico mensual = costos de caja + (horas mensuales $\times$ tarifa por hora).
 \end{quote}
 
-El precio definitivo deberá cubrir costo económico, riesgo y margen razonable.
-Si la encuesta no respalda los rangos propuestos, se deberá reducir alcance,
-ajustar infraestructura o revisar el segmento antes de vender.
+En consecuencia, cubrir infraestructura no equivale a obtener utilidad neta. El
+precio definitivo deberá cubrir costo económico, riesgo y margen razonable.
+
+\datoencuestapendiente{si los rangos propuestos no reciben respaldo, se deberá
+reducir alcance, ajustar infraestructura o revisar el segmento antes de vender.}
 
 \subsection{Estrategia de sostenibilidad}
 

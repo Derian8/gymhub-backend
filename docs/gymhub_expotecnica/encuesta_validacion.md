@@ -1,7 +1,9 @@
 # Encuesta de validación de GymHub
 
-Instrumento listo para trasladar a Google Forms. No contiene resultados. La meta
-es recopilar 10 respuestas de responsables de gimnasios y 10 de miembros adultos.
+Instrumento actualmente en aplicación mediante Google Forms. Todavía no contiene
+resultados consolidados. La meta es recopilar 10 respuestas de responsables de
+gimnasios y 10 de miembros adultos. Las preguntas y opciones deben mantenerse sin
+cambios durante el levantamiento para conservar comparabilidad entre respuestas.
 
 ## Configuración recomendada
 
@@ -192,6 +194,9 @@ es recopilar 10 respuestas de responsables de gimnasios y 10 de miembros adultos
 
 | Indicador | Preguntas | Presentación |
 |---|---|---|
+| Necesidades administrativas | A2–A5, B2–B4 | Frecuencias y prioridades por rol |
+| Necesidades deportivas | A3, A5, B2–B6 | Frecuencias y prioridades por rol |
+| Necesidades comerciales | A7–A9, A11 | Interés, precio, soporte y condiciones de adopción |
 | Métodos actuales | A2 | Frecuencias y gráfico de barras |
 | Problemas prioritarios | A3, B3 | Frecuencias separadas por rol |
 | Funciones prioritarias | A5, B4 | Ranking por número de selecciones |

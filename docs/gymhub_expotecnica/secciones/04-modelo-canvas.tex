@@ -15,7 +15,7 @@ cliente temprano propuesto es un establecimiento con administración concentrada
 en una o pocas personas, acceso estable a internet y disposición para ejecutar
 un piloto acompañado.
 
-\begin{table}[H]
+\begin{table}[htbp]
 \caption{Segmentos y necesidades iniciales}
 \begin{tabularx}{\textwidth}{>{\bfseries}p{3.3cm}X X}
 \toprule
@@ -30,6 +30,9 @@ Personal autorizado & Ejecutar tareas administrativas delimitadas. & Usuario ope
 \caption*{\fuentepropia}
 \end{table}
 
+\datoencuestapendiente{confirmar las necesidades atribuidas a cada segmento y
+la participación de cada persona en la decisión de compra y uso.}
+
 \subsection{Propuesta de valor}
 
 GymHub centraliza información administrativa y deportiva con vistas adaptadas al
@@ -42,6 +45,9 @@ Los diferenciadores propuestos son enfoque local, acompañamiento inicial,
 interfaz responsive y combinación de gestión con seguimiento. Ningún diferenciador
 se presentará como ventaja comprobada hasta compararlo con alternativas comerciales
 y obtener retroalimentación de personas usuarias.
+
+\datoencuestapendiente{determinar cuáles atributos de la propuesta de valor son
+prioritarios para responsables, entrenadores y miembros.}
 
 \subsection{Canales}
 
@@ -60,6 +66,9 @@ La venta directa se prioriza en la fase institucional porque permite aprender de
 cliente con un costo comercial bajo. La publicidad pagada se posterga hasta
 comprobar qué problema y mensaje generan interés.
 
+\datoencuestapendiente{confirmar los canales de información y contacto preferidos
+por los gimnasios participantes.}
+
 \subsection{Relaciones con clientes}
 
 La relación propuesta combina incorporación asistida, soporte y revisión
@@ -75,25 +84,46 @@ retroalimentación relevante.
 \subsection{Fuentes de ingresos}
 
 La fuente principal es la suscripción mensual por gimnasio. Como extensiones
-futuras se consideran configuración especializada, soporte prioritario y módulos
-adicionales. Los precios de la Tabla~\ref{tab:planes} son hipótesis para consultar
-en la encuesta, no tarifas validadas.
+futuras se consideran configuración especializada, soporte prioritario, dominio
+propio y una aplicación independiente. La cuota será cobrada por GymHub al
+gimnasio; el establecimiento podrá absorberla o incorporarla a su propia
+estructura de precios, pero GymHub no dependerá de que cada miembro transfiera
+un dólar. El precio de la Tabla~\ref{tab:planes} es una hipótesis para consultar
+en la encuesta, no una tarifa validada.
 
-\begin{table}[H]
-\caption{Planes comerciales provisionales}
+\begin{table}[htbp]
+\caption{Fórmula comercial provisional}
 \label{tab:planes}
-\begin{tabularx}{\textwidth}{>{\bfseries}p{2.5cm}X r p{2.2cm}}
+\begin{tabularx}{\textwidth}{>{\bfseries}p{3.1cm}X r}
 \toprule
-Plan & Alcance propuesto & Precio mensual & Estado \\
+Componente & Criterio & Precio mensual \\
 \midrule
-Entrenador & Clientes individuales, planes y progreso. & CRC 7\,500 & Hipótesis \\
-Básico & Miembros, membresías, pagos y asistencia. & CRC 15\,000 & Hipótesis \\
-Intermedio & Básico, planes, sesiones, progreso y reportes. & CRC 25\,000 & Hipótesis \\
-Avanzado & Intermedio, alertas y automatizaciones disponibles. & CRC 40\,000 & Hipótesis futura \\
+Cuota base & Un gimnasio con hasta 50 miembros activos. & CRC 30\,000 \\
+Excedente & Cada miembro activo a partir del número 51. & CRC 350 \\
+Personal & Administradores y entrenadores autorizados. & Incluido \\
+Marca básica & Nombre, logo y colores en la aplicación compartida. & Incluida \\
 \bottomrule
 \end{tabularx}
-\caption*{\textit{Nota}. Elaboración propia. Los montos deben ajustarse con los resultados de disposición de pago, 2026.}
+\caption*{\textit{Nota}. Se considera activo el miembro con membresía vigente al cierre del ciclo de facturación. Se excluyen prospectos, membresías congeladas o canceladas, administradores y entrenadores.}
 \end{table}
+
+\datoencuestapendiente{contrastar la cuota mensual, el cobro incremental y la
+definición de miembro activo con la disposición de pago del mercado local.}
+
+La fórmula se expresa en colones para reducir variaciones cambiarias. El cobro
+puro de USD 1 por persona no se adopta porque un gimnasio con pocos miembros
+generaría un ingreso insuficiente para cubrir incorporación y soporte. Una cuota
+mínima protege la operación y el excedente mantiene relación con el crecimiento
+del cliente. Como referencia externa, Gymdesk publica tarifas mensuales de USD 75
+hasta 50 miembros activos, USD 100 hasta 100, USD 150 hasta 200 y USD 200 hasta
+400 \parencite{gymdesk_pricing}. La comparación no demuestra aceptación local y
+GymHub todavía ofrece menos funciones; por eso la fórmula debe validarse.
+
+La personalización incluida se limita a identidad visual dentro de una aplicación
+compartida. Una aplicación independiente con publicación propia es un producto
+distinto: PushPress, por ejemplo, publica su aplicación de marca como complemento
+mensual \parencite{pushpress_pricing}. GymHub reservará dominio propio, aplicación
+separada y personalización extensa para una fase premium posterior.
 
 \subsection{Recursos clave}
 
@@ -123,19 +153,19 @@ desarrollo, pruebas, despliegue, documentación, demostración, incorporación d
 clientes y soporte. El equipo comparte responsabilidades para evitar atribuciones
 que no han sido documentadas individualmente.
 
-\begin{table}[H]
+\begin{table}[htbp]
 \caption{Actividades, responsables y evidencia}
 \begin{tabularx}{\textwidth}{>{\bfseries}p{3.5cm}p{2.7cm}X X}
 \toprule
 Actividad & Responsable & Recurso & Evidencia \\
 \midrule
-Investigación de mercado & Equipo & Encuesta y entrevistas & Resultados pendientes. \\
+Investigación de mercado & Equipo & Encuesta y entrevistas & \textcolor{red}{Encuesta en aplicación; resultados pendientes.} \\
 Desarrollo y corrección & Equipo & Repositorio y ambiente local & Historial y pruebas. \\
 Diseño de datos y API & Equipo & Django, DRF y PostgreSQL & Modelos, endpoints y esquema. \\
 Interfaz y experiencia & Equipo & React y herramientas frontend & Pantallas y pruebas. \\
 Validación técnica & Equipo & Suite automatizada y demo & Reportes y compilaciones. \\
 Revisión académica & Equipo y tutor & Lineamientos ExpoTÉCNICA & Lista de cumplimiento. \\
-Piloto y soporte & Equipo & Gimnasio aliado & \pendiente{} \\
+Piloto y soporte & Equipo & Gimnasio aliado & Por obtener. \\
 \bottomrule
 \end{tabularx}
 \caption*{\fuentepropia}
@@ -149,15 +179,15 @@ adultos, el docente tutor y apoyo técnico puntual. Si se amplía el módulo de
 alimentación, se deberá incorporar una persona profesional competente antes de
 ofrecer orientación personalizada.
 
-\begin{table}[H]
+\begin{table}[htbp]
 \caption{Alianzas requeridas}
 \begin{tabularx}{\textwidth}{>{\bfseries}p{3.4cm}X X p{2.3cm}}
 \toprule
 Aliado & Aporte & Beneficio & Estado \\
 \midrule
-Gimnasio local & Contexto, prueba y retroalimentación. & Validación operacional. & Pendiente \\
-Entrenador & Revisión de flujo de planes y sesiones. & Pertinencia deportiva. & Pendiente \\
-Miembros adultos & Pruebas de comprensión y utilidad. & Mejora de experiencia. & Pendiente \\
+Gimnasio local & Contexto, prueba y retroalimentación. & Validación operacional. & \textcolor{red}{Pendiente de encuesta} \\
+Entrenador & Revisión de flujo de planes y sesiones. & Pertinencia deportiva. & \textcolor{red}{Pendiente de encuesta} \\
+Miembros adultos & Pruebas de comprensión y utilidad. & Mejora de experiencia. & \textcolor{red}{Pendiente de encuesta} \\
 Docente tutor & Revisión académica y administrativa. & Cumplimiento. & Activo \\
 Proveedores de nube & Infraestructura tecnológica. & Despliegue y escalamiento. & En uso \\
 \bottomrule
@@ -178,7 +208,7 @@ La Figura~\ref{fig:canvas} resume el Canvas inicial recuperado del documento de
 referencia. Sus montos y afirmaciones deben interpretarse junto con las
 aclaraciones de este escrito.
 
-\begin{figure}[H]
+\begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{imagenes/canvas_gymhub.png}
 \caption{Modelo Canvas inicial de GymHub}

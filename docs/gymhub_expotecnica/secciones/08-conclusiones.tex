@@ -5,12 +5,12 @@
   administrativos y deportivos, y el prototipo demuestra que la solución puede
   construirse con las tecnologías seleccionadas.
   \item La existencia de un MVP no demuestra demanda. La viabilidad comercial
-  permanece condicionada a la encuesta, la disposición de pago y un piloto con
-  un gimnasio local.
-  \item El modelo de suscripción es consistente con costos recurrentes de nube,
-  soporte y mantenimiento. Un escenario conservador requiere aproximadamente
-  tres clientes básicos o dos clientes con ingreso promedio intermedio para
-  cubrir únicamente costos mensuales de caja.
+  permanece condicionada a los resultados de la encuesta, la disposición de pago
+  y un piloto con un gimnasio local.
+  \item El modelo recomendado combina CRC 30\,000 por gimnasio hasta 50 miembros
+  activos con CRC 350 por miembro adicional. Una cuota mínima reduce el riesgo
+  del cobro puro por persona, pero el excedente debe validarse especialmente en
+  gimnasios de más de 100 miembros.
   \item La valoración económica debe incorporar horas de trabajo, dominio,
   impuestos, soporte y contingencias antes de concluir que el negocio es
   rentable.
@@ -23,18 +23,22 @@
   \item El módulo nutricional debe limitarse a orientación general y no debe
   presentarse como intervención médica o sustitución de profesionales.
   \item La arquitectura requiere trabajo adicional para producción: separación
-  por gimnasio, workers persistentes, almacenamiento de media, respaldos y QA
-  completo.
+  por gimnasio, conteo auditable de membresías activas, logo y colores por tenant,
+  workers persistentes, almacenamiento de media, respaldos y QA completo.
   \item La propuesta puede crecer si mantiene una adopción simple, soporte cercano
   y decisiones basadas en evidencia, en lugar de acumular funciones sin uso
   comprobado.
 \end{enumerate}
 
-Se recomienda aplicar primero el instrumento de validación, actualizar el análisis
-con sus resultados y seleccionar un aliado para un piloto de alcance limitado. En
+Se recomienda completar primero el instrumento de validación que se encuentra en
+aplicación, actualizar el análisis con sus resultados y seleccionar un aliado para
+un piloto de alcance limitado. En
 paralelo, debe cerrarse la brecha multiempresa y documentarse un procedimiento de
 seguridad, respaldo y atención. Solo después de medir uso, costo de soporte y
 disposición de pago conviene fijar precios comerciales.
+
+\datoencuestapendiente{emitir conclusiones definitivas sobre necesidades,
+demanda, precio aceptable, canales y disposición de participar en el piloto.}
 
 \section{Declaración de uso de inteligencia artificial}
 
@@ -43,5 +47,5 @@ de apoyo en programación, resolución de dudas técnicas, organización del
 documento, revisión de redacción y estructuración de escenarios. El equipo
 estudiantil es responsable de revisar, adaptar y validar el código, las fuentes,
 los cálculos y el contenido final. La inteligencia artificial no sustituyó la
-investigación de campo; por esa razón, los resultados no recolectados permanecen
-identificados como pendientes.
+investigación de campo; por esa razón, los resultados aún no consolidados se
+identifican expresamente como pendientes.

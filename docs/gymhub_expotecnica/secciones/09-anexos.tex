@@ -1,0 +1,93 @@
+\appendix
+\section{Anexos}
+
+\subsection{Control de requisitos ExpoTÉCNICA}
+
+Los lineamientos permiten incorporar este control como sección o anexo. Se ubica
+aquí para conservar la trazabilidad institucional sin interrumpir el desarrollo
+del modelo de negocio \parencite{mep2026}. La Tabla~\ref{tab:formularios} registra
+los controles que el equipo debe confirmar con el Comité Técnico de Revisión
+(CTR).
+
+\begin{longtable}{>{\bfseries}p{2.4cm}p{6cm}p{5.6cm}}
+\caption{Control de formularios ExpoTEC}\label{tab:formularios}\\
+\toprule
+Formulario & Uso & Acción para GymHub \\
+\midrule
+\endfirsthead
+\toprule
+Formulario & Uso & Acción para GymHub \\
+\midrule
+\endhead
+ExpoTEC-1 & Inscripción del proyecto. & Completar en cada etapa. \\
+ExpoTEC-2 & Consentimiento para fotografías o imágenes. & Aplicar si se usan imágenes identificables. \\
+ExpoTEC-5 & Experimentos sociales con seres humanos. & Consultar al CTR por encuesta y pruebas. \\
+ExpoTEC-6 & Consentimiento informado. & Consultar al CTR antes de recolectar respuestas o pruebas de uso. \\
+ExpoTEC-8 & Evaluación de exposición del modelo. & Usar para preparar defensa institucional. \\
+ExpoTEC-11 & Evaluación del escrito del modelo. & Ejecutar revisión final del documento. \\
+ExpoTEC-9 y 12 & Evaluación regional/nacional. & Reservar si el proyecto avanza de etapa. \\
+\bottomrule
+\caption*{\textit{Nota}. Síntesis elaborada a partir de los lineamientos ExpoTÉCNICA 2026 \parencite{mep2026}.}
+\end{longtable}
+
+\subsection{Preparación de la exposición}
+
+La defensa debe poder explicar problema, solución, cliente, Canvas, tecnología,
+costos, evidencia y limitaciones en 15 minutos. Se llevará una demostración con
+datos ficticios, video offline, capturas, laptop cargada, cargador y extensión
+rotulada si la organización lo permite. Ambos estudiantes deberán responder sobre
+el negocio y la tecnología.
+
+\subsection{Instrumento de validación}
+
+El instrumento completo se entrega en el archivo
+\texttt{encuesta\_validacion.md}. Está diseñado como un formulario con rutas para
+responsables y miembros adultos. La meta es obtener 10 respuestas válidas por
+ruta. El instrumento se encuentra en aplicación y los resultados y gráficos se
+incorporarán después del cierre y la depuración de las respuestas.
+
+\datoencuestapendiente{incorporar la ficha técnica, las tablas de frecuencia, los
+gráficos y una interpretación vinculada con los objetivos primero, tercero y
+cuarto.}
+
+\subsection{Evidencia técnica disponible}
+
+\begin{table}[htbp]
+\caption{Inventario de evidencia técnica}
+\begin{tabularx}{\textwidth}{>{\bfseries}p{4cm}X p{3cm}}
+\toprule
+Evidencia & Descripción & Estado \\
+\midrule
+Repositorio & Código frontend, backend, infraestructura y documentación. & Disponible \\
+Pruebas backend & 18 archivos y 148 casos identificados. & Disponible \\
+Pruebas frontend & 26 archivos de pruebas unitarias o de componentes. & Disponible \\
+Pruebas E2E & Dos especificaciones Playwright. & Disponible \\
+Frontend público & Despliegue demostrativo en Vercel. & Disponible \\
+Backend y API & Despliegue y documentación OpenAPI. & Disponible \\
+Capturas anonimizadas & Pantallas seleccionadas para el escrito o cartel. & Pendiente \\
+Video offline & Recorrido de respaldo para la exposición. & Pendiente \\
+\bottomrule
+\end{tabularx}
+\caption*{\textit{Nota}. Elaboración propia a partir del repositorio al 1 de julio de 2026 \parencite{gymhub_repo}.}
+\end{table}
+
+\subsection{Pendientes controlados}
+
+\begin{itemize}
+  \item Consultar al CTR la aplicación de ExpoTEC-5 y ExpoTEC-6.
+  \item Finalizar la encuesta y documentar fecha, muestra, resultados y limitaciones.
+  \item Obtener una cotización de dominio y completar la valoración de horas.
+  \item Incorporar capturas anonimizadas y video offline.
+  \item Actualizar tarifas tecnológicas antes de entregar o vender.
+\end{itemize}
+
+\subsection{Referencias de despliegue demostrativo}
+
+\begin{itemize}
+  \item Frontend: \url{https://proyectoappgym-frontend.vercel.app}
+  \item Backend: \url{https://proyectoappgym-backend.vercel.app}
+  \item Documentación API: \url{https://proyectoappgym-backend.vercel.app/api/docs/}
+\end{itemize}
+
+No se incluyen credenciales en el documento público. La demostración utilizará
+cuentas preparadas por el equipo y datos ficticios.
