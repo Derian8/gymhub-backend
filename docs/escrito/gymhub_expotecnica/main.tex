@@ -1,0 +1,114 @@
+\documentclass[12pt,letterpaper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla,es-nodecimaldot]{babel}
+\usepackage{mathptmx}
+\usepackage[letterpaper,margin=2.54cm,headheight=15pt]{geometry}
+\usepackage{setspace}
+\usepackage{ragged2e}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{fancyhdr}
+\usepackage[hidelinks,pdfpagelabels]{hyperref}
+\usepackage{csquotes}
+\usepackage[
+  backend=biber,
+  style=apa,
+  sorting=nyt,
+  sortcites=true
+]{biblatex}
+
+\DeclareLanguageMapping{spanish}{spanish-apa}
+\addbibresource{referencias.bib}
+
+\setstretch{2.0}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\setlist{itemsep=0pt,topsep=0.5\baselineskip}
+\captionsetup{
+  font=normalsize,
+  labelfont=bf,
+  labelsep=newline,
+  justification=raggedright,
+  singlelinecheck=false
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+\newcommand{\pendiente}{\textbf{[PENDIENTE]}}
+\newcommand{\fuentepropia}{\textit{Nota}. Elaboración propia, 2026.}
+\newcommand{\seccionnueva}[1]{\clearpage\input{#1}}
+
+\begin{document}
+\justifying
+\hypersetup{pageanchor=false}
+
+\begin{titlepage}
+  \begin{singlespace}
+  \thispagestyle{empty}
+  \centering
+  {\Large\textbf{Ministerio de Educación Pública}\par}
+  \vspace{0.5cm}
+  {\large CTP Platanares\par}
+  \vspace{1.8cm}
+  {\LARGE\textbf{GymHub: plataforma digital para la gestión de gimnasios locales en Pérez Zeledón, 2026}\par}
+  \vspace{1.2cm}
+  {\Large Modelo de negocio\par}
+  \vspace{0.8cm}
+  {\large Categoría: Emprendimiento e innovación\par}
+  {\large Eje temático principal: Mercadeo\par}
+  {\large Eje técnico relacionado: Tecnologías de la Información Aplicadas a la Informática\par}
+  \vfill
+  {\large\textbf{Estudiantes}\par}
+  {\large Ignacio Masis\par}
+  {\large Derian Acuña\par}
+  \vspace{0.6cm}
+  {\large\textbf{Docente tutor}\par}
+  {\large Andrés Mena\par}
+  \vspace{0.6cm}
+  {\large CORVEC: \pendiente\par}
+  \vspace{0.6cm}
+  {\normalsize derianisaac.ar@gmail.com\par}
+  {\normalsize ignaciomasis947@gmail.com\par}
+  \vfill
+  {\large Pérez Zeledón, Costa Rica\par}
+  {\large 2026\par}
+  \end{singlespace}
+\end{titlepage}
+
+\hypersetup{pageanchor=true}
+\pagenumbering{roman}
+\tableofcontents
+\clearpage
+\listoftables
+\clearpage
+\listoffigures
+
+\clearpage
+\pagenumbering{arabic}
+
+\input{secciones/01-resumen-justificacion-objetivos}
+\seccionnueva{secciones/02-idea-modelo-negocio}
+\seccionnueva{secciones/03-antecedentes}
+\seccionnueva{secciones/04-modelo-canvas}
+\seccionnueva{secciones/05-viabilidad-tecnica}
+\seccionnueva{secciones/06-costos-ingresos}
+\seccionnueva{secciones/07-validacion-cumplimiento}
+\seccionnueva{secciones/08-conclusiones}
+
+\clearpage
+\printbibliography[title={Referencias}]
+
+\seccionnueva{secciones/09-anexos}
+
+\end{document}

@@ -1,0 +1,20 @@
+#!/usr/bin/env sh
+
+set -eu
+
+DIRECTORIO=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+cd "$DIRECTORIO"
+
+if [ "${1:-}" = "limpiar" ]; then
+    rm -rf build
+    exit 0
+fi
+
+if ! command -v latexmk >/dev/null 2>&1; then
+    printf '%s\n' 'Error: latexmk no está instalado. Consulte README.md.' >&2
+    exit 1
+fi
+
+mkdir -p build
+exec latexmk -pdf -interaction=nonstopmode -halt-on-error \
+    -file-line-error -outdir=build main.tex

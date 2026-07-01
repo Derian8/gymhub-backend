@@ -1,0 +1,38 @@
+#!/usr/bin/env sh
+
+set -eu
+
+DIRECTORIO_SCRIPT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+cd "$DIRECTORIO_SCRIPT"
+
+DIRECTORIO_TINYTEX="$DIRECTORIO_SCRIPT/../../.TinyTeX/bin/x86_64-linux"
+if ! command -v latexmk >/dev/null 2>&1 && [ -x "$DIRECTORIO_TINYTEX/latexmk" ]; then
+    PATH="$DIRECTORIO_TINYTEX:$PATH"
+    export PATH
+fi
+
+if [ "${1:-}" = "limpiar" ]; then
+    rm -rf build
+    exit 0
+fi
+
+if command -v latexmk >/dev/null 2>&1; then
+    mkdir -p build
+    exec latexmk -pdf -interaction=nonstopmode -halt-on-error \
+        -file-line-error -outdir=build main.tex
+fi
+
+if command -v docker >/dev/null 2>&1; then
+    docker build --tag proyectoappgym-latex .
+    exec docker run --rm \
+        --user "$(id -u):$(id -g)" \
+        --volume "$DIRECTORIO_SCRIPT:/documento" \
+        --workdir /documento \
+        proyectoappgym-latex \
+        sh -c 'mkdir -p build && latexmk -pdf -interaction=nonstopmode -halt-on-error -file-line-error -outdir=build main.tex'
+fi
+
+printf '%s\n' \
+    'Error: se requiere una instalación local de latexmk o un servicio Docker activo.' \
+    'Consulte docs/latex/README.md para instalar las dependencias.' >&2
+exit 1

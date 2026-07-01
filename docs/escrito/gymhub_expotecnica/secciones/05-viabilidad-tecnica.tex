@@ -1,0 +1,110 @@
+\section{Viabilidad técnica y estado del prototipo}
+
+\subsection{Arquitectura implementada}
+
+GymHub utiliza una arquitectura web modular. La interfaz se construye con React
+y TypeScript; React permite organizar la interfaz mediante componentes
+reutilizables \parencite{react2026}. El backend se desarrolla con Django 5.1 y
+Django REST Framework, que proporcionan modelos, autenticación, validación y
+exposición de API \parencite{django51,drf315}. PostgreSQL almacena los datos en
+Supabase.
+
+Las tareas programadas se modelan con Celery y Redis. Una cola de tareas separa
+el envío del trabajo de su ejecución por procesos worker
+\parencite{celery2026}. En el entorno local esos procesos se orquestan con Docker
+Compose; en la demostración publicada en Vercel no están desplegados como procesos
+persistentes. Esta diferencia limita alertas y automatizaciones programadas en
+producción.
+
+\begin{table}[H]
+\caption{Tecnologías verificadas en el repositorio}
+\begin{tabularx}{\textwidth}{>{\bfseries}p{3cm}p{4cm}X}
+\toprule
+Capa & Tecnología & Uso en GymHub \\
+\midrule
+Frontend & React 18, TypeScript, Vite 5 & SPA responsive, rutas, formularios y vistas por rol. \\
+Interfaz & Tailwind CSS, Recharts, Lucide & Estilos, gráficos e iconografía. \\
+Estado y datos & TanStack Query, Zustand, Axios & Caché de servidor, sesión y comunicación HTTP. \\
+Backend & Django 5.1, DRF 3.15 & Reglas de negocio, permisos y API REST. \\
+Autenticación & JWT y cookies HTTP-only & Inicio, renovación y cierre de sesión por rol. \\
+Datos & PostgreSQL en Supabase & Persistencia relacional y migraciones. \\
+Procesos & Celery, Celery Beat y Redis & Tareas asíncronas, alertas y programación local. \\
+Despliegue & Vercel y Docker & Demo pública y entornos reproducibles. \\
+Pruebas & Pytest, Vitest y Playwright & Reglas backend, componentes y flujos de navegador. \\
+\bottomrule
+\end{tabularx}
+\caption*{\textit{Nota}. Elaboración propia a partir de archivos de dependencias y configuración del repositorio \parencite{gymhub_repo}.}
+\end{table}
+
+\subsection{Módulos funcionales}
+
+El MVP define tres capacidades de acceso: miembro, entrenador y personal
+administrativo. El flujo demostrable abarca inicio de sesión, panel por rol,
+miembros, planes, asistencia, progreso, pagos, alertas, nutrición, chat y perfil.
+
+\begin{longtable}{>{\bfseries}p{3.1cm}p{7.3cm}p{3.8cm}}
+\caption{Estado de los módulos del MVP}\label{tab:modulos}\\
+\toprule
+Módulo & Capacidad observable & Estado y límite \\
+\midrule
+\endfirsthead
+\toprule
+Módulo & Capacidad observable & Estado y límite \\
+\midrule
+\endhead
+Autenticación & Inicio, cierre, renovación y acceso por rol. & Funcional; requiere operación segura de secretos y cookies. \\
+Miembros & Lista, detalle, activación y asignación. & Funcional en MVP. \\
+Planes & Planes, días, ejercicios y entrenamiento del día. & Funcional; requiere mayor ciclo editorial comercial. \\
+Asistencia & Check-in e historial con reglas de mora. & Funcional; ingreso físico automatizado es futuro. \\
+Progreso & Sesiones, registros de ejercicios y métricas. & Funcional en nivel básico. \\
+Facturación & Planes, pagos, vencimientos y mora. & Funcional como registro; no es contabilidad ni pasarela bancaria. \\
+Alertas & Inactividad y notificaciones. & Código funcional; programación persistente no desplegada en Vercel. \\
+Nutrición & Perfil y guías generales. & Funcional como orientación informativa, no clínica. \\
+Chat contextual & Respuestas con contexto de datos del usuario. & Funcional con reglas; proveedor LLM es opcional. \\
+Gráficas & Indicadores de operación y progreso. & Funcional; archivos media no tienen almacenamiento persistente externo. \\
+Clases & Clases e inscripciones en backend. & Dominio existente, fuera del flujo principal congelado del MVP. \\
+\bottomrule
+\caption*{\textit{Nota}. Auditoría del repositorio al 1 de julio de 2026.}
+\end{longtable}
+
+\subsection{Evidencia de avance}
+
+La inspección del repositorio identificó 18 archivos de pruebas backend con 148
+casos, 26 archivos de pruebas frontend y dos especificaciones de extremo a
+extremo. Estas cantidades evidencian trabajo técnico, pero no equivalen a una
+certificación de calidad ni sustituyen pruebas de aceptación con usuarios.
+
+El frontend, backend y esquema de API disponen de despliegues de demostración.
+Las credenciales internas no se incluyen en este documento. Para la exposición
+se recomienda preparar un video y capturas anonimizadas como respaldo si falla la
+conectividad.
+
+\subsection{Seguridad y privacidad}
+
+El prototipo usa permisos por rol, cookies HTTP-only para JWT, controles CORS y
+CSRF, y configuración separada por ambiente. Django incluye mecanismos para
+autenticación, autorización y seguridad web \parencite{django51}. La existencia
+de estos mecanismos no elimina la necesidad de revisión, actualización de
+dependencias, rotación de secretos, copias de seguridad y respuesta a incidentes.
+
+Los datos de identidad, pagos, asistencia y progreso deben tratarse según
+finalidad, consentimiento y acceso autorizado. La Ley n.º 8968 aplica a bases de
+datos privadas y protege el control de las personas sobre su información
+\parencite{ley8968}. Toda demostración utilizará datos ficticios o anonimizados.
+
+\subsection{Alcance de salud y nutrición}
+
+Las funciones de alimentación se limitan a organización y orientación general.
+No realizan diagnóstico, tratamiento, prescripción clínica ni evaluación médica.
+Una función personalizada deberá diseñarse y validarse con profesionales
+competentes y con los requisitos regulatorios aplicables. La versión inicial no
+prometerá resultados de salud.
+
+\subsection{Brechas para operación comercial}
+
+Antes de atender clientes reales se requiere: desplegar o sustituir los workers
+programados; disponer de Redis gestionado si se mantiene Celery; resolver
+almacenamiento persistente de media; definir respaldos y recuperación; formalizar
+soporte, términos y privacidad; ejecutar QA de navegador; y aislar los datos por
+gimnasio. El último punto es crítico: la arquitectura actual no debe venderse como
+multiempresa hasta implementar y probar separación de cuentas o tenants.

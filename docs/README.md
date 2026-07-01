@@ -13,6 +13,8 @@
 - [`RECOMENDACIONES_GYM.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/RECOMENDACIONES_GYM.md): mejoras priorizadas para operación diaria de gimnasio, miembros, entrenadores y administración.
 - [`RELEASE_CHECKLIST.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/RELEASE_CHECKLIST.md): checklist de validación para staging, producción local y entregas.
 - [`SUPABASE_VERCEL.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/SUPABASE_VERCEL.md): credenciales requeridas y flujo de conexión con Supabase PostgreSQL y Vercel.
+- [`latex/README.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/latex/README.md): documento académico del proyecto en LaTeX con citas y referencias APA 7.
+- [`escrito/gymhub_expotecnica/README.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/escrito/gymhub_expotecnica/README.md): modelo de negocio institucional de GymHub para ExpoTÉCNICA 2026, encuesta y PDF compilable.
 
 ## Resumen
 Este repositorio contiene el backend de GymHub, una API para gestión de miembros, entrenadores, clases, planes de entrenamiento, asistencia, progreso, facturación, nutrición, alertas, gráficas y chat con IA.

@@ -24,6 +24,11 @@ frontend/.playwright/
 
 *.log
 
+# Artefactos generados por LaTeX
+docs/latex/build/
+docs/escrito/gymhub_expotecnica/build/
+.TinyTeX/
+
 gymhub/media/
 gymhub/staticfiles/
 

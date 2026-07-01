@@ -1,0 +1,116 @@
+\section{Resumen ejecutivo}
+
+GymHub es una plataforma web orientada a la gestión administrativa y al
+seguimiento deportivo de gimnasios pequeños y medianos. El prototipo centraliza
+miembros, membresías, pagos, asistencia, planes de entrenamiento, sesiones,
+progreso, alertas y guías generales de nutrición. También incorpora paneles por
+rol y un asistente conversacional contextual. La propuesta se plantea como un
+servicio por suscripción y no como una venta única de software.
+
+El proyecto parte de una oportunidad general documentada: las pequeñas y
+medianas empresas suelen adoptar herramientas digitales a menor velocidad que
+las organizaciones grandes, debido a restricciones de recursos, capacidades y
+financiamiento \parencite{oecd2021}. Esta referencia respalda la pertinencia de
+una solución sencilla y gradual, pero no demuestra por sí sola que todos los
+gimnasios de Pérez Zeledón presenten el mismo problema. Por ese motivo, el
+estudio local se mantiene pendiente hasta aplicar la encuesta incluida en los
+anexos.
+
+GymHub se encuentra en estado de MVP funcional y demostrable. El sistema tiene
+una interfaz React, una API Django, persistencia PostgreSQL en Supabase y un
+despliegue de demostración en Vercel. No obstante, aún requiere validación de
+mercado, fortalecimiento de infraestructura, formalización de soporte y pruebas
+con usuarios antes de presentarse como un servicio comercial maduro. El modelo
+de negocio se formula con esa diferencia explícita entre prototipo técnico y
+empresa operativa.
+
+\section{Justificación}
+
+\subsection{Problema y necesidad identificada}
+
+La administración de un gimnasio exige mantener información actualizada sobre
+personas usuarias, vigencia de membresías, pagos, ingreso a las instalaciones,
+planes asignados y seguimiento del entrenamiento. Cuando esas tareas se
+resuelven con registros separados, se incrementa la posibilidad de duplicar
+datos, perder trazabilidad o dedicar tiempo a buscar información. La necesidad
+que atiende GymHub consiste en disponer de una fuente centralizada que permita
+consultar el estado administrativo y deportivo de cada miembro según su rol.
+
+El documento inicial del proyecto identificó cuadernos, hojas de cálculo y
+mensajería como métodos que se desea sustituir. Esta observación constituye la
+hipótesis de problema del equipo, no un resultado estadístico. Su frecuencia y
+gravedad en el mercado local deberán medirse con responsables de gimnasios y
+miembros adultos. Hasta contar con esas respuestas, cualquier generalización
+sobre Pérez Zeledón se marcará como pendiente de validar.
+
+\subsection{Oportunidad detectada}
+
+La digitalización puede reducir costos de transacción, integrar procesos y
+facilitar el acceso de las pymes a información para tomar decisiones. Al mismo
+tiempo, las empresas pequeñas enfrentan barreras de habilidades, tiempo y
+financiamiento, por lo que una herramienta compleja puede resultar tan poco útil
+como la ausencia de una solución \parencite{oecd2021}. GymHub busca ocupar ese
+espacio mediante una interfaz responsive, incorporación guiada y crecimiento
+por módulos.
+
+La oportunidad comercial se concentra primero en dueños y administradores,
+porque son quienes deciden la contratación. Entrenadores y miembros son usuarios
+del sistema y determinan que la plataforma se use de manera constante. Esta
+separación evita confundir al comprador con todos los beneficiarios.
+
+\subsection{Contexto social, económico, tecnológico y ambiental}
+
+En el ámbito social, una gestión ordenada puede ofrecer mayor claridad sobre
+rutinas, asistencia y estado de la membresía. GymHub no garantiza resultados
+físicos ni reemplaza el acompañamiento profesional; organiza información para
+que las personas autorizadas puedan dar seguimiento.
+
+En el ámbito económico, el valor esperado proviene del ahorro de tiempo, la
+reducción de errores de registro y la visibilidad sobre pagos pendientes. Estos
+beneficios deberán medirse durante un piloto, ya que todavía no se dispone de
+datos para monetizar el ahorro producido.
+
+En el ámbito tecnológico, el proyecto combina una aplicación web, una API, una
+base de datos relacional, autenticación por roles, tareas programadas y servicios
+de nube. La arquitectura permite demostrar el concepto sin comprar servidores,
+pero los planes gratuitos actuales no deben confundirse con infraestructura
+comercial con respaldo y soporte.
+
+En el ámbito ambiental, el uso de registros digitales puede disminuir formularios
+impresos. No se afirma un ahorro ambiental cuantificado porque el proyecto no ha
+medido consumo de papel ni la huella de los servicios de nube. El beneficio se
+presenta como potencial y sujeto a comprobación.
+
+\subsection{Pertinencia del modelo de suscripción}
+
+El servicio requiere alojamiento, mantenimiento, correcciones, copias de
+seguridad y soporte continuo. Por ello, la suscripción mensual guarda mayor
+relación con la estructura de costos que una venta única. Los planes escalonados
+permiten iniciar con operación administrativa y habilitar funciones de mayor
+valor conforme exista demanda. El precio definitivo dependerá de la disposición
+de pago observada en la encuesta y de los costos reales del piloto.
+
+\section{Objetivos del modelo de negocio}
+
+\subsection{Objetivo general}
+
+Formular el modelo de negocio de GymHub, una plataforma web para centralizar la
+gestión administrativa y el seguimiento deportivo de gimnasios pequeños y
+medianos de Pérez Zeledón, mediante el análisis de su propuesta de valor,
+viabilidad técnica, costos y oportunidades comerciales durante 2026.
+
+\subsection{Objetivos específicos}
+
+\begin{enumerate}
+  \item Caracterizar las necesidades de responsables y miembros de gimnasios
+  mediante fuentes documentales y un instrumento de encuesta pendiente de
+  aplicación.
+  \item Documentar las funciones, arquitectura, seguridad y estado verificable
+  del MVP de GymHub.
+  \item Definir los nueve componentes del modelo Canvas y una estrategia de
+  comercialización por suscripción.
+  \item Estimar costos monetarios y aportes en especie, junto con escenarios
+  provisionales de ingresos y punto de equilibrio.
+  \item Establecer una ruta de validación, privacidad, soporte y mejora necesaria
+  para una futura operación comercial.
+\end{enumerate}
