@@ -25,9 +25,9 @@ El PDF se genera en `build/main.pdf`. Para eliminar los artefactos:
 - `encuesta_validacion.md`: instrumento actualmente en aplicación mediante Google Forms.
 - `plantilla_resultados_encuesta.csv`: estructura para registrar las respuestas.
 - `imagenes/canvas_gymhub.png`: Canvas recuperado del documento inicial.
+- `AVANCE_PENDIENTES.md`: estado verificable del escrito y trabajo restante.
+- `AGENTS.md`: reglas obligatorias para futuras modificaciones del escrito.
 
 ## Pendientes antes de entregar
 
-1. Finalizar la encuesta e incorporar sus resultados sin alterar los datos originales.
-2. Actualizar cotizaciones si cambian los planes tecnológicos.
-3. Incorporar capturas anonimizadas del prototipo si el CTR las solicita.
+El detalle vigente se mantiene en `AVANCE_PENDIENTES.md`.
