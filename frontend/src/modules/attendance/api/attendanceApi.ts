@@ -11,4 +11,9 @@ export const attendanceApi = {
     const { data } = await apiClient.post('/api/attendance/check-in/', { notes })
     return data
   },
+
+  checkOut: async (attendanceId: number): Promise<Attendance> => {
+    const { data } = await apiClient.post(`/api/attendance/${attendanceId}/check-out/`)
+    return data
+  },
 }

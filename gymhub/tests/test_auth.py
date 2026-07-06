@@ -6,6 +6,7 @@ from datetime import date, timedelta
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from rest_framework import status
+from rest_framework.test import APIClient
 
 User = get_user_model()
 
@@ -122,6 +123,17 @@ class TestRegister:
 
 @pytest.mark.django_db
 class TestLogin:
+    def test_login_requires_csrf(self, member_user):
+        client = APIClient(enforce_csrf_checks=True)
+        client.get('/auth/csrf/')
+
+        resp = client.post('/auth/login/', {
+            'email': member_user.email,
+            'password': 'member123!',
+        })
+
+        assert resp.status_code == status.HTTP_403_FORBIDDEN
+
     def test_login_sets_httponly_cookies(self, api_client, member_user):
         resp = api_client.post('/auth/login/', {
             'email': member_user.email,
@@ -227,6 +239,17 @@ class TestTokenRefresh:
 
 @pytest.mark.django_db
 class TestMe:
+    def test_cookie_authenticated_patch_requires_csrf(self, member_user):
+        from rest_framework_simplejwt.tokens import RefreshToken
+
+        client = APIClient(enforce_csrf_checks=True)
+        refresh = RefreshToken.for_user(member_user)
+        client.cookies[settings.ACCESS_TOKEN_COOKIE_NAME] = str(refresh.access_token)
+
+        resp = client.patch('/auth/me/', {'first_name': 'Ataque'}, format='json')
+
+        assert resp.status_code == status.HTTP_403_FORBIDDEN
+
     def test_me_accepts_access_token_cookie(self, api_client, member_user):
         from rest_framework_simplejwt.tokens import RefreshToken
 

@@ -15,9 +15,17 @@ class InactivityAlertViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role == 'member':
+        if user.role == 'member' and not user.is_staff:
             return InactivityAlert.objects.filter(member__user=user)
-        return InactivityAlert.objects.select_related('member__user').all()
+        queryset = InactivityAlert.objects.select_related(
+            'member__user', 'member__trainer_asignado'
+        )
+        if user.is_staff:
+            return queryset
+        try:
+            return queryset.filter(member__trainer_asignado=user.trainerprofile)
+        except AttributeError:
+            return InactivityAlert.objects.none()
 
     @action(detail=True, methods=['post'], url_path='resolve')
     def resolve(self, request, pk=None):

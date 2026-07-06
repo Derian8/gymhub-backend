@@ -1,9 +1,11 @@
-from datetime import date
 import logging
 
-from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
+from django.db import transaction
+from django.utils import timezone
 from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
@@ -27,14 +29,14 @@ class CheckInThrottle(UserRateThrottle):
         return api_settings.DEFAULT_THROTTLE_RATES.get(self.scope)
 
 
-class AttendanceViewSet(viewsets.ModelViewSet):
+class AttendanceViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = AttendanceSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
         member_id = self.request.query_params.get('member')
-        if user.role == 'member':
+        if user.role == 'member' and not user.is_staff:
             return Attendance.objects.filter(member__user=user)
         queryset = Attendance.objects.select_related('member__user').all()
         if user.role == 'trainer' and not user.is_staff:
@@ -43,6 +45,26 @@ class AttendanceViewSet(viewsets.ModelViewSet):
         if member_id:
             queryset = queryset.filter(member_id=member_id)
         return queryset
+
+    @action(detail=True, methods=['post'], url_path='check-out')
+    def check_out(self, request, pk=None):
+        with transaction.atomic():
+            attendance = Attendance.objects.select_for_update().get(
+                pk=self.get_object().pk
+            )
+            if attendance.check_out_time:
+                return Response(
+                    {'error': 'La salida ya fue registrada.'},
+                    status=status.HTTP_409_CONFLICT,
+                )
+            if attendance.attendance_date != timezone.localdate():
+                return Response(
+                    {'error': 'Solo puedes registrar la salida del día actual.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            attendance.check_out_time = timezone.now()
+            attendance.save(update_fields=['check_out_time'])
+        return Response(AttendanceSerializer(attendance).data)
 
 
 class CheckInView(APIView):
@@ -74,9 +96,15 @@ class CheckInView(APIView):
             member_id = request.data.get('member_id')
             if member_id:
                 try:
-                    member = MemberProfile.objects.get(id=member_id)
+                    member_queryset = MemberProfile.objects.all()
+                    if not request.user.is_staff:
+                        trainer_profile = _get_trainer_profile(request.user)
+                        member_queryset = member_queryset.filter(
+                            trainer_asignado=trainer_profile
+                        )
+                    member = member_queryset.get(id=member_id)
                 except MemberProfile.DoesNotExist:
-                    logger.warning('Trainer override check-in con member_id inexistente: %s', member_id)
+                    logger.warning('Trainer override fuera de alcance o inexistente: %s', member_id)
                     return Response({'error': 'Miembro no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
             else:
                 return Response({'error': 'Se requiere member_id para trainer_override.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -90,43 +118,58 @@ class CheckInView(APIView):
                 logger.warning('Check-in sin memberprofile para user_id=%s', request.user.id)
                 return Response({'error': 'Perfil de miembro no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Verificar estado de pago
-        grace_block_days = settings.PAYMENT_GRACE_DAYS + 7
         if not trainer_override:
-            from billing.models import PaymentRecord
-            last_record = PaymentRecord.objects.filter(
-                schedule__member=member,
-                status__in=('pending', 'late')
-            ).order_by('-schedule__due_date').first()
+            from billing.services import membership_access
+            access = membership_access(member)
+            if not access['allowed']:
+                return Response(
+                    {
+                        'blocked': True,
+                        'reason': access['reason'],
+                        'days_overdue': access['days_overdue'],
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
 
-            if last_record:
-                due = last_record.schedule.due_date
-                today = date.today()
-                days_overdue = (today - due).days
-                if days_overdue > grace_block_days:
-                    logger.info(
-                        'Check-in bloqueado por mora member_id=%s days_overdue=%s',
-                        member.id,
-                        days_overdue,
-                    )
-                    return Response(
-                        {
-                            'blocked': True,
-                            'reason': 'payment_overdue',
-                            'days_overdue': days_overdue
-                        },
-                        status=status.HTTP_403_FORBIDDEN
-                    )
+        today = timezone.localdate()
+        existing = Attendance.objects.filter(
+            member=member,
+            attendance_date=today,
+        ).first()
+        if existing:
+            return Response(
+                {
+                    'error': 'Ya existe un registro de asistencia para hoy.',
+                    'attendance': AttendanceSerializer(existing).data,
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
 
         # Obtener clase si se proporcionó
         gym_class = None
         if gym_class_id:
-            from classes.models import GymClass
+            from classes.models import ClassEnrollment, GymClass
             try:
                 gym_class = GymClass.objects.get(id=gym_class_id)
             except GymClass.DoesNotExist:
                 logger.warning('Check-in con clase inexistente gym_class_id=%s', gym_class_id)
                 return Response({'error': 'Clase no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+            if gym_class.status != 'active':
+                return Response(
+                    {'error': 'La clase no está activa.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if trainer_override and not request.user.is_staff:
+                if gym_class.trainer.user_id != request.user.id:
+                    raise PermissionDenied('Solo puedes registrar asistencia en tus clases.')
+            enrollment = ClassEnrollment.objects.filter(
+                member=member, gym_class=gym_class
+            ).first()
+            if not enrollment:
+                return Response(
+                    {'error': 'El miembro no está inscrito en esta clase.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         is_manual = trainer_override
         attendance = Attendance.objects.create(
@@ -134,7 +177,13 @@ class CheckInView(APIView):
             gym_class=gym_class,
             checked_in_by=request.user,
             is_manual_override=is_manual,
+            attendance_date=today,
+            notes=serializer.validated_data.get('notes', ''),
         )
+        if gym_class_id:
+            ClassEnrollment.objects.filter(
+                member=member, gym_class=gym_class
+            ).update(attended=True)
 
         # Audit log para trainer override
         if trainer_override:

@@ -9,7 +9,6 @@ import {
   Loader2,
   MessageSquareMore,
   Play,
-  Ruler,
   Scale,
   Sparkles,
   UserRound,
@@ -25,7 +24,7 @@ import { Badge, EmptyState, PageHeader } from '@/shared/components/UI'
 import { StatCardSkeleton } from '@/shared/components/Skeleton'
 import { SymbolFrame } from '@/shared/components/Brand'
 import { cn, DAY_OF_WEEK_LABELS, GOAL_LABELS, MUSCLE_LABELS, RISK_LEVEL_BADGE, RISK_LEVEL_LABELS } from '@/shared/lib/utils'
-import type { Exercise, ExerciseLogPayload, WorkoutDay } from '@/shared/types'
+import type { Exercise, ExerciseLogPayload } from '@/shared/types'
 
 interface ExerciseProgressDraft {
   done: boolean
@@ -136,6 +135,7 @@ export function MemberDashboard() {
     todayWorkout?.today_session_id,
     todayWorkout?.today_session_completed,
     todayWorkout?.today_session_started,
+    todayWorkout?.exercises,
   ])
 
   const handleStartWorkout = () => {

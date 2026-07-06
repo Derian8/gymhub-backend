@@ -151,6 +151,7 @@ function TodayWorkoutPageContent() {
     workoutDay?.today_session_id,
     workoutDay?.today_session_completed,
     workoutDay?.today_session_started,
+    workoutDay?.exercises,
   ])
 
   const handleStartSession = () => {
@@ -226,8 +227,14 @@ function TodayWorkoutPageContent() {
     }))
   }
 
-  const diasPrograma = activePrescription?.dias || []
-  const weeklyDays = weeklyView?.week_days || []
+  const diasPrograma = useMemo(
+    () => activePrescription?.dias || [],
+    [activePrescription?.dias],
+  )
+  const weeklyDays = useMemo(
+    () => weeklyView?.week_days || [],
+    [weeklyView?.week_days],
+  )
   const tieneProgramaActivo = !!activePrescription?.plan_activo
   const mostrarFallbackSemanal = isMember && !workoutDay?.id && tieneProgramaActivo
   const mostrarEstadoVacioMember = isMember && !workoutDay?.id && !tieneProgramaActivo

@@ -44,8 +44,9 @@ export interface MembershipPlan {
   trainer_nombre?: string | null
   name: string
   description: string
-  price_monthly: string
-  duration_months: number
+  price: string
+  recurrence_type: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'annual'
+  grace_period_days: number
   features: string
   is_active?: boolean
 }
@@ -64,6 +65,10 @@ export interface MemberSubscription {
   is_active: boolean
   status: 'active' | 'past_due' | 'suspended' | 'cancelled'
   renewal_date: string | null
+  current_period_start: string | null
+  current_period_end: string | null
+  access_allowed: boolean
+  days_overdue: number
   cancellation_date: string | null
   cancellation_reason: string
   commercial_notes: string
@@ -484,6 +489,9 @@ export interface Attendance {
   id: number
   member: number
   check_in_time: string
+  attendance_date: string
+  check_out_time: string | null
+  duration_minutes: number | null
   gym_class?: number | null
   checked_in_by?: number | null
   is_manual_override?: boolean
@@ -492,7 +500,7 @@ export interface Attendance {
 
 export interface CheckInBlockedResponse {
   blocked: true
-  reason: 'payment_overdue'
+  reason: 'payment_overdue' | 'payment_required' | 'member_inactive'
   days_overdue: number
 }
 
@@ -567,6 +575,8 @@ export interface PaymentSchedule {
   subscription?: number | null
   plan: number | null
   due_date: string
+  period_start: string | null
+  period_end: string | null
   recurrence_type: string
   grace_period_days: number
   auto_generate_next?: boolean

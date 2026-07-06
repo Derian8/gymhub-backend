@@ -39,8 +39,13 @@ class MembershipPlan(models.Model):
     )
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    price_monthly = models.DecimalField(max_digits=10, decimal_places=2)
-    duration_months = models.PositiveIntegerField(default=1)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    recurrence_type = models.CharField(
+        max_length=20,
+        choices=RECURRENCE_TYPE_CHOICES,
+        default='monthly',
+    )
+    grace_period_days = models.PositiveIntegerField(default=7)
     features = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
 
@@ -51,7 +56,7 @@ class MembershipPlan(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.name} (${self.price_monthly}/mes)"
+        return f"{self.name} ({self.price} / {self.get_recurrence_type_display()})"
 
 
 class MemberSubscription(models.Model):
@@ -62,7 +67,7 @@ class MemberSubscription(models.Model):
     )
     plan = models.ForeignKey(
         MembershipPlan,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='subscriptions'
     )
     trainer = models.ForeignKey(
@@ -87,6 +92,8 @@ class MemberSubscription(models.Model):
         default='active',
     )
     renewal_date = models.DateField(null=True, blank=True)
+    current_period_start = models.DateField(null=True, blank=True)
+    current_period_end = models.DateField(null=True, blank=True)
     cancellation_date = models.DateField(null=True, blank=True)
     cancellation_reason = models.CharField(max_length=255, blank=True)
     commercial_notes = models.TextField(blank=True)
@@ -142,6 +149,8 @@ class PaymentSchedule(models.Model):
         related_name='schedules'
     )
     due_date = models.DateField()
+    period_start = models.DateField(null=True, blank=True)
+    period_end = models.DateField(null=True, blank=True)
     recurrence_type = models.CharField(
         max_length=20,
         choices=RECURRENCE_TYPE_CHOICES,
@@ -153,6 +162,12 @@ class PaymentSchedule(models.Model):
 
     class Meta:
         ordering = ['-due_date']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['subscription', 'period_start'],
+                name='billing_unique_subscription_period',
+            ),
+        ]
         indexes = [
             models.Index(fields=['member', 'is_active', 'due_date']),
             models.Index(fields=['plan', 'is_active']),

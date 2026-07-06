@@ -145,7 +145,7 @@ describe('PlanDetailPage', () => {
   })
 
   it('lets a trainer confirm plan deletion from the detail page', () => {
-    const { getAllByTestId, getAllByText, getByText } = renderWithProviders(<PlanDetailPage />)
+    const { getAllByTestId, getByText } = renderWithProviders(<PlanDetailPage />)
 
     fireEvent.click(getAllByTestId('open-delete-plan-dialog')[0])
 

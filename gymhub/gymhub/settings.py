@@ -2,7 +2,7 @@ import logging
 import environ
 from pathlib import Path
 from datetime import timedelta
-from urllib.parse import parse_qsl, unquote, urlparse
+from urllib.parse import parse_qsl, unquote, urlparse, urlsplit, urlunsplit
 
 env = environ.Env()
 logger = logging.getLogger(__name__)
@@ -49,6 +49,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'gymhub.middleware.RequestTimingMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -105,6 +106,10 @@ def build_database_config():
                 **query_options,
             },
         }
+        config['DISABLE_SERVER_SIDE_CURSORS'] = env.bool(
+            'DB_DISABLE_SERVER_SIDE_CURSORS',
+            default=config['PORT'] == '6543',
+        )
         return {'default': config}
 
     config = {
@@ -119,6 +124,10 @@ def build_database_config():
     if db_sslmode:
         config['OPTIONS'] = {'sslmode': db_sslmode}
     config['CONN_MAX_AGE'] = conn_max_age
+    config['DISABLE_SERVER_SIDE_CURSORS'] = env.bool(
+        'DB_DISABLE_SERVER_SIDE_CURSORS',
+        default=str(config['PORT']) == '6543',
+    )
     return {'default': config}
 
 
@@ -142,6 +151,33 @@ STATIC_ROOT = env('STATIC_ROOT', default=str(BASE_DIR / 'staticfiles'))
 MEDIA_URL = '/media/'
 MEDIA_ROOT = env('MEDIA_ROOT', default=str(BASE_DIR / 'media'))
 
+USE_S3_STORAGE = env.bool('USE_S3_STORAGE', default=False)
+STORAGES = {
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
+if USE_S3_STORAGE:
+    STORAGES['default'] = {
+        'BACKEND': 'storages.backends.s3.S3Storage',
+        'OPTIONS': {
+            'access_key': env('S3_ACCESS_KEY_ID'),
+            'secret_key': env('S3_SECRET_ACCESS_KEY'),
+            'bucket_name': env('S3_BUCKET_NAME'),
+            'endpoint_url': env('S3_ENDPOINT_URL'),
+            'region_name': env('S3_REGION', default='us-west-2'),
+            'addressing_style': 'path',
+            'default_acl': None,
+            'file_overwrite': False,
+            'querystring_auth': True,
+            'querystring_expire': env.int('S3_URL_EXPIRATION', default=900),
+        },
+    }
+else:
+    STORAGES['default'] = {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    }
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # REST Framework
@@ -161,6 +197,8 @@ REST_FRAMEWORK = {
         'user': '30/min',
         'anon': '100/hour',
         'login': '10/min',
+        'register': '5/hour',
+        'refresh': '30/hour',
     },
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_FILTER_BACKENDS': [
@@ -185,8 +223,24 @@ ACCESS_TOKEN_COOKIE_NAME = 'access_token'
 REFRESH_TOKEN_COOKIE_NAME = 'refresh_token'
 
 # Celery
-CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='redis://redis:6379/0')
-CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default='redis://redis:6379/1')
+REDIS_URL = env('REDIS_URL', default='redis://redis:6379')
+
+
+def redis_database_url(database):
+    if REDIS_URL == 'locmem://':
+        return REDIS_URL
+    parsed = urlsplit(REDIS_URL)
+    return urlunsplit((
+        parsed.scheme,
+        parsed.netloc,
+        f'/{database}',
+        parsed.query,
+        parsed.fragment,
+    ))
+
+
+CELERY_BROKER_URL = env('CELERY_BROKER_URL', default=redis_database_url(0))
+CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default=redis_database_url(1))
 CELERY_TIMEZONE = 'America/Costa_Rica'
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -194,7 +248,6 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 # Cache
-REDIS_URL = env('REDIS_URL', default='redis://redis:6379/0')
 if REDIS_URL == 'locmem://':
     CACHES = {
         'default': {
@@ -205,7 +258,8 @@ else:
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-            'LOCATION': REDIS_URL,
+            'LOCATION': redis_database_url(2),
+            'KEY_PREFIX': 'gymhub',
         }
     }
 
@@ -270,6 +324,7 @@ INACTIVITY_DAYS_THRESHOLD = env.int('INACTIVITY_DAYS_THRESHOLD', default=30)
 PAYMENT_GRACE_DAYS = env.int('PAYMENT_GRACE_DAYS', default=7)
 
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@gymhub.com')
+CRON_SECRET = env('CRON_SECRET', default='')
 
 # DRF Spectacular
 SPECTACULAR_SETTINGS = {

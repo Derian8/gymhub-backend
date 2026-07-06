@@ -3,7 +3,12 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_URL="${BACKEND_URL:-http://localhost:8000}"
+TRAINER_EMAIL="${TRAINER_EMAIL:-trainer1@gymhub.com}"
+TRAINER_PASSWORD="${TRAINER_PASSWORD:-trainer123!}"
+MEMBER_EMAIL="${MEMBER_EMAIL:-member1@gymhub.com}"
+MEMBER_PASSWORD="${MEMBER_PASSWORD:-member123!}"
 SEED_DATA=0
+ALLOW_WRITES=0
 COMPOSE_ARGS=()
 
 while [[ $# -gt 0 ]]; do
@@ -16,8 +21,12 @@ while [[ $# -gt 0 ]]; do
       SEED_DATA=1
       shift
       ;;
+    --write)
+      ALLOW_WRITES=1
+      shift
+      ;;
     *)
-      echo "Uso: ./gym-smoke [--prod] [--seed]" >&2
+      echo "Uso: ./gym-smoke [--prod] [--seed] [--write]" >&2
       exit 1
       ;;
   esac
@@ -53,7 +62,7 @@ wait_for_backend() {
   local delay=2
 
   for _ in $(seq 1 "$attempts"); do
-    if curl -fsS "$BACKEND_URL/health/live/" >/dev/null 2>&1; then
+    if curl -fsS --connect-timeout 5 --max-time 15 "$BACKEND_URL/health/live/" >/dev/null 2>&1; then
       return 0
     fi
     sleep "$delay"
@@ -67,7 +76,7 @@ wait_for_backend_ready() {
   local delay=2
 
   for _ in $(seq 1 "$attempts"); do
-    if curl -fsS "$BACKEND_URL/health/ready/" >/dev/null 2>&1; then
+    if curl -fsS --connect-timeout 5 --max-time 15 "$BACKEND_URL/health/ready/" >/dev/null 2>&1; then
       return 0
     fi
     sleep "$delay"
@@ -88,18 +97,32 @@ request_json() {
   local body="${4:-}"
   local response_file="$TMP_DIR/response.json"
   local status
+  local csrf_token=''
+
+  if [[ "$method" != "GET" && "$method" != "HEAD" ]]; then
+    curl -fsS --connect-timeout 10 --max-time 60 -c "$cookie_file" -b "$cookie_file" \
+      "$BACKEND_URL/auth/csrf/" >/dev/null
+    csrf_token=$(awk '$6 == "csrftoken" { value=$7 } END { print value }' "$cookie_file")
+    [[ -n "$csrf_token" ]] || fail "No se pudo obtener cookie CSRF"
+  fi
 
   if [[ -n "$body" ]]; then
-    status=$(curl -sS -o "$response_file" -w "%{http_code}" \
+    status=$(curl -sS --connect-timeout 10 --max-time 60 -o "$response_file" -w "%{http_code}" \
       -X "$method" \
       -c "$cookie_file" -b "$cookie_file" \
       -H 'Content-Type: application/json' \
+      -H "X-CSRFToken: $csrf_token" \
+      -H "Origin: $BACKEND_URL" \
+      -H "Referer: $BACKEND_URL/" \
       -d "$body" \
       "$BACKEND_URL$path")
   else
-    status=$(curl -sS -o "$response_file" -w "%{http_code}" \
+    status=$(curl -sS --connect-timeout 10 --max-time 60 -o "$response_file" -w "%{http_code}" \
       -X "$method" \
       -c "$cookie_file" -b "$cookie_file" \
+      -H "X-CSRFToken: $csrf_token" \
+      -H "Origin: $BACKEND_URL" \
+      -H "Referer: $BACKEND_URL/" \
       "$BACKEND_URL$path")
   fi
 
@@ -140,7 +163,7 @@ TRAINER_COOKIE="$TMP_DIR/trainer.cookies"
 MEMBER_COOKIE="$TMP_DIR/member.cookies"
 
 echo "==> Login trainer"
-login "trainer1@gymhub.com" "trainer123!" "$TRAINER_COOKIE"
+login "$TRAINER_EMAIL" "$TRAINER_PASSWORD" "$TRAINER_COOKIE"
 trainer_me="$(request_json "$TRAINER_COOKIE" GET "/auth/me/")"
 trainer_role="$(printf '%s' "$trainer_me" | json_field "['role']")"
 [[ "$trainer_role" == "trainer" ]] || fail "Rol trainer inesperado: $trainer_role"
@@ -166,7 +189,7 @@ assert_non_empty "$trainer_chart_url" "trainer.chart.chart_url"
 assert_non_empty "$trainer_member_email" "trainer.member_detail.email"
 
 echo "==> Login member"
-login "member1@gymhub.com" "member123!" "$MEMBER_COOKIE"
+login "$MEMBER_EMAIL" "$MEMBER_PASSWORD" "$MEMBER_COOKIE"
 member_me="$(request_json "$MEMBER_COOKIE" GET "/auth/me/")"
 member_role="$(printf '%s' "$member_me" | json_field "['role']")"
 member_profile_id="$(printf '%s' "$member_me" | json_field "['memberprofile_id']")"
@@ -192,21 +215,25 @@ member_today_exercise_weight="$(printf '%s' "$member_today_workout" | python3 -c
 assert_non_empty "$member_today_workout_id" "member.today_workout.id"
 assert_non_empty "$member_today_exercise_id" "member.today_exercise.id"
 
-member_session_payload="$(printf '{"workout_day_id":%s}' "$member_today_workout_id")"
-member_session="$(request_json "$MEMBER_COOKIE" POST "/api/workout-sessions/" "$member_session_payload")"
-member_session_id="$(printf '%s' "$member_session" | json_field "['id']")"
-assert_non_empty "$member_session_id" "member.session.id"
+member_session_id='omitida'
+member_logs_count='omitidos'
+if [[ $ALLOW_WRITES -eq 1 ]]; then
+  member_session_payload="$(printf '{"workout_day_id":%s}' "$member_today_workout_id")"
+  member_session="$(request_json "$MEMBER_COOKIE" POST "/api/workout-sessions/" "$member_session_payload")"
+  member_session_id="$(printf '%s' "$member_session" | json_field "['id']")"
+  assert_non_empty "$member_session_id" "member.session.id"
 
-member_logs_payload="$(printf '{"session_id":%s,"logs":[{"exercise_id":%s,"sets_completed":%s,"reps_completed":%s,"weight_used_kg":%s}]}' \
-  "$member_session_id" "$member_today_exercise_id" "$member_today_exercise_sets" "$member_today_exercise_reps" "$member_today_exercise_weight")"
-member_logs="$(request_json "$MEMBER_COOKIE" POST "/api/exercise-logs/bulk/" "$member_logs_payload")"
-member_logs_count="$(printf '%s' "$member_logs" | python3 -c "import json,sys; data=json.load(sys.stdin); print(len(data))")"
-assert_non_empty "$member_logs_count" "member.logs.count"
+  member_logs_payload="$(printf '{"session_id":%s,"logs":[{"exercise_id":%s,"sets_completed":%s,"reps_completed":%s,"weight_used_kg":%s}]}' \
+    "$member_session_id" "$member_today_exercise_id" "$member_today_exercise_sets" "$member_today_exercise_reps" "$member_today_exercise_weight")"
+  member_logs="$(request_json "$MEMBER_COOKIE" POST "/api/exercise-logs/bulk/" "$member_logs_payload")"
+  member_logs_count="$(printf '%s' "$member_logs" | python3 -c "import json,sys; data=json.load(sys.stdin); print(len(data))")"
+  assert_non_empty "$member_logs_count" "member.logs.count"
 
-member_complete_payload='{"overall_feeling":4}'
-member_completed_session="$(request_json "$MEMBER_COOKIE" PATCH "/api/workout-sessions/$member_session_id/complete/" "$member_complete_payload")"
-member_completed_flag="$(printf '%s' "$member_completed_session" | json_field "['is_completed']")"
-assert_non_empty "$member_completed_flag" "member.session.is_completed"
+  member_complete_payload='{"overall_feeling":4}'
+  member_completed_session="$(request_json "$MEMBER_COOKIE" PATCH "/api/workout-sessions/$member_session_id/complete/" "$member_complete_payload")"
+  member_completed_flag="$(printf '%s' "$member_completed_session" | json_field "['is_completed']")"
+  assert_non_empty "$member_completed_flag" "member.session.is_completed"
+fi
 
 member_payment_status="$(printf '%s' "$member_dashboard" | json_field "['payment_status']")"
 member_plan_name="$(printf '%s' "$member_dashboard" | python3 -c "import json,sys; data=json.load(sys.stdin); plan=data.get('active_plan') or {}; print(plan.get('name',''))")"
@@ -224,8 +251,10 @@ assert_non_empty "$member_nutrition_count" "member.nutrition.count"
 assert_non_empty "$member_chat_count" "member.chat_history.count"
 assert_non_empty "$member_today_name" "member.today_workout"
 
-logout "$TRAINER_COOKIE"
-logout "$MEMBER_COOKIE"
+if [[ $ALLOW_WRITES -eq 1 ]]; then
+  logout "$TRAINER_COOKIE"
+  logout "$MEMBER_COOKIE"
+fi
 
 echo
 echo "Smoke MVP OK"

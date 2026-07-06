@@ -28,8 +28,7 @@ class TestNutrition:
         other_plan = MembershipPlan.objects.create(
             name='Plan Nutri',
             description='Plan',
-            price_monthly=70.00,
-            duration_months=1,
+            price=70.00,
         )
         other_profile, _ = MemberProfile.objects.get_or_create(
             user=other_user,
@@ -105,8 +104,7 @@ class TestNutrition:
         other_plan = MembershipPlan.objects.create(
             name='Plan Link',
             description='Plan',
-            price_monthly=55.00,
-            duration_months=1,
+            price=55.00,
         )
         other_profile, _ = MemberProfile.objects.get_or_create(
             user=other_user,

@@ -136,7 +136,7 @@ vi.mock('@/modules/billing/hooks/useBilling', () => ({
   useMembershipPlansQuery: () => ({
     data: {
       results: [
-        { id: 2, name: 'Estandar', description: '', price_monthly: '50.00', duration_months: 1, features: '' },
+        { id: 2, name: 'Estandar', description: '', price: '50000.00', recurrence_type: 'monthly', grace_period_days: 7, features: '' },
       ],
     },
   }),
@@ -186,7 +186,7 @@ describe('MemberDetailPage', () => {
     expect(getAllByText('Maria Perez').length).toBeGreaterThan(1)
     expect(getByTestId('activation-panel')).toBeInTheDocument()
     expect(getByTestId('activate-member-btn')).toBeInTheDocument()
-    expect(getByTestId('activation-agreed-price-input')).toHaveValue(50)
+    expect(getByTestId('activation-agreed-price-input')).toHaveValue(50000)
     expect(getByTestId('assign-trainer-btn')).toBeInTheDocument()
     expect(getByTestId('prescription-assign-trainer-btn')).toBeInTheDocument()
     expect(getAllByText('Sin trainer asignado').length).toBeGreaterThan(0)

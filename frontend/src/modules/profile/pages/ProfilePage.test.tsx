@@ -34,14 +34,14 @@ describe('ProfilePage', () => {
   })
 
   it('renders editable account information for the authenticated user', () => {
-    const { getByTestId, getByDisplayValue, getByText } = renderWithProviders(<ProfilePage />)
+    const { getByTestId, getByDisplayValue, getByText, getAllByText } = renderWithProviders(<ProfilePage />)
 
     expect(getByTestId('profile-page')).toBeInTheDocument()
     expect(getByDisplayValue('Carlos')).toBeInTheDocument()
     expect(getByDisplayValue('Mendoza')).toBeInTheDocument()
     expect(getByDisplayValue('trainer1@gymhub.com')).toBeInTheDocument()
     expect(getByText('@trainer1')).toBeInTheDocument()
-    expect(getByText('Entrenador')).toBeInTheDocument()
+    expect(getAllByText('Entrenador').length).toBeGreaterThan(0)
     expect(getByText('Staff')).toBeInTheDocument()
   })
 

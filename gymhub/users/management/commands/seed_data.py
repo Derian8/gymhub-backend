@@ -2,8 +2,9 @@
 Management command: python manage.py seed_data
 Genera datos de prueba para el entorno de desarrollo/testing.
 """
+import os
 from datetime import date, timedelta
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 from django.db import transaction
 
@@ -13,8 +14,25 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--clear', action='store_true', help='Limpiar datos existentes antes del seed.')
+        parser.add_argument(
+            '--trainer-password',
+            default=os.environ.get('DEMO_TRAINER_PASSWORD'),
+            help='Password de trainer1. Alternativa: DEMO_TRAINER_PASSWORD.',
+        )
+        parser.add_argument(
+            '--member-password',
+            default=os.environ.get('DEMO_MEMBER_PASSWORD'),
+            help='Password de member1. Alternativa: DEMO_MEMBER_PASSWORD.',
+        )
 
     def handle(self, *args, **options):
+        self.trainer_password = options.get('trainer_password')
+        self.member_password = options.get('member_password')
+        if not self.trainer_password or not self.member_password:
+            raise CommandError(
+                'Define --trainer-password y --member-password, o las variables '
+                'DEMO_TRAINER_PASSWORD y DEMO_MEMBER_PASSWORD.'
+            )
         if options['clear']:
             self.stdout.write('Limpiando datos...')
             self._clear_data()
@@ -74,16 +92,21 @@ class Command(BaseCommand):
         from billing.models import MembershipPlan
         plans = []
         plan_data = [
-            {'name': 'Básico', 'price_monthly': 30.00, 'duration_months': 1,
+            {'name': 'Básico', 'price': 30000.00, 'recurrence_type': 'monthly',
+             'grace_period_days': 7,
              'features': 'Acceso sala de pesas, duchas', 'description': 'Plan básico mensual'},
-            {'name': 'Estándar', 'price_monthly': 50.00, 'duration_months': 1,
+            {'name': 'Estándar', 'price': 50000.00, 'recurrence_type': 'monthly',
+             'grace_period_days': 7,
              'features': 'Básico + clases grupales + locker', 'description': 'Plan estándar con clases'},
-            {'name': 'Premium', 'price_monthly': 80.00, 'duration_months': 1,
+            {'name': 'Premium', 'price': 80000.00, 'recurrence_type': 'monthly',
+             'grace_period_days': 7,
              'features': 'Todo incluido + trainer personalizado + nutrición',
              'description': 'Plan premium todo incluido'},
         ]
         for pd in plan_data:
-            plan, _ = MembershipPlan.objects.get_or_create(name=pd['name'], defaults=pd)
+            plan, _ = MembershipPlan.objects.update_or_create(
+                name=pd['name'], trainer=None, defaults=pd
+            )
             plans.append(plan)
         self.stdout.write(f'  {len(plans)} MembershipPlans creados.')
         return plans
@@ -102,7 +125,7 @@ class Command(BaseCommand):
             user, _ = self._get_or_create_demo_user(
                 User,
                 td,
-                'trainer123!',
+                self.trainer_password,
                 'trainer',
             )
             profile, _ = TrainerProfile.objects.get_or_create(
@@ -136,7 +159,7 @@ class Command(BaseCommand):
                     'first_name': first,
                     'last_name': last,
                 },
-                'member123!',
+                self.member_password,
                 'member',
             )
 
@@ -348,10 +371,11 @@ class Command(BaseCommand):
         for member in members:
             for days_ago in (21, 14, 7, 1):
                 check_time = timezone.now() - timedelta(days=days_ago)
+                attendance_date = today - timedelta(days=days_ago)
                 _, att_created = Attendance.objects.get_or_create(
                     member=member,
-                    check_in_time__date=(today - timedelta(days=days_ago)),
-                    defaults={'check_in_time': check_time}
+                    attendance_date=attendance_date,
+                    defaults={'check_in_time': check_time},
                 )
                 if att_created:
                     created_count += 1
@@ -446,7 +470,7 @@ class Command(BaseCommand):
             record, created = PaymentRecord.objects.get_or_create(
                 schedule=schedule,
                 defaults={
-                    'amount': plan.price_monthly,
+                    'amount': plan.price,
                     'status': final_status,
                     'paid_at': timezone.now() if final_status == 'paid' else None,
                 }

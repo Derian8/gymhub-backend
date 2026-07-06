@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
+from django.middleware.csrf import get_token
 from django.db.models import Q, Case, When, IntegerField
 from django.utils import timezone
 from rest_framework import status, viewsets, filters
@@ -9,6 +10,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
@@ -39,9 +41,23 @@ class LoginThrottle(AnonRateThrottle):
     scope = 'login'
 
 
+class RegisterThrottle(AnonRateThrottle):
+    scope = 'register'
+
+
+class RefreshThrottle(AnonRateThrottle):
+    scope = 'refresh'
+
+
+def _enforce_csrf(request):
+    if request.META.get('HTTP_AUTHORIZATION'):
+        return
+    SessionAuthentication().enforce_csrf(request)
+
+
 def _get_trainer_profile(user):
-    if getattr(user, 'role', None) != 'trainer':
-        return None
+    if getattr(user, 'role', None) != 'trainer' and not user.is_staff:
+        raise PermissionDenied('Esta operación requiere un perfil de trainer.')
     try:
         return user.trainerprofile
     except ObjectDoesNotExist as exc:
@@ -90,9 +106,10 @@ class RegisterView(APIView):
     Registro de trainers requiere IsStaffOrTrainer (protegido).
     """
     permission_classes = []
-    throttle_classes = []
+    throttle_classes = [RegisterThrottle]
 
     def post(self, request):
+        _enforce_csrf(request)
         role = request.data.get('role', 'member')
 
         # Proteger asignación de role='trainer' con IsStaffOrTrainer
@@ -129,6 +146,7 @@ class LoginView(APIView):
     throttle_classes = [LoginThrottle]
 
     def post(self, request):
+        _enforce_csrf(request)
         serializer = LoginSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -180,8 +198,10 @@ class LogoutView(APIView):
 class TokenRefreshCookieView(APIView):
     """POST /auth/token/refresh/ — Renueva access token desde cookie."""
     permission_classes = [AllowAny]
+    throttle_classes = [RefreshThrottle]
 
     def post(self, request):
+        _enforce_csrf(request)
         refresh_token = request.COOKIES.get(settings.REFRESH_TOKEN_COOKIE_NAME)
         if not refresh_token:
             return Response(
@@ -190,25 +210,33 @@ class TokenRefreshCookieView(APIView):
             )
         try:
             token = RefreshToken(refresh_token)
-            new_access = str(token.access_token)
+            user = User.objects.get(id=token['user_id'], is_active=True)
+            new_refresh = RefreshToken.for_user(user)
+            token.blacklist()
         except TokenError:
             return Response(
                 {'error': 'Token inválido o expirado.'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'Usuario inválido o inactivo.'},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
         response = Response({'message': 'Token renovado.'})
-        cookie_opts = {
-            'httponly': True,
-            'samesite': settings.AUTH_COOKIE_SAMESITE,
-            'secure': settings.AUTH_COOKIE_SECURE,
-            'path': settings.AUTH_COOKIE_PATH,
-            'max_age': int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds()),
-        }
-        if settings.AUTH_COOKIE_DOMAIN:
-            cookie_opts['domain'] = settings.AUTH_COOKIE_DOMAIN
-        response.set_cookie(settings.ACCESS_TOKEN_COOKIE_NAME, new_access, **cookie_opts)
+        _set_auth_cookies(response, new_refresh)
         return response
+
+
+class CsrfTokenView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    throttle_classes = []
+
+    def get(self, request):
+        return Response({'csrf_token': get_token(request)})
 
 
 class MeView(APIView):
@@ -247,12 +275,18 @@ class MemberViewSet(viewsets.ModelViewSet):
         ).order_by('id'))
 
         # Members solo ven su propio perfil
-        if user.role == 'member':
+        if user.role == 'member' and not user.is_staff:
             return qs.filter(user=user)
 
         if user.role == 'trainer' and not user.is_staff:
             trainer_profile = _get_trainer_profile(user)
-            qs = qs.filter(Q(trainer_asignado=trainer_profile) | Q(trainer_asignado__isnull=True))
+            if self.action == 'assign_trainer':
+                qs = qs.filter(
+                    Q(trainer_asignado=trainer_profile)
+                    | Q(trainer_asignado__isnull=True)
+                )
+            else:
+                qs = qs.filter(trainer_asignado=trainer_profile)
 
         # Filtros adicionales para trainers/staff
         payment_status = self.request.query_params.get('payment_status')
@@ -380,7 +414,8 @@ class MemberViewSet(viewsets.ModelViewSet):
     def activate(self, request, pk=None):
         """POST /api/members/{id}/activate/ — Activa el perfil y genera PaymentSchedule."""
         member = self.get_object()
-        from billing.models import MembershipPlan, MemberSubscription, PaymentSchedule, PaymentRecord
+        from billing.models import MembershipPlan, MemberSubscription, PaymentSchedule
+        from billing.services import initialize_subscription
         from datetime import date
 
         member.is_active = True
@@ -403,37 +438,20 @@ class MemberViewSet(viewsets.ModelViewSet):
                     member=member,
                     plan=plan,
                     trainer=trainer_profile,
-                    agreed_price=agreed_price or plan.price_monthly,
+                    agreed_price=agreed_price or plan.price,
                     start_date=date.today(),
                     next_billing_date=date.today(),
-                    recurrence_type='monthly',
-                    grace_period_days=settings.PAYMENT_GRACE_DAYS,
+                    recurrence_type=plan.recurrence_type,
+                    grace_period_days=plan.grace_period_days,
                     auto_generate_next=True,
                     is_active=True,
-                    status='active',
-                    renewal_date=date.today(),
+                    status='suspended',
+                    renewal_date=None,
                 )
                 member.membership_plan = plan
                 member.save(update_fields=['membership_plan', 'is_active'])
 
-                schedule, created = PaymentSchedule.objects.get_or_create(
-                    member=member,
-                    subscription=subscription,
-                    plan=plan,
-                    is_active=True,
-                    defaults={
-                        'due_date': subscription.next_billing_date,
-                        'recurrence_type': subscription.recurrence_type,
-                        'grace_period_days': subscription.grace_period_days,
-                        'auto_generate_next': subscription.auto_generate_next,
-                    }
-                )
-                if created:
-                    PaymentRecord.objects.create(
-                        schedule=schedule,
-                        amount=subscription.agreed_price,
-                        status='pending',
-                    )
+                initialize_subscription(subscription)
             except MembershipPlan.DoesNotExist:
                 pass
 

@@ -42,6 +42,9 @@ Para un despliegue real con HTTPS, no reutilices sin cambios el `.env.prod.examp
 - `./gym-log [servicios...]`: sigue logs de todos los servicios o solo de los indicados.
 - `./gym-smoke`: valida login y endpoints críticos de `trainer` y `member`.
 - `./gym-smoke --seed`: recarga datos demo antes de ejecutar la validación.
+- `./gym-smoke --write`: habilita mutaciones; sin esta bandera no crea sesiones ni blacklists de logout.
+- `python manage.py restablecer_demo`: muestra el inventario demo sin modificarlo.
+- `python manage.py restablecer_demo --yes`: recrea trainer1/member1 y elimina demos numeradas adicionales.
 
 ## Servicios
 - `frontend`: ejecuta Vite en el puerto `3000`.
@@ -87,6 +90,13 @@ Para E2E con Playwright:
 - `REDIS_URL`
 - `CELERY_BROKER_URL`
 - `CELERY_RESULT_BACKEND`
+- `USE_S3_STORAGE`
+- `S3_ACCESS_KEY_ID`
+- `S3_SECRET_ACCESS_KEY`
+- `S3_BUCKET_NAME`
+- `S3_ENDPOINT_URL`
+- `S3_REGION`
+- `S3_URL_EXPIRATION`
 - `OPENAI_API_KEY`
 - `EMERGENT_LLM_KEY`
 - `OPENAI_MODEL`
@@ -101,6 +111,14 @@ Para E2E con Playwright:
 - `AI_CHAT_HISTORY_WINDOW`
 - `INACTIVITY_DAYS_THRESHOLD`
 - `PAYMENT_GRACE_DAYS`
+- `CRON_SECRET`: secreto compartido que Vercel Cron envía como `Authorization: Bearer ...` al mantenimiento diario.
+- `DB_DISABLE_SERVER_SIDE_CURSORS=True`: obligatorio al usar el Transaction Pooler de Supabase en el puerto 6543.
+
+Las tolerancias operativas se guardan por plan: 0 días para diario, 1 para semanal, 2 para quincenal y 7 para periodos mayores. `PAYMENT_GRACE_DAYS` queda como valor heredado para flujos antiguos.
+
+En Vercel, `gymhub/vercel.json` invoca diariamente `/api/internal/daily-membership-maintenance/` a las 12:05 UTC (06:05 Costa Rica). El endpoint es idempotente y exige `CRON_SECRET`.
+- `DEMO_TRAINER_PASSWORD`
+- `DEMO_MEMBER_PASSWORD`
 - `CORS_ALLOWED_ORIGINS`
 - `CSRF_TRUSTED_ORIGINS`
 - `SECURE_SSL_REDIRECT`
@@ -110,6 +128,10 @@ Para E2E con Playwright:
 - `VITE_API_TIMEOUT_MS`
 
 ## Consideraciones De Despliegue
+- `render.yaml` declara web Django, worker Celery, Beat y Render Key Value en Oregon.
+- Render usa el Session Pooler de Supabase (`5432`); `6543` se reserva para serverless.
+- El predeploy aplica migraciones y `auditar_esquema` valida tablas y columnas.
+- Con `USE_S3_STORAGE=True`, media vive en el bucket privado `gymhub-media` y usa URLs firmadas.
 - El flujo Docker local usa `runserver` para recarga rápida.
 - El flujo `--prod` usa Gunicorn en backend y Nginx para servir el frontend compilado.
 - La base de datos es Supabase PostgreSQL en todos los entornos; los compose no crean un contenedor PostgreSQL local.

@@ -39,7 +39,7 @@ vi.mock('../hooks/useMembers', () => ({
 
 describe('MembersPage', () => {
   it('renders member list with filters and detail action', () => {
-    const { getByTestId, getByText } = renderWithProviders(<MembersPage />)
+    const { getByTestId } = renderWithProviders(<MembersPage />)
     const row = getByTestId('member-row-15')
 
     expect(getByTestId('members-page')).toBeInTheDocument()

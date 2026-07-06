@@ -1,8 +1,7 @@
-from datetime import date
 import logging
 
-from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
+from django.db import transaction
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -14,27 +13,12 @@ from .serializers import (
     MembershipPlanSerializer, PaymentScheduleSerializer,
     PaymentRecordSerializer, PaymentMethodSerializer, PaymentInstructionSerializer, MemberSubscriptionSerializer
 )
-from users.permissions import IsTrainer, IsStaffOrTrainer
+from .services import initialize_subscription, mark_payment_paid, period_end
+from users.permissions import IsStaffOrTrainer
 from users.audit import registrar_auditoria
 from users.views import _get_trainer_profile
 
 logger = logging.getLogger(__name__)
-
-
-def _infer_subscription_status(subscription, preferred_status=None):
-    if preferred_status == 'cancelled' or subscription.cancellation_date:
-        return 'cancelled'
-    if preferred_status == 'suspended' or not subscription.is_active:
-        return 'suspended'
-    if preferred_status == 'past_due':
-        return 'past_due'
-    latest_record = PaymentRecord.objects.filter(
-        schedule__subscription=subscription
-    ).order_by('-schedule__due_date', '-id').first()
-    if latest_record and latest_record.status == 'late':
-        return 'past_due'
-    return 'active'
-
 
 class MembershipPlanViewSet(viewsets.ModelViewSet):
     serializer_class = MembershipPlanSerializer
@@ -42,7 +26,7 @@ class MembershipPlanViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         queryset = MembershipPlan.objects.select_related('trainer__user').all()
-        if user.role == 'member':
+        if user.role == 'member' and not user.is_staff:
             try:
                 trainer_profile = user.memberprofile.trainer_asignado
             except ObjectDoesNotExist:
@@ -60,6 +44,7 @@ class MembershipPlanViewSet(viewsets.ModelViewSet):
             return [IsAuthenticated(), IsStaffOrTrainer()]
         return [IsAuthenticated()]
 
+    @transaction.atomic
     def perform_create(self, serializer):
         user = self.request.user
         if user.is_staff and serializer.validated_data.get('trainer'):
@@ -67,6 +52,7 @@ class MembershipPlanViewSet(viewsets.ModelViewSet):
             return
         serializer.save(trainer=_get_trainer_profile(user))
 
+    @transaction.atomic
     def perform_update(self, serializer):
         plan = self.get_object()
         user = self.request.user
@@ -74,6 +60,10 @@ class MembershipPlanViewSet(viewsets.ModelViewSet):
             raise PermissionDenied('Solo puedes editar tus propios planes.')
         trainer = serializer.validated_data.get('trainer') if user.is_staff else _get_trainer_profile(user)
         serializer.save(trainer=trainer)
+
+    def perform_destroy(self, instance):
+        instance.is_active = False
+        instance.save(update_fields=['is_active'])
 
 
 class MemberSubscriptionViewSet(viewsets.ModelViewSet):
@@ -91,7 +81,7 @@ class MemberSubscriptionViewSet(viewsets.ModelViewSet):
         queryset = MemberSubscription.objects.select_related(
             'member__user', 'plan', 'trainer__user'
         ).all()
-        if user.role == 'member':
+        if user.role == 'member' and not user.is_staff:
             queryset = queryset.filter(member__user=user)
         elif user.role == 'trainer' and not user.is_staff:
             trainer_profile = _get_trainer_profile(user)
@@ -113,35 +103,23 @@ class MemberSubscriptionViewSet(viewsets.ModelViewSet):
             raise PermissionDenied('Solo puedes usar tus propios planes configurables.')
         return plan, member, trainer_profile
 
+    @transaction.atomic
     def perform_create(self, serializer):
         plan, member, trainer_profile = self._resolve_plan_and_member(serializer)
         MemberSubscription.objects.filter(member=member, is_active=True).update(is_active=False)
         PaymentSchedule.objects.filter(member=member, is_active=True).update(is_active=False)
-        subscription = serializer.save(trainer=trainer_profile)
-        subscription.status = _infer_subscription_status(
-            subscription,
-            preferred_status=serializer.validated_data.get('status'),
+        start_date = serializer.validated_data['start_date']
+        subscription = serializer.save(
+            trainer=trainer_profile,
+            recurrence_type=plan.recurrence_type,
+            grace_period_days=plan.grace_period_days,
+            next_billing_date=start_date,
+            renewal_date=None,
+            status='suspended',
         )
-        if subscription.renewal_date is None:
-            subscription.renewal_date = subscription.next_billing_date
-        subscription.save(update_fields=['status', 'renewal_date'])
         member.membership_plan = plan
         member.save(update_fields=['membership_plan'])
-        schedule = PaymentSchedule.objects.create(
-            member=member,
-            subscription=subscription,
-            plan=plan,
-            due_date=subscription.next_billing_date,
-            recurrence_type=subscription.recurrence_type,
-            grace_period_days=subscription.grace_period_days,
-            auto_generate_next=subscription.auto_generate_next,
-            is_active=subscription.is_active,
-        )
-        PaymentRecord.objects.create(
-            schedule=schedule,
-            amount=subscription.agreed_price,
-            status='pending',
-        )
+        initialize_subscription(subscription)
         registrar_auditoria(
             self.request.user,
             'subscription_created',
@@ -156,6 +134,7 @@ class MemberSubscriptionViewSet(viewsets.ModelViewSet):
             },
         )
 
+    @transaction.atomic
     def perform_update(self, serializer):
         subscription = self.get_object()
         user = self.request.user
@@ -168,27 +147,38 @@ class MemberSubscriptionViewSet(viewsets.ModelViewSet):
             'renewal_date': subscription.renewal_date.isoformat() if subscription.renewal_date else None,
             'cancellation_date': subscription.cancellation_date.isoformat() if subscription.cancellation_date else None,
         }
-        updated = serializer.save()
+        target_plan = serializer.validated_data.get('plan', subscription.plan)
+        updated = serializer.save(
+            recurrence_type=target_plan.recurrence_type,
+            grace_period_days=target_plan.grace_period_days,
+        )
         if updated.is_active:
             MemberSubscription.objects.filter(member=updated.member).exclude(id=updated.id).update(is_active=False)
             PaymentSchedule.objects.filter(member=updated.member).exclude(subscription=updated).update(is_active=False)
-        updated.status = _infer_subscription_status(
-            updated,
-            preferred_status=serializer.validated_data.get('status'),
-        )
-        if updated.status != 'cancelled' and updated.renewal_date is None:
-            updated.renewal_date = updated.next_billing_date
-        updated.save(update_fields=['status', 'renewal_date'])
+        if updated.status == 'cancelled' or updated.cancellation_date:
+            updated.status = 'cancelled'
+            updated.is_active = False
+            PaymentSchedule.objects.filter(subscription=updated, is_active=True).update(is_active=False)
+        updated.save(update_fields=['status', 'is_active'])
         updated.member.membership_plan = updated.plan
         updated.member.save(update_fields=['membership_plan'])
-        PaymentSchedule.objects.filter(subscription=updated).update(
+        pending_schedules = PaymentSchedule.objects.filter(
+            subscription=updated,
+            records__status='pending',
+        ).distinct()
+        pending_schedules.update(
             plan=updated.plan,
-            due_date=updated.next_billing_date,
             recurrence_type=updated.recurrence_type,
             grace_period_days=updated.grace_period_days,
             auto_generate_next=updated.auto_generate_next,
             is_active=updated.is_active,
         )
+        for schedule in pending_schedules:
+            if schedule.period_start:
+                schedule.period_end = period_end(
+                    schedule.period_start, updated.recurrence_type
+                )
+                schedule.save(update_fields=['period_end'])
         PaymentRecord.objects.filter(
             schedule__subscription=updated,
             status='pending',
@@ -224,7 +214,7 @@ class PaymentScheduleViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         member_id = self.request.query_params.get('member')
-        if user.role == 'member':
+        if user.role == 'member' and not user.is_staff:
             return PaymentSchedule.objects.filter(member__user=user)
         queryset = PaymentSchedule.objects.select_related('member__user', 'plan', 'subscription__plan').all()
         if user.role == 'trainer' and not user.is_staff:
@@ -266,7 +256,7 @@ class PaymentRecordViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         member_id = self.request.query_params.get('member')
-        if user.role == 'member':
+        if user.role == 'member' and not user.is_staff:
             return PaymentRecord.objects.filter(schedule__member__user=user)
         queryset = PaymentRecord.objects.select_related('schedule__member__user', 'schedule__plan').all()
         if user.role == 'trainer' and not user.is_staff:
@@ -281,21 +271,15 @@ class PaymentRecordViewSet(viewsets.ModelViewSet):
         record = self.get_object()
         if record.status == 'paid':
             return Response({'error': 'El pago ya fue registrado.'}, status=status.HTTP_400_BAD_REQUEST)
-        from django.utils import timezone
+        subscription = record.schedule.subscription
+        if subscription and subscription.status == 'cancelled':
+            return Response(
+                {'error': 'No puedes registrar pagos en una suscripción cancelada.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         reference = request.data.get('payment_reference', '').strip()
         notes = request.data.get('notes', '').strip()
-        record.status = 'paid'
-        record.paid_at = timezone.now()
-        record.payment_reference = reference
-        record.receipt_issued_at = timezone.now()
-        if notes:
-            record.notes = notes
-        record.save()
-        subscription = record.schedule.subscription
-        if subscription:
-            subscription.status = 'active'
-            subscription.renewal_date = subscription.next_billing_date
-            subscription.save(update_fields=['status', 'renewal_date'])
+        record, _ = mark_payment_paid(record, reference=reference, notes=notes)
         registrar_auditoria(
             request.user,
             'payment_marked_paid',
@@ -319,13 +303,18 @@ class PaymentMethodViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role == 'member':
+        if user.role == 'member' and not user.is_staff:
             return PaymentMethod.objects.filter(member__user=user)
-        return PaymentMethod.objects.all()
+        queryset = PaymentMethod.objects.select_related(
+            'member__trainer_asignado'
+        )
+        if user.is_staff:
+            return queryset
+        return queryset.filter(member__trainer_asignado=user.trainerprofile)
 
     def perform_create(self, serializer):
         user = self.request.user
-        if user.role == 'member':
+        if user.role == 'member' and not user.is_staff:
             try:
                 serializer.save(member=user.memberprofile)
             except ObjectDoesNotExist:
@@ -333,7 +322,20 @@ class PaymentMethodViewSet(viewsets.ModelViewSet):
                 from rest_framework.exceptions import ValidationError
                 raise ValidationError({'member': 'Perfil de miembro no encontrado.'})
         else:
-            serializer.save()
+            member = serializer.validated_data['member']
+            if not user.is_staff and member.trainer_asignado_id != user.trainerprofile.id:
+                raise PermissionDenied('El miembro no está asignado a este trainer.')
+            serializer.save(member=member)
+
+    def perform_update(self, serializer):
+        instance = serializer.instance
+        user = self.request.user
+        if not user.is_staff:
+            if user.role == 'member' and not user.is_staff and instance.member.user_id != user.id:
+                raise PermissionDenied('No puedes modificar este método de pago.')
+            if user.role == 'trainer' and instance.member.trainer_asignado_id != user.trainerprofile.id:
+                raise PermissionDenied('El miembro no está asignado a este trainer.')
+        serializer.save(member=instance.member)
 
 
 class PaymentInstructionViewSet(viewsets.ReadOnlyModelViewSet):

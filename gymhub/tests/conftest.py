@@ -29,7 +29,10 @@ def auth_client(user):
 
 @pytest.fixture
 def api_client():
-    return APIClient()
+    client = APIClient()
+    response = client.get('/auth/csrf/')
+    client.credentials(HTTP_X_CSRFTOKEN=response.data['csrf_token'])
+    return client
 
 
 @pytest.fixture(autouse=True)
@@ -48,8 +51,7 @@ def membership_plan(db, trainer_profile):
         trainer=trainer_profile,
         name='Plan Test',
         description='Plan de prueba',
-        price_monthly=50.00,
-        duration_months=1,
+        price=50.00,
         features='Test features',
         is_active=True,
     )

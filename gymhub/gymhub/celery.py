@@ -13,12 +13,8 @@ app.conf.beat_schedule = {
         'task': 'alerts.tasks.check_member_inactivity',
         'schedule': crontab(hour=8, minute=0),
     },
-    'check-upcoming-payments': {
-        'task': 'billing.tasks.check_upcoming_payments',
-        'schedule': crontab(hour=9, minute=0),
-    },
-    'check-overdue-payments': {
-        'task': 'billing.tasks.check_overdue_payments',
-        'schedule': crontab(hour=9, minute=30),
+    'daily-membership-maintenance': {
+        'task': 'billing.tasks.run_daily_membership_maintenance',
+        'schedule': crontab(hour=6, minute=5),
     },
 }

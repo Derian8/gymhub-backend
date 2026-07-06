@@ -4,7 +4,7 @@
 - **Backend**: Django 5.1+, DRF, simplejwt (httpOnly cookies), Supabase PostgreSQL
 - **Cola**: Celery 5+, django-celery-beat, Redis 7+
 - **IA**: motor contextual gratuito por reglas + mejora opcional con Ollama local
-- **Infra**: Docker + docker-compose (web, redis, celery, celerybeat) + Supabase PostgreSQL
+- **Infra**: Docker local; `render.yaml` para Django/Celery/Beat/Redis; Supabase PostgreSQL y Storage
 - **Docs API**: drf-spectacular (Swagger UI en `/api/docs/`)
 
 ## Apps Django (9)
@@ -47,6 +47,7 @@ docker compose exec backend python manage.py createsuperuser
 
 | Método | URL | Descripción |
 |--------|-----|-------------|
+| GET | `/auth/csrf/` | Emite cookie/token CSRF para mutaciones por cookie |
 | POST | `/auth/register/` | Registro (trainer requiere IsStaffOrTrainer) |
 | POST | `/auth/login/` | Login → httpOnly cookies |
 | POST | `/auth/logout/` | Logout + blacklist token |
@@ -85,9 +86,9 @@ docker compose exec backend pytest tests/ -v
 | `DATABASE_URL` | URL PostgreSQL de Supabase con `sslmode=require` |
 | `DB_SSLMODE` | Modo SSL para PostgreSQL si usas variables `DB_*` |
 | `DB_CONN_MAX_AGE` | Persistencia de conexiones Django hacia Supabase |
-| `EMERGENT_LLM_KEY` | Clave universal Emergent (para AI chat) |
-| `OPENAI_API_KEY` | Tu propia API key de OpenAI (opcional, reemplaza EMERGENT_LLM_KEY) |
-| `OPENAI_MODEL` | Modelo a usar (default: `gpt-4.1-mini`) |
+| `REDIS_URL` | URL base; Django deriva bases separadas para broker, resultados y caché |
+| `USE_S3_STORAGE` | Activa media privada mediante storage S3 compatible |
+| `S3_*` | Credenciales, endpoint, bucket, región y expiración de URLs firmadas |
 | `AI_PROVIDER` | `deterministic` o `local_hybrid` (default: `deterministic`) |
 | `AI_LOCAL_BACKEND` | Backend local opcional para mejorar redacción (default: `ollama`) |
 | `AI_LOCAL_MODEL` | Modelo local a usar si el backend está disponible |
@@ -98,15 +99,22 @@ docker compose exec backend pytest tests/ -v
 | `AI_DAILY_LIMIT_TRAINER` | Límite diario de mensajes IA para trainers (default: 60) |
 | `AI_CHAT_HISTORY_WINDOW` | Cantidad de mensajes recientes incluidos en el contexto (default: 10) |
 | `INACTIVITY_DAYS_THRESHOLD` | Días de inactividad para alerta (default: 30) |
-| `PAYMENT_GRACE_DAYS` | Período de gracia antes de bloqueo (default: 7) |
+| `PAYMENT_GRACE_DAYS` | Valor heredado de gracia (los planes nuevos guardan su propia tolerancia) |
+| `CRON_SECRET` | Protege el endpoint diario invocado por Vercel Cron |
+| `DB_DISABLE_SERVER_SIDE_CURSORS` | Desactiva cursores persistentes para el pool transaccional de Supabase |
+| `DEMO_TRAINER_PASSWORD` | Clave privada usada al crear/restablecer trainer1 |
+| `DEMO_MEMBER_PASSWORD` | Clave privada usada al crear/restablecer member1 |
 
-## Tareas Celery Beat (3)
+`seed_data` exige ambas claves. `restablecer_demo` es dry-run sin `--yes`;
+al confirmarlo elimina demos numeradas adicionales, reconstruye trainer1/member1
+y preserva cuentas reales y superusuarios.
+
+## Tareas Celery Beat (2)
 
 | Tarea | Horario | Descripción |
 |-------|---------|-------------|
-| `check_member_inactivity` | 08:00 UTC diario | Crea InactivityAlert si >30 días sin check-in |
-| `check_upcoming_payments` | 09:00 UTC diario | Notifica pagos a vencer en 3 días |
-| `check_overdue_payments` | 09:30 UTC diario | Cambia status a 'late' y notifica |
+| `check_member_inactivity` | 08:00 Costa Rica | Crea InactivityAlert si >30 días sin check-in |
+| `run_daily_membership_maintenance` | 06:05 Costa Rica | Actualiza vigencias, mora y recordatorios de pago |
 
 ## Modelos (22)
 `User` · `MemberProfile` · `TrainerProfile` · `AuditLog` · `GymClass` · `ClassEnrollment` ·

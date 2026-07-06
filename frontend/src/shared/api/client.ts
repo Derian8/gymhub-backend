@@ -1,6 +1,6 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { toast } from 'sonner'
-import { classifyBackendIssue, diagnoseBackendIssue } from './backendStatus'
+import { diagnoseBackendIssue } from './backendStatus'
 import { useBackendStatusStore } from '@/shared/store/backendStatusStore'
 
 export const BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
@@ -9,6 +9,7 @@ const TOKEN_REFRESH_PATH = '/auth/token/refresh/'
 const LOGIN_PATH = '/auth/login/'
 const LOGOUT_PATH = '/auth/logout/'
 const REGISTER_PATH = '/auth/register/'
+const CSRF_PATH = '/auth/csrf/'
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
@@ -21,8 +22,27 @@ export const apiClient = axios.create({
 })
 
 // Request interceptor — attach CSRF if present
+let csrfRequest: Promise<void> | null = null
+
+async function ensureCsrfCookie(): Promise<void> {
+  if (getCookie('csrftoken')) return
+  if (!csrfRequest) {
+    csrfRequest = axios.get(`${BASE_URL}${CSRF_PATH}`, {
+      timeout: API_TIMEOUT_MS,
+      withCredentials: true,
+    }).then(() => undefined).finally(() => {
+      csrfRequest = null
+    })
+  }
+  await csrfRequest
+}
+
 apiClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
+  async (config: InternalAxiosRequestConfig) => {
+    const method = config.method?.toLowerCase()
+    if (method && !['get', 'head', 'options', 'trace'].includes(method)) {
+      await ensureCsrfCookie()
+    }
     const csrfToken = getCookie('csrftoken')
     if (csrfToken) {
       config.headers['X-CSRFToken'] = csrfToken

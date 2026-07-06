@@ -37,7 +37,11 @@ export function formatRelative(dateStr: string | null | undefined): string {
 export function formatCurrency(amount: string | number | null | undefined): string {
   if (amount == null) return '—'
   const num = typeof amount === 'string' ? parseFloat(amount) : amount
-  return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(num)
+  return new Intl.NumberFormat('es-CR', {
+    style: 'currency',
+    currency: 'CRC',
+    maximumFractionDigits: 0,
+  }).format(num)
 }
 
 export function getInitials(name: string): string {

@@ -234,7 +234,7 @@ export function useDeleteExerciseMutation(planId?: number, memberId?: number) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, workoutDayId }: { id: number; workoutDayId: number }) => plansApi.deleteExercise(id),
+    mutationFn: ({ id }: { id: number; workoutDayId: number }) => plansApi.deleteExercise(id),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.EXERCISES })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.EXERCISES_BY_DAY(variables.workoutDayId) })

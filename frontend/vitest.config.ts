@@ -23,5 +23,11 @@ export default defineConfig({
     },
     testTimeout: 30000,
     hookTimeout: 30000,
+    exclude: [
+      '**/node_modules/**',
+      '**/node_modules.inaccessible.bak/**',
+      '**/dist/**',
+      '**/e2e/**',
+    ],
   },
 })

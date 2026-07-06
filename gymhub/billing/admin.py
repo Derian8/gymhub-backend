@@ -4,7 +4,7 @@ from .models import MembershipPlan, PaymentSchedule, PaymentRecord, PaymentMetho
 
 @admin.register(MembershipPlan)
 class MembershipPlanAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price_monthly', 'duration_months')
+    list_display = ('name', 'price', 'recurrence_type', 'grace_period_days')
 
 
 @admin.register(PaymentSchedule)

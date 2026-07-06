@@ -10,7 +10,13 @@ def test_seed_data_creates_only_first_demo_trainer_and_member():
     from users.models import User
     from plans.models import TrainingPlan, WorkoutDay
 
-    call_command('seed_data', clear=True, stdout=StringIO())
+    call_command(
+        'seed_data',
+        clear=True,
+        trainer_password='Clave-Trainer#2026!',
+        member_password='Clave-Member#2026!',
+        stdout=StringIO(),
+    )
 
     assert User.objects.filter(email='trainer1@gymhub.com', role='trainer').exists()
     assert User.objects.filter(email='member1@gymhub.com', role='member').exists()
@@ -68,3 +74,87 @@ def test_prune_demo_users_deletes_only_extra_demo_accounts():
     assert not User.objects.filter(pk=trainer2.pk).exists()
     assert not User.objects.filter(pk=member2.pk).exists()
     assert User.objects.filter(pk=real_user.pk).exists()
+
+
+@pytest.mark.django_db
+def test_restablecer_demo_dry_run_does_not_modify_users():
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    extra = User.objects.create_user(
+        username='member22',
+        email='member22@gymhub.com',
+        password='Temporal#2026!',
+        role='member',
+    )
+
+    output = StringIO()
+    call_command('restablecer_demo', stdout=output)
+
+    assert User.objects.filter(pk=extra.pk).exists()
+    assert 'Dry-run' in output.getvalue()
+
+
+@pytest.mark.django_db
+def test_restablecer_demo_preserves_real_and_superusers_and_is_idempotent():
+    from django.contrib.auth import get_user_model
+    from attendance.models import Attendance
+    from progress.models import WorkoutSession
+
+    User = get_user_model()
+    real_user = User.objects.create_user(
+        username='cliente_real',
+        email='cliente.real@example.com',
+        password='Real-Segura#2026!',
+        role='member',
+    )
+    superuser = User.objects.create_superuser(
+        username='admin_real',
+        email='admin@example.com',
+        password='Admin-Segura#2026!',
+    )
+    User.objects.create_user(
+        username='trainer9',
+        email='trainer9@gymhub.com',
+        password='Temporal#2026!',
+        role='trainer',
+    )
+    User.objects.create_user(
+        username='member37',
+        email='member37@gymhub.com',
+        password='Temporal#2026!',
+        role='member',
+    )
+
+    command_options = {
+        'yes': True,
+        'trainer_password': 'Fuerza-Titan#2026!',
+        'member_password': 'Meta-Pulso#2026!',
+        'stdout': StringIO(),
+    }
+    call_command('restablecer_demo', **command_options)
+
+    demo_users = User.objects.filter(
+        email__iregex=r'^(trainer|member)[0-9]+@gymhub\.com$'
+    ).order_by('email')
+    assert list(demo_users.values_list('email', flat=True)) == [
+        'member1@gymhub.com',
+        'trainer1@gymhub.com',
+    ]
+    assert User.objects.filter(pk=real_user.pk).exists()
+    assert User.objects.filter(pk=superuser.pk).exists()
+    assert User.objects.get(email='trainer1@gymhub.com').check_password(
+        'Fuerza-Titan#2026!'
+    )
+    assert User.objects.get(email='member1@gymhub.com').check_password(
+        'Meta-Pulso#2026!'
+    )
+
+    counts_before = (Attendance.objects.count(), WorkoutSession.objects.count())
+    command_options['stdout'] = StringIO()
+    call_command('restablecer_demo', **command_options)
+    counts_after = (Attendance.objects.count(), WorkoutSession.objects.count())
+
+    assert counts_after == counts_before
+    assert User.objects.filter(pk=real_user.pk).exists()
+    assert User.objects.filter(pk=superuser.pk).exists()

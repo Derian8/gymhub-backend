@@ -22,7 +22,7 @@ class NutritionProfileViewSet(viewsets.ModelViewSet):
         user = self.request.user
         member_id = self.request.query_params.get('member')
         training_plan_id = self.request.query_params.get('training_plan')
-        if user.role == 'member':
+        if user.role == 'member' and not user.is_staff:
             queryset = NutritionProfile.objects.filter(training_plan__member__user=user).order_by('id')
         else:
             queryset = NutritionProfile.objects.select_related(
@@ -97,7 +97,7 @@ class PlanNutritionLinkViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         plan_id = self.request.query_params.get('plan')
-        if user.role == 'member':
+        if user.role == 'member' and not user.is_staff:
             queryset = PlanNutritionLink.objects.filter(plan__member__user=user).order_by('priority_order', 'id')
             if plan_id:
                 queryset = queryset.filter(plan_id=plan_id)

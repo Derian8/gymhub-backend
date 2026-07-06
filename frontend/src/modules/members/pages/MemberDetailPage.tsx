@@ -4,7 +4,7 @@ import { useMemberActivePrescriptionQuery, useMemberDetailQuery, useActivateMemb
 import { useMembershipPlansQuery } from '@/modules/billing/hooks/useBilling'
 import { Badge, PageHeader, Avatar, EmptyState } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
-import { extractApiError, formatDate, formatDateTime, RISK_LEVEL_BADGE, RISK_LEVEL_LABELS } from '@/shared/lib/utils'
+import { extractApiError, formatCurrency, formatDate, formatDateTime, RISK_LEVEL_BADGE, RISK_LEVEL_LABELS } from '@/shared/lib/utils'
 import { useEffect, useMemo, useState } from 'react'
 import { useAuthStore } from '@/shared/store/authStore'
 import { descripcionPublicacionPrescripcion, leerPublicacionPrescripcion } from '@/shared/lib/prescriptionPublication'
@@ -12,7 +12,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { QUERY_KEYS } from '@/shared/constants/queryKeys'
 import { progressApi } from '@/modules/progress/api/progressApi'
 import { toast } from 'sonner'
-import type { ProgressLog } from '@/shared/types'
+import type { MembershipPlan, ProgressLog } from '@/shared/types'
+
+const MEMBERSHIP_PERIOD_LABELS: Record<MembershipPlan['recurrence_type'], string> = {
+  daily: 'día',
+  weekly: 'semana',
+  biweekly: 'quincena',
+  monthly: 'mes',
+  quarterly: 'trimestre',
+  annual: 'año',
+}
 
 export function MemberDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -77,7 +86,7 @@ export function MemberDetailPage() {
       return
     }
     setSelectedPlanId(defaultPlan.id)
-    setAgreedPrice(Number(member.precio_suscripcion_actual ?? defaultPlan.price_monthly))
+    setAgreedPrice(Number(member.precio_suscripcion_actual ?? defaultPlan.price))
   }, [member, plans, selectedPlanId])
 
   function resetMeasurementForm() {
@@ -601,13 +610,13 @@ export function MemberDetailPage() {
                         checked={selectedPlanId === plan.id}
                         onChange={() => {
                           setSelectedPlanId(plan.id)
-                          setAgreedPrice(Number(plan.price_monthly))
+                          setAgreedPrice(Number(plan.price))
                         }}
                         className="accent-primary"
                       />
                       <div>
                         <p className="font-medium text-neutral-900 dark:text-white text-sm">{plan.name}</p>
-                        <p className="text-xs text-neutral-500">${plan.price_monthly}/mes base · {plan.duration_months} mes(es)</p>
+                        <p className="text-xs text-neutral-500">{formatCurrency(plan.price)} / {MEMBERSHIP_PERIOD_LABELS[plan.recurrence_type]}</p>
                       </div>
                     </label>
                   ))}

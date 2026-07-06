@@ -85,8 +85,7 @@ class TestTrainerClients:
         other_membership = MembershipPlan.objects.create(
             name='Plan externo trainer',
             description='Plan',
-            price_monthly=60.00,
-            duration_months=1,
+            price=60.00,
         )
         other_member = other_user.memberprofile
         other_member.membership_plan = other_membership
@@ -132,8 +131,7 @@ class TestTrainerClients:
         other_membership = MembershipPlan.objects.create(
             name='Plan nutri externo',
             description='Plan',
-            price_monthly=65.00,
-            duration_months=1,
+            price=65.00,
         )
         other_member = other_user.memberprofile
         other_member.membership_plan = other_membership

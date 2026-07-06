@@ -1,7 +1,7 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.utils import timezone
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import MethodNotAllowed, PermissionDenied, ValidationError
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -24,7 +24,7 @@ class ProgressLogViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role == 'member':
+        if user.role == 'member' and not user.is_staff:
             return ProgressLog.objects.filter(member__user=user)
         queryset = ProgressLog.objects.select_related('member__user').order_by('-recorded_at', '-id')
         if user.is_staff:
@@ -43,7 +43,7 @@ class ProgressLogViewSet(viewsets.ModelViewSet):
 
     def _resolve_target_member(self, request):
         user = request.user
-        if user.role == 'member':
+        if user.role == 'member' and not user.is_staff:
             return user.memberprofile
 
         member_id = request.data.get('member') or request.data.get('member_id')
@@ -63,7 +63,7 @@ class ProgressLogViewSet(viewsets.ModelViewSet):
         return member
 
     def list(self, request, *args, **kwargs):
-        if request.user.role == 'member':
+        if request.user.role == 'member' and not request.user.is_staff:
             return super().list(request, *args, **kwargs)
         if not request.user.is_staff and not request.query_params.get('member_id'):
             return Response(
@@ -75,7 +75,7 @@ class ProgressLogViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         member = self._resolve_target_member(self.request)
         user = self.request.user
-        if user.role == 'member':
+        if user.role == 'member' and not user.is_staff:
             raise PermissionDenied('Solo el trainer puede registrar mediciones físicas.')
         source = serializer.validated_data.get('source')
         serializer.save(member=member, source=source or 'manual')
@@ -84,7 +84,7 @@ class ProgressLogViewSet(viewsets.ModelViewSet):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
         user = request.user
-        if user.role == 'member':
+        if user.role == 'member' and not user.is_staff:
             return Response({'error': 'No puedes editar mediciones físicas.'}, status=status.HTTP_403_FORBIDDEN)
         if not user_can_manage_member_progress(user, instance.member):
             raise PermissionDenied('Solo puedes editar progreso físico de clientes asignados a ti.')
@@ -100,7 +100,7 @@ class ProgressLogViewSet(viewsets.ModelViewSet):
     def member_summary(self, request):
         from users.models import MemberProfile
 
-        if request.user.role == 'member':
+        if request.user.role == 'member' and not request.user.is_staff:
             member = request.user.memberprofile
         else:
             member_id = request.query_params.get('member_id')
@@ -126,9 +126,17 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role == 'member':
+        if user.role == 'member' and not user.is_staff:
             return WorkoutSession.objects.filter(member__user=user)
-        return WorkoutSession.objects.all()
+        queryset = WorkoutSession.objects.select_related(
+            'member__trainer_asignado', 'workout_day__plan'
+        )
+        if user.is_staff:
+            return queryset
+        try:
+            return queryset.filter(member__trainer_asignado=user.trainerprofile)
+        except ObjectDoesNotExist:
+            return WorkoutSession.objects.none()
 
     def create(self, request, *args, **kwargs):
         input_ser = CreateWorkoutSessionSerializer(data=request.data)
@@ -154,7 +162,7 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
                 pass
 
         user = request.user
-        if user.role == 'member':
+        if user.role == 'member' and not user.is_staff:
             member = user.memberprofile
         else:
             member_id = request.data.get('member_id')
@@ -165,6 +173,13 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
                 member = MemberProfile.objects.get(id=member_id)
             except MemberProfile.DoesNotExist:
                 return Response({'error': 'Miembro no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+            if not user_can_manage_member_progress(user, member):
+                raise PermissionDenied('El miembro no está asignado a este trainer.')
+
+        if workout_day.plan.member_id != member.id:
+            raise PermissionDenied('El día de entrenamiento no pertenece al miembro.')
+        if attendance and attendance.member_id != member.id:
+            raise ValidationError({'attendance_id': 'La asistencia no corresponde al miembro.'})
 
         existing_session = WorkoutSession.objects.filter(
             member=member,
@@ -191,6 +206,9 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
             attendance=attendance,
         )
         return Response(WorkoutSessionSerializer(session).data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        raise MethodNotAllowed(request.method)
 
     @action(detail=True, methods=['patch'], url_path='complete')
     def complete(self, request, pk=None):
@@ -231,10 +249,12 @@ class BulkExerciseLogView(APIView):
         except WorkoutSession.DoesNotExist:
             return Response({'error': 'Sesión no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Verificar que el miembro es el dueño (o es trainer)
+        # Verificar dueño, staff o trainer asignado.
         user = request.user
-        if user.role == 'member' and session.member.user != user:
+        if user.role == 'member' and not user.is_staff and session.member.user != user:
             return Response({'error': 'No tienes permiso para esta sesión.'}, status=status.HTTP_403_FORBIDDEN)
+        if (user.role != 'member' or user.is_staff) and not user_can_manage_member_progress(user, session.member):
+            raise PermissionDenied('La sesión no pertenece a un cliente asignado.')
 
         from plans.models import Exercise
 
@@ -263,7 +283,7 @@ class BulkExerciseLogView(APIView):
                     log_data['reps_completed'] = 0
                     log_data['weight_used_kg'] = None
                 else:
-                    if user.role == 'member':
+                    if user.role == 'member' and not user.is_staff:
                         repeticiones_objetivo = 0
                         reps_range = (exercise.reps_range or '').split('-')[0].strip()
                         if reps_range.isdigit():

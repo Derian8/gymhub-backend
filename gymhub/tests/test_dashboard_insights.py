@@ -75,7 +75,7 @@ def test_trainer_overview_returns_members_at_risk(
     )
     PaymentRecord.objects.create(
         schedule=schedule,
-        amount=membership_plan.price_monthly,
+        amount=membership_plan.price,
         status='late',
     )
 

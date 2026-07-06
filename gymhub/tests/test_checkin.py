@@ -6,10 +6,40 @@ from datetime import date, timedelta
 from rest_framework import status
 
 
+def create_active_subscription(member_profile, membership_plan, **overrides):
+    from billing.models import MemberSubscription
+
+    values = {
+        'member': member_profile,
+        'plan': membership_plan,
+        'trainer': member_profile.trainer_asignado,
+        'agreed_price': membership_plan.price,
+        'start_date': date.today() - timedelta(days=5),
+        'next_billing_date': date.today() + timedelta(days=25),
+        'recurrence_type': 'monthly',
+        'grace_period_days': 7,
+        'auto_generate_next': True,
+        'is_active': True,
+        'status': 'active',
+        'current_period_start': date.today() - timedelta(days=5),
+        'current_period_end': date.today() + timedelta(days=24),
+    }
+    values.update(overrides)
+    return MemberSubscription.objects.create(**values)
+
+
 @pytest.mark.django_db
 class TestCheckIn:
-    def test_checkin_active_member_returns_201(self, member_client, member_profile):
+    def test_member_cannot_create_attendance_through_generic_crud(
+        self, member_client, member_profile
+    ):
+        resp = member_client.post('/api/attendance/', {'member': member_profile.id})
+
+        assert resp.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+
+    def test_checkin_active_member_returns_201(self, member_client, member_profile, membership_plan):
         """Miembro activo con pagos al día → 201."""
+        create_active_subscription(member_profile, membership_plan)
         resp = member_client.post('/api/attendance/check-in/', {})
         assert resp.status_code == status.HTTP_201_CREATED
         assert resp.data['member'] == member_profile.id
@@ -17,6 +47,12 @@ class TestCheckIn:
     def test_checkin_with_overdue_payment_returns_403(self, member_client, member_profile, membership_plan):
         """Miembro con mora > PAYMENT_GRACE_DAYS+7 → 403."""
         from billing.models import PaymentSchedule, PaymentRecord
+        create_active_subscription(
+            member_profile,
+            membership_plan,
+            status='past_due',
+            current_period_end=date.today() - timedelta(days=35),
+        )
         # Crear pago muy vencido (35 días > 7+7=14 días)
         schedule = PaymentSchedule.objects.create(
             member=member_profile,
@@ -40,6 +76,12 @@ class TestCheckIn:
     def test_checkin_with_grace_period_ok(self, member_client, member_profile, membership_plan):
         """Miembro con mora dentro del período de gracia → 201."""
         from billing.models import PaymentSchedule, PaymentRecord
+        create_active_subscription(
+            member_profile,
+            membership_plan,
+            status='past_due',
+            current_period_end=date.today() - timedelta(days=5),
+        )
         # 5 días de mora, grace_period = 7 días → dentro del grace
         schedule = PaymentSchedule.objects.create(
             member=member_profile,
@@ -130,8 +172,7 @@ class TestCheckIn:
         other_plan = MembershipPlan.objects.create(
             name='Plan asistencia',
             description='Plan',
-            price_monthly=65.00,
-            duration_months=1,
+            price=65.00,
         )
         other_profile, _ = MemberProfile.objects.get_or_create(
             user=other_user,
@@ -148,12 +189,13 @@ class TestCheckIn:
         results = resp.data.get('results', resp.data)
         assert [item['id'] for item in results] == [own_attendance.id]
 
-    def test_throttle_30_per_minute(self, member_client, member_profile):
+    def test_throttle_30_per_minute(self, member_client, member_profile, membership_plan):
         """
         Más de 30 requests/min → 429.
         Usamos override_settings para reducir el límite.
         """
         from django.test import override_settings
+        create_active_subscription(member_profile, membership_plan)
 
         # Hacer 32 requests rápidos; con throttle de 30/min el 31+ debería dar 429
         # En tests usamos un scope personalizado con límite bajo
@@ -168,3 +210,27 @@ class TestCheckIn:
 
             # Al menos uno debe dar 429 después de superar el límite
             assert status.HTTP_429_TOO_MANY_REQUESTS in responses
+
+    def test_member_has_only_one_attendance_per_day(
+        self, member_client, member_profile, membership_plan
+    ):
+        create_active_subscription(member_profile, membership_plan)
+        first = member_client.post('/api/attendance/check-in/', {})
+        second = member_client.post('/api/attendance/check-in/', {})
+
+        assert first.status_code == status.HTTP_201_CREATED
+        assert second.status_code == status.HTTP_409_CONFLICT
+
+    def test_member_can_check_out_today(
+        self, member_client, member_profile, membership_plan
+    ):
+        create_active_subscription(member_profile, membership_plan)
+        check_in = member_client.post('/api/attendance/check-in/', {})
+
+        response = member_client.post(
+            f"/api/attendance/{check_in.data['id']}/check-out/"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['check_out_time'] is not None
+        assert response.data['duration_minutes'] >= 0

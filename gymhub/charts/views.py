@@ -1,11 +1,12 @@
 import hashlib
 import io
 import logging
-import os
 import time
 
 from django.conf import settings
 from django.core.cache import cache
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -38,16 +39,16 @@ def _load_matplotlib():
 
 
 def _save_chart(fig, chart_type, cache_key_hash):
-    """Guarda la figura matplotlib en MEDIA_ROOT/charts/ y retorna la URL relativa."""
+    """Guarda la figura con el storage configurado y retorna su nombre."""
     plt, _ = _load_matplotlib()
-    charts_dir = os.path.join(settings.MEDIA_ROOT, 'charts')
-    os.makedirs(charts_dir, exist_ok=True)
-
     filename = f"{chart_type}_{cache_key_hash}_{int(time.time())}.png"
-    filepath = os.path.join(charts_dir, filename)
-    fig.savefig(filepath, format='png', dpi=100, bbox_inches='tight')
+    buffer = io.BytesIO()
+    fig.savefig(buffer, format='png', dpi=100, bbox_inches='tight')
     plt.close(fig)
-    return f"charts/{filename}"
+    buffer.seek(0)
+    return default_storage.save(
+        f"charts/{filename}", ContentFile(buffer.getvalue())
+    )
 
 
 def generate_attendance_monthly(member):
@@ -240,7 +241,7 @@ class ChartView(APIView):
         cached_result = cache.get(full_cache_key)
         if cached_result:
             return Response({
-                'chart_url': request.build_absolute_uri(settings.MEDIA_URL + cached_result['path']),
+                'chart_url': request.build_absolute_uri(default_storage.url(cached_result['path'])),
                 'generated_at': cached_result['generated_at'],
                 'cached': True,
             })
@@ -293,7 +294,7 @@ class ChartView(APIView):
             }, timeout=CHART_CACHE_TIMEOUT)
 
             return Response({
-                'chart_url': request.build_absolute_uri(settings.MEDIA_URL + chart_path),
+                'chart_url': request.build_absolute_uri(default_storage.url(chart_path)),
                 'generated_at': generated_at,
                 'cached': False,
             })

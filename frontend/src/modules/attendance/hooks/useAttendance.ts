@@ -29,3 +29,16 @@ export function useCheckInMutation() {
     },
   })
 }
+
+export function useCheckOutMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (attendanceId: number) => attendanceApi.checkOut(attendanceId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ATTENDANCE })
+      toast.success('Salida registrada exitosamente')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}

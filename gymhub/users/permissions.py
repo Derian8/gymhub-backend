@@ -2,13 +2,16 @@ from rest_framework.permissions import BasePermission
 
 
 class IsTrainer(BasePermission):
-    """Permite acceso solo a usuarios con role=='trainer'."""
+    """Permite acceso a trainers y personal administrativo."""
 
     def has_permission(self, request, view):
         return (
             request.user
             and request.user.is_authenticated
-            and getattr(request.user, 'role', None) == 'trainer'
+            and (
+                request.user.is_staff
+                or getattr(request.user, 'role', None) == 'trainer'
+            )
         )
 
 
@@ -29,7 +32,7 @@ class IsOwnerOrTrainer(BasePermission):
     def has_object_permission(self, request, view, obj):
         if not request.user or not request.user.is_authenticated:
             return False
-        if request.user.role == 'trainer':
+        if request.user.is_staff or request.user.role == 'trainer':
             return True
         # Check if obj has a member or user attribute
         if hasattr(obj, 'user'):

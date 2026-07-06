@@ -64,8 +64,9 @@ export function BillingPage() {
   const [planForm, setPlanForm] = useState({
     name: '',
     description: '',
-    price_monthly: '0',
-    duration_months: 1,
+    price: '0',
+    recurrence_type: 'monthly' as MembershipPlan['recurrence_type'],
+    grace_period_days: 7,
     features: '',
     is_active: true,
   })
@@ -121,8 +122,9 @@ export function BillingPage() {
     setPlanForm({
       name: plan.name,
       description: plan.description,
-      price_monthly: plan.price_monthly,
-      duration_months: plan.duration_months,
+      price: plan.price,
+      recurrence_type: plan.recurrence_type,
+      grace_period_days: plan.grace_period_days,
       features: plan.features,
       is_active: plan.is_active ?? true,
     })
@@ -132,8 +134,8 @@ export function BillingPage() {
     event.preventDefault()
     const payload = {
       ...planForm,
-      price_monthly: planForm.price_monthly,
-      duration_months: Number(planForm.duration_months),
+      price: planForm.price,
+      grace_period_days: Number(planForm.grace_period_days),
     }
     if (selectedPlanId) {
       updatePlan.mutate({ id: selectedPlanId, payload })
@@ -252,7 +254,7 @@ export function BillingPage() {
               >
                 <h4 className="font-heading font-bold text-lg text-neutral-900 dark:text-white mb-1">{plan.name}</h4>
                 <p className="text-2xl font-heading font-black text-primary mb-2">
-                  {formatCurrency(plan.price_monthly)}<span className="text-sm font-body font-normal text-neutral-400"> base</span>
+                  {formatCurrency(plan.price)}<span className="text-sm font-body font-normal text-neutral-400"> / {RECURRENCE_TYPE_LABELS[plan.recurrence_type].toLowerCase()}</span>
                 </p>
                 {plan.description && <p className="text-xs text-neutral-500 mb-2">{plan.description}</p>}
                 {plan.features && <p className="text-xs text-neutral-400">{plan.features}</p>}
@@ -279,8 +281,24 @@ export function BillingPage() {
             </h4>
             <input className="input" placeholder="Nombre" value={planForm.name} onChange={(event) => setPlanForm({ ...planForm, name: event.target.value })} required />
             <textarea className="input min-h-24" placeholder="Descripción" value={planForm.description} onChange={(event) => setPlanForm({ ...planForm, description: event.target.value })} />
-            <input className="input" type="number" min={0} placeholder="Precio base mensual" value={planForm.price_monthly} onChange={(event) => setPlanForm({ ...planForm, price_monthly: event.target.value })} required />
-            <input className="input" type="number" min={1} max={12} placeholder="Duración en meses" value={planForm.duration_months} onChange={(event) => setPlanForm({ ...planForm, duration_months: Number(event.target.value) })} required />
+            <input className="input" type="number" min={0} placeholder="Precio del periodo" value={planForm.price} onChange={(event) => setPlanForm({ ...planForm, price: event.target.value })} required />
+            <select
+              className="input"
+              value={planForm.recurrence_type}
+              onChange={(event) => {
+                const recurrence = event.target.value as MembershipPlan['recurrence_type']
+                const graceDefaults: Record<MembershipPlan['recurrence_type'], number> = {
+                  daily: 0, weekly: 1, biweekly: 2, monthly: 7, quarterly: 7, annual: 7,
+                }
+                setPlanForm({ ...planForm, recurrence_type: recurrence, grace_period_days: graceDefaults[recurrence] })
+              }}
+              data-testid="plan-recurrence-select"
+            >
+              {Object.entries(RECURRENCE_TYPE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+            <input className="input" type="number" min={0} placeholder="Días de tolerancia" value={planForm.grace_period_days} onChange={(event) => setPlanForm({ ...planForm, grace_period_days: Number(event.target.value) })} required />
             <textarea className="input min-h-24" placeholder="Beneficios / features" value={planForm.features} onChange={(event) => setPlanForm({ ...planForm, features: event.target.value })} />
             <label className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
               <input type="checkbox" checked={planForm.is_active} onChange={(event) => setPlanForm({ ...planForm, is_active: event.target.checked })} />
@@ -293,7 +311,7 @@ export function BillingPage() {
                   className="btn-secondary"
                   onClick={() => {
                     setSelectedPlanId(null)
-                    setPlanForm({ name: '', description: '', price_monthly: '0', duration_months: 1, features: '', is_active: true })
+                    setPlanForm({ name: '', description: '', price: '0', recurrence_type: 'monthly', grace_period_days: 7, features: '', is_active: true })
                   }}
                 >
                   Nuevo
@@ -331,6 +349,9 @@ export function BillingPage() {
                   </p>
                   <p className="text-sm text-neutral-600 dark:text-neutral-300">
                     Renovación comercial: <span className="font-semibold text-neutral-900 dark:text-white">{activeSubscription.renewal_date ? formatDate(activeSubscription.renewal_date) : 'Sin fecha'}</span>
+                  </p>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-300">
+                    Vigencia pagada: <span className="font-semibold text-neutral-900 dark:text-white">{activeSubscription.current_period_end ? `hasta ${formatDate(activeSubscription.current_period_end)}` : 'Pendiente del primer pago'}</span>
                   </p>
                   <div className="flex flex-wrap gap-2">
                     <Badge variant={SUBSCRIPTION_STATUS_VARIANT[activeSubscription.status]}>
@@ -370,14 +391,16 @@ export function BillingPage() {
                   setSubscriptionForm({
                     ...subscriptionForm,
                     plan: nextPlanId,
-                    agreed_price: nextPlan?.price_monthly ?? subscriptionForm.agreed_price,
+                    agreed_price: nextPlan?.price ?? subscriptionForm.agreed_price,
+                    recurrence_type: nextPlan?.recurrence_type ?? subscriptionForm.recurrence_type,
+                    grace_period_days: nextPlan?.grace_period_days ?? subscriptionForm.grace_period_days,
                   })
                 }}
               >
                 <option value={0}>Selecciona un plan</option>
                 {plans?.results.map((plan) => (
                   <option key={plan.id} value={plan.id}>
-                    {plan.name} · base {formatCurrency(plan.price_monthly)}
+                    {plan.name} · {formatCurrency(plan.price)} / {RECURRENCE_TYPE_LABELS[plan.recurrence_type].toLowerCase()}
                   </option>
                 ))}
               </select>
@@ -400,7 +423,8 @@ export function BillingPage() {
                   className="input"
                   data-testid="subscription-recurrence-select"
                   value={subscriptionForm.recurrence_type}
-                  onChange={(event) => setSubscriptionForm({ ...subscriptionForm, recurrence_type: event.target.value as MemberSubscription['recurrence_type'] })}
+                  disabled
+                  title="La recurrencia se define en el plan comercial"
                 >
                   <option value="daily">Diario</option>
                   <option value="weekly">Semanal</option>

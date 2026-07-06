@@ -21,11 +21,19 @@ class Attendance(models.Model):
         related_name='checked_in_attendances'
     )
     check_in_time = models.DateTimeField(default=timezone.now)
+    attendance_date = models.DateField(default=timezone.localdate)
+    check_out_time = models.DateTimeField(null=True, blank=True)
     is_manual_override = models.BooleanField(default=False)
     notes = models.TextField(blank=True)
 
     class Meta:
         ordering = ['-check_in_time']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['member', 'attendance_date'],
+                name='attendance_unique_member_day',
+            ),
+        ]
         indexes = [
             models.Index(fields=['member', 'check_in_time']),
             models.Index(fields=['checked_in_by', 'check_in_time']),
@@ -33,3 +41,9 @@ class Attendance(models.Model):
 
     def __str__(self):
         return f"{self.member} @ {self.check_in_time.date()}"
+
+    @property
+    def duration_minutes(self):
+        if not self.check_out_time:
+            return None
+        return max(0, int((self.check_out_time - self.check_in_time).total_seconds() // 60))

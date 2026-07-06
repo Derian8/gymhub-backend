@@ -35,7 +35,7 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         member_id = self.request.query_params.get('member')
-        if user.role == 'member':
+        if user.role == 'member' and not user.is_staff:
             return TrainingPlan.objects.filter(member__user=user)
         queryset = TrainingPlan.objects.select_related('member__user', 'trainer__user').all()
         if user.role == 'trainer' and not user.is_staff:
@@ -181,7 +181,7 @@ class WorkoutDayViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         plan_id = self.request.query_params.get('plan')
-        if user.role == 'member':
+        if user.role == 'member' and not user.is_staff:
             queryset = WorkoutDay.objects.filter(plan__member__user=user)
             if plan_id:
                 queryset = queryset.filter(plan_id=plan_id)
@@ -213,7 +213,7 @@ class GymMachineViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = GymMachine.objects.all()
-        if self.request.user.role == 'member':
+        if self.request.user.role == 'member' and not self.request.user.is_staff:
             return queryset.filter(is_active=True)
         return queryset
 
@@ -243,7 +243,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role == 'member':
+        if user.role == 'member' and not user.is_staff:
             return Exercise.objects.filter(workout_day__plan__member__user=user)
         queryset = Exercise.objects.select_related('workout_day__plan__member__trainer_asignado').all()
         if user.role == 'trainer' and not user.is_staff:

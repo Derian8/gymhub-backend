@@ -1,8 +1,7 @@
 import { useState } from 'react'
-import { AlertTriangle, CheckCircle, Loader2, Filter } from 'lucide-react'
+import { AlertTriangle, CheckCircle, Loader2 } from 'lucide-react'
 import { useAlertsQuery, useResolveAlertMutation } from '../hooks/useAlerts'
 import { Badge, PageHeader, EmptyState } from '@/shared/components/UI'
-import { TableRowSkeleton } from '@/shared/components/Skeleton'
 import { formatRelative } from '@/shared/lib/utils'
 import type { InactivityAlert } from '@/shared/types'
 

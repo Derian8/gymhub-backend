@@ -231,8 +231,14 @@ export function TrainerProgramPage() {
     () => new Set(planLinksData?.results.map((link) => link.guideline.id) ?? []),
     [planLinksData],
   )
-  const trainingTemplates = trainingTemplatesData?.results ?? []
-  const nutritionTemplates = nutritionTemplatesData?.results ?? []
+  const trainingTemplates = useMemo(
+    () => trainingTemplatesData?.results ?? [],
+    [trainingTemplatesData],
+  )
+  const nutritionTemplates = useMemo(
+    () => nutritionTemplatesData?.results ?? [],
+    [nutritionTemplatesData],
+  )
 
   const [selectedWorkoutDayId, setSelectedWorkoutDayId] = useState<number>(0)
   const [trainingTemplateGoalFilter, setTrainingTemplateGoalFilter] = useState<'all' | string>('all')
@@ -554,7 +560,7 @@ export function TrainerProgramPage() {
       return
     }
 
-    const [_, message, tipo] = match
+    const [, message, tipo] = match
     const signature = transitions.map(([isSuccess]) => (isSuccess ? '1' : '0')).join('')
     if (publicationSignatureRef.current === signature) {
       return

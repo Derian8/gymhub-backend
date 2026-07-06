@@ -12,8 +12,7 @@ class TestBillingViews:
             trainer=trainer_profile,
             name='Plan propio',
             description='Plan propio',
-            price_monthly=55.00,
-            duration_months=1,
+            price=55.00,
             is_active=True,
         )
 
@@ -29,8 +28,7 @@ class TestBillingViews:
             trainer=other_trainer,
             name='Plan ajeno',
             description='Plan ajeno',
-            price_monthly=75.00,
-            duration_months=1,
+            price=75.00,
             is_active=True,
         )
 
@@ -76,7 +74,8 @@ class TestBillingViews:
         assert schedule.plan_id == membership_plan.id
         assert schedule.member_id == member_profile.id
         assert str(payment_record.amount) == '62.50'
-        assert subscription.status == 'active'
+        assert subscription.status == 'suspended'
+        assert subscription.current_period_end is None
         assert subscription.commercial_notes == 'Primer cierre comercial'
 
     @pytest.mark.parametrize('recurrence_type', ['daily', 'weekly', 'biweekly'])
@@ -88,6 +87,14 @@ class TestBillingViews:
         recurrence_type,
     ):
         from billing.models import MemberSubscription, PaymentSchedule
+
+        membership_plan.recurrence_type = recurrence_type
+        membership_plan.grace_period_days = {
+            'daily': 0,
+            'weekly': 1,
+            'biweekly': 2,
+        }[recurrence_type]
+        membership_plan.save(update_fields=['recurrence_type', 'grace_period_days'])
 
         resp = trainer_client.post('/api/member-subscriptions/', {
             'member': member_profile.id,
@@ -107,6 +114,7 @@ class TestBillingViews:
         schedule = PaymentSchedule.objects.get(subscription=subscription)
         assert subscription.recurrence_type == recurrence_type
         assert schedule.recurrence_type == recurrence_type
+        assert schedule.period_start == timezone.now().date()
 
     def test_trainer_cannot_create_subscription_for_member_of_another_trainer(
         self,
@@ -174,8 +182,7 @@ class TestBillingViews:
             trainer=trainer_profile,
             name='Plan alterno',
             description='Plan',
-            price_monthly=80.00,
-            duration_months=1,
+            price=80.00,
         )
         other_profile, _ = MemberProfile.objects.get_or_create(
             user=other_user,
@@ -299,8 +306,7 @@ class TestBillingViews:
             trainer=trainer_profile,
             name='Plan filtro',
             description='Plan',
-            price_monthly=70.00,
-            duration_months=1,
+            price=70.00,
         )
         other_profile, _ = MemberProfile.objects.get_or_create(
             user=other_user,

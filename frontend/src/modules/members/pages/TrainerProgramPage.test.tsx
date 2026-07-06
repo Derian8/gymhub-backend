@@ -600,7 +600,7 @@ describe('TrainerProgramPage', () => {
   })
 
   it('switches cardio exercises to minutes automatically when creating a new exercise', () => {
-    const { getByTestId, getByText, getByDisplayValue, queryByDisplayValue } = renderWithProviders(<TrainerProgramPage />, {
+    const { getByTestId, getByText, queryByDisplayValue } = renderWithProviders(<TrainerProgramPage />, {
       route: '/members/15/program',
       path: '/members/:id/program',
     })

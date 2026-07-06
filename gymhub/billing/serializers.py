@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import MembershipPlan, MemberSubscription, PaymentSchedule, PaymentRecord, PaymentMethod, PaymentInstruction
+from .services import default_grace_days, membership_access
 
 
 class MembershipPlanSerializer(serializers.ModelSerializer):
@@ -9,8 +10,18 @@ class MembershipPlanSerializer(serializers.ModelSerializer):
         model = MembershipPlan
         fields = (
             'id', 'trainer', 'trainer_nombre', 'name', 'description',
-            'price_monthly', 'duration_months', 'features', 'is_active',
+            'price', 'recurrence_type', 'grace_period_days',
+            'features', 'is_active',
         )
+
+    def validate(self, attrs):
+        recurrence_type = attrs.get(
+            'recurrence_type',
+            getattr(self.instance, 'recurrence_type', 'monthly'),
+        )
+        if 'grace_period_days' not in attrs and self.instance is None:
+            attrs['grace_period_days'] = default_grace_days(recurrence_type)
+        return attrs
 
     def get_trainer_nombre(self, obj):
         if not obj.trainer_id:
@@ -20,6 +31,8 @@ class MembershipPlanSerializer(serializers.ModelSerializer):
 
 class MemberSubscriptionSerializer(serializers.ModelSerializer):
     plan_detail = MembershipPlanSerializer(source='plan', read_only=True)
+    access_allowed = serializers.SerializerMethodField()
+    days_overdue = serializers.SerializerMethodField()
 
     class Meta:
         model = MemberSubscription
@@ -30,8 +43,20 @@ class MemberSubscriptionSerializer(serializers.ModelSerializer):
             'auto_generate_next', 'is_active', 'status',
             'renewal_date', 'cancellation_date',
             'cancellation_reason', 'commercial_notes',
+            'current_period_start', 'current_period_end',
+            'access_allowed', 'days_overdue',
         )
-        read_only_fields = ('trainer',)
+        read_only_fields = (
+            'trainer', 'next_billing_date', 'recurrence_type',
+            'grace_period_days', 'renewal_date',
+            'current_period_start', 'current_period_end',
+        )
+
+    def get_access_allowed(self, obj):
+        return membership_access(obj.member)['allowed']
+
+    def get_days_overdue(self, obj):
+        return membership_access(obj.member)['days_overdue']
 
 
 class PaymentMethodSerializer(serializers.ModelSerializer):
@@ -50,6 +75,7 @@ class PaymentScheduleSerializer(serializers.ModelSerializer):
         model = PaymentSchedule
         fields = (
             'id', 'member', 'subscription', 'subscription_detail', 'plan', 'due_date',
+            'period_start', 'period_end',
             'recurrence_type', 'grace_period_days',
             'auto_generate_next', 'is_active'
         )
@@ -72,9 +98,10 @@ class PaymentRecordSerializer(serializers.ModelSerializer):
         )
 
     def get_days_overdue(self, obj):
-        from datetime import date
-        if obj.status in ('pending', 'late') and obj.schedule.due_date < date.today():
-            return (date.today() - obj.schedule.due_date).days
+        from django.utils import timezone
+        today = timezone.localdate()
+        if obj.status in ('pending', 'late') and obj.schedule.due_date < today:
+            return (today - obj.schedule.due_date).days
         return 0
 
     def get_plan_name(self, obj):

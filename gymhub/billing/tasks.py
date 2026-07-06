@@ -3,9 +3,25 @@ from smtplib import SMTPException
 from celery import shared_task
 from django.conf import settings
 from django.core.mail import send_mail
+from django.utils import timezone
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+@shared_task(name='billing.tasks.run_daily_membership_maintenance')
+def run_daily_membership_maintenance():
+    from billing.services import run_daily_billing_maintenance
+
+    result = run_daily_billing_maintenance()
+    upcoming = check_upcoming_payments()
+    overdue = check_overdue_payments()
+    return {
+        **result,
+        'records_updated': overdue['updated'],
+        'upcoming_notifications': upcoming['notifications_created'],
+        'overdue_notifications': overdue['notifications_created'],
+    }
 
 
 def _notification_recipients(member):
@@ -25,16 +41,17 @@ def check_upcoming_payments():
     PaymentRecord con status='pending' y due_date <= today+3 días.
     Crea Notification de recordatorio para el miembro (una sola vez por due_date).
     """
-    from datetime import date, timedelta
+    from datetime import timedelta
     from billing.models import PaymentRecord
     from alerts.models import Notification
 
-    today = date.today()
+    today = timezone.localdate()
     cutoff = today + timedelta(days=3)
     notifications_created = 0
 
     records = PaymentRecord.objects.filter(
         status='pending',
+        schedule__is_active=True,
         schedule__due_date__lte=cutoff,
         schedule__due_date__gte=today,
     ).select_related('schedule__member__user', 'schedule__plan', 'schedule__subscription__plan')
@@ -88,16 +105,16 @@ def check_overdue_payments():
     PaymentRecord con status='pending' y (today - due_date).days > grace_period_days.
     Cambia status a 'late'. Crea Notification para miembro y trainer.
     """
-    from datetime import date
     from billing.models import PaymentRecord
     from alerts.models import Notification
 
-    today = date.today()
+    today = timezone.localdate()
     updated = 0
     notifications_created = 0
 
     pending_records = PaymentRecord.objects.filter(
         status='pending',
+        schedule__is_active=True,
     ).select_related('schedule__member__user', 'schedule__plan', 'schedule__subscription__plan')
 
     for record in pending_records:

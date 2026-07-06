@@ -5,6 +5,34 @@ from rest_framework import status
 
 @pytest.mark.django_db
 class TestClasses:
+    def test_member_enrollment_is_forced_to_own_profile(
+        self, member_client, member_profile, trainer_profile, membership_plan
+    ):
+        from django.contrib.auth import get_user_model
+        from classes.models import GymClass
+        from users.models import MemberProfile
+
+        other_user = get_user_model().objects.create_user(
+            username='otro_inscrito', email='otro-inscrito@test.com',
+            password='member123!', role='member'
+        )
+        other_member = MemberProfile.objects.get(user=other_user)
+        other_member.membership_plan = membership_plan
+        other_member.save(update_fields=['membership_plan'])
+        gym_class = GymClass.objects.create(
+            trainer=trainer_profile, name='Movilidad',
+            schedule=timezone.now(), max_capacity=10
+        )
+
+        resp = member_client.post('/api/class-enrollments/', {
+            'member': other_member.id,
+            'gym_class': gym_class.id,
+            'attended': True,
+        })
+
+        assert resp.status_code == status.HTTP_201_CREATED
+        assert resp.data['member'] == member_profile.id
+        assert resp.data['attended'] is False
     def test_trainer_only_sees_own_classes(self, trainer_client, trainer_profile):
         from django.contrib.auth import get_user_model
         from users.models import TrainerProfile

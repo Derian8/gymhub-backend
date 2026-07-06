@@ -4,6 +4,7 @@ from .views import (
     MembershipPlanViewSet, MemberSubscriptionViewSet, PaymentScheduleViewSet,
     PaymentRecordViewSet, PaymentMethodViewSet, PaymentInstructionViewSet
 )
+from .cron_views import DailyMembershipMaintenanceView
 
 router = DefaultRouter()
 router.register(r'membership-plans', MembershipPlanViewSet, basename='membership-plan')
@@ -14,5 +15,10 @@ router.register(r'payment-methods', PaymentMethodViewSet, basename='payment-meth
 router.register(r'payment-instructions', PaymentInstructionViewSet, basename='payment-instruction')
 
 urlpatterns = [
+    path(
+        'internal/daily-membership-maintenance/',
+        DailyMembershipMaintenanceView.as_view(),
+        name='daily-membership-maintenance',
+    ),
     path('', include(router.urls)),
 ]

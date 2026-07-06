@@ -32,8 +32,7 @@ class TestPlansFilters:
         other_membership = MembershipPlan.objects.create(
             name='Plan membresia alterno',
             description='Plan',
-            price_monthly=90.00,
-            duration_months=1,
+            price=90.00,
         )
         other_profile, _ = MemberProfile.objects.get_or_create(
             user=other_user,

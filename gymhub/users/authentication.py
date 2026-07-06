@@ -2,6 +2,7 @@ from django.conf import settings
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
+from rest_framework.authentication import SessionAuthentication
 
 
 class JWTCookieAuthentication(JWTAuthentication):
@@ -14,6 +15,7 @@ class JWTCookieAuthentication(JWTAuthentication):
     def authenticate(self, request):
         # Intentar con el header Authorization primero
         header = self.get_header(request)
+        authenticated_with_cookie = header is None
         if header is not None:
             raw_token = self.get_raw_token(header)
         else:
@@ -37,5 +39,8 @@ class JWTCookieAuthentication(JWTAuthentication):
             user = self.get_user(validated_token)
         except (AuthenticationFailed, InvalidToken, TokenError):
             return None
+
+        if authenticated_with_cookie:
+            SessionAuthentication().enforce_csrf(request)
 
         return user, validated_token

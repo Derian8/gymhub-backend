@@ -5,6 +5,36 @@ from rest_framework import status
 
 @pytest.mark.django_db
 class TestProgressMetrics:
+    def test_member_cannot_start_session_with_another_members_workout_day(
+        self, member_client, workout_day_a, membership_plan, trainer_profile
+    ):
+        from django.contrib.auth import get_user_model
+        from plans.models import TrainingPlan, WorkoutDay
+        from users.models import MemberProfile
+
+        other_user = get_user_model().objects.create_user(
+            username='otro_plan', email='otro-plan@test.com',
+            password='member123!', role='member'
+        )
+        other_member = MemberProfile.objects.get(user=other_user)
+        other_member.membership_plan = membership_plan
+        other_member.trainer_asignado = trainer_profile
+        other_member.save(update_fields=['membership_plan', 'trainer_asignado'])
+        other_plan = TrainingPlan.objects.create(
+            member=other_member, trainer=trainer_profile, name='Plan ajeno',
+            goal='general', start_date=datetime.now().date(),
+            weeks_duration=4, days_per_week=1
+        )
+        other_day = WorkoutDay.objects.create(
+            plan=other_plan, name='Día ajeno', day_label='A',
+            day_of_week='mon', order=0
+        )
+
+        response = member_client.post('/api/workout-sessions/', {
+            'workout_day_id': other_day.id,
+        }, format='json')
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
     def test_trainer_can_create_progress_log_for_assigned_member(self, trainer_client, member_profile):
         response = trainer_client.post('/api/progress-logs/', {
             'member': member_profile.id,
@@ -20,7 +50,10 @@ class TestProgressMetrics:
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data['member'] == member_profile.id
         assert response.data['height_cm'] == 176
-        assert response.data['recorded_at'].startswith('2026-04-20T10:30:00')
+        recorded_at = datetime.fromisoformat(response.data['recorded_at'])
+        assert recorded_at.astimezone(dt_timezone.utc) == datetime(
+            2026, 4, 20, 10, 30, tzinfo=dt_timezone.utc
+        )
 
     def test_member_cannot_create_progress_log(self, member_client, member_profile):
         response = member_client.post('/api/progress-logs/', {

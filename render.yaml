@@ -1,0 +1,148 @@
+services:
+  - type: keyvalue
+    name: gymhub-redis
+    region: oregon
+    plan: starter
+    ipAllowList: []
+    maxmemoryPolicy: noeviction
+    persistenceMode: journal-snapshot
+
+  - type: web
+    name: gymhub-api
+    runtime: docker
+    region: oregon
+    plan: starter
+    dockerContext: ./gymhub
+    dockerfilePath: ./gymhub/Dockerfile
+    autoDeployTrigger: 'off'
+    healthCheckPath: /health/ready/
+    preDeployCommand: python manage.py migrate --noinput && python manage.py auditar_esquema
+    maxShutdownDelaySeconds: 60
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: DB_SSLMODE
+        value: require
+      - key: DB_CONN_MAX_AGE
+        value: 60
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: gymhub-redis
+          property: connectionString
+      - key: DEBUG
+        value: 'False'
+      - key: ALLOWED_HOSTS
+        value: .onrender.com
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://proyectoappgym-frontend.vercel.app
+      - key: CSRF_TRUSTED_ORIGINS
+        value: https://proyectoappgym-frontend.vercel.app
+      - key: AUTH_COOKIE_SECURE
+        value: 'True'
+      - key: AUTH_COOKIE_SAMESITE
+        value: Lax
+      - key: SESSION_COOKIE_SECURE
+        value: 'True'
+      - key: SESSION_COOKIE_SAMESITE
+        value: Lax
+      - key: CSRF_COOKIE_SECURE
+        value: 'True'
+      - key: CSRF_COOKIE_SAMESITE
+        value: Lax
+      - key: USE_X_FORWARDED_HOST
+        value: 'True'
+      - key: USE_X_FORWARDED_PROTO
+        value: 'True'
+      - key: SECURE_SSL_REDIRECT
+        value: 'True'
+      - key: SECURE_HSTS_SECONDS
+        value: 31536000
+      - key: SECURE_HSTS_INCLUDE_SUBDOMAINS
+        value: 'True'
+      - key: SECURE_HSTS_PRELOAD
+        value: 'True'
+      - key: USE_S3_STORAGE
+        value: 'True'
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: S3_BUCKET_NAME
+        value: gymhub-media
+      - key: S3_ENDPOINT_URL
+        sync: false
+      - key: S3_REGION
+        value: us-west-2
+      - key: S3_URL_EXPIRATION
+        value: 900
+      - key: AI_PROVIDER
+        value: deterministic
+
+  - type: worker
+    name: gymhub-celery
+    runtime: docker
+    region: oregon
+    plan: starter
+    dockerContext: ./gymhub
+    dockerfilePath: ./gymhub/Dockerfile
+    dockerCommand: celery -A gymhub worker --loglevel=info --queues=default,celery
+    autoDeployTrigger: 'off'
+    maxShutdownDelaySeconds: 120
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        fromService:
+          type: web
+          name: gymhub-api
+          envVarKey: DJANGO_SECRET_KEY
+      - key: DATABASE_URL
+        fromService:
+          type: web
+          name: gymhub-api
+          envVarKey: DATABASE_URL
+      - key: DB_SSLMODE
+        value: require
+      - key: DB_CONN_MAX_AGE
+        value: 60
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: gymhub-redis
+          property: connectionString
+      - key: USE_S3_STORAGE
+        value: 'False'
+
+  - type: worker
+    name: gymhub-celery-beat
+    runtime: docker
+    region: oregon
+    plan: starter
+    dockerContext: ./gymhub
+    dockerfilePath: ./gymhub/Dockerfile
+    dockerCommand: celery -A gymhub beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    autoDeployTrigger: 'off'
+    maxShutdownDelaySeconds: 60
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        fromService:
+          type: web
+          name: gymhub-api
+          envVarKey: DJANGO_SECRET_KEY
+      - key: DATABASE_URL
+        fromService:
+          type: web
+          name: gymhub-api
+          envVarKey: DATABASE_URL
+      - key: DB_SSLMODE
+        value: require
+      - key: DB_CONN_MAX_AGE
+        value: 60
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: gymhub-redis
+          property: connectionString
+      - key: USE_S3_STORAGE
+        value: 'False'

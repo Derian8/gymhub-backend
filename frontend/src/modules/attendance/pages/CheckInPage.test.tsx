@@ -6,11 +6,16 @@ import { CheckInPage } from './CheckInPage'
 import { useAuthStore } from '@/shared/store/authStore'
 
 const registrarCheckIn = vi.fn()
+const registrarCheckOut = vi.fn()
 const useAttendanceQuery = vi.fn()
 
 vi.mock('../hooks/useAttendance', () => ({
   useCheckInMutation: () => ({
     mutate: registrarCheckIn,
+    isPending: false,
+  }),
+  useCheckOutMutation: () => ({
+    mutate: registrarCheckOut,
     isPending: false,
   }),
   useAttendanceQuery: (...args: unknown[]) => useAttendanceQuery(...args),
@@ -20,6 +25,7 @@ describe('CheckInPage', () => {
   beforeEach(() => {
     cleanup()
     registrarCheckIn.mockReset()
+    registrarCheckOut.mockReset()
     useAttendanceQuery.mockReset()
     useAttendanceQuery.mockReturnValue({ data: { results: [] }, isLoading: false })
     localStorage.clear()

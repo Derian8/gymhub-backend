@@ -1,4 +1,5 @@
 import time
+import logging
 
 from django.core.cache import cache
 from django.db import connections
@@ -6,6 +7,8 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+logger = logging.getLogger(__name__)
 
 
 class LiveHealthView(APIView):
@@ -36,8 +39,9 @@ class ReadyHealthView(APIView):
                 cursor.execute('SELECT 1')
                 cursor.fetchone()
             checks['database'] = {'status': 'ok'}
-        except Exception as exc:
-            checks['database'] = {'status': 'error', 'detail': str(exc)}
+        except Exception:
+            logger.exception('Fallo de readiness de base de datos')
+            checks['database'] = {'status': 'error'}
             overall_status = status.HTTP_503_SERVICE_UNAVAILABLE
 
         try:
@@ -47,8 +51,9 @@ class ReadyHealthView(APIView):
             if cache_value != 'ok':
                 raise RuntimeError('Cache no disponible')
             checks['cache'] = {'status': 'ok'}
-        except Exception as exc:
-            checks['cache'] = {'status': 'error', 'detail': str(exc)}
+        except Exception:
+            logger.exception('Fallo de readiness de caché')
+            checks['cache'] = {'status': 'error'}
             overall_status = status.HTTP_503_SERVICE_UNAVAILABLE
 
         duration_ms = round((time.perf_counter() - started_at) * 1000, 2)

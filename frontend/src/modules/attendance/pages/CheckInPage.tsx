@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AlertTriangle, CheckSquare, Clock3, Loader2, NotebookPen, ShieldAlert } from 'lucide-react'
 
-import { useCheckInMutation, useAttendanceQuery } from '../hooks/useAttendance'
+import { useCheckInMutation, useCheckOutMutation, useAttendanceQuery } from '../hooks/useAttendance'
 import { PageHeader, EmptyState, Badge } from '@/shared/components/UI'
 import { SymbolFrame } from '@/shared/components/Brand'
 import { TableRowSkeleton } from '@/shared/components/Skeleton'
@@ -19,9 +19,14 @@ export function CheckInPage() {
   const [notes, setNotes] = useState('')
   const [blockedState, setBlockedState] = useState<CheckInBlockedResponse | null>(null)
   const { mutate: checkIn, isPending } = useCheckInMutation()
+  const { mutate: checkOut, isPending: isCheckingOut } = useCheckOutMutation()
   const { data: attendance, isLoading } = useAttendanceQuery(filtros)
 
   const ultimoRegistro = attendance?.results?.[0]
+  const todayCostaRica = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Costa_Rica', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date())
+  const registroHoy = attendance?.results.find((item) => item.attendance_date === todayCostaRica)
 
   const handleCheckIn = () => {
     checkIn(notes, {
@@ -31,10 +36,10 @@ export function CheckInPage() {
       },
       onError: (error) => {
         const response = (error as { response?: { data?: unknown } })?.response?.data as Partial<CheckInBlockedResponse> | undefined
-        if (response?.blocked && response.reason === 'payment_overdue' && typeof response.days_overdue === 'number') {
+        if (response?.blocked && response.reason && typeof response.days_overdue === 'number') {
           setBlockedState({
             blocked: true,
-            reason: 'payment_overdue',
+            reason: response.reason,
             days_overdue: response.days_overdue,
           })
         }
@@ -70,7 +75,9 @@ export function CheckInPage() {
                   </h2>
                   <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
                     {blockedState
-                      ? `Tienes una mora activa de ${blockedState.days_overdue} días. Regulariza ese frente para recuperar el check-in.`
+                      ? blockedState.reason === 'payment_overdue'
+                        ? `Tu membresía venció hace ${blockedState.days_overdue} días. Registra el pago para recuperar el acceso.`
+                        : 'Necesitas una membresía activa y pagada para registrar asistencia.'
                       : 'Confirma tu presencia y deja una nota opcional si quieres registrar el foco de tu sesión.'}
                   </p>
                 </div>
@@ -103,6 +110,20 @@ export function CheckInPage() {
                     </p>
                   </div>
                 </div>
+              </div>
+            ) : registroHoy && !registroHoy.check_out_time ? (
+              <button
+                onClick={() => checkOut(registroHoy.id)}
+                disabled={isCheckingOut}
+                className="btn-primary mt-5 flex w-full items-center justify-center gap-2"
+                data-testid="checkout-submit"
+              >
+                <Clock3 size={16} />
+                {isCheckingOut ? 'Registrando salida...' : 'REGISTRAR SALIDA'}
+              </button>
+            ) : registroHoy?.check_out_time ? (
+              <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-700 dark:border-green-900/70 dark:bg-green-950/30 dark:text-green-300">
+                Tu entrada y salida de hoy ya están registradas.
               </div>
             ) : (
               <>
@@ -195,6 +216,8 @@ export function CheckInPage() {
                 <tr>
                   <th className="th-base">Fecha</th>
                   <th className="th-base">Check-in</th>
+                  <th className="th-base">Salida</th>
+                  <th className="th-base">Duración</th>
                   <th className="th-base">Notas</th>
                 </tr>
               </thead>
@@ -205,6 +228,8 @@ export function CheckInPage() {
                     <td className="td-base">
                       <span className="text-xs font-medium text-green-500">✓ Presente</span>
                     </td>
+                    <td className="td-base text-xs">{item.check_out_time ? formatDateTime(item.check_out_time) : 'Pendiente'}</td>
+                    <td className="td-base text-xs">{item.duration_minutes == null ? '—' : `${item.duration_minutes} min`}</td>
                     <td className="td-base text-xs text-neutral-400">{item.notes || '—'}</td>
                   </tr>
                 ))}
@@ -232,6 +257,10 @@ export function CheckInPage() {
                     </div>
                     <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
                       {formatDateTime(item.check_in_time)} · {formatRelative(item.check_in_time)}
+                    </p>
+                    <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                      Salida: {item.check_out_time ? formatDateTime(item.check_out_time) : 'pendiente'}
+                      {item.duration_minutes == null ? '' : ` · ${item.duration_minutes} min`}
                     </p>
                     {item.notes ? (
                       <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-300">{item.notes}</p>
