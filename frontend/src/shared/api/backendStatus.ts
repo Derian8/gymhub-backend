@@ -9,7 +9,7 @@ export interface BackendIssue {
 }
 
 const PLACEHOLDER_URLS = new Set(['https://api.tu-dominio.com'])
-const HEALTH_TIMEOUT_MS = 5000
+const HEALTH_TIMEOUT_MS = 20000
 
 interface BackendHealthProbeResult {
   live: boolean

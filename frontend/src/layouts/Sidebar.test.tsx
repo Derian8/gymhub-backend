@@ -75,4 +75,18 @@ describe('Sidebar', () => {
     expect(getByTestId('sidebar')).toHaveClass('lg:w-16')
     expect(getByText('Entrenamiento')).toBeInTheDocument()
   })
+
+  it('shows only the four essential member destinations', () => {
+    const { getByRole, queryByText } = renderWithProviders(
+      <Sidebar collapsed={false} mobileOpen={true} onToggle={vi.fn()} onCloseMobile={closeMobileMock} />,
+    )
+
+    expect(getByRole('link', { name: /Entrenamiento/ })).toHaveAttribute('href', '/today')
+    expect(getByRole('link', { name: /Mi Plan/ })).toHaveAttribute('href', '/plans/my')
+    expect(getByRole('link', { name: /Registros/ })).toHaveAttribute('href', '/records')
+    expect(getByRole('link', { name: /Progreso/ })).toHaveAttribute('href', '/progress')
+    expect(queryByText('Nutrición')).not.toBeInTheDocument()
+    expect(queryByText('Chat IA')).not.toBeInTheDocument()
+    expect(queryByText('Pagos')).not.toBeInTheDocument()
+  })
 })

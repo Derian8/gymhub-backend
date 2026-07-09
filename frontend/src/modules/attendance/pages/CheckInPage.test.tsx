@@ -8,6 +8,7 @@ import { useAuthStore } from '@/shared/store/authStore'
 const registrarCheckIn = vi.fn()
 const registrarCheckOut = vi.fn()
 const useAttendanceQuery = vi.fn()
+const listarSesiones = vi.fn()
 
 vi.mock('../hooks/useAttendance', () => ({
   useCheckInMutation: () => ({
@@ -21,12 +22,20 @@ vi.mock('../hooks/useAttendance', () => ({
   useAttendanceQuery: (...args: unknown[]) => useAttendanceQuery(...args),
 }))
 
+vi.mock('@/modules/progress/api/progressApi', () => ({
+  progressApi: {
+    sessions: () => listarSesiones(),
+  },
+}))
+
 describe('CheckInPage', () => {
   beforeEach(() => {
     cleanup()
     registrarCheckIn.mockReset()
     registrarCheckOut.mockReset()
     useAttendanceQuery.mockReset()
+    listarSesiones.mockReset()
+    listarSesiones.mockResolvedValue({ results: [] })
     useAttendanceQuery.mockReturnValue({ data: { results: [] }, isLoading: false })
     localStorage.clear()
     useAuthStore.setState({
@@ -74,6 +83,7 @@ describe('CheckInPage', () => {
     expect(getByText('Registrar asistencia')).toBeInTheDocument()
     expect(getByText('Orden del día')).toBeInTheDocument()
     expect(getByText('Check-in confirmado')).toBeInTheDocument()
+    expect(getByTestId('member-workout-records')).toBeInTheDocument()
   })
 
   it('shows blocked state when backend rejects check-in by mora', async () => {

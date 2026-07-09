@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, Dumbbell,
   CreditCard, Utensils, Bell, Bot, User,
   LogOut, ChevronLeft, ChevronRight, Activity,
-  ClipboardList, CheckSquare, MessageSquareMore, NotebookTabs,
+  CheckSquare, ClipboardList, NotebookTabs,
 } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { useAuthStore } from '@/shared/store/authStore'
@@ -32,15 +32,9 @@ const trainerNav: NavItem[] = [
 
 const memberNav: NavItem[] = [
   { label: 'Entrenamiento', icon: <Dumbbell size={18} />, to: '/today' },
-  { label: 'Resumen', icon: <LayoutDashboard size={18} />, to: '/dashboard/member' },
   { label: 'Mi Plan', icon: <NotebookTabs size={18} />, to: '/plans/my' },
-  { label: 'Check-in', icon: <CheckSquare size={18} />, to: '/attendance/check-in' },
-  { label: 'Mensajes', icon: <MessageSquareMore size={18} />, to: '/messages' },
+  { label: 'Registros', icon: <ClipboardList size={18} />, to: '/records' },
   { label: 'Progreso', icon: <Activity size={18} />, to: '/progress' },
-  { label: 'Sesiones', icon: <ClipboardList size={18} />, to: '/sessions' },
-  { label: 'Nutrición', icon: <Utensils size={18} />, to: '/nutrition' },
-  { label: 'Pagos', icon: <CreditCard size={18} />, to: '/billing' },
-  { label: 'Chat IA', icon: <Bot size={18} />, to: '/ai-chat' },
 ]
 
 interface SidebarProps {

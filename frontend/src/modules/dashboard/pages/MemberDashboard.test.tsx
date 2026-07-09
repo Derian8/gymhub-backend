@@ -12,6 +12,8 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
       payment_status: 'pending',
       days_until_due: 2,
       days_overdue: null,
+      membership_plan_name: 'Semanal',
+      membership_expires_at: '2026-03-21',
       last_checkin: '2026-03-19T10:00:00Z',
       active_plan: { id: 11, name: 'Hipertrofia' },
       nutrition_goal: 'muscle_gain',
@@ -198,10 +200,8 @@ describe('MemberDashboard', () => {
     expect(getByText('Hoy toca: Lunes · Torso superior')).toBeInTheDocument()
     expect(getByTestId('member-today-cabin')).toHaveTextContent('Bloque del día')
     expect(getByTestId('start-session-btn')).toHaveTextContent('Registrar entrenamiento')
-    expect(getByTestId('card-payment')).toBeInTheDocument()
-    expect(getByTestId('card-messages')).toHaveAttribute('href', '/messages')
-    expect(getByTestId('card-messages')).toHaveTextContent('1')
-    expect(getByTestId('card-ai')).toHaveTextContent('3 notificación(es) sin leer')
+    expect(getByTestId('card-membership')).toHaveTextContent('Semanal')
+    expect(getByTestId('card-membership')).toHaveTextContent('21/03/2026')
     expect(getByText('Smith')).toBeInTheDocument()
     expect(getByTestId('member-plan-detail-link')).toHaveAttribute('href', '/plans/11')
   })

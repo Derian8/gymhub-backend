@@ -143,25 +143,11 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
     data: {
       payment_status: 'pending',
       days_until_due: 2,
-    },
-    isLoading: false,
-  }),
-  useMemberPhysicalSummaryQuery: () => ({
-    data: {
-      current_weight_kg: 72.5,
-      height_cm: 170,
-      bmi: 25.1,
-    },
-    isLoading: false,
-  }),
-}))
-
-vi.mock('@/modules/alerts/hooks/useAlerts', () => ({
-  useNotificationsQuery: () => ({
-    data: {
-      results: [
-        { id: 1, type: 'trainer_message', read: false },
-      ],
+      days_overdue: null,
+      membership_plan_name: 'Plan semanal',
+      membership_expires_at: '2026-03-28',
+      weekly_sessions_done: 2,
+      cumplimiento_semanal: 50,
     },
     isLoading: false,
   }),
@@ -238,12 +224,9 @@ describe('TodayWorkoutPage', () => {
     expect(getByText('La semana completa de tu rutina')).toBeInTheDocument()
     expect(getByTestId('weekly-day-detail-link-mon')).toHaveAttribute('href', '/plans/12/days/101')
     expect(getByTestId('weekly-day-detail-link-fri')).toHaveAttribute('href', '/plans/12/days/102')
-    expect(getAllByText('Ir al resumen').length).toBeGreaterThan(0)
-    expect(getByTestId('card-messages')).toBeInTheDocument()
-    expect(getByTestId('card-physical')).toBeInTheDocument()
-    expect(getByTestId('card-nutrition')).toBeInTheDocument()
-    expect(getByTestId('card-billing')).toBeInTheDocument()
-    expect(getByTestId('card-ai')).toBeInTheDocument()
+    expect(getByTestId('card-progress')).toHaveTextContent('2 sesión(es) esta semana')
+    expect(getByTestId('card-membership')).toHaveTextContent('Plan semanal')
+    expect(getByTestId('card-membership')).toHaveTextContent('28/03/2026')
 
     await user.click(getByTestId('start-session-btn'))
 

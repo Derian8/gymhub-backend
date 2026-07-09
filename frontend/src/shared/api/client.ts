@@ -125,7 +125,6 @@ apiClient.interceptors.response.use(
     }
 
     if (!error.response) {
-      toast.error('No se pudo conectar con el servidor. Verifica backend y red.')
       return Promise.reject(error)
     }
 

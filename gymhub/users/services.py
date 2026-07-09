@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from alerts.models import InactivityAlert, Notification
 from attendance.models import Attendance
-from billing.models import PaymentRecord
+from billing.models import MemberSubscription, PaymentRecord
 from nutrition.models import NutritionProfile
 from plans.models import TrainingPlan
 from progress.models import ProgressLog, WorkoutSession
@@ -401,6 +401,24 @@ def get_member_dashboard_summary(member):
             nutrition_goal = None
 
     risk = get_member_risk_snapshot(member)
+    current_subscription = (
+        MemberSubscription.objects
+        .select_related('plan')
+        .filter(member=member, is_active=True)
+        .order_by('-start_date', '-id')
+        .first()
+    )
+    membership_plan_name = (
+        current_subscription.plan.name
+        if current_subscription
+        else getattr(member.membership_plan, 'name', None)
+    )
+    membership_expires_at = (
+        current_subscription.current_period_end.isoformat()
+        if current_subscription
+        and current_subscription.current_period_end
+        else None
+    )
     last_checkin_at = getattr(member, 'last_checkin_at_cached', None)
     last_attendance = None if last_checkin_at else Attendance.objects.filter(member=member).first()
     unread_notifications = Notification.objects.filter(user=member.user, read=False).count()
@@ -431,6 +449,8 @@ def get_member_dashboard_summary(member):
         'payment_status': risk['payment_status'],
         'days_until_due': risk['days_until_due'],
         'days_overdue': risk['days_overdue'],
+        'membership_plan_name': membership_plan_name,
+        'membership_expires_at': membership_expires_at,
         'last_checkin': last_checkin_at or (last_attendance.check_in_time if last_attendance else None),
         'active_plan': active_plan_payload,
         'nutrition_goal': nutrition_goal,

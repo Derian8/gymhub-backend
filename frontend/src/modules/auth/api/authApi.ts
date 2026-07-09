@@ -1,8 +1,11 @@
 import apiClient from '@/shared/api/client'
+import { BASE_URL } from '@/shared/api/client'
+import { warmBackend } from '@/shared/api/backendWarmup'
 import type { User, LoginCredentials, RegisterData, UpdateProfileData } from '@/shared/types'
 
 export const authApi = {
   login: async (credentials: LoginCredentials): Promise<{ user: User; message: string }> => {
+    await warmBackend(BASE_URL)
     const { data } = await apiClient.post('/auth/login/', credentials)
     return data
   },

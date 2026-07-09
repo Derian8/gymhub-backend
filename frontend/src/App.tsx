@@ -196,6 +196,14 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/records"
+          element={
+            <ProtectedRoute requiredRole="member">
+              <CheckInPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Progress */}
         <Route path="/progress" element={<ProgressPage />} />

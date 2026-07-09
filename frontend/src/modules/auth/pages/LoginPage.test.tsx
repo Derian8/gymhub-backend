@@ -4,11 +4,12 @@ import { renderWithProviders } from '@/test/utils'
 import { LoginPage } from './LoginPage'
 
 const loginMock = vi.fn()
+let loginPending = false
 
 vi.mock('../hooks/useAuthMutations', () => ({
   useLoginMutation: () => ({
     mutate: loginMock,
-    isPending: false,
+    isPending: loginPending,
   }),
 }))
 
@@ -16,6 +17,7 @@ describe('LoginPage', () => {
   beforeEach(() => {
     cleanup()
     loginMock.mockReset()
+    loginPending = false
   })
 
   it('shows validation errors before submit', async () => {
@@ -49,5 +51,16 @@ describe('LoginPage', () => {
     const { getByRole } = renderWithProviders(<LoginPage />)
 
     expect(getByRole('link', { name: 'Regístrate' })).toHaveAttribute('href', '/register')
+  })
+
+  it('shows backend preparation while login is pending', () => {
+    loginPending = true
+
+    const { getByTestId } = renderWithProviders(<LoginPage />)
+
+    expect(getByTestId('login-submit')).toHaveTextContent(
+      'Preparando servidor e ingresando...',
+    )
+    expect(getByTestId('login-submit')).toBeDisabled()
   })
 })

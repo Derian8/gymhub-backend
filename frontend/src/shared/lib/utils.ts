@@ -119,5 +119,17 @@ export function extractApiError(error: unknown): string {
       if (values.length > 0) return String(values[0])
     }
   }
+  if (error && typeof error === 'object' && 'code' in error) {
+    const code = String((error as { code?: unknown }).code || '')
+    if (code === 'BACKEND_WARMUP_FAILED') {
+      return 'El servidor tardó demasiado en prepararse. Intenta nuevamente.'
+    }
+    if (code === 'ECONNABORTED') {
+      return 'El servidor respondió demasiado lento. Intenta nuevamente.'
+    }
+    if (!('response' in error)) {
+      return 'No se pudo conectar con el servidor. Revisa tu conexión e intenta nuevamente.'
+    }
+  }
   return 'Ocurrió un error inesperado'
 }

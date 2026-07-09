@@ -140,3 +140,4 @@ En Vercel, `gymhub/vercel.json` invoca diariamente `/api/internal/daily-membersh
 - En producción local con `docker-compose.prod.yml`, deja `VITE_API_BASE_URL=` vacío para que Nginx enrute `/auth/`, `/api/` y `/media/` al backend.
 - Para pruebas E2E desde contenedores, incluye `host.docker.internal` en `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS` y `CSRF_TRUSTED_ORIGINS`.
 - Si usas frontend y backend en orígenes distintos, alinea `VITE_API_BASE_URL`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS` y la política de cookies antes de probar login.
+- En Vercel, elimina `VITE_API_BASE_URL` y usa `VITE_API_TIMEOUT_MS=60000`. `./gym-connection-check` falla si el bundle vuelve a apuntar al backend absoluto mientras la CSP mantiene `connect-src 'self'`.

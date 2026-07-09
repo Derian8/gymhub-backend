@@ -90,7 +90,7 @@ export function LoginPage() {
           {isPending ? (
             <>
               <Loader2 size={16} className="animate-spin" />
-              Ingresando...
+              Preparando servidor e ingresando...
             </>
           ) : (
             'INGRESAR'

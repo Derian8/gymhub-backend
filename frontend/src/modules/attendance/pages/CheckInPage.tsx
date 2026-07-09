@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
-import { AlertTriangle, CheckSquare, Clock3, Loader2, NotebookPen, ShieldAlert } from 'lucide-react'
+import { Activity, AlertTriangle, CheckSquare, Clock3, Loader2, NotebookPen, ShieldAlert } from 'lucide-react'
 
 import { useCheckInMutation, useCheckOutMutation, useAttendanceQuery } from '../hooks/useAttendance'
 import { PageHeader, EmptyState, Badge } from '@/shared/components/UI'
@@ -8,6 +9,8 @@ import { SymbolFrame } from '@/shared/components/Brand'
 import { TableRowSkeleton } from '@/shared/components/Skeleton'
 import { formatDateTime, formatRelative } from '@/shared/lib/utils'
 import { useAuthStore } from '@/shared/store/authStore'
+import { progressApi } from '@/modules/progress/api/progressApi'
+import { QUERY_KEYS } from '@/shared/constants/queryKeys'
 import type { CheckInBlockedResponse } from '@/shared/types'
 
 export function CheckInPage() {
@@ -21,6 +24,11 @@ export function CheckInPage() {
   const { mutate: checkIn, isPending } = useCheckInMutation()
   const { mutate: checkOut, isPending: isCheckingOut } = useCheckOutMutation()
   const { data: attendance, isLoading } = useAttendanceQuery(filtros)
+  const { data: sessions, isLoading: sessionsLoading } = useQuery({
+    queryKey: QUERY_KEYS.WORKOUT_SESSIONS,
+    queryFn: progressApi.sessions,
+    enabled: !esEntrenador,
+  })
 
   const ultimoRegistro = attendance?.results?.[0]
   const todayCostaRica = new Intl.DateTimeFormat('en-CA', {
@@ -50,13 +58,13 @@ export function CheckInPage() {
   return (
     <div data-testid="checkin-page" className="page-enter mx-auto max-w-4xl">
       <PageHeader
-        title={esEntrenador ? (memberId ? 'Asistencia Del Miembro' : 'Asistencia') : 'Check-in'}
+        title={esEntrenador ? (memberId ? 'Asistencia Del Miembro' : 'Asistencia') : 'Registros'}
         subtitle={
           esEntrenador
             ? memberId
               ? 'Registros recientes del miembro seleccionado'
               : 'Visión rápida de registros recientes de asistencia'
-            : 'Registra tu presencia en segundos y mantén tu constancia visible'
+            : 'Registra tu asistencia y revisa tus entrenamientos completados'
         }
       />
 
@@ -274,6 +282,58 @@ export function CheckInPage() {
           </div>
         )}
       </section>
+
+      {!esEntrenador ? (
+        <section className="mt-6" data-testid="member-workout-records">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h3 className="font-heading text-lg font-bold text-neutral-900 dark:text-white">
+              Sesiones de entrenamiento
+            </h3>
+            {sessions?.results.length ? (
+              <Badge variant="neutral">{sessions.results.length} sesiones</Badge>
+            ) : null}
+          </div>
+
+          {sessionsLoading ? (
+            <div className="card overflow-hidden">
+              <table className="table-base">
+                <tbody>{Array.from({ length: 3 }).map((_, i) => <TableRowSkeleton key={i} cols={3} />)}</tbody>
+              </table>
+            </div>
+          ) : !sessions?.results.length ? (
+            <EmptyState
+              icon={<Activity size={32} />}
+              title="Sin sesiones registradas"
+              description="Tus entrenamientos aparecerán aquí cuando los registres."
+            />
+          ) : (
+            <div className="table-container">
+              <table className="table-base">
+                <thead>
+                  <tr>
+                    <th className="th-base">Fecha</th>
+                    <th className="th-base">Estado</th>
+                    <th className="th-base">Sensación</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sessions.results.slice(0, 10).map((session) => (
+                    <tr key={session.id} className="tr-hover" data-testid={`record-session-${session.id}`}>
+                      <td className="td-base">{formatDateTime(session.started_at)}</td>
+                      <td className="td-base">
+                        <Badge variant={session.is_completed ? 'success' : 'warning'}>
+                          {session.is_completed ? 'Completada' : 'En progreso'}
+                        </Badge>
+                      </td>
+                      <td className="td-base">{session.overall_feeling ? `${session.overall_feeling}/5` : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      ) : null}
     </div>
   )
 }

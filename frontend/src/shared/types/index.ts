@@ -106,6 +106,8 @@ export interface MemberDashboardSummary {
   payment_status: 'paid' | 'pending' | 'late' | null
   days_until_due: number | null
   days_overdue: number | null
+  membership_plan_name: string | null
+  membership_expires_at: string | null
   last_checkin: string | null
   active_plan: { id: number; name: string } | null
   nutrition_goal: string | null

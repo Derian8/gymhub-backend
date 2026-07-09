@@ -10,13 +10,27 @@ def test_member_dashboard_summary_includes_risk_and_actions(
     member_profile,
     training_plan,
     payment_schedule_and_record,
+    membership_plan,
+    trainer_profile,
 ):
     from attendance.models import Attendance
+    from billing.models import MemberSubscription
     from progress.models import WorkoutSession
 
     schedule, record = payment_schedule_and_record
     schedule.due_date = timezone.localdate() + timedelta(days=2)
     schedule.save(update_fields=['due_date'])
+    membership_end = timezone.localdate() + timedelta(days=2)
+    MemberSubscription.objects.create(
+        member=member_profile,
+        plan=membership_plan,
+        trainer=trainer_profile,
+        agreed_price=membership_plan.price,
+        start_date=timezone.localdate(),
+        next_billing_date=membership_end + timedelta(days=1),
+        current_period_start=timezone.localdate(),
+        current_period_end=membership_end,
+    )
 
     Attendance.objects.create(
         member=member_profile,
@@ -34,6 +48,8 @@ def test_member_dashboard_summary_includes_risk_and_actions(
     assert response.status_code == 200
     assert response.data['payment_status'] == record.status
     assert response.data['days_until_due'] == 2
+    assert response.data['membership_plan_name'] == membership_plan.name
+    assert response.data['membership_expires_at'] == membership_end.isoformat()
     assert response.data['streak_asistencia'] >= 1
     assert response.data['riesgo_personal']['score'] > 0
     assert response.data['riesgo_personal']['level'] in ('medium', 'high')

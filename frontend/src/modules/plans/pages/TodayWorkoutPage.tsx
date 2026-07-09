@@ -1,16 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, CheckCircle, CreditCard, Dumbbell, Flame, Loader2, MessageSquareMore, NotebookTabs, Play, Scale, Sparkles, Target, Utensils } from 'lucide-react'
+import { Activity, ArrowLeft, CalendarClock, CheckCircle, Dumbbell, Flame, Loader2, NotebookTabs, Play, Target } from 'lucide-react'
 
 import { useTodayWorkoutQuery, useWeeklyPlanQuery, useCreateSessionMutation, useCompleteSessionMutation, useBulkExerciseLogsMutation } from '../hooks/usePlans'
 import { EmptyState, Badge } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
 import { SymbolFrame } from '@/shared/components/Brand'
-import { DAY_OF_WEEK_LABELS, GOAL_LABELS, MUSCLE_LABELS, cn } from '@/shared/lib/utils'
+import { DAY_OF_WEEK_LABELS, formatDate, MUSCLE_LABELS, cn } from '@/shared/lib/utils'
 import type { Exercise, ExerciseLogPayload } from '@/shared/types'
 import { useAuthStore } from '@/shared/store/authStore'
-import { useMemberActivePrescriptionQuery, useMemberDashboardQuery, useMemberPhysicalSummaryQuery } from '@/modules/members/hooks/useMembers'
-import { useNotificationsQuery } from '@/modules/alerts/hooks/useAlerts'
+import { useMemberActivePrescriptionQuery, useMemberDashboardQuery } from '@/modules/members/hooks/useMembers'
 
 interface ExerciseLogEntry {
   exercise_id: number
@@ -52,8 +51,6 @@ function TodayWorkoutPageContent() {
     isError: isWeeklyViewError,
   } = useWeeklyPlanQuery(planId)
   const { data: dashboardSummary } = useMemberDashboardQuery(isMember ? memberId : 0)
-  const { data: physicalSummary } = useMemberPhysicalSummaryQuery(isMember ? memberId : 0)
-  const { data: notifications } = useNotificationsQuery()
   const { mutate: createSession, isPending: isCreating } = useCreateSessionMutation()
   const { mutate: completeSession, isPending: isCompleting } = useCompleteSessionMutation()
   const { mutate: bulkLogs, isPending: isSaving } = useBulkExerciseLogsMutation()
@@ -65,8 +62,6 @@ function TodayWorkoutPageContent() {
   const [sessionCompletedToday, setSessionCompletedToday] = useState(false)
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState<string | null>(null)
   const [isDaySelectorOpen, setIsDaySelectorOpen] = useState(false)
-  const unreadTrainerMessages =
-    notifications?.results?.filter((message) => message.type === 'trainer_message' && !message.read).length || 0
 
   const workoutDay = useMemo(() => {
     if (data?.id) {
@@ -613,91 +608,60 @@ function TodayWorkoutPageContent() {
             <Link to="/plans/my" className="btn-secondary" data-testid="view-weekly-program-link">
               Ver mi plan semanal
             </Link>
-            <Link to="/dashboard/member" className="text-sm font-medium text-neutral-500 transition-colors hover:text-primary self-center">
-              Ir al resumen
-            </Link>
           </div>
         </section>
       ) : null}
 
       {isMember ? (
-        <section className="space-y-4 border-t border-neutral-200 pt-8 dark:border-neutral-800" data-testid="secondary-support">
+        <section className="space-y-4 border-t border-neutral-200 pt-8 dark:border-neutral-800" data-testid="member-essential-summary">
           <div>
-            <p className="label-base">Soporte secundario</p>
+            <p className="label-base">Tu seguimiento</p>
             <h2 className="text-xl font-heading font-bold text-neutral-900 dark:text-white">
-              Lo demás sigue disponible sin quitarle el foco a tu rutina
+              Progreso y membresía
             </h2>
-            <p className="mt-1 text-sm text-neutral-500">
-              Úsalo cuando necesites contexto adicional, pero el entrenamiento del día sigue siendo la página principal.
-            </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             <SupportCard
-              title="Mensajes del trainer"
-              icon={<MessageSquareMore size={18} className="text-primary" />}
-              to="/messages"
-              testId="card-messages"
+              title="Progreso"
+              icon={<Activity size={18} className="text-primary" />}
+              to="/progress"
+              testId="card-progress"
             >
               <p className="text-sm font-semibold text-neutral-900 dark:text-white">
-                {unreadTrainerMessages > 0 ? `${unreadTrainerMessages} sin leer` : 'Sin mensajes pendientes'}
+                {dashboardSummary?.weekly_sessions_done || 0} sesión(es) esta semana
               </p>
-              <p className="text-xs text-neutral-500">Mantén visibles los ajustes o avisos que te dejó tu trainer.</p>
+              <p className="text-xs text-neutral-500">
+                {dashboardSummary?.cumplimiento_semanal ?? 0}% de cumplimiento del plan semanal.
+              </p>
             </SupportCard>
 
-              <SupportCard
-                title="Físico actual"
-                icon={<Scale size={18} className="text-primary" />}
-                to="/progress"
-                testId="card-physical"
-              >
-                <p className="text-sm font-semibold text-neutral-900 dark:text-white">
-                  {physicalSummary?.current_weight_kg == null ? 'Peso sin dato' : `${physicalSummary.current_weight_kg} kg`}
-                </p>
-                <p className="text-xs text-neutral-500">
-                  {physicalSummary?.height_cm == null ? 'Estatura sin dato' : `${physicalSummary.height_cm} cm`} · IMC {physicalSummary?.bmi ?? '—'}
-                </p>
-              </SupportCard>
-
-              <SupportCard
-                title="Nutrición"
-                icon={<Utensils size={18} className="text-primary" />}
-                to="/nutrition"
-                testId="card-nutrition"
-              >
-                <p className="text-sm font-semibold text-neutral-900 dark:text-white">
-                  {activePrescription?.perfil_nutricional?.goal_type
-                    ? GOAL_LABELS[activePrescription.perfil_nutricional.goal_type] || activePrescription.perfil_nutricional.goal_type
-                    : 'Sin perfil nutricional'}
-                </p>
-                <p className="text-xs text-neutral-500">Tu guía nutricional sigue disponible sin sacarte del bloque principal.</p>
-              </SupportCard>
-
-              <SupportCard
-                title="Cobros y avisos"
-                icon={<CreditCard size={18} className="text-primary" />}
-                to="/billing"
-                testId="card-billing"
-              >
-                <p className="text-sm font-semibold text-neutral-900 dark:text-white">
-                  {dashboardSummary?.payment_status === 'late'
-                    ? 'Tienes mora activa'
-                    : dashboardSummary?.days_until_due != null
-                      ? `Próximo cobro en ${dashboardSummary.days_until_due} día(s)`
-                      : 'Sin alertas de pago'}
-                </p>
-                <p className="text-xs text-neutral-500">El entrenamiento sigue al frente, pero los cobros no quedan ocultos.</p>
-              </SupportCard>
-
-              <SupportCard
-                title="Asistente IA"
-                icon={<Sparkles size={18} className="text-primary" />}
-                to="/ai-chat"
-                testId="card-ai"
-              >
-                <p className="text-sm font-semibold text-neutral-900 dark:text-white">Consulta rápida durante el entrenamiento</p>
-                <p className="text-xs text-neutral-500">Úsalo como apoyo para dudas de ejecución o contexto del plan.</p>
-              </SupportCard>
+            <div className="rounded-[1.5rem] border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950" data-testid="card-membership">
+              <div className="mb-3 flex items-center gap-3">
+                <SymbolFrame size="sm" tone="default" className="rounded-xl">
+                  <CalendarClock size={18} />
+                </SymbolFrame>
+                <div>
+                  <p className="text-sm font-semibold text-neutral-900 dark:text-white">Membresía actual</p>
+                  <p className="text-xs text-neutral-500">{dashboardSummary?.membership_plan_name || 'Sin plan asignado'}</p>
+                </div>
+              </div>
+              <Badge variant={dashboardSummary?.payment_status === 'paid' ? 'success' : dashboardSummary?.payment_status === 'late' ? 'error' : 'warning'}>
+                {dashboardSummary?.payment_status === 'paid' ? 'Vigente' : dashboardSummary?.payment_status === 'late' ? 'Vencida' : 'Pendiente'}
+              </Badge>
+              <p className="mt-3 text-sm font-semibold text-neutral-900 dark:text-white">
+                {dashboardSummary?.membership_expires_at
+                  ? `Vence el ${formatDate(dashboardSummary.membership_expires_at)}`
+                  : 'Fecha de vencimiento no disponible'}
+              </p>
+              <p className="mt-1 text-xs text-neutral-500">
+                {dashboardSummary?.days_overdue != null
+                  ? `${dashboardSummary.days_overdue} día(s) vencida`
+                  : dashboardSummary?.days_until_due != null
+                    ? `${dashboardSummary.days_until_due} día(s) restantes`
+                    : 'Sin aviso de vencimiento pendiente.'}
+              </p>
+            </div>
           </div>
         </section>
       ) : null}

@@ -2,28 +2,22 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Activity,
-  AlertTriangle,
+  CalendarClock,
   CheckCircle2,
-  CreditCard,
   Dumbbell,
   Loader2,
-  MessageSquareMore,
   Play,
-  Scale,
-  Sparkles,
   UserRound,
-  Utensils,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { useAuthStore } from '@/shared/store/authStore'
-import { useMemberActivePrescriptionQuery, useMemberDashboardQuery, useMemberPhysicalSummaryQuery } from '@/modules/members/hooks/useMembers'
-import { useNotificationsQuery } from '@/modules/alerts/hooks/useAlerts'
+import { useMemberActivePrescriptionQuery, useMemberDashboardQuery } from '@/modules/members/hooks/useMembers'
 import { useWeeklyPlanQuery, useCreateSessionMutation, useCompleteSessionMutation, useBulkExerciseLogsMutation } from '@/modules/plans/hooks/usePlans'
 import { Badge, EmptyState, PageHeader } from '@/shared/components/UI'
 import { StatCardSkeleton } from '@/shared/components/Skeleton'
 import { SymbolFrame } from '@/shared/components/Brand'
-import { cn, DAY_OF_WEEK_LABELS, GOAL_LABELS, MUSCLE_LABELS, RISK_LEVEL_BADGE, RISK_LEVEL_LABELS } from '@/shared/lib/utils'
+import { cn, DAY_OF_WEEK_LABELS, formatDate, MUSCLE_LABELS } from '@/shared/lib/utils'
 import type { Exercise, ExerciseLogPayload } from '@/shared/types'
 
 interface ExerciseProgressDraft {
@@ -55,12 +49,8 @@ export function MemberDashboard() {
   const memberId = user?.memberprofile_id || 0
   const { data, isLoading } = useMemberDashboardQuery(memberId)
   const { data: activePrescription } = useMemberActivePrescriptionQuery(memberId)
-  const { data: physicalSummary } = useMemberPhysicalSummaryQuery(memberId)
   const activePlanId = activePrescription?.plan_activo?.id || 0
   const { data: weeklyView } = useWeeklyPlanQuery(activePlanId)
-  const { data: notifications } = useNotificationsQuery()
-  const unreadTrainerMessages =
-    notifications?.results?.filter((message) => message.type === 'trainer_message' && !message.read).length || 0
 
   const todayWorkout = activePrescription?.entrenamiento_hoy ?? null
   const weeklyDays = useMemo(
@@ -467,7 +457,7 @@ export function MemberDashboard() {
 
       {todayCabin}
 
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-[1.3fr_0.7fr]" data-testid="member-dashboard-header">
+      <section className="grid grid-cols-1 gap-4 lg:grid-cols-[1.25fr_0.75fr]" data-testid="member-dashboard-header">
         <div className="card p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-3">
@@ -489,11 +479,6 @@ export function MemberDashboard() {
                 <MetricPill icon={<CheckCircle2 size={16} />} label={`${data?.cumplimiento_semanal ?? 0}% cumplimiento`} />
               </div>
             </div>
-            {data?.riesgo_personal ? (
-              <Badge variant={RISK_LEVEL_BADGE[data.riesgo_personal.level]}>
-                Riesgo {RISK_LEVEL_LABELS[data.riesgo_personal.level]}
-              </Badge>
-            ) : null}
           </div>
           <div className="mt-5 rounded-sm border border-neutral-200 bg-neutral-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/60">
             <p className="text-xs uppercase tracking-wide text-neutral-500">Siguiente acción</p>
@@ -502,120 +487,38 @@ export function MemberDashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-4">
-          <SupportCard
-            title="Físico actual"
-            icon={<Scale size={18} className="text-primary" />}
-            to="/progress"
-            testId="card-physical"
-          >
-            <p className="text-sm font-semibold text-neutral-900 dark:text-white">
-              {physicalSummary?.current_weight_kg == null ? 'Peso sin dato' : `${physicalSummary.current_weight_kg} kg`}
-            </p>
-            <p className="text-xs text-neutral-500">
-              {physicalSummary?.height_cm == null ? 'Estatura sin dato' : `${physicalSummary.height_cm} cm`} · IMC {physicalSummary?.bmi ?? '—'}
-            </p>
-          </SupportCard>
-
-          <SupportCard
-            title="Nutrición"
-            icon={<Utensils size={18} className="text-primary" />}
-            to="/nutrition"
-            testId="card-nutrition"
-          >
-            <p className="text-sm font-semibold text-neutral-900 dark:text-white">
-              {activePrescription?.perfil_nutricional?.goal_type
-                ? GOAL_LABELS[activePrescription.perfil_nutricional.goal_type] || activePrescription.perfil_nutricional.goal_type
-                : 'Sin perfil nutricional'}
-            </p>
-            <p className="text-xs text-neutral-500">Visible como apoyo, no como foco principal del entrenamiento.</p>
-          </SupportCard>
+        <div className="card p-6" data-testid="card-membership">
+          <div className="mb-4 flex items-center gap-3">
+            <SymbolFrame tone="primary" size="sm" className="rounded-xl">
+              <CalendarClock size={18} />
+            </SymbolFrame>
+            <div>
+              <p className="label-base">Membresía actual</p>
+              <h2 className="font-heading text-xl font-bold text-neutral-900 dark:text-white">
+                {data?.membership_plan_name || 'Sin plan asignado'}
+              </h2>
+            </div>
+          </div>
+          <Badge variant={data?.payment_status === 'paid' ? 'success' : data?.payment_status === 'late' ? 'error' : 'warning'}>
+            {data?.payment_status === 'paid' ? 'Vigente' : data?.payment_status === 'late' ? 'Vencida' : 'Pendiente'}
+          </Badge>
+          <p className="mt-3 text-sm font-medium text-neutral-900 dark:text-white">
+            {data?.membership_expires_at
+              ? `Vence el ${formatDate(data.membership_expires_at)}`
+              : 'Fecha de vencimiento no disponible'}
+          </p>
+          <p className="mt-1 text-xs text-neutral-500">
+            {data?.days_overdue != null
+              ? `${data.days_overdue} día(s) vencida`
+              : data?.days_until_due != null
+                ? `${data.days_until_due} día(s) restantes`
+                : 'Consulta con tu entrenador si necesitas actualizar la membresía.'}
+          </p>
         </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.35fr_0.65fr]">
-        <div className="space-y-6">
-          {weekPlan}
-        </div>
-
-        <div className="space-y-4">
-          <SupportCard
-            title="Mensajes del trainer"
-            icon={<MessageSquareMore size={18} className="text-primary" />}
-            to="/messages"
-            testId="card-messages"
-          >
-            <p className="text-2xl font-heading font-bold text-neutral-900 dark:text-white">{unreadTrainerMessages}</p>
-            <p className="text-xs text-neutral-500">pendiente(s) por revisar</p>
-          </SupportCard>
-
-          <SupportCard
-            title="Pago"
-            icon={<CreditCard size={18} className="text-primary" />}
-            to="/billing"
-            testId="card-payment"
-          >
-            <Badge variant={data?.payment_status === 'paid' ? 'success' : data?.payment_status === 'late' ? 'error' : 'warning'}>
-              {data?.payment_status === 'paid' ? 'Al día' : data?.payment_status === 'late' ? 'En mora' : 'Pendiente'}
-            </Badge>
-            <p className="mt-2 text-xs text-neutral-500">
-              {data?.days_until_due != null ? `Vence en ${data.days_until_due} día(s)` : data?.days_overdue != null ? `${data.days_overdue} día(s) vencido` : 'Sin fecha de cobro visible'}
-            </p>
-          </SupportCard>
-
-          <SupportCard
-            title="IA y soporte"
-            icon={<Sparkles size={18} className="text-primary" />}
-            to="/ai-chat"
-            testId="card-ai"
-          >
-            <p className="text-sm font-semibold text-neutral-900 dark:text-white">Copiloto y avisos del sistema</p>
-            <p className="text-xs text-neutral-500">{data?.unread_notifications || 0} notificación(es) sin leer</p>
-          </SupportCard>
-
-          <SupportCard
-            title="Alertas"
-            icon={<AlertTriangle size={18} className="text-primary" />}
-            to="/progress"
-            testId="card-alerts"
-          >
-            <p className="text-sm text-neutral-700 dark:text-neutral-300">
-              {data?.riesgo_personal?.reasons?.[0] || 'Sin alertas críticas por ahora.'}
-            </p>
-          </SupportCard>
-        </div>
-      </section>
+      {weekPlan}
     </div>
-  )
-}
-
-function SupportCard({
-  title,
-  icon,
-  children,
-  to,
-  testId,
-}: {
-  title: string
-  icon: React.ReactNode
-  children: React.ReactNode
-  to: string
-  testId: string
-}) {
-  return (
-    <Link
-      to={to}
-      data-testid={testId}
-      className="card block p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40"
-    >
-      <div className="mb-3 flex items-center gap-3">
-        <SymbolFrame tone="primary" size="sm" className="rounded-xl">
-          {icon}
-        </SymbolFrame>
-        <span className="label-base">{title}</span>
-      </div>
-      {children}
-    </Link>
   )
 }
 

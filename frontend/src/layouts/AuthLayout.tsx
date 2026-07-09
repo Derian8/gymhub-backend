@@ -3,6 +3,8 @@ import { useAuthStore } from '@/shared/store/authStore'
 import { useEffect } from 'react'
 import { BrandMark, BrandWordmark, SymbolFrame } from '@/shared/components/Brand'
 import { useBackendStatusStore } from '@/shared/store/backendStatusStore'
+import { BASE_URL } from '@/shared/api/client'
+import { warmBackend } from '@/shared/api/backendWarmup'
 
 export function AuthLayout() {
   const { theme } = useAuthStore()
@@ -19,6 +21,7 @@ export function AuthLayout() {
 
   useEffect(() => {
     clearBackendIssue()
+    void warmBackend(BASE_URL).catch(() => undefined)
   }, [clearBackendIssue])
 
   return (

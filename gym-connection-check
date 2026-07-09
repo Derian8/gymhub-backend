@@ -35,8 +35,8 @@ request() {
   local status
 
   status="$(curl -sS -L \
-    --connect-timeout 10 \
-    --max-time 30 \
+    --connect-timeout 20 \
+    --max-time 60 \
     -D "$headers_file" \
     -o "$output_file" \
     -w '%{http_code}' \
@@ -80,6 +80,18 @@ echo "==> Validando frontend: $FRONTEND_URL"
 frontend_html="$(request frontend "$FRONTEND_URL" "text/html")"
 rg '<div id="root"' "$frontend_html" >/dev/null || fail "El frontend no parece ser la app Vite esperada."
 rg 'assets/index-.*\.js' "$frontend_html" >/dev/null || fail "El frontend no referencia bundle JS de producción."
+frontend_asset="$(rg -o 'assets/index-[A-Za-z0-9_-]+\.js' "$frontend_html" | head -n 1)"
+[[ -n "$frontend_asset" ]] || fail "No se pudo identificar el bundle principal."
+frontend_bundle="$(request frontend_bundle "$FRONTEND_URL/$frontend_asset" "javascript")"
+
+if rg -i "^content-security-policy:.*connect-src 'self'" "$TMP_DIR/frontend.headers" >/dev/null \
+  && rg -F "$BACKEND_URL" "$frontend_bundle" >/dev/null; then
+  fail "El bundle usa el backend absoluto, pero la CSP solo permite connect-src 'self'."
+fi
+
+echo "==> Validando autenticación same-origin"
+frontend_csrf="$(request frontend_csrf "$FRONTEND_URL/auth/csrf/" "application/json")"
+assert_json_field "$frontend_csrf" "data.get('csrf_token')" "frontend csrf token"
 
 echo "==> Validando backend schema: $BACKEND_URL/api/schema/"
 backend_schema="$(request backend_schema "$BACKEND_URL/api/schema/" "")"
@@ -109,4 +121,6 @@ Conexión OK
   Base de datos: ok
   Cache: ok
   Rewrite /health: ok
+  Rewrite /auth: ok
+  Bundle/CSP: compatible
 EOF
