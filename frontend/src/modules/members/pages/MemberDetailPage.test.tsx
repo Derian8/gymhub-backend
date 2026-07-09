@@ -39,6 +39,26 @@ vi.mock('../hooks/useMembers', () => ({
       days_since_last_progress: 21,
       suscripcion_activa_id: 33,
       precio_suscripcion_actual: '50000.00',
+      membresia_actual: {
+        subscription_id: 33,
+        plan_id: 2,
+        plan_name: 'Estandar',
+        agreed_price: '50000.00',
+        recurrence_type: 'monthly',
+        status: 'past_due',
+        is_active: true,
+        start_date: '2026-03-01',
+        next_billing_date: '2026-04-01',
+        renewal_date: '2026-03-18',
+        current_period_start: '2026-03-01',
+        current_period_end: '2026-03-18',
+        grace_period_days: 7,
+        payment_status: 'late',
+        days_until_due: null,
+        days_overdue: 8,
+        access_allowed: false,
+        access_reason: 'payment_overdue',
+      },
     },
     isLoading: false,
   }),
@@ -186,6 +206,9 @@ describe('MemberDetailPage', () => {
     expect(getByTestId('member-membership-panel')).toHaveTextContent('Estandar')
     expect(getByTestId('member-membership-panel')).toHaveTextContent('Membresía vencida')
     expect(getByTestId('member-membership-panel')).toHaveTextContent('₡50 000')
+    expect(getByTestId('member-membership-panel')).toHaveTextContent('mes')
+    expect(getByTestId('member-membership-panel')).toHaveTextContent('Requiere revisión')
+    expect(getByTestId('member-membership-panel')).toHaveTextContent('8 vencido')
     expect(getByTestId('member-membership-billing-link')).toHaveAttribute('href', '/billing?member=15')
     expect(getByTestId('member-prescription-panel')).toBeInTheDocument()
     expect(getByTestId('member-last-publication')).toHaveTextContent('Ultima publicacion: Nutrición')

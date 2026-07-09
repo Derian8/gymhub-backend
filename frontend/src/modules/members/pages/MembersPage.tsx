@@ -1,11 +1,42 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, UserPlus, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react'
+import { Search, UserPlus, ChevronLeft, ChevronRight, AlertTriangle, CreditCard } from 'lucide-react'
 import { useMembersQuery } from '../hooks/useMembers'
 import { Badge, PageHeader, Avatar } from '@/shared/components/UI'
 import { TableRowSkeleton } from '@/shared/components/Skeleton'
-import { formatDate, RISK_LEVEL_BADGE, RISK_LEVEL_LABELS } from '@/shared/lib/utils'
-import type { MemberProfile } from '@/shared/types'
+import { formatCurrency, formatDate, RISK_LEVEL_BADGE, RISK_LEVEL_LABELS } from '@/shared/lib/utils'
+import type { MemberMembershipSummary, MemberProfile } from '@/shared/types'
+
+const MEMBERSHIP_RECURRENCE_LABELS: Record<MemberMembershipSummary['recurrence_type'], string> = {
+  daily: 'día',
+  weekly: 'semana',
+  biweekly: 'quincena',
+  monthly: 'mes',
+  quarterly: 'trimestre',
+  annual: 'año',
+}
+
+function getMembershipBadge(membership?: MemberMembershipSummary | null): {
+  label: string
+  variant: 'success' | 'warning' | 'error' | 'neutral'
+} {
+  if (!membership) {
+    return { label: 'Sin membresía', variant: 'neutral' }
+  }
+  if (membership.status === 'cancelled') {
+    return { label: 'Cancelada', variant: 'neutral' }
+  }
+  if (membership.status === 'suspended') {
+    return { label: 'Suspendida', variant: 'warning' }
+  }
+  if (membership.payment_status === 'late' || membership.status === 'past_due') {
+    return { label: 'Vencida', variant: 'error' }
+  }
+  if (membership.payment_status === 'pending') {
+    return { label: 'Pendiente', variant: 'warning' }
+  }
+  return { label: membership.access_allowed ? 'Vigente' : 'Revisar acceso', variant: membership.access_allowed ? 'success' : 'warning' }
+}
 
 export function MembersPage() {
   const [search, setSearch] = useState('')
@@ -125,6 +156,7 @@ export function MembersPage() {
               <th className="th-base">Miembro</th>
               <th className="th-base hidden sm:table-cell">Teléfono</th>
               <th className="th-base hidden md:table-cell">Fecha ingreso</th>
+              <th className="th-base">Membresía</th>
               <th className="th-base hidden lg:table-cell">Riesgo</th>
               <th className="th-base">Estado operativo</th>
               <th className="th-base hidden xl:table-cell">Señales</th>
@@ -133,10 +165,10 @@ export function MembersPage() {
           </thead>
           <tbody>
             {isLoading ? (
-              Array.from({ length: 8 }).map((_, i) => <TableRowSkeleton key={i} cols={7} />)
+              Array.from({ length: 8 }).map((_, i) => <TableRowSkeleton key={i} cols={8} />)
             ) : data?.results.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-8 text-center text-neutral-400 text-sm">
+                <td colSpan={8} className="py-8 text-center text-neutral-400 text-sm">
                   No se encontraron miembros
                 </td>
               </tr>
@@ -181,6 +213,9 @@ export function MembersPage() {
 }
 
 function MemberRow({ member }: { member: MemberProfile }) {
+  const membership = member.membresia_actual
+  const membershipBadge = getMembershipBadge(membership)
+
   return (
     <tr className="tr-hover" data-testid={`member-row-${member.id}`}>
       <td className="td-base">
@@ -194,6 +229,33 @@ function MemberRow({ member }: { member: MemberProfile }) {
       </td>
       <td className="td-base hidden sm:table-cell">{member.phone || '—'}</td>
       <td className="td-base hidden md:table-cell">{formatDate(member.join_date)}</td>
+      <td className="td-base">
+        <div className="min-w-44 space-y-1" data-testid={`member-membership-${member.id}`}>
+          <div className="flex items-center gap-2">
+            <CreditCard size={14} className="text-primary" />
+            <span className="text-sm font-semibold text-neutral-900 dark:text-white">
+              {membership?.plan_name || 'Sin plan asignado'}
+            </span>
+          </div>
+          <Badge variant={membershipBadge.variant}>{membershipBadge.label}</Badge>
+          {membership ? (
+            <>
+              <p className="text-xs text-neutral-500">
+                {formatCurrency(membership.agreed_price)} / {MEMBERSHIP_RECURRENCE_LABELS[membership.recurrence_type]}
+              </p>
+              <p className="text-xs text-neutral-400">
+                {membership.current_period_end
+                  ? `Vence ${formatDate(membership.current_period_end)}`
+                  : membership.next_billing_date
+                    ? `Próximo cobro ${formatDate(membership.next_billing_date)}`
+                    : 'Sin fecha de cobro'}
+              </p>
+            </>
+          ) : (
+            <p className="text-xs text-neutral-400">Asigna una membresía desde facturación.</p>
+          )}
+        </div>
+      </td>
       <td className="td-base hidden lg:table-cell">
         {member.nivel_riesgo ? (
           <div className="space-y-1">

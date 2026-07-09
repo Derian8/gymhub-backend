@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from django.utils.text import slugify
 from .models import MemberProfile, TrainerProfile, AuditLog
 from .services import get_member_prescription_status, get_member_risk_snapshot
@@ -140,6 +141,7 @@ class MemberProfileSerializer(serializers.ModelSerializer):
     prescripcion_lista_para_member = serializers.SerializerMethodField()
     suscripcion_activa_id = serializers.SerializerMethodField()
     precio_suscripcion_actual = serializers.SerializerMethodField()
+    membresia_actual = serializers.SerializerMethodField()
 
     class Meta:
         model = MemberProfile
@@ -151,7 +153,7 @@ class MemberProfileSerializer(serializers.ModelSerializer):
             'riesgo_adherencia', 'nivel_riesgo', 'motivos_riesgo',
             'days_since_last_checkin', 'days_since_last_session', 'days_since_last_progress',
             'estado_prescripcion', 'tiene_plan_activo', 'prescripcion_lista_para_member',
-            'suscripcion_activa_id', 'precio_suscripcion_actual',
+            'suscripcion_activa_id', 'precio_suscripcion_actual', 'membresia_actual',
         )
         read_only_fields = ('id', 'user', 'email', 'full_name')
 
@@ -176,6 +178,32 @@ class MemberProfileSerializer(serializers.ModelSerializer):
         if obj.id not in self._prescription_cache:
             self._prescription_cache[obj.id] = get_member_prescription_status(obj)
         return self._prescription_cache[obj.id]
+
+    def _active_subscription(self, obj):
+        if not hasattr(self, '_subscription_cache'):
+            self._subscription_cache = {}
+        if obj.id in self._subscription_cache:
+            return self._subscription_cache[obj.id]
+
+        prefetched_subscriptions = getattr(obj, '_prefetched_objects_cache', {}).get('subscriptions')
+        if prefetched_subscriptions is not None:
+            active_subscriptions = [
+                subscription
+                for subscription in prefetched_subscriptions
+                if subscription.is_active
+            ]
+            subscription = sorted(
+                active_subscriptions,
+                key=lambda item: (item.start_date, item.id),
+                reverse=True,
+            )[0] if active_subscriptions else None
+        else:
+            subscription = obj.subscriptions.select_related('plan').filter(
+                is_active=True,
+            ).order_by('-start_date', '-id').first()
+
+        self._subscription_cache[obj.id] = subscription
+        return subscription
 
     def get_riesgo_adherencia(self, obj):
         return self._risk(obj)['riesgo_adherencia']
@@ -205,12 +233,53 @@ class MemberProfileSerializer(serializers.ModelSerializer):
         return self._prescription(obj)['esta_lista_para_member']
 
     def get_suscripcion_activa_id(self, obj):
-        subscription = obj.subscriptions.filter(is_active=True).order_by('-id').first()
+        subscription = self._active_subscription(obj)
         return subscription.id if subscription else None
 
     def get_precio_suscripcion_actual(self, obj):
-        subscription = obj.subscriptions.filter(is_active=True).order_by('-id').first()
+        subscription = self._active_subscription(obj)
         return str(subscription.agreed_price) if subscription else None
+
+    def get_membresia_actual(self, obj):
+        subscription = self._active_subscription(obj)
+        if not subscription:
+            return None
+
+        risk = self._risk(obj)
+        today = timezone.localdate()
+        access_allowed = False
+        access_reason = 'payment_required'
+        if obj.is_active and subscription.status not in ('suspended', 'cancelled') and subscription.current_period_end:
+            if today <= subscription.current_period_end:
+                access_allowed = True
+                access_reason = None
+            else:
+                days_after_period = (today - subscription.current_period_end).days
+                access_allowed = days_after_period <= subscription.grace_period_days
+                access_reason = None if access_allowed else 'payment_overdue'
+        elif not obj.is_active:
+            access_reason = 'member_inactive'
+
+        return {
+            'subscription_id': subscription.id,
+            'plan_id': subscription.plan_id,
+            'plan_name': subscription.plan.name,
+            'agreed_price': str(subscription.agreed_price),
+            'recurrence_type': subscription.recurrence_type,
+            'status': subscription.status,
+            'is_active': subscription.is_active,
+            'start_date': subscription.start_date.isoformat() if subscription.start_date else None,
+            'next_billing_date': subscription.next_billing_date.isoformat() if subscription.next_billing_date else None,
+            'renewal_date': subscription.renewal_date.isoformat() if subscription.renewal_date else None,
+            'current_period_start': subscription.current_period_start.isoformat() if subscription.current_period_start else None,
+            'current_period_end': subscription.current_period_end.isoformat() if subscription.current_period_end else None,
+            'grace_period_days': subscription.grace_period_days,
+            'payment_status': risk['payment_status'],
+            'days_until_due': risk['days_until_due'],
+            'days_overdue': risk['days_overdue'],
+            'access_allowed': access_allowed,
+            'access_reason': access_reason,
+        }
 
 
 class TrainerProfileSerializer(serializers.ModelSerializer):

@@ -42,6 +42,52 @@ vi.mock('../hooks/useBilling', () => ({
   useMarkPaymentAsPaidMutation: () => ({ mutate: markPaymentAsPaidMock, isPending: false }),
 }))
 
+vi.mock('@/modules/members/hooks/useMembers', () => ({
+  useMembersQuery: () => ({
+    data: {
+      count: 1,
+      next: null,
+      previous: null,
+      results: [
+        {
+          id: 15,
+          user: null,
+          email: 'maria@test.com',
+          full_name: 'Maria Perez',
+          membership_plan: 8,
+          phone: '8888-9999',
+          birth_date: null,
+          emergency_contact: '',
+          join_date: '2026-03-01',
+          is_active: true,
+          photo: null,
+          membresia_actual: {
+            subscription_id: 55,
+            plan_id: 8,
+            plan_name: 'Premium',
+            agreed_price: '79000.00',
+            recurrence_type: 'biweekly',
+            status: 'active',
+            is_active: true,
+            start_date: '2026-03-01',
+            next_billing_date: '2026-03-15',
+            renewal_date: '2026-03-14',
+            current_period_start: '2026-03-01',
+            current_period_end: '2026-03-14',
+            grace_period_days: 2,
+            payment_status: 'paid',
+            days_until_due: 4,
+            days_overdue: null,
+            access_allowed: true,
+            access_reason: null,
+          },
+        },
+      ],
+    },
+    isLoading: false,
+  }),
+}))
+
 describe('BillingPage', () => {
   beforeEach(() => {
     createPlanMock.mockReset()
@@ -64,6 +110,10 @@ describe('BillingPage', () => {
     expect(getByTestId('plan-card-8')).toBeInTheDocument()
     expect(getAllByText('Premium').length).toBeGreaterThan(0)
     expect(getByText('Planes de membresía configurables')).toBeInTheDocument()
+    expect(getByTestId('membership-portfolio')).toHaveTextContent('Cartera de membresías')
+    expect(getByTestId('portfolio-member-15')).toHaveTextContent('Maria Perez')
+    expect(getByTestId('portfolio-member-15')).toHaveTextContent('₡79 000')
+    expect(getByTestId('portfolio-member-15')).toHaveTextContent('Vigente')
   })
 
   it('shows member-specific header when member filter is present', () => {

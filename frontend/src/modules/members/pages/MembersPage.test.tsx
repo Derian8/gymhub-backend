@@ -30,6 +30,26 @@ vi.mock('../hooks/useMembers', () => ({
           estado_prescripcion: 'incompleta',
           tiene_plan_activo: true,
           prescripcion_lista_para_member: false,
+          membresia_actual: {
+            subscription_id: 44,
+            plan_id: 2,
+            plan_name: 'Premium mensual',
+            agreed_price: '50000.00',
+            recurrence_type: 'monthly',
+            status: 'active',
+            is_active: true,
+            start_date: '2026-03-01',
+            next_billing_date: '2026-04-01',
+            renewal_date: '2026-03-31',
+            current_period_start: '2026-03-01',
+            current_period_end: '2026-03-31',
+            grace_period_days: 7,
+            payment_status: 'paid',
+            days_until_due: 8,
+            days_overdue: null,
+            access_allowed: true,
+            access_reason: null,
+          },
         },
       ],
     },
@@ -51,6 +71,9 @@ describe('MembersPage', () => {
     expect(row).toBeInTheDocument()
     expect(within(row).getByText('Maria Perez')).toBeInTheDocument()
     expect(within(row).getByText(/Alto/i)).toBeInTheDocument()
+    expect(getByTestId('member-membership-15')).toHaveTextContent('Premium mensual')
+    expect(getByTestId('member-membership-15')).toHaveTextContent('₡50 000')
+    expect(getByTestId('member-membership-15')).toHaveTextContent('Vigente')
     expect(within(row).getByText(/Tiene pagos en mora/i)).toBeInTheDocument()
     expect(within(row).getByText(/Prescripción incompleta/i)).toBeInTheDocument()
     expect(getByTestId('member-program-15')).toHaveAttribute('href', '/members/15/program')

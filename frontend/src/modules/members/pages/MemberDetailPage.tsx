@@ -172,6 +172,7 @@ export function MemberDetailPage() {
     : activePrescription?.estado_prescripcion.esta_lista_para_member
       ? 'success'
       : 'warning'
+  const membership = member.membresia_actual
   const membershipStatus = getMembershipStatusCopy(dashboardSummary)
 
   return (
@@ -264,7 +265,7 @@ export function MemberDetailPage() {
               <div>
                 <p className="label-base">Membresía y cobro</p>
                 <h3 className="font-heading font-bold text-lg text-neutral-900 dark:text-white">
-                  {dashboardSummary?.membership_plan_name || 'Sin membresía asignada'}
+                  {membership?.plan_name || dashboardSummary?.membership_plan_name || 'Sin membresía asignada'}
                 </h3>
                 <p className="text-sm text-neutral-500 mt-1">
                   Estado comercial del miembro. Esto es independiente del plan de entrenamiento.
@@ -273,18 +274,38 @@ export function MemberDetailPage() {
               <Badge variant={membershipStatus.variant}>{membershipStatus.label}</Badge>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
               <PrescriptionTile
                 label="Precio acordado"
-                value={member.precio_suscripcion_actual ? formatCurrency(member.precio_suscripcion_actual) : 'Sin precio'}
+                value={membership?.agreed_price ? formatCurrency(membership.agreed_price) : member.precio_suscripcion_actual ? formatCurrency(member.precio_suscripcion_actual) : 'Sin precio'}
+              />
+              <PrescriptionTile
+                label="Recurrencia"
+                value={membership?.recurrence_type ? MEMBERSHIP_PERIOD_LABELS[membership.recurrence_type] : 'Sin dato'}
               />
               <PrescriptionTile
                 label="Vencimiento"
-                value={dashboardSummary?.membership_expires_at ? formatDate(dashboardSummary.membership_expires_at) : 'Sin fecha'}
+                value={membership?.current_period_end ? formatDate(membership.current_period_end) : dashboardSummary?.membership_expires_at ? formatDate(dashboardSummary.membership_expires_at) : 'Sin fecha'}
+              />
+              <PrescriptionTile
+                label="Próximo cobro"
+                value={membership?.next_billing_date ? formatDate(membership.next_billing_date) : 'Sin fecha'}
+              />
+              <PrescriptionTile
+                label="Acceso"
+                value={membership ? membership.access_allowed ? 'Permitido' : 'Requiere revisión' : 'Sin membresía'}
+              />
+              <PrescriptionTile
+                label="Días"
+                value={membership?.days_overdue != null
+                  ? `${membership.days_overdue} vencido(s)`
+                  : membership?.days_until_due != null
+                    ? `${membership.days_until_due} restante(s)`
+                    : 'Sin dato'}
               />
               <PrescriptionTile
                 label="Suscripción"
-                value={member.suscripcion_activa_id ? `#${member.suscripcion_activa_id}` : 'Sin suscripción activa'}
+                value={membership?.subscription_id ? `#${membership.subscription_id}` : member.suscripcion_activa_id ? `#${member.suscripcion_activa_id}` : 'Sin suscripción activa'}
               />
             </div>
 

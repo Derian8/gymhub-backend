@@ -1,5 +1,5 @@
-import { useSearchParams } from 'react-router-dom'
-import { CreditCard, Calendar, DollarSign, ReceiptText, TrendingUp } from 'lucide-react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { CreditCard, Calendar, DollarSign, ReceiptText, TrendingUp, Users } from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import {
   useCreateMemberSubscriptionMutation,
@@ -12,10 +12,11 @@ import {
   useUpdateMemberSubscriptionMutation,
   useUpdateMembershipPlanMutation,
 } from '../hooks/useBilling'
+import { useMembersQuery } from '@/modules/members/hooks/useMembers'
 import { Badge, EmptyState, PageHeader } from '@/shared/components/UI'
 import { TableRowSkeleton } from '@/shared/components/Skeleton'
 import { formatCurrency, formatDate } from '@/shared/lib/utils'
-import type { MemberSubscription, MembershipPlan, PaymentRecord } from '@/shared/types'
+import type { MemberMembershipSummary, MemberProfile, MemberSubscription, MembershipPlan, PaymentRecord } from '@/shared/types'
 
 type CobroFormState = {
   payment_reference: string
@@ -45,6 +46,37 @@ const RECURRENCE_TYPE_LABELS: Record<MemberSubscription['recurrence_type'], stri
   annual: 'Anual',
 }
 
+const RECURRENCE_SHORT_LABELS: Record<MemberSubscription['recurrence_type'], string> = {
+  daily: 'día',
+  weekly: 'semana',
+  biweekly: 'quincena',
+  monthly: 'mes',
+  quarterly: 'trimestre',
+  annual: 'año',
+}
+
+function getMembershipBadge(membership?: MemberMembershipSummary | null): {
+  label: string
+  variant: 'success' | 'warning' | 'error' | 'neutral'
+} {
+  if (!membership) {
+    return { label: 'Sin membresía', variant: 'neutral' }
+  }
+  if (membership.status === 'cancelled') {
+    return { label: 'Cancelada', variant: 'neutral' }
+  }
+  if (membership.status === 'suspended') {
+    return { label: 'Suspendida', variant: 'warning' }
+  }
+  if (membership.status === 'past_due' || membership.payment_status === 'late') {
+    return { label: 'Vencida', variant: 'error' }
+  }
+  if (membership.payment_status === 'pending') {
+    return { label: 'Pendiente', variant: 'warning' }
+  }
+  return { label: membership.access_allowed ? 'Vigente' : 'Revisar acceso', variant: membership.access_allowed ? 'success' : 'warning' }
+}
+
 export function BillingPage() {
   const [searchParams] = useSearchParams()
   const memberId = searchParams.get('member')
@@ -52,6 +84,10 @@ export function BillingPage() {
   const memberIdNumber = memberId ? Number(memberId) : undefined
   const { data: records, isLoading } = usePaymentRecordsQuery(filtros)
   const { data: plans } = useMembershipPlansQuery()
+  const { data: membersPortfolio, isLoading: isLoadingMembersPortfolio } = useMembersQuery(
+    { ordering: 'riesgo_desc' },
+    !memberId,
+  )
   usePaymentSchedulesQuery(filtros)
   const { data: subscriptions } = useMemberSubscriptionsQuery(filtros)
   const createPlan = useCreateMembershipPlanMutation()
@@ -192,6 +228,13 @@ export function BillingPage() {
         <SummaryCard label="En mora" value={String(lateCount)} icon={<TrendingUp size={18} className="text-red-400" />} accentClass="border-red-500/20" valueClassName="text-red-500" />
         <SummaryCard label="Recibos emitidos" value={String(receiptsIssued)} icon={<ReceiptText size={18} className="text-sky-400" />} />
       </div>
+
+      {!memberId && (
+        <MembershipPortfolio
+          members={membersPortfolio?.results || []}
+          isLoading={isLoadingMembersPortfolio}
+        />
+      )}
 
       <h3 className="font-heading font-bold text-xl text-neutral-900 dark:text-white mb-4">
         Registros de pago
@@ -491,6 +534,102 @@ function SummaryCard({
         {icon}
       </div>
       <span className={`text-3xl font-heading font-black ${valueClassName}`}>{value}</span>
+    </div>
+  )
+}
+
+function MembershipPortfolio({ members, isLoading }: { members: MemberProfile[]; isLoading: boolean }) {
+  const membersWithMembership = members.filter((member) => Boolean(member.membresia_actual))
+  const membersWithoutMembership = members.filter((member) => !member.membresia_actual)
+  const visibleMembers = [...membersWithMembership, ...membersWithoutMembership]
+
+  return (
+    <section className="card p-6 mb-8" data-testid="membership-portfolio">
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
+        <div>
+          <p className="label-base">Cartera de membresías</p>
+          <h2 className="font-heading text-2xl font-black text-neutral-900 dark:text-white">
+            Plan y estado por miembro
+          </h2>
+          <p className="text-sm text-neutral-500">
+            Revisa rápidamente qué plan tiene cada persona, cuánto paga y cuándo vence.
+          </p>
+        </div>
+        <Badge variant="info">{membersWithMembership.length} con membresía</Badge>
+      </div>
+
+      {isLoading ? (
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="h-32 skeleton rounded-sm" />
+          ))}
+        </div>
+      ) : !visibleMembers.length ? (
+        <EmptyState
+          icon={<Users size={40} />}
+          title="Sin miembros para mostrar"
+          description="Cuando existan miembros asignados, aparecerán aquí con su información de membresía."
+        />
+      ) : (
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+          {visibleMembers.map((member) => (
+            <MembershipPortfolioCard key={member.id} member={member} />
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function MembershipPortfolioCard({ member }: { member: MemberProfile }) {
+  const membership = member.membresia_actual
+  const badge = getMembershipBadge(membership)
+
+  return (
+    <div className="rounded-sm border border-neutral-200 p-4 dark:border-neutral-800" data-testid={`portfolio-member-${member.id}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="font-semibold text-neutral-900 dark:text-white">{member.full_name}</h3>
+          <p className="text-xs text-neutral-500">{member.email}</p>
+        </div>
+        <Badge variant={badge.variant}>{badge.label}</Badge>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <PortfolioMetric label="Plan" value={membership?.plan_name || 'Sin plan'} />
+        <PortfolioMetric
+          label="Precio"
+          value={membership ? `${formatCurrency(membership.agreed_price)} / ${RECURRENCE_SHORT_LABELS[membership.recurrence_type]}` : 'Sin precio'}
+        />
+        <PortfolioMetric
+          label="Vence"
+          value={membership?.current_period_end ? formatDate(membership.current_period_end) : membership?.next_billing_date ? formatDate(membership.next_billing_date) : 'Sin fecha'}
+        />
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs text-neutral-500">
+          {membership?.days_overdue != null
+            ? `${membership.days_overdue} día(s) vencido(s)`
+            : membership?.days_until_due != null
+              ? `${membership.days_until_due} día(s) restante(s)`
+              : membership
+                ? 'Sin señal de vencimiento'
+                : 'Debe crearse una membresía comercial.'}
+        </p>
+        <Link to={`/billing?member=${member.id}`} className="btn-secondary">
+          Gestionar
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+function PortfolioMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[11px] uppercase tracking-wide text-neutral-500">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-neutral-900 dark:text-white">{value}</p>
     </div>
   )
 }

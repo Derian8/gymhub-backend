@@ -217,6 +217,7 @@ export function MemberDashboard() {
     : data?.payment_status === 'late'
       ? { variant: 'error' as const, label: 'Membresía vencida' }
       : { variant: 'warning' as const, label: 'Pago pendiente' }
+  const membershipTone = data?.payment_status === 'paid' ? 'success' : data?.payment_status === 'late' ? 'danger' : 'warning'
   const membershipHelp = data?.payment_status === 'paid'
     ? (data.days_until_due != null ? `${data.days_until_due} día(s) restantes antes del próximo vencimiento.` : 'Tu acceso comercial está al día.')
     : data?.payment_status === 'late'
@@ -498,26 +499,46 @@ export function MemberDashboard() {
           </div>
         </div>
 
-        <div className="card p-6" data-testid="card-membership">
+        <div
+          className={cn(
+            'card relative overflow-hidden p-6',
+            data?.payment_status === 'paid' && 'border-emerald-400/40 bg-emerald-50/40 dark:border-emerald-500/20 dark:bg-emerald-950/10',
+            data?.payment_status === 'late' && 'border-red-400/50 bg-red-50/50 dark:border-red-500/30 dark:bg-red-950/20',
+            data?.payment_status !== 'paid' && data?.payment_status !== 'late' && 'border-amber-400/50 bg-amber-50/50 dark:border-amber-500/25 dark:bg-amber-950/20',
+          )}
+          data-testid="card-membership"
+        >
+          <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/40 blur-2xl dark:bg-white/5" />
           <div className="mb-4 flex items-center gap-3">
-            <SymbolFrame tone="primary" size="sm" className="rounded-xl">
+            <SymbolFrame tone={membershipTone} size="lg" className="rounded-2xl">
               <CalendarClock size={18} />
             </SymbolFrame>
             <div>
               <p className="label-base">Membresía actual</p>
-              <h2 className="font-heading text-xl font-bold text-neutral-900 dark:text-white">
+              <h2 className="font-heading text-2xl font-black text-neutral-900 dark:text-white">
                 {data?.membership_plan_name || 'Sin plan asignado'}
               </h2>
               <p className="text-xs text-neutral-500">Estado comercial, separado de tu plan de entrenamiento.</p>
             </div>
           </div>
-          <Badge variant={membershipBadge.variant}>{membershipBadge.label}</Badge>
-          <p className="mt-3 text-sm font-medium text-neutral-900 dark:text-white">
-            {data?.membership_expires_at
-              ? `Vence el ${formatDate(data.membership_expires_at)}`
-              : 'Fecha de vencimiento no disponible'}
-          </p>
-          <p className="mt-1 text-xs text-neutral-500">
+          <div className="mb-4">
+            <Badge variant={membershipBadge.variant}>{membershipBadge.label}</Badge>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <DashboardMetric
+              label="Vencimiento"
+              value={data?.membership_expires_at ? formatDate(data.membership_expires_at) : 'Sin fecha'}
+            />
+            <DashboardMetric
+              label={data?.days_overdue != null ? 'Atraso' : 'Tiempo restante'}
+              value={data?.days_overdue != null
+                ? `${data.days_overdue} día(s)`
+                : data?.days_until_due != null
+                  ? `${data.days_until_due} día(s)`
+                  : 'Sin dato'}
+            />
+          </div>
+          <p className="mt-4 rounded-sm bg-white/70 p-3 text-sm font-medium text-neutral-700 dark:bg-neutral-950/40 dark:text-neutral-200">
             {membershipHelp}
           </p>
         </div>

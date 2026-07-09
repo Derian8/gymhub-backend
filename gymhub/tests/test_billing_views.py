@@ -1,4 +1,5 @@
 import pytest
+from datetime import timedelta
 from django.utils import timezone
 from rest_framework import status
 
@@ -77,6 +78,47 @@ class TestBillingViews:
         assert subscription.status == 'suspended'
         assert subscription.current_period_end is None
         assert subscription.commercial_notes == 'Primer cierre comercial'
+
+    def test_members_endpoint_includes_current_membership_summary(
+        self,
+        trainer_client,
+        trainer_profile,
+        member_profile,
+        membership_plan,
+    ):
+        from billing.models import MemberSubscription
+
+        today = timezone.now().date()
+        subscription = MemberSubscription.objects.create(
+            member=member_profile,
+            plan=membership_plan,
+            trainer=trainer_profile,
+            agreed_price='62.50',
+            start_date=today,
+            next_billing_date=today,
+            recurrence_type='monthly',
+            grace_period_days=7,
+            is_active=True,
+            status='active',
+            current_period_start=today,
+            current_period_end=today + timedelta(days=30),
+            renewal_date=today + timedelta(days=30),
+        )
+
+        resp = trainer_client.get('/api/members/')
+
+        assert resp.status_code == status.HTTP_200_OK
+        results = resp.data.get('results', resp.data)
+        item = next(member for member in results if member['id'] == member_profile.id)
+        summary = item['membresia_actual']
+
+        assert summary['subscription_id'] == subscription.id
+        assert summary['plan_id'] == membership_plan.id
+        assert summary['plan_name'] == 'Plan Test'
+        assert summary['agreed_price'] == '62.50'
+        assert summary['recurrence_type'] == 'monthly'
+        assert summary['status'] == 'active'
+        assert summary['access_allowed'] is True
 
     @pytest.mark.parametrize('recurrence_type', ['daily', 'weekly', 'biweekly'])
     def test_trainer_can_create_short_recurrence_member_subscription(

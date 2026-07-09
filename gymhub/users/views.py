@@ -2,7 +2,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.middleware.csrf import get_token
-from django.db.models import Q, Case, When, IntegerField
+from django.db.models import Q, Case, When, IntegerField, Prefetch
 from django.utils import timezone
 from rest_framework import status, viewsets, filters
 from rest_framework.decorators import action
@@ -16,6 +16,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
 from progress.services import build_member_physical_summary
+from billing.models import MemberSubscription
 from .models import MemberProfile, TrainerProfile
 from .audit import registrar_auditoria
 from .permissions import IsStaffOrTrainer, IsTrainer, IsMember
@@ -272,6 +273,11 @@ class MemberViewSet(viewsets.ModelViewSet):
         user = self.request.user
         qs = annotate_member_metrics(MemberProfile.objects.select_related(
             'user', 'membership_plan', 'trainer_asignado__user'
+        ).prefetch_related(
+            Prefetch(
+                'subscriptions',
+                queryset=MemberSubscription.objects.select_related('plan').order_by('-is_active', '-start_date', '-id'),
+            ),
         ).order_by('id'))
 
         # Members solo ven su propio perfil

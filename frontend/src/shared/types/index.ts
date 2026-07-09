@@ -75,6 +75,27 @@ export interface MemberSubscription {
   plan_detail?: MembershipPlan
 }
 
+export interface MemberMembershipSummary {
+  subscription_id: number
+  plan_id: number
+  plan_name: string
+  agreed_price: string
+  recurrence_type: MemberSubscription['recurrence_type']
+  status: MemberSubscription['status']
+  is_active: boolean
+  start_date: string | null
+  next_billing_date: string | null
+  renewal_date: string | null
+  current_period_start: string | null
+  current_period_end: string | null
+  grace_period_days: number
+  payment_status: 'paid' | 'pending' | 'late' | null
+  days_until_due: number | null
+  days_overdue: number | null
+  access_allowed: boolean
+  access_reason: 'member_inactive' | 'payment_required' | 'payment_overdue' | null
+}
+
 export interface MemberProfile {
   id: number
   user: User
@@ -100,6 +121,7 @@ export interface MemberProfile {
   prescripcion_lista_para_member?: boolean
   suscripcion_activa_id?: number | null
   precio_suscripcion_actual?: string | null
+  membresia_actual?: MemberMembershipSummary | null
 }
 
 export interface MemberDashboardSummary {
