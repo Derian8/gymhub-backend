@@ -3,20 +3,53 @@ import {
   Dumbbell, ArrowRight, Siren, TrendingDown, CreditCard,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { useTrainerOverviewQuery } from '@/modules/members/hooks/useMembers'
+import { useMembersQuery, useTrainerOverviewQuery } from '@/modules/members/hooks/useMembers'
 import { Badge, EmptyState, PageHeader, StatCard } from '@/shared/components/UI'
 import { StatCardSkeleton } from '@/shared/components/Skeleton'
 import { SymbolFrame } from '@/shared/components/Brand'
 import {
   formatCurrency,
+  formatDate,
   PAYMENT_STATUS_LABELS,
   RISK_LEVEL_BADGE,
   RISK_LEVEL_LABELS,
 } from '@/shared/lib/utils'
 import { useAuthStore } from '@/shared/store/authStore'
+import type { MemberMembershipSummary, MemberProfile } from '@/shared/types'
+
+const MEMBERSHIP_RECURRENCE_LABELS: Record<MemberMembershipSummary['recurrence_type'], string> = {
+  daily: 'día',
+  weekly: 'semana',
+  biweekly: 'quincena',
+  monthly: 'mes',
+  quarterly: 'trimestre',
+  annual: 'año',
+}
+
+function getMembershipStatus(member: MemberProfile): {
+  label: string
+  variant: 'success' | 'warning' | 'error' | 'neutral'
+  priority: number
+} {
+  const membership = member.membresia_actual
+  if (!membership) {
+    return { label: 'Sin membresía', variant: 'neutral', priority: 3 }
+  }
+  if (membership.payment_status === 'late' || membership.status === 'past_due') {
+    return { label: 'Vencida', variant: 'error', priority: 0 }
+  }
+  if (membership.payment_status === 'pending' || (membership.days_until_due != null && membership.days_until_due <= 7)) {
+    return { label: 'Por vencer', variant: 'warning', priority: 1 }
+  }
+  if (!membership.access_allowed) {
+    return { label: 'Revisar acceso', variant: 'warning', priority: 2 }
+  }
+  return { label: 'Vigente', variant: 'success', priority: 4 }
+}
 
 export function TrainerDashboard() {
   const { data, isLoading } = useTrainerOverviewQuery()
+  const { data: membersData, isLoading: isLoadingMembers } = useMembersQuery({ ordering: 'riesgo_desc' })
   const { user } = useAuthStore()
 
   const stats = data
@@ -157,6 +190,12 @@ export function TrainerDashboard() {
               />
             ))}
       </div>
+
+      <MembershipCriticalPanel
+        members={membersData?.results || []}
+        isLoading={isLoadingMembers}
+        expectedRevenue={data?.expected_revenue_this_month || 0}
+      />
 
       <div className="grid grid-cols-1 xl:grid-cols-[1.3fr_0.7fr] gap-6 mb-8">
         <section className="card p-6" data-testid="risk-panel">
@@ -303,6 +342,167 @@ interface QuickActionProps {
   icon: React.ReactNode
   variant?: 'default' | 'warning'
   testId: string
+}
+
+function MembershipCriticalPanel({
+  members,
+  isLoading,
+  expectedRevenue,
+}: {
+  members: MemberProfile[]
+  isLoading: boolean
+  expectedRevenue: number
+}) {
+  const withStatus = members.map((member) => ({
+    member,
+    status: getMembershipStatus(member),
+  }))
+  const activeCount = withStatus.filter((item) => item.status.label === 'Vigente').length
+  const dueSoonCount = withStatus.filter((item) => item.status.label === 'Por vencer').length
+  const overdueCount = withStatus.filter((item) => item.status.label === 'Vencida').length
+  const withoutMembershipCount = withStatus.filter((item) => item.status.label === 'Sin membresía').length
+  const criticalMembers = [...withStatus]
+    .sort((a, b) => a.status.priority - b.status.priority)
+    .slice(0, 6)
+
+  return (
+    <section className="card p-6 mb-8 border-primary/20" data-testid="membership-critical-panel">
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
+        <div>
+          <p className="label-base">Membresías y cobros críticos</p>
+          <h2 className="font-heading text-2xl font-black text-neutral-900 dark:text-white">
+            Estado comercial de tus miembros
+          </h2>
+          <p className="text-sm text-neutral-500">
+            Prioriza vencidos, próximos cobros y miembros sin membresía antes de revisar entrenamiento.
+          </p>
+        </div>
+        <Link to="/billing" className="btn-secondary">
+          Ver facturación
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5 mb-5">
+        <MembershipKpi label="Vigentes" value={String(activeCount)} tone="success" />
+        <MembershipKpi label="Por vencer" value={String(dueSoonCount)} tone="warning" />
+        <MembershipKpi label="Vencidas" value={String(overdueCount)} tone="danger" />
+        <MembershipKpi label="Sin membresía" value={String(withoutMembershipCount)} tone="default" />
+        <MembershipKpi label="Cobranza esperada" value={formatCurrency(expectedRevenue)} tone="primary" />
+      </div>
+
+      {isLoading ? (
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="h-36 skeleton rounded-sm" />
+          ))}
+        </div>
+      ) : !criticalMembers.length ? (
+        <EmptyState
+          icon={<CreditCard size={40} />}
+          title="Sin miembros para analizar"
+          description="Cuando tengas miembros asignados, sus membresías aparecerán aquí."
+        />
+      ) : (
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+          {criticalMembers.map(({ member, status }) => (
+            <MembershipCriticalCard key={member.id} member={member} status={status} />
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function MembershipKpi({
+  label,
+  value,
+  tone,
+}: {
+  label: string
+  value: string
+  tone: 'success' | 'warning' | 'danger' | 'primary' | 'default'
+}) {
+  const toneClass = {
+    success: 'border-emerald-400/30 bg-emerald-50/60 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-950/20 dark:text-emerald-300',
+    warning: 'border-amber-400/30 bg-amber-50/70 text-amber-700 dark:border-amber-500/20 dark:bg-amber-950/20 dark:text-amber-300',
+    danger: 'border-red-400/30 bg-red-50/70 text-red-700 dark:border-red-500/20 dark:bg-red-950/20 dark:text-red-300',
+    primary: 'border-primary/30 bg-primary/10 text-primary',
+    default: 'border-neutral-200 bg-neutral-50 text-neutral-700 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300',
+  }[tone]
+
+  return (
+    <div className={`rounded-sm border p-3 ${toneClass}`}>
+      <p className="text-[11px] uppercase tracking-wide opacity-80">{label}</p>
+      <p className="mt-1 font-heading text-2xl font-black">{value}</p>
+    </div>
+  )
+}
+
+function MembershipCriticalCard({
+  member,
+  status,
+}: {
+  member: MemberProfile
+  status: ReturnType<typeof getMembershipStatus>
+}) {
+  const membership = member.membresia_actual
+
+  return (
+    <div
+      className={`rounded-sm border p-4 ${
+        status.variant === 'error'
+          ? 'border-red-400/40 bg-red-50/60 dark:border-red-500/25 dark:bg-red-950/20'
+          : status.variant === 'warning'
+            ? 'border-amber-400/40 bg-amber-50/60 dark:border-amber-500/25 dark:bg-amber-950/20'
+            : 'border-neutral-200 dark:border-neutral-800'
+      }`}
+      data-testid={`membership-critical-member-${member.id}`}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="font-semibold text-neutral-900 dark:text-white">{member.full_name}</h3>
+          <p className="text-xs text-neutral-500">{member.email}</p>
+        </div>
+        <Badge variant={status.variant}>{status.label}</Badge>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <MembershipMiniMetric label="Plan" value={membership?.plan_name || 'Sin plan'} />
+        <MembershipMiniMetric
+          label="Precio"
+          value={membership ? `${formatCurrency(membership.agreed_price)} / ${MEMBERSHIP_RECURRENCE_LABELS[membership.recurrence_type]}` : 'Sin precio'}
+        />
+        <MembershipMiniMetric
+          label="Vence"
+          value={membership?.current_period_end ? formatDate(membership.current_period_end) : membership?.next_billing_date ? formatDate(membership.next_billing_date) : 'Sin fecha'}
+        />
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs font-medium text-neutral-600 dark:text-neutral-300">
+          {membership?.days_overdue != null
+            ? `${membership.days_overdue} día(s) vencido(s)`
+            : membership?.days_until_due != null
+              ? `${membership.days_until_due} día(s) restante(s)`
+              : membership
+                ? 'Sin alerta de fecha'
+                : 'Crear membresía para habilitar control de cobro.'}
+        </p>
+        <Link to={`/billing?member=${member.id}`} className="text-sm font-semibold text-primary hover:underline">
+          Gestionar cobro
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+function MembershipMiniMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[11px] uppercase tracking-wide text-neutral-500">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-neutral-900 dark:text-white">{value}</p>
+    </div>
+  )
 }
 
 function QuickAction({ title, description, to, icon, variant = 'default', testId }: QuickActionProps) {

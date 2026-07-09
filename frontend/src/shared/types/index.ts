@@ -130,6 +130,10 @@ export interface MemberDashboardSummary {
   days_overdue: number | null
   membership_plan_name: string | null
   membership_expires_at: string | null
+  membership_agreed_price?: string | null
+  membership_recurrence_type?: MemberSubscription['recurrence_type'] | null
+  membership_next_billing_date?: string | null
+  membership_access_allowed?: boolean
   last_checkin: string | null
   active_plan: { id: number; name: string } | null
   nutrition_goal: string | null

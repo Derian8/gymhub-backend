@@ -3,6 +3,63 @@ import { TrainerDashboard } from './TrainerDashboard'
 import { useAuthStore } from '@/shared/store/authStore'
 
 vi.mock('@/modules/members/hooks/useMembers', () => ({
+  useMembersQuery: () => ({
+    data: {
+      count: 2,
+      next: null,
+      previous: null,
+      results: [
+        {
+          id: 10,
+          user: null,
+          email: 'ana@test.com',
+          full_name: 'Ana Perez',
+          membership_plan: 3,
+          phone: '8888-1111',
+          birth_date: null,
+          emergency_contact: '',
+          join_date: '2026-03-01',
+          is_active: true,
+          photo: null,
+          membresia_actual: {
+            subscription_id: 90,
+            plan_id: 3,
+            plan_name: 'Premium mensual',
+            agreed_price: '50000.00',
+            recurrence_type: 'monthly',
+            status: 'past_due',
+            is_active: true,
+            start_date: '2026-03-01',
+            next_billing_date: '2026-04-01',
+            renewal_date: '2026-03-20',
+            current_period_start: '2026-03-01',
+            current_period_end: '2026-03-20',
+            grace_period_days: 7,
+            payment_status: 'late',
+            days_until_due: null,
+            days_overdue: 5,
+            access_allowed: false,
+            access_reason: 'payment_overdue',
+          },
+        },
+        {
+          id: 13,
+          user: null,
+          email: 'sin@test.com',
+          full_name: 'Cliente Sin Membresia',
+          membership_plan: null,
+          phone: '',
+          birth_date: null,
+          emergency_contact: '',
+          join_date: '2026-03-01',
+          is_active: true,
+          photo: null,
+          membresia_actual: null,
+        },
+      ],
+    },
+    isLoading: false,
+  }),
   useTrainerOverviewQuery: () => ({
     data: {
       total_active_members: 42,
@@ -98,6 +155,12 @@ describe('TrainerDashboard', () => {
     expect(getByTestId('stat-expected-revenue')).toHaveTextContent('₡3 890')
     expect(getByTestId('stat-late-rate')).toHaveTextContent('14.3%')
     expect(getByTestId('stat-active-subscriptions')).toHaveTextContent('21')
+    expect(getByTestId('membership-critical-panel')).toHaveTextContent('Membresías y cobros críticos')
+    expect(getByTestId('membership-critical-panel')).toHaveTextContent('Vencidas')
+    expect(getByTestId('membership-critical-member-10')).toHaveTextContent('Premium mensual')
+    expect(getByTestId('membership-critical-member-10')).toHaveTextContent('₡50 000')
+    expect(getByTestId('membership-critical-member-10')).toHaveTextContent('5 día(s) vencido(s)')
+    expect(getByTestId('membership-critical-member-13')).toHaveTextContent('Sin membresía')
     expect(getByTestId('risk-panel')).toBeInTheDocument()
     expect(getByTestId('risk-member-10')).toBeInTheDocument()
     expect(getByTestId('prescribe-member-10')).toHaveAttribute('href', '/members/10/program')

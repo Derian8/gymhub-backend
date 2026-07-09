@@ -14,6 +14,10 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
       days_overdue: null,
       membership_plan_name: 'Semanal',
       membership_expires_at: '2026-03-21',
+      membership_agreed_price: '15000.00',
+      membership_recurrence_type: 'weekly',
+      membership_next_billing_date: '2026-03-22',
+      membership_access_allowed: true,
       last_checkin: '2026-03-19T10:00:00Z',
       active_plan: { id: 11, name: 'Hipertrofia' },
       nutrition_goal: 'muscle_gain',
@@ -202,7 +206,9 @@ describe('MemberDashboard', () => {
     expect(getByTestId('start-session-btn')).toHaveTextContent('Registrar entrenamiento')
     expect(getByTestId('card-membership')).toHaveTextContent('Semanal')
     expect(getByTestId('card-membership')).toHaveTextContent('Pago pendiente')
-    expect(getByTestId('card-membership')).toHaveTextContent('Estado comercial, separado de tu plan de entrenamiento.')
+    expect(getByTestId('card-membership')).toHaveTextContent('Estado de membresía')
+    expect(getByTestId('card-membership')).toHaveTextContent('₡15 000')
+    expect(getByTestId('card-membership')).toHaveTextContent('semana')
     expect(getByTestId('card-membership')).toHaveTextContent('21/03/2026')
     expect(getByText('Smith')).toBeInTheDocument()
     expect(getByTestId('member-plan-detail-link')).toHaveAttribute('href', '/plans/11')

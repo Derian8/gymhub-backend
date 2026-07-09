@@ -17,7 +17,7 @@ import { useWeeklyPlanQuery, useCreateSessionMutation, useCompleteSessionMutatio
 import { Badge, EmptyState, PageHeader } from '@/shared/components/UI'
 import { StatCardSkeleton } from '@/shared/components/Skeleton'
 import { SymbolFrame } from '@/shared/components/Brand'
-import { cn, DAY_OF_WEEK_LABELS, formatDate, MUSCLE_LABELS } from '@/shared/lib/utils'
+import { cn, DAY_OF_WEEK_LABELS, formatCurrency, formatDate, MUSCLE_LABELS } from '@/shared/lib/utils'
 import type { Exercise, ExerciseLogPayload } from '@/shared/types'
 
 interface ExerciseProgressDraft {
@@ -35,6 +35,15 @@ const weekdayOrder: Record<string, number> = {
   fri: 4,
   sat: 5,
   sun: 6,
+}
+
+const MEMBERSHIP_RECURRENCE_LABELS: Record<string, string> = {
+  daily: 'día',
+  weekly: 'semana',
+  biweekly: 'quincena',
+  monthly: 'mes',
+  quarterly: 'trimestre',
+  annual: 'año',
 }
 
 function getExercisePrescriptionLabel(exercise: Exercise) {
@@ -223,6 +232,69 @@ export function MemberDashboard() {
     : data?.payment_status === 'late'
       ? (data.days_overdue != null ? `${data.days_overdue} día(s) de atraso. Contacta al gym o registra el pago para regularizarla.` : 'Hay un cobro vencido pendiente.')
       : (data?.days_until_due != null ? `${data.days_until_due} día(s) para completar el pago.` : 'Consulta con tu entrenador si necesitas actualizar la membresía.')
+
+  const membershipHero = (
+    <section
+      className={cn(
+        'card relative overflow-hidden p-6 md:p-8',
+        data?.payment_status === 'paid' && 'border-emerald-400/40 bg-emerald-50/50 dark:border-emerald-500/20 dark:bg-emerald-950/10',
+        data?.payment_status === 'late' && 'border-red-400/50 bg-red-50/60 dark:border-red-500/30 dark:bg-red-950/20',
+        data?.payment_status !== 'paid' && data?.payment_status !== 'late' && 'border-amber-400/50 bg-amber-50/60 dark:border-amber-500/25 dark:bg-amber-950/20',
+      )}
+      data-testid="card-membership"
+    >
+      <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/50 blur-3xl dark:bg-white/5" />
+      <div className="relative grid grid-cols-1 gap-6 xl:grid-cols-[1.25fr_0.75fr]">
+        <div className="flex items-start gap-4">
+          <SymbolFrame tone={membershipTone} size="lg" className="rounded-3xl">
+            <CalendarClock size={22} />
+          </SymbolFrame>
+          <div>
+            <p className="label-base">Estado de membresía</p>
+            <h2 className="font-heading text-3xl font-black text-neutral-900 dark:text-white">
+              {data?.membership_plan_name || 'Sin membresía asignada'}
+            </h2>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Badge variant={membershipBadge.variant}>{membershipBadge.label}</Badge>
+              <span className="text-sm font-medium text-neutral-600 dark:text-neutral-300">
+                {data?.membership_access_allowed ? 'Acceso permitido' : 'Acceso requiere revisión'}
+              </span>
+            </div>
+            <p className="mt-4 max-w-2xl rounded-sm bg-white/70 p-3 text-sm font-semibold text-neutral-700 dark:bg-neutral-950/40 dark:text-neutral-200">
+              {membershipHelp}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <DashboardMetric
+            label="Vencimiento"
+            value={data?.membership_expires_at ? formatDate(data.membership_expires_at) : 'Sin fecha'}
+          />
+          <DashboardMetric
+            label={data?.days_overdue != null ? 'Días vencidos' : 'Días restantes'}
+            value={data?.days_overdue != null
+              ? `${data.days_overdue}`
+              : data?.days_until_due != null
+                ? `${data.days_until_due}`
+                : 'Sin dato'}
+          />
+          <DashboardMetric
+            label="Precio"
+            value={data?.membership_agreed_price ? formatCurrency(data.membership_agreed_price) : 'Sin precio'}
+          />
+          <DashboardMetric
+            label="Próximo cobro"
+            value={data?.membership_next_billing_date ? formatDate(data.membership_next_billing_date) : 'Sin fecha'}
+          />
+          <DashboardMetric
+            label="Recurrencia"
+            value={data?.membership_recurrence_type ? MEMBERSHIP_RECURRENCE_LABELS[data.membership_recurrence_type] : 'Sin dato'}
+          />
+        </div>
+      </div>
+    </section>
+  )
 
   const todayCabin = (
     <div className="card p-6" data-testid="member-today-cabin">
@@ -467,9 +539,11 @@ export function MemberDashboard() {
         subtitle="Tu cabina del gym para seguir el plan exactamente como te lo dejó tu trainer."
       />
 
+      {membershipHero}
+
       {todayCabin}
 
-      <section className="grid grid-cols-1 gap-4 lg:grid-cols-[1.25fr_0.75fr]" data-testid="member-dashboard-header">
+      <section className="grid grid-cols-1 gap-4" data-testid="member-dashboard-header">
         <div className="card p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-3">
@@ -497,50 +571,6 @@ export function MemberDashboard() {
             <p className="mt-2 text-sm font-semibold text-neutral-900 dark:text-white">{data?.siguiente_accion}</p>
             <p className="mt-1 text-sm text-neutral-500">{data?.resumen_hoy}</p>
           </div>
-        </div>
-
-        <div
-          className={cn(
-            'card relative overflow-hidden p-6',
-            data?.payment_status === 'paid' && 'border-emerald-400/40 bg-emerald-50/40 dark:border-emerald-500/20 dark:bg-emerald-950/10',
-            data?.payment_status === 'late' && 'border-red-400/50 bg-red-50/50 dark:border-red-500/30 dark:bg-red-950/20',
-            data?.payment_status !== 'paid' && data?.payment_status !== 'late' && 'border-amber-400/50 bg-amber-50/50 dark:border-amber-500/25 dark:bg-amber-950/20',
-          )}
-          data-testid="card-membership"
-        >
-          <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/40 blur-2xl dark:bg-white/5" />
-          <div className="mb-4 flex items-center gap-3">
-            <SymbolFrame tone={membershipTone} size="lg" className="rounded-2xl">
-              <CalendarClock size={18} />
-            </SymbolFrame>
-            <div>
-              <p className="label-base">Membresía actual</p>
-              <h2 className="font-heading text-2xl font-black text-neutral-900 dark:text-white">
-                {data?.membership_plan_name || 'Sin plan asignado'}
-              </h2>
-              <p className="text-xs text-neutral-500">Estado comercial, separado de tu plan de entrenamiento.</p>
-            </div>
-          </div>
-          <div className="mb-4">
-            <Badge variant={membershipBadge.variant}>{membershipBadge.label}</Badge>
-          </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <DashboardMetric
-              label="Vencimiento"
-              value={data?.membership_expires_at ? formatDate(data.membership_expires_at) : 'Sin fecha'}
-            />
-            <DashboardMetric
-              label={data?.days_overdue != null ? 'Atraso' : 'Tiempo restante'}
-              value={data?.days_overdue != null
-                ? `${data.days_overdue} día(s)`
-                : data?.days_until_due != null
-                  ? `${data.days_until_due} día(s)`
-                  : 'Sin dato'}
-            />
-          </div>
-          <p className="mt-4 rounded-sm bg-white/70 p-3 text-sm font-medium text-neutral-700 dark:bg-neutral-950/40 dark:text-neutral-200">
-            {membershipHelp}
-          </p>
         </div>
       </section>
 
