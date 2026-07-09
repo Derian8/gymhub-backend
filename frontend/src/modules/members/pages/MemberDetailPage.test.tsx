@@ -37,6 +37,8 @@ vi.mock('../hooks/useMembers', () => ({
       days_since_last_checkin: 10,
       days_since_last_session: 12,
       days_since_last_progress: 21,
+      suscripcion_activa_id: 33,
+      precio_suscripcion_actual: '50000.00',
     },
     isLoading: false,
   }),
@@ -45,6 +47,8 @@ vi.mock('../hooks/useMembers', () => ({
       payment_status: 'late',
       days_until_due: null,
       days_overdue: 8,
+      membership_plan_name: 'Estandar',
+      membership_expires_at: '2026-03-18',
       last_checkin: '2026-03-16T10:00:00Z',
       active_plan: { id: 4, name: 'Hipertrofia guiada' },
       nutrition_goal: 'muscle_gain',
@@ -178,6 +182,11 @@ describe('MemberDetailPage', () => {
 
     expect(getByTestId('member-detail-page')).toBeInTheDocument()
     expect(getByTestId('member-profile-card')).toBeInTheDocument()
+    expect(getByTestId('member-membership-panel')).toHaveTextContent('Membresía y cobro')
+    expect(getByTestId('member-membership-panel')).toHaveTextContent('Estandar')
+    expect(getByTestId('member-membership-panel')).toHaveTextContent('Membresía vencida')
+    expect(getByTestId('member-membership-panel')).toHaveTextContent('₡50 000')
+    expect(getByTestId('member-membership-billing-link')).toHaveAttribute('href', '/billing?member=15')
     expect(getByTestId('member-prescription-panel')).toBeInTheDocument()
     expect(getByTestId('member-last-publication')).toHaveTextContent('Ultima publicacion: Nutrición')
     expect(getByTestId('member-risk-panel')).toBeInTheDocument()

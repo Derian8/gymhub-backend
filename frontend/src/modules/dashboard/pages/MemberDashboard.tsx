@@ -212,6 +212,17 @@ export function MemberDashboard() {
     )
   }
 
+  const membershipBadge = data?.payment_status === 'paid'
+    ? { variant: 'success' as const, label: 'Membresía vigente' }
+    : data?.payment_status === 'late'
+      ? { variant: 'error' as const, label: 'Membresía vencida' }
+      : { variant: 'warning' as const, label: 'Pago pendiente' }
+  const membershipHelp = data?.payment_status === 'paid'
+    ? (data.days_until_due != null ? `${data.days_until_due} día(s) restantes antes del próximo vencimiento.` : 'Tu acceso comercial está al día.')
+    : data?.payment_status === 'late'
+      ? (data.days_overdue != null ? `${data.days_overdue} día(s) de atraso. Contacta al gym o registra el pago para regularizarla.` : 'Hay un cobro vencido pendiente.')
+      : (data?.days_until_due != null ? `${data.days_until_due} día(s) para completar el pago.` : 'Consulta con tu entrenador si necesitas actualizar la membresía.')
+
   const todayCabin = (
     <div className="card p-6" data-testid="member-today-cabin">
       <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
@@ -474,7 +485,7 @@ export function MemberDashboard() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-3 text-sm">
-                <MetricPill icon={<Dumbbell size={16} />} label={activePrescription?.plan_activo?.name || 'Sin plan activo'} />
+                <MetricPill icon={<Dumbbell size={16} />} label={activePrescription?.plan_activo?.name || 'Sin plan de entrenamiento'} />
                 <MetricPill icon={<Activity size={16} />} label={`${data?.weekly_sessions_done || 0} sesiones esta semana`} />
                 <MetricPill icon={<CheckCircle2 size={16} />} label={`${data?.cumplimiento_semanal ?? 0}% cumplimiento`} />
               </div>
@@ -497,22 +508,17 @@ export function MemberDashboard() {
               <h2 className="font-heading text-xl font-bold text-neutral-900 dark:text-white">
                 {data?.membership_plan_name || 'Sin plan asignado'}
               </h2>
+              <p className="text-xs text-neutral-500">Estado comercial, separado de tu plan de entrenamiento.</p>
             </div>
           </div>
-          <Badge variant={data?.payment_status === 'paid' ? 'success' : data?.payment_status === 'late' ? 'error' : 'warning'}>
-            {data?.payment_status === 'paid' ? 'Vigente' : data?.payment_status === 'late' ? 'Vencida' : 'Pendiente'}
-          </Badge>
+          <Badge variant={membershipBadge.variant}>{membershipBadge.label}</Badge>
           <p className="mt-3 text-sm font-medium text-neutral-900 dark:text-white">
             {data?.membership_expires_at
               ? `Vence el ${formatDate(data.membership_expires_at)}`
               : 'Fecha de vencimiento no disponible'}
           </p>
           <p className="mt-1 text-xs text-neutral-500">
-            {data?.days_overdue != null
-              ? `${data.days_overdue} día(s) vencida`
-              : data?.days_until_due != null
-                ? `${data.days_until_due} día(s) restantes`
-                : 'Consulta con tu entrenador si necesitas actualizar la membresía.'}
+            {membershipHelp}
           </p>
         </div>
       </section>

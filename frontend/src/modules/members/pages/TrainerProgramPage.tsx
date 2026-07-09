@@ -1058,7 +1058,7 @@ export function TrainerProgramPage() {
         subtitle="Aqui defines y publicas el entrenamiento y la nutricion especifica que el member vera como su prescripcion activa."
         action={
           <Badge variant={activePrescription?.estado_prescripcion.esta_lista_para_member ? 'success' : 'warning'}>
-            {activePrescription?.estado_prescripcion.esta_lista_para_member ? 'Lista para member' : activePlan ? 'Prescripcion incompleta' : 'Sin plan activo'}
+            {activePrescription?.estado_prescripcion.esta_lista_para_member ? 'Lista para member' : activePlan ? 'Prescripcion incompleta' : 'Sin plan de entrenamiento'}
           </Badge>
         }
       />

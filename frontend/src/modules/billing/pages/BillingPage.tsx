@@ -182,7 +182,7 @@ export function BillingPage() {
   return (
     <div data-testid="billing-page" className="page-enter">
       <PageHeader
-        title={memberId ? 'Facturación Del Miembro' : 'Facturación'}
+        title={memberId ? 'Facturación del miembro' : 'Facturación'}
         subtitle={memberId ? 'Cobros, recibos y estado comercial del miembro seleccionado' : 'Cobros, recibos y vencimientos de la cartera'}
       />
 
@@ -240,7 +240,7 @@ export function BillingPage() {
 
       <div className="mt-8">
         <h3 className="font-heading font-bold text-xl text-neutral-900 dark:text-white mb-4">
-          Planes configurables del trainer
+          Planes de membresía configurables
         </h3>
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.15fr_0.85fr]">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -302,7 +302,7 @@ export function BillingPage() {
             <textarea className="input min-h-24" placeholder="Beneficios / features" value={planForm.features} onChange={(event) => setPlanForm({ ...planForm, features: event.target.value })} />
             <label className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
               <input type="checkbox" checked={planForm.is_active} onChange={(event) => setPlanForm({ ...planForm, is_active: event.target.checked })} />
-              Plan activo
+              Plan de membresía activo
             </label>
             <div className="flex justify-end gap-2">
               {selectedPlan ? (
@@ -318,7 +318,7 @@ export function BillingPage() {
                 </button>
               ) : null}
               <button className="btn-primary" type="submit">
-                {selectedPlan ? 'Guardar plan' : 'Crear plan'}
+                {selectedPlan ? 'Guardar plan de membresía' : 'Crear plan de membresía'}
               </button>
             </div>
           </form>
@@ -328,7 +328,7 @@ export function BillingPage() {
       {memberId && (
         <div className="mt-8">
           <h3 className="font-heading font-bold text-xl text-neutral-900 dark:text-white mb-4">
-            Suscripción del member
+            Membresía del miembro
           </h3>
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-[0.9fr_1.1fr]">
             <div className="card p-5">
@@ -336,7 +336,7 @@ export function BillingPage() {
               {activeSubscription ? (
                 <div className="space-y-3">
                   <p className="text-sm text-neutral-600 dark:text-neutral-300">
-                    Plan: <span className="font-semibold text-neutral-900 dark:text-white">{activeSubscription.plan_detail?.name || activeSubscription.plan}</span>
+                    Plan de membresía: <span className="font-semibold text-neutral-900 dark:text-white">{activeSubscription.plan_detail?.name || activeSubscription.plan}</span>
                   </p>
                   <p className="text-sm text-neutral-600 dark:text-neutral-300">
                     Precio acordado: <span className="font-semibold text-neutral-900 dark:text-white">{formatCurrency(activeSubscription.agreed_price)}</span>
@@ -373,13 +373,13 @@ export function BillingPage() {
                   )}
                 </div>
               ) : (
-                <p className="text-sm text-neutral-500">Este member todavía no tiene una suscripción creada.</p>
+                <p className="text-sm text-neutral-500">Este miembro todavía no tiene una membresía comercial creada.</p>
               )}
             </div>
 
             <form className="card p-5 space-y-3" onSubmit={handleSubscriptionSubmit}>
               <h4 className="font-heading font-bold text-lg text-neutral-900 dark:text-white">
-                {activeSubscription ? 'Actualizar suscripción' : 'Crear suscripción'}
+                {activeSubscription ? 'Actualizar membresía del miembro' : 'Crear membresía del miembro'}
               </h4>
               <select
                 className="input"
@@ -397,7 +397,7 @@ export function BillingPage() {
                   })
                 }}
               >
-                <option value={0}>Selecciona un plan</option>
+                <option value={0}>Selecciona un plan de membresía</option>
                 {plans?.results.map((plan) => (
                   <option key={plan.id} value={plan.id}>
                     {plan.name} · {formatCurrency(plan.price)} / {RECURRENCE_TYPE_LABELS[plan.recurrence_type].toLowerCase()}
@@ -425,6 +425,7 @@ export function BillingPage() {
                   value={subscriptionForm.recurrence_type}
                   disabled
                   title="La recurrencia se define en el plan comercial"
+                  aria-label="Recurrencia del plan de membresía"
                 >
                   <option value="daily">Diario</option>
                   <option value="weekly">Semanal</option>
@@ -459,7 +460,7 @@ export function BillingPage() {
               </label>
               <div className="flex justify-end">
                 <button className="btn-primary" type="submit">
-                  {activeSubscription ? 'Guardar suscripción' : 'Crear suscripción'}
+                  {activeSubscription ? 'Guardar membresía' : 'Crear membresía'}
                 </button>
               </div>
             </form>
@@ -515,7 +516,7 @@ function PaymentRow({
       <td className="td-base font-mono text-xs text-neutral-400">#{record.id}</td>
       <td className="td-base font-semibold text-neutral-900 dark:text-white">
         <div>{formatCurrency(record.amount)}</div>
-        <div className="text-xs text-neutral-400">{record.plan_name || 'Sin plan'}</div>
+        <div className="text-xs text-neutral-400">{record.plan_name || 'Sin plan de membresía'}</div>
       </td>
       <td className="td-base">
         <div className="flex flex-col gap-2">

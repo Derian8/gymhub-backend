@@ -63,15 +63,15 @@ describe('BillingPage', () => {
     expect(getByTestId('payment-row-3')).toBeInTheDocument()
     expect(getByTestId('plan-card-8')).toBeInTheDocument()
     expect(getAllByText('Premium').length).toBeGreaterThan(0)
-    expect(getByText('Planes configurables del trainer')).toBeInTheDocument()
+    expect(getByText('Planes de membresía configurables')).toBeInTheDocument()
   })
 
   it('shows member-specific header when member filter is present', () => {
     const { getByText } = renderWithProviders(<BillingPage />, { route: '/billing?member=15' })
 
-    expect(getByText('Facturación Del Miembro')).toBeInTheDocument()
+    expect(getByText('Facturación del miembro')).toBeInTheDocument()
     expect(getByText('Cobros, recibos y estado comercial del miembro seleccionado')).toBeInTheDocument()
-    expect(getByText('Suscripción del member')).toBeInTheDocument()
+    expect(getByText('Membresía del miembro')).toBeInTheDocument()
   })
 
   it('creates a member subscription with an agreed price', () => {
@@ -79,7 +79,7 @@ describe('BillingPage', () => {
 
     fireEvent.change(getAllByTestId('subscription-plan-select')[0], { target: { value: '8' } })
     fireEvent.change(getAllByTestId('subscription-agreed-price-input')[0], { target: { value: '72.00' } })
-    fireEvent.click(getAllByRole('button', { name: 'Crear suscripción' })[0])
+    fireEvent.click(getAllByRole('button', { name: 'Crear membresía' })[0])
 
     expect(createSubscriptionMock).toHaveBeenCalledWith(
       expect.objectContaining({

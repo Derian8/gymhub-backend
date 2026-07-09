@@ -430,7 +430,7 @@ function ChatContextPanel({
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <ContextTile label="Siguiente acción" value={context.member?.siguiente_accion || '—'} />
-          <ContextTile label="Plan activo" value={context.summary?.active_plan_name || 'Sin plan activo'} />
+          <ContextTile label="Plan de entrenamiento" value={context.summary?.active_plan_name || 'Sin plan de entrenamiento'} />
           <ContextTile
             label="Pago"
             value={context.summary?.payment_status ? PAYMENT_STATUS_LABELS[context.summary.payment_status] : 'Sin registros'}

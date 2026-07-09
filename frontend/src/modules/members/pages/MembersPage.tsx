@@ -100,7 +100,7 @@ export function MembersPage() {
           data-testid="prescription-filter"
         >
           <option value="">Toda la prescripción</option>
-          <option value="sin_plan">Sin plan activo</option>
+          <option value="sin_plan">Sin entrenamiento publicado</option>
           <option value="incompleta">Incompleta</option>
           <option value="lista">Lista para member</option>
         </select>
@@ -126,7 +126,7 @@ export function MembersPage() {
               <th className="th-base hidden sm:table-cell">Teléfono</th>
               <th className="th-base hidden md:table-cell">Fecha ingreso</th>
               <th className="th-base hidden lg:table-cell">Riesgo</th>
-              <th className="th-base">Estado</th>
+              <th className="th-base">Estado operativo</th>
               <th className="th-base hidden xl:table-cell">Señales</th>
               <th className="th-base">Acciones</th>
             </tr>
@@ -222,7 +222,7 @@ function MemberRow({ member }: { member: MemberProfile }) {
           {member.estado_prescripcion ? (
             <Badge variant={member.estado_prescripcion === 'lista' ? 'success' : 'warning'}>
               {member.estado_prescripcion === 'sin_plan'
-                ? 'Sin plan activo'
+                ? 'Sin entrenamiento publicado'
                 : member.estado_prescripcion === 'incompleta'
                   ? 'Prescripción incompleta'
                   : 'Lista para member'}
@@ -245,7 +245,7 @@ function MemberRow({ member }: { member: MemberProfile }) {
             className="text-sm font-medium text-neutral-700 hover:text-primary dark:text-neutral-300"
             data-testid={`member-program-${member.id}`}
           >
-            Asignar plan
+            Entrenamiento
           </Link>
           <Link
             to={`/members/${member.id}`}

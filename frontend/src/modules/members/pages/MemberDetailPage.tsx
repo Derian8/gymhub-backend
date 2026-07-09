@@ -23,6 +23,34 @@ const MEMBERSHIP_PERIOD_LABELS: Record<MembershipPlan['recurrence_type'], string
   annual: 'año',
 }
 
+function getMembershipStatusCopy(summary: ReturnType<typeof useMemberDashboardQuery>['data']) {
+  if (summary?.payment_status === 'paid') {
+    return {
+      label: 'Membresía vigente',
+      variant: 'success' as const,
+      detail: summary.days_until_due != null
+        ? `${summary.days_until_due} día(s) restantes antes del próximo vencimiento.`
+        : 'El acceso comercial está al día.',
+    }
+  }
+  if (summary?.payment_status === 'late') {
+    return {
+      label: 'Membresía vencida',
+      variant: 'error' as const,
+      detail: summary.days_overdue != null
+        ? `${summary.days_overdue} día(s) de atraso. Regulariza el cobro para recuperar el estado vigente.`
+        : 'Hay un cobro vencido pendiente de regularizar.',
+    }
+  }
+  return {
+    label: 'Pago pendiente',
+    variant: 'warning' as const,
+    detail: summary?.days_until_due != null
+      ? `${summary.days_until_due} día(s) para completar el pago.`
+      : 'Confirma la membresía y el cobro desde facturación.',
+  }
+}
+
 export function MemberDetailPage() {
   const { id } = useParams<{ id: string }>()
   const memberId = parseInt(id || '0')
@@ -144,6 +172,7 @@ export function MemberDetailPage() {
     : activePrescription?.estado_prescripcion.esta_lista_para_member
       ? 'success'
       : 'warning'
+  const membershipStatus = getMembershipStatusCopy(dashboardSummary)
 
   return (
     <div data-testid="member-detail-page" className="page-enter">
@@ -164,7 +193,7 @@ export function MemberDetailPage() {
                 className="btn-primary"
                 data-testid="manage-prescription-btn"
               >
-                {activePrescription?.estado_prescripcion.tiene_plan_activo ? 'Editar prescripción' : 'Asignar plan al miembro'}
+                {activePrescription?.estado_prescripcion.tiene_plan_activo ? 'Editar prescripción' : 'Asignar entrenamiento al miembro'}
               </Link>
             )}
             {member.trainer_asignado && (
@@ -230,6 +259,47 @@ export function MemberDetailPage() {
 
         {/* Actions & details */}
         <div className="lg:col-span-2 space-y-4">
+          <div className="card p-6" data-testid="member-membership-panel">
+            <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+              <div>
+                <p className="label-base">Membresía y cobro</p>
+                <h3 className="font-heading font-bold text-lg text-neutral-900 dark:text-white">
+                  {dashboardSummary?.membership_plan_name || 'Sin membresía asignada'}
+                </h3>
+                <p className="text-sm text-neutral-500 mt-1">
+                  Estado comercial del miembro. Esto es independiente del plan de entrenamiento.
+                </p>
+              </div>
+              <Badge variant={membershipStatus.variant}>{membershipStatus.label}</Badge>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+              <PrescriptionTile
+                label="Precio acordado"
+                value={member.precio_suscripcion_actual ? formatCurrency(member.precio_suscripcion_actual) : 'Sin precio'}
+              />
+              <PrescriptionTile
+                label="Vencimiento"
+                value={dashboardSummary?.membership_expires_at ? formatDate(dashboardSummary.membership_expires_at) : 'Sin fecha'}
+              />
+              <PrescriptionTile
+                label="Suscripción"
+                value={member.suscripcion_activa_id ? `#${member.suscripcion_activa_id}` : 'Sin suscripción activa'}
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-neutral-500">{membershipStatus.detail}</p>
+              <Link
+                to={`/billing?member=${member.id}`}
+                className="btn-secondary"
+                data-testid="member-membership-billing-link"
+              >
+                Ver facturación
+              </Link>
+            </div>
+          </div>
+
           <div className="card p-6" data-testid="member-prescription-panel">
             <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
               <div>
@@ -257,7 +327,7 @@ export function MemberDetailPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
               <PrescriptionTile
-                label="Plan activo"
+                label="Plan de entrenamiento"
                 value={activePrescription?.estado_prescripcion.tiene_plan_activo ? 'Publicado' : 'Pendiente'}
               />
               <PrescriptionTile
@@ -286,7 +356,7 @@ export function MemberDetailPage() {
                   className="btn-secondary"
                   data-testid="open-prescription-flow-btn"
                 >
-                  {activePrescription?.estado_prescripcion.tiene_plan_activo ? 'Abrir flujo de prescripción' : 'Crear prescripción'}
+                  {activePrescription?.estado_prescripcion.tiene_plan_activo ? 'Abrir prescripción deportiva' : 'Crear prescripción deportiva'}
                 </Link>
               ) : null}
               {activePrescription?.plan_activo && (
@@ -295,7 +365,7 @@ export function MemberDetailPage() {
                   className="text-sm font-medium text-primary hover:underline"
                   data-testid="active-plan-detail-link"
                 >
-                  Ver plan publicado
+                  Ver plan de entrenamiento
                 </Link>
               )}
             </div>
@@ -590,7 +660,7 @@ export function MemberDetailPage() {
                 Activar miembro
               </h3>
               <p className="text-sm text-neutral-500 mb-4">
-                Selecciona un plan configurable y define el precio acordado para activar al miembro y generar su suscripción.
+                Selecciona un plan de membresía y define el precio acordado para activar al miembro y generar su suscripción comercial.
               </p>
               {plans?.results && (
                 <div className="space-y-2 mb-4">
@@ -642,7 +712,7 @@ export function MemberDetailPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <QuickLink
               icon={<Dumbbell size={20} />}
-              label="Asignar plan"
+              label="Plan de entrenamiento"
               to={`/members/${member.id}/program`}
               testId="member-program-link"
             />

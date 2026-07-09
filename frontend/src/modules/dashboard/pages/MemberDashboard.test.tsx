@@ -201,6 +201,8 @@ describe('MemberDashboard', () => {
     expect(getByTestId('member-today-cabin')).toHaveTextContent('Bloque del día')
     expect(getByTestId('start-session-btn')).toHaveTextContent('Registrar entrenamiento')
     expect(getByTestId('card-membership')).toHaveTextContent('Semanal')
+    expect(getByTestId('card-membership')).toHaveTextContent('Pago pendiente')
+    expect(getByTestId('card-membership')).toHaveTextContent('Estado comercial, separado de tu plan de entrenamiento.')
     expect(getByTestId('card-membership')).toHaveTextContent('21/03/2026')
     expect(getByText('Smith')).toBeInTheDocument()
     expect(getByTestId('member-plan-detail-link')).toHaveAttribute('href', '/plans/11')

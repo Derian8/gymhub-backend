@@ -71,7 +71,7 @@ export function TrainerDashboard() {
           testId: 'stat-progress-risk',
         },
         {
-          label: 'Sin plan activo',
+          label: 'Sin entrenamiento publicado',
           value: data.members_without_active_plan,
           icon: <Dumbbell size={20} />,
           variant: data.members_without_active_plan > 0 ? 'warning' as const : 'default' as const,
@@ -263,7 +263,7 @@ export function TrainerDashboard() {
           />
           <QuickAction
             title="Completar prescripciones"
-            description={`${data?.members_without_active_plan || 0} sin plan y ${data?.incomplete_prescriptions || 0} incompletas`}
+            description={`${data?.members_without_active_plan || 0} sin entrenamiento publicado y ${data?.incomplete_prescriptions || 0} incompletas`}
             to="/members"
             icon={<Dumbbell size={20} />}
             variant={data && (data.members_without_active_plan > 0 || data.incomplete_prescriptions > 0) ? 'warning' : 'default'}
@@ -274,10 +274,10 @@ export function TrainerDashboard() {
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <PrescriptionQueue
-          title="Members sin plan activo"
-          subtitle={`${data?.members_without_active_plan || 0} member(s) todavía no tienen una base publicada`}
+          title="Miembros sin entrenamiento publicado"
+          subtitle={`${data?.members_without_active_plan || 0} miembro(s) todavía no tienen una rutina publicada`}
           items={data?.miembros_sin_plan_activo || []}
-          emptyTitle="Todos tienen plan activo"
+          emptyTitle="Todos tienen entrenamiento publicado"
           emptyDescription="No hay members pendientes de primera asignación ahora mismo."
           linkTo="/members?prescription_status=sin_plan&ordering=prescripcion"
           testId="queue-without-plan"
@@ -357,7 +357,7 @@ function PrescriptionQueue({
     <section className="card p-6" data-testid={testId}>
       <div className="flex items-start justify-between gap-4 mb-5">
         <div>
-          <p className="label-base">Prescripción operativa</p>
+          <p className="label-base">Prescripción deportiva</p>
           <h2 className="text-2xl font-heading font-bold text-neutral-900 dark:text-white">{title}</h2>
           <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">{subtitle}</p>
         </div>
