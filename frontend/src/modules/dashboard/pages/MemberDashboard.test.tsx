@@ -210,6 +210,7 @@ describe('MemberDashboard', () => {
     expect(getByTestId('card-membership')).toHaveTextContent('₡15 000')
     expect(getByTestId('card-membership')).toHaveTextContent('semana')
     expect(getByTestId('card-membership')).toHaveTextContent('21/03/2026')
+    expect(getByTestId('member-membership-detail-link')).toHaveAttribute('href', '/membership')
     expect(getByText('Smith')).toBeInTheDocument()
     expect(getByTestId('member-plan-detail-link')).toHaveAttribute('href', '/plans/11')
   })

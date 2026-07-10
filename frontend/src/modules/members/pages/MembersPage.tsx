@@ -262,6 +262,9 @@ function MemberRow({ member }: { member: MemberProfile }) {
                     ? `Próximo cobro ${formatDate(membership.next_billing_date)}`
                     : 'Sin fecha de cobro'}
               </p>
+              <p className="text-xs text-neutral-500">
+                Suscripción #{membership.subscription_id}
+              </p>
             </>
           ) : (
             <p className="text-xs text-neutral-400">

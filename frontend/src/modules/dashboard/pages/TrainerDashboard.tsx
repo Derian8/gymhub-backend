@@ -475,8 +475,9 @@ function MembershipCriticalCard({
         <Badge variant={status.variant}>{status.label}</Badge>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MembershipMiniMetric label="Plan" value={getMembershipPlanName(member)} />
+        <MembershipMiniMetric label="Suscripción" value={membership ? `#${membership.subscription_id}` : member.membership_plan ? 'Sin cobro activo' : 'Sin suscripción'} />
         <MembershipMiniMetric
           label="Precio"
           value={membership ? `${formatCurrency(membership.agreed_price)} / ${MEMBERSHIP_RECURRENCE_LABELS[membership.recurrence_type]}` : member.membership_plan ? 'Pendiente de suscripción' : 'Sin precio'}

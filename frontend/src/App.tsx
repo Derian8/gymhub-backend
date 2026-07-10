@@ -39,6 +39,7 @@ import { MessagesPage } from '@/modules/alerts/pages/MessagesPage'
 
 // Billing
 import { BillingPage } from '@/modules/billing/pages/BillingPage'
+import { MemberMembershipPage } from '@/modules/billing/pages/MemberMembershipPage'
 
 // Nutrition
 import { NutritionPage } from '@/modules/nutrition/pages/NutritionPage'
@@ -229,6 +230,14 @@ function App() {
 
         {/* Billing */}
         <Route path="/billing" element={<BillingPage />} />
+        <Route
+          path="/membership"
+          element={
+            <ProtectedRoute requiredRole="member">
+              <MemberMembershipPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Nutrition */}
         <Route path="/nutrition" element={<NutritionPage />} />

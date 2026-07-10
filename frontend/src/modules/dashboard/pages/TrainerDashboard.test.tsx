@@ -173,6 +173,7 @@ describe('TrainerDashboard', () => {
     expect(getByTestId('membership-critical-panel')).toHaveTextContent('Membresías y cobros críticos')
     expect(getByTestId('membership-critical-panel')).toHaveTextContent('Vencidas')
     expect(getByTestId('membership-critical-member-10')).toHaveTextContent('Premium mensual')
+    expect(getByTestId('membership-critical-member-10')).toHaveTextContent('#90')
     expect(getByTestId('membership-critical-member-10')).toHaveTextContent('₡50 000')
     expect(getByTestId('membership-critical-member-10')).toHaveTextContent('5 día(s) vencido(s)')
     expect(getByTestId('membership-critical-member-14')).toHaveTextContent('Plan sin cobro')

@@ -263,6 +263,9 @@ export function MemberDashboard() {
             <p className="mt-4 max-w-2xl rounded-sm bg-white/70 p-3 text-sm font-semibold text-neutral-700 dark:bg-neutral-950/40 dark:text-neutral-200">
               {membershipHelp}
             </p>
+            <Link to="/membership" className="btn-secondary mt-4 inline-flex" data-testid="member-membership-detail-link">
+              Ver detalle de mi membresía
+            </Link>
           </div>
         </div>
 

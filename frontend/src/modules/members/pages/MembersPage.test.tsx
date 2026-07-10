@@ -72,6 +72,7 @@ describe('MembersPage', () => {
     expect(within(row).getByText('Maria Perez')).toBeInTheDocument()
     expect(within(row).getByText(/Alto/i)).toBeInTheDocument()
     expect(getByTestId('member-membership-15')).toHaveTextContent('Premium mensual')
+    expect(getByTestId('member-membership-15')).toHaveTextContent('Suscripción #44')
     expect(getByTestId('member-membership-15')).toHaveTextContent('₡50 000')
     expect(getByTestId('member-membership-15')).toHaveTextContent('Vigente')
     expect(within(row).getByText(/Tiene pagos en mora/i)).toBeInTheDocument()

@@ -613,8 +613,9 @@ function MembershipPortfolioCard({ member }: { member: MemberProfile }) {
         <Badge variant={badge.variant}>{badge.label}</Badge>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <PortfolioMetric label="Plan" value={getPortfolioPlanName(member)} />
+        <PortfolioMetric label="Suscripción" value={membership ? `#${membership.subscription_id}` : hasAssignedMembershipPlan(member) ? 'Sin cobro activo' : 'Sin suscripción'} />
         <PortfolioMetric
           label="Precio"
           value={membership ? `${formatCurrency(membership.agreed_price)} / ${RECURRENCE_SHORT_LABELS[membership.recurrence_type]}` : hasAssignedMembershipPlan(member) ? 'Pendiente de suscripción' : 'Sin precio'}
