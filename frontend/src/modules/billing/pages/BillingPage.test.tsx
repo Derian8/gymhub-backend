@@ -43,6 +43,24 @@ vi.mock('../hooks/useBilling', () => ({
 }))
 
 vi.mock('@/modules/members/hooks/useMembers', () => ({
+  useMemberDetailQuery: () => ({
+    data: {
+      id: 15,
+      user: null,
+      email: 'maria@test.com',
+      full_name: 'Maria Perez',
+      membership_plan: 8,
+      membership_plan_nombre: 'Premium',
+      phone: '8888-9999',
+      birth_date: null,
+      emergency_contact: '',
+      join_date: '2026-03-01',
+      is_active: true,
+      photo: null,
+      membresia_actual: null,
+    },
+    isLoading: false,
+  }),
   useMembersQuery: () => ({
     data: {
       count: 2,
@@ -132,8 +150,8 @@ describe('BillingPage', () => {
     expect(getByTestId('portfolio-member-15')).toHaveTextContent('₡79 000')
     expect(getByTestId('portfolio-member-15')).toHaveTextContent('Vigente')
     expect(getByTestId('portfolio-member-16')).toHaveTextContent('Cliente Plan Sin Cobro')
-    expect(getByTestId('portfolio-member-16')).toHaveTextContent('Plan sin cobro')
-    expect(getByTestId('portfolio-member-16')).toHaveTextContent('Pendiente de suscripción')
+    expect(getByTestId('portfolio-member-16')).toHaveTextContent('Falta activar cobro')
+    expect(getByTestId('portfolio-member-16')).toHaveTextContent('Crear cobro para activar')
   })
 
   it('shows member-specific header when member filter is present', () => {
@@ -149,7 +167,7 @@ describe('BillingPage', () => {
 
     fireEvent.change(getAllByTestId('subscription-plan-select')[0], { target: { value: '8' } })
     fireEvent.change(getAllByTestId('subscription-agreed-price-input')[0], { target: { value: '72.00' } })
-    fireEvent.click(getAllByRole('button', { name: 'Crear membresía' })[0])
+    fireEvent.click(getAllByRole('button', { name: 'Crear suscripción y primer cobro' })[0])
 
     expect(createSubscriptionMock).toHaveBeenCalledWith(
       expect.objectContaining({

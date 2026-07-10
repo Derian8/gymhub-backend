@@ -176,7 +176,7 @@ describe('TrainerDashboard', () => {
     expect(getByTestId('membership-critical-member-10')).toHaveTextContent('#90')
     expect(getByTestId('membership-critical-member-10')).toHaveTextContent('₡50 000')
     expect(getByTestId('membership-critical-member-10')).toHaveTextContent('5 día(s) vencido(s)')
-    expect(getByTestId('membership-critical-member-14')).toHaveTextContent('Plan sin cobro')
+    expect(getByTestId('membership-critical-member-14')).toHaveTextContent('Falta activar cobro')
     expect(getByTestId('membership-critical-member-14')).toHaveTextContent('Básico mensual')
     expect(getByTestId('membership-critical-member-13')).toHaveTextContent('Sin membresía')
     expect(getByTestId('risk-panel')).toBeInTheDocument()

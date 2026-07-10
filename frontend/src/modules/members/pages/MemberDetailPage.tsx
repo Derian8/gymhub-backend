@@ -180,9 +180,9 @@ export function MemberDetailPage() {
   const hasPlanWithoutSubscription = Boolean(member.membership_plan && !membership)
   const membershipStatus = hasPlanWithoutSubscription
     ? {
-        label: 'Plan sin cobro',
+        label: 'Falta activar cobro',
         variant: 'warning' as const,
-        detail: 'El miembro tiene un plan asignado, pero falta crear la suscripción comercial y su cobro desde facturación.',
+        detail: 'El miembro tiene un plan asignado. Crea la suscripción y el primer cobro para activar precio, vencimiento y acceso.',
       }
     : getMembershipStatusCopy(dashboardSummary)
 
@@ -292,7 +292,7 @@ export function MemberDetailPage() {
               />
               <PrescriptionTile
                 label="Recurrencia"
-                value={membership?.recurrence_type ? MEMBERSHIP_PERIOD_LABELS[membership.recurrence_type] : hasPlanWithoutSubscription ? 'Pendiente de cobro' : 'Sin dato'}
+                value={membership?.recurrence_type ? MEMBERSHIP_PERIOD_LABELS[membership.recurrence_type] : hasPlanWithoutSubscription ? 'Crear cobro para activar' : 'Sin dato'}
               />
               <PrescriptionTile
                 label="Vencimiento"
@@ -304,7 +304,7 @@ export function MemberDetailPage() {
               />
               <PrescriptionTile
                 label="Acceso"
-                value={membership ? membership.access_allowed ? 'Permitido' : 'Requiere revisión' : hasPlanWithoutSubscription ? 'Pendiente de suscripción' : 'Sin membresía'}
+                value={membership ? membership.access_allowed ? 'Permitido' : 'Requiere revisión' : hasPlanWithoutSubscription ? 'Crear cobro para activar' : 'Sin membresía'}
               />
               <PrescriptionTile
                 label="Días"
@@ -324,10 +324,10 @@ export function MemberDetailPage() {
               <p className="text-sm text-neutral-500">{membershipStatus.detail}</p>
               <Link
                 to={`/billing?member=${member.id}`}
-                className="btn-secondary"
+                className={hasPlanWithoutSubscription ? 'btn-primary' : 'btn-secondary'}
                 data-testid="member-membership-billing-link"
               >
-                Ver facturación
+                {hasPlanWithoutSubscription ? 'Crear suscripción y cobro' : 'Ver facturación'}
               </Link>
             </div>
           </div>

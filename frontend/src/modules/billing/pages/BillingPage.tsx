@@ -12,7 +12,7 @@ import {
   useUpdateMemberSubscriptionMutation,
   useUpdateMembershipPlanMutation,
 } from '../hooks/useBilling'
-import { useMembersQuery } from '@/modules/members/hooks/useMembers'
+import { useMemberDetailQuery, useMembersQuery } from '@/modules/members/hooks/useMembers'
 import { Badge, EmptyState, PageHeader } from '@/shared/components/UI'
 import { TableRowSkeleton } from '@/shared/components/Skeleton'
 import { formatCurrency, formatDate } from '@/shared/lib/utils'
@@ -96,6 +96,7 @@ export function BillingPage() {
     { ordering: 'riesgo_desc' },
     !memberId,
   )
+  const { data: selectedMember } = useMemberDetailQuery(memberIdNumber || 0)
   usePaymentSchedulesQuery(filtros)
   const { data: subscriptions } = useMemberSubscriptionsQuery(filtros)
   const createPlan = useCreateMembershipPlanMutation()
@@ -160,6 +161,23 @@ export function BillingPage() {
       commercial_notes: activeSubscription.commercial_notes,
     })
   }, [activeSubscription])
+
+  useEffect(() => {
+    if (activeSubscription || !selectedMember?.membership_plan || !plans?.results.length || subscriptionForm.plan) {
+      return
+    }
+    const assignedPlan = plans.results.find((plan) => plan.id === selectedMember.membership_plan)
+    if (!assignedPlan) {
+      return
+    }
+    setSubscriptionForm((current) => ({
+      ...current,
+      plan: assignedPlan.id,
+      agreed_price: assignedPlan.price,
+      recurrence_type: assignedPlan.recurrence_type,
+      grace_period_days: assignedPlan.grace_period_days,
+    }))
+  }, [activeSubscription, plans, selectedMember, subscriptionForm.plan])
 
   const beginPlanEdit = (plan: MembershipPlan) => {
     setSelectedPlanId(plan.id)
@@ -242,6 +260,158 @@ export function BillingPage() {
           members={membersPortfolio?.results || []}
           isLoading={isLoadingMembersPortfolio}
         />
+      )}
+
+      {memberId && (
+        <div className="mb-8">
+          <h3 className="font-heading font-bold text-xl text-neutral-900 dark:text-white mb-4">
+            Membresía del miembro
+          </h3>
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+            <div className="card p-5">
+              <h4 className="font-heading font-bold text-lg text-neutral-900 dark:text-white mb-3">Estado actual</h4>
+              {activeSubscription ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-neutral-600 dark:text-neutral-300">
+                    Plan de membresía: <span className="font-semibold text-neutral-900 dark:text-white">{activeSubscription.plan_detail?.name || activeSubscription.plan}</span>
+                  </p>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-300">
+                    Precio acordado: <span className="font-semibold text-neutral-900 dark:text-white">{formatCurrency(activeSubscription.agreed_price)}</span>
+                  </p>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-300">
+                    Recurrencia: <span className="font-semibold text-neutral-900 dark:text-white">{RECURRENCE_TYPE_LABELS[activeSubscription.recurrence_type]}</span>
+                  </p>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-300">
+                    Próximo cobro: <span className="font-semibold text-neutral-900 dark:text-white">{formatDate(activeSubscription.next_billing_date)}</span>
+                  </p>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-300">
+                    Renovación comercial: <span className="font-semibold text-neutral-900 dark:text-white">{activeSubscription.renewal_date ? formatDate(activeSubscription.renewal_date) : 'Sin fecha'}</span>
+                  </p>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-300">
+                    Vigencia pagada: <span className="font-semibold text-neutral-900 dark:text-white">{activeSubscription.current_period_end ? `hasta ${formatDate(activeSubscription.current_period_end)}` : 'Pendiente del primer pago'}</span>
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant={SUBSCRIPTION_STATUS_VARIANT[activeSubscription.status]}>
+                      {SUBSCRIPTION_STATUS_LABELS[activeSubscription.status]}
+                    </Badge>
+                    <Badge variant={activeSubscription.is_active ? 'success' : 'warning'}>
+                      {activeSubscription.is_active ? 'Cobro habilitado' : 'Cobro pausado'}
+                    </Badge>
+                  </div>
+                  {activeSubscription.cancellation_reason && (
+                    <p className="text-xs text-neutral-500">
+                      Motivo de cancelación: {activeSubscription.cancellation_reason}
+                    </p>
+                  )}
+                  {activeSubscription.commercial_notes && (
+                    <p className="text-xs text-neutral-500">
+                      Nota comercial: {activeSubscription.commercial_notes}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-neutral-500">Este miembro todavía no tiene una suscripción comercial creada.</p>
+                  {selectedMember?.membership_plan_nombre ? (
+                    <p className="text-sm text-neutral-600 dark:text-neutral-300">
+                      Plan asignado: <span className="font-semibold text-neutral-900 dark:text-white">{selectedMember.membership_plan_nombre}</span>
+                    </p>
+                  ) : (
+                    <p className="text-sm text-neutral-500">Selecciona un plan para crear la suscripción y el primer cobro.</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <form className="card p-5 space-y-3" onSubmit={handleSubscriptionSubmit}>
+              <h4 className="font-heading font-bold text-lg text-neutral-900 dark:text-white">
+                {activeSubscription ? 'Actualizar suscripción del miembro' : 'Crear suscripción y primer cobro'}
+              </h4>
+              <select
+                className="input"
+                data-testid="subscription-plan-select"
+                value={subscriptionForm.plan}
+                onChange={(event) => {
+                  const nextPlanId = Number(event.target.value)
+                  const nextPlan = plans?.results.find((plan) => plan.id === nextPlanId)
+                  setSubscriptionForm({
+                    ...subscriptionForm,
+                    plan: nextPlanId,
+                    agreed_price: nextPlan?.price ?? subscriptionForm.agreed_price,
+                    recurrence_type: nextPlan?.recurrence_type ?? subscriptionForm.recurrence_type,
+                    grace_period_days: nextPlan?.grace_period_days ?? subscriptionForm.grace_period_days,
+                  })
+                }}
+              >
+                <option value={0}>Selecciona un plan de membresía</option>
+                {plans?.results.map((plan) => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.name} · {formatCurrency(plan.price)} / {RECURRENCE_TYPE_LABELS[plan.recurrence_type].toLowerCase()}
+                  </option>
+                ))}
+              </select>
+              <input
+                className="input"
+                data-testid="subscription-agreed-price-input"
+                type="number"
+                min={0}
+                placeholder="Precio acordado"
+                value={subscriptionForm.agreed_price}
+                onChange={(event) => setSubscriptionForm({ ...subscriptionForm, agreed_price: event.target.value })}
+                required
+              />
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <input className="input" type="date" value={subscriptionForm.start_date} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, start_date: event.target.value })} required />
+                <input className="input" type="date" value={subscriptionForm.next_billing_date} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, next_billing_date: event.target.value })} required />
+              </div>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <select
+                  className="input"
+                  data-testid="subscription-recurrence-select"
+                  value={subscriptionForm.recurrence_type}
+                  disabled
+                  title="La recurrencia se define en el plan comercial"
+                  aria-label="Recurrencia del plan de membresía"
+                >
+                  <option value="daily">Diario</option>
+                  <option value="weekly">Semanal</option>
+                  <option value="biweekly">Quincenal</option>
+                  <option value="monthly">Mensual</option>
+                  <option value="quarterly">Trimestral</option>
+                  <option value="annual">Anual</option>
+                </select>
+                <input className="input" type="number" min={0} value={subscriptionForm.grace_period_days} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, grace_period_days: Number(event.target.value) })} />
+              </div>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <select className="input" value={subscriptionForm.status} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, status: event.target.value as MemberSubscription['status'] })}>
+                  <option value="active">Activa</option>
+                  <option value="past_due">Con mora</option>
+                  <option value="suspended">Suspendida</option>
+                  <option value="cancelled">Cancelada</option>
+                </select>
+                <input className="input" type="date" value={subscriptionForm.renewal_date} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, renewal_date: event.target.value })} />
+              </div>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <input className="input" type="date" value={subscriptionForm.cancellation_date} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, cancellation_date: event.target.value })} />
+                <input className="input" placeholder="Motivo de cancelación" value={subscriptionForm.cancellation_reason} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, cancellation_reason: event.target.value })} />
+              </div>
+              <textarea className="input min-h-24" placeholder="Notas comerciales" value={subscriptionForm.commercial_notes} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, commercial_notes: event.target.value })} />
+              <label className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
+                <input type="checkbox" checked={subscriptionForm.auto_generate_next} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, auto_generate_next: event.target.checked })} />
+                Generar próximo cobro automáticamente
+              </label>
+              <label className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
+                <input type="checkbox" checked={subscriptionForm.is_active} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, is_active: event.target.checked })} />
+                Suscripción operativa
+              </label>
+              <div className="flex justify-end">
+                <button className="btn-primary" type="submit">
+                  {activeSubscription ? 'Guardar suscripción' : 'Crear suscripción y primer cobro'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       <h3 className="font-heading font-bold text-xl text-neutral-900 dark:text-white mb-4">
@@ -375,149 +545,6 @@ export function BillingPage() {
           </form>
         </div>
       </div>
-
-      {memberId && (
-        <div className="mt-8">
-          <h3 className="font-heading font-bold text-xl text-neutral-900 dark:text-white mb-4">
-            Membresía del miembro
-          </h3>
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-            <div className="card p-5">
-              <h4 className="font-heading font-bold text-lg text-neutral-900 dark:text-white mb-3">Estado actual</h4>
-              {activeSubscription ? (
-                <div className="space-y-3">
-                  <p className="text-sm text-neutral-600 dark:text-neutral-300">
-                    Plan de membresía: <span className="font-semibold text-neutral-900 dark:text-white">{activeSubscription.plan_detail?.name || activeSubscription.plan}</span>
-                  </p>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-300">
-                    Precio acordado: <span className="font-semibold text-neutral-900 dark:text-white">{formatCurrency(activeSubscription.agreed_price)}</span>
-                  </p>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-300">
-                    Recurrencia: <span className="font-semibold text-neutral-900 dark:text-white">{RECURRENCE_TYPE_LABELS[activeSubscription.recurrence_type]}</span>
-                  </p>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-300">
-                    Próximo cobro: <span className="font-semibold text-neutral-900 dark:text-white">{formatDate(activeSubscription.next_billing_date)}</span>
-                  </p>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-300">
-                    Renovación comercial: <span className="font-semibold text-neutral-900 dark:text-white">{activeSubscription.renewal_date ? formatDate(activeSubscription.renewal_date) : 'Sin fecha'}</span>
-                  </p>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-300">
-                    Vigencia pagada: <span className="font-semibold text-neutral-900 dark:text-white">{activeSubscription.current_period_end ? `hasta ${formatDate(activeSubscription.current_period_end)}` : 'Pendiente del primer pago'}</span>
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant={SUBSCRIPTION_STATUS_VARIANT[activeSubscription.status]}>
-                      {SUBSCRIPTION_STATUS_LABELS[activeSubscription.status]}
-                    </Badge>
-                    <Badge variant={activeSubscription.is_active ? 'success' : 'warning'}>
-                      {activeSubscription.is_active ? 'Cobro habilitado' : 'Cobro pausado'}
-                    </Badge>
-                  </div>
-                  {activeSubscription.cancellation_reason && (
-                    <p className="text-xs text-neutral-500">
-                      Motivo de cancelación: {activeSubscription.cancellation_reason}
-                    </p>
-                  )}
-                  {activeSubscription.commercial_notes && (
-                    <p className="text-xs text-neutral-500">
-                      Nota comercial: {activeSubscription.commercial_notes}
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <p className="text-sm text-neutral-500">Este miembro todavía no tiene una membresía comercial creada.</p>
-              )}
-            </div>
-
-            <form className="card p-5 space-y-3" onSubmit={handleSubscriptionSubmit}>
-              <h4 className="font-heading font-bold text-lg text-neutral-900 dark:text-white">
-                {activeSubscription ? 'Actualizar membresía del miembro' : 'Crear membresía del miembro'}
-              </h4>
-              <select
-                className="input"
-                data-testid="subscription-plan-select"
-                value={subscriptionForm.plan}
-                onChange={(event) => {
-                  const nextPlanId = Number(event.target.value)
-                  const nextPlan = plans?.results.find((plan) => plan.id === nextPlanId)
-                  setSubscriptionForm({
-                    ...subscriptionForm,
-                    plan: nextPlanId,
-                    agreed_price: nextPlan?.price ?? subscriptionForm.agreed_price,
-                    recurrence_type: nextPlan?.recurrence_type ?? subscriptionForm.recurrence_type,
-                    grace_period_days: nextPlan?.grace_period_days ?? subscriptionForm.grace_period_days,
-                  })
-                }}
-              >
-                <option value={0}>Selecciona un plan de membresía</option>
-                {plans?.results.map((plan) => (
-                  <option key={plan.id} value={plan.id}>
-                    {plan.name} · {formatCurrency(plan.price)} / {RECURRENCE_TYPE_LABELS[plan.recurrence_type].toLowerCase()}
-                  </option>
-                ))}
-              </select>
-              <input
-                className="input"
-                data-testid="subscription-agreed-price-input"
-                type="number"
-                min={0}
-                placeholder="Precio acordado"
-                value={subscriptionForm.agreed_price}
-                onChange={(event) => setSubscriptionForm({ ...subscriptionForm, agreed_price: event.target.value })}
-                required
-              />
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <input className="input" type="date" value={subscriptionForm.start_date} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, start_date: event.target.value })} required />
-                <input className="input" type="date" value={subscriptionForm.next_billing_date} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, next_billing_date: event.target.value })} required />
-              </div>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <select
-                  className="input"
-                  data-testid="subscription-recurrence-select"
-                  value={subscriptionForm.recurrence_type}
-                  disabled
-                  title="La recurrencia se define en el plan comercial"
-                  aria-label="Recurrencia del plan de membresía"
-                >
-                  <option value="daily">Diario</option>
-                  <option value="weekly">Semanal</option>
-                  <option value="biweekly">Quincenal</option>
-                  <option value="monthly">Mensual</option>
-                  <option value="quarterly">Trimestral</option>
-                  <option value="annual">Anual</option>
-                </select>
-                <input className="input" type="number" min={0} value={subscriptionForm.grace_period_days} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, grace_period_days: Number(event.target.value) })} />
-              </div>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <select className="input" value={subscriptionForm.status} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, status: event.target.value as MemberSubscription['status'] })}>
-                  <option value="active">Activa</option>
-                  <option value="past_due">Con mora</option>
-                  <option value="suspended">Suspendida</option>
-                  <option value="cancelled">Cancelada</option>
-                </select>
-                <input className="input" type="date" value={subscriptionForm.renewal_date} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, renewal_date: event.target.value })} />
-              </div>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <input className="input" type="date" value={subscriptionForm.cancellation_date} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, cancellation_date: event.target.value })} />
-                <input className="input" placeholder="Motivo de cancelación" value={subscriptionForm.cancellation_reason} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, cancellation_reason: event.target.value })} />
-              </div>
-              <textarea className="input min-h-24" placeholder="Notas comerciales" value={subscriptionForm.commercial_notes} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, commercial_notes: event.target.value })} />
-              <label className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
-                <input type="checkbox" checked={subscriptionForm.auto_generate_next} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, auto_generate_next: event.target.checked })} />
-                Generar próximo cobro automáticamente
-              </label>
-              <label className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
-                <input type="checkbox" checked={subscriptionForm.is_active} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, is_active: event.target.checked })} />
-                Suscripción operativa
-              </label>
-              <div className="flex justify-end">
-                <button className="btn-primary" type="submit">
-                  {activeSubscription ? 'Guardar membresía' : 'Crear membresía'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -567,7 +594,7 @@ function MembershipPortfolio({ members, isLoading }: { members: MemberProfile[];
         <div className="flex flex-wrap gap-2">
           <Badge variant="info">{membersWithMembership.length} con membresía</Badge>
           {membersWithPlanWithoutSubscription.length > 0 && (
-            <Badge variant="warning">{membersWithPlanWithoutSubscription.length} con plan sin cobro</Badge>
+            <Badge variant="warning">{membersWithPlanWithoutSubscription.length} falta activar cobro</Badge>
           )}
         </div>
       </div>
@@ -600,7 +627,7 @@ function MembershipPortfolioCard({ member }: { member: MemberProfile }) {
   const badge = membership
     ? getMembershipBadge(membership)
     : hasAssignedMembershipPlan(member)
-      ? { label: 'Plan sin cobro', variant: 'warning' as const }
+      ? { label: 'Falta activar cobro', variant: 'warning' as const }
       : getMembershipBadge(membership)
 
   return (
@@ -615,10 +642,10 @@ function MembershipPortfolioCard({ member }: { member: MemberProfile }) {
 
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <PortfolioMetric label="Plan" value={getPortfolioPlanName(member)} />
-        <PortfolioMetric label="Suscripción" value={membership ? `#${membership.subscription_id}` : hasAssignedMembershipPlan(member) ? 'Sin cobro activo' : 'Sin suscripción'} />
+        <PortfolioMetric label="Suscripción" value={membership ? `#${membership.subscription_id}` : hasAssignedMembershipPlan(member) ? 'Crear cobro' : 'Sin suscripción'} />
         <PortfolioMetric
           label="Precio"
-          value={membership ? `${formatCurrency(membership.agreed_price)} / ${RECURRENCE_SHORT_LABELS[membership.recurrence_type]}` : hasAssignedMembershipPlan(member) ? 'Pendiente de suscripción' : 'Sin precio'}
+          value={membership ? `${formatCurrency(membership.agreed_price)} / ${RECURRENCE_SHORT_LABELS[membership.recurrence_type]}` : hasAssignedMembershipPlan(member) ? 'Crear cobro para activar' : 'Sin precio'}
         />
         <PortfolioMetric
           label="Vence"
@@ -632,10 +659,10 @@ function MembershipPortfolioCard({ member }: { member: MemberProfile }) {
             ? `${membership.days_overdue} día(s) vencido(s)`
             : membership?.days_until_due != null
               ? `${membership.days_until_due} día(s) restante(s)`
-              : membership
-                ? 'Sin señal de vencimiento'
+                : membership
+                  ? 'Sin señal de vencimiento'
                 : hasAssignedMembershipPlan(member)
-                  ? 'Tiene plan asignado, falta crear cobro.'
+                  ? 'Tiene plan asignado. Crea la suscripción y el primer cobro.'
                   : 'Debe crearse una membresía comercial.'}
         </p>
         <Link to={`/billing?member=${member.id}`} className="btn-secondary">

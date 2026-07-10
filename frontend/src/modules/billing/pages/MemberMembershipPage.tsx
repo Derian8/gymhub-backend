@@ -34,7 +34,7 @@ function getMembershipPresentation(data?: MemberDashboardSummary) {
   if (!data.membership_agreed_price && !data.membership_next_billing_date && data.payment_status == null) {
     return {
       label: data.membership_plan_name,
-      badge: 'Plan sin cobro',
+      badge: 'Falta activar cobro',
       variant: 'warning' as const,
       tone: 'warning' as const,
       title: 'Tu plan está asignado, pero falta activar el cobro',

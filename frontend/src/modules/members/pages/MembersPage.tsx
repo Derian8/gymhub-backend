@@ -225,7 +225,7 @@ function MemberRow({ member }: { member: MemberProfile }) {
   const membershipBadge = membership
     ? getMembershipBadge(membership)
     : hasAssignedMembershipPlan(member)
-      ? { label: 'Plan sin cobro', variant: 'warning' as const }
+      ? { label: 'Falta activar cobro', variant: 'warning' as const }
       : getMembershipBadge(membership)
 
   return (
@@ -269,7 +269,7 @@ function MemberRow({ member }: { member: MemberProfile }) {
           ) : (
             <p className="text-xs text-neutral-400">
               {hasAssignedMembershipPlan(member)
-                ? 'Plan asignado, falta crear suscripción y cobro.'
+                ? 'Plan asignado. Crea la suscripción y el primer cobro.'
                 : 'Asigna una membresía desde facturación.'}
             </p>
           )}
