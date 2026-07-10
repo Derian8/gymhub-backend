@@ -5,7 +5,7 @@ import { useAuthStore } from '@/shared/store/authStore'
 vi.mock('@/modules/members/hooks/useMembers', () => ({
   useMembersQuery: () => ({
     data: {
-      count: 2,
+      count: 3,
       next: null,
       previous: null,
       results: [
@@ -48,6 +48,21 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
           email: 'sin@test.com',
           full_name: 'Cliente Sin Membresia',
           membership_plan: null,
+          phone: '',
+          birth_date: null,
+          emergency_contact: '',
+          join_date: '2026-03-01',
+          is_active: true,
+          photo: null,
+          membresia_actual: null,
+        },
+        {
+          id: 14,
+          user: null,
+          email: 'plan@test.com',
+          full_name: 'Cliente Con Plan Sin Cobro',
+          membership_plan: 4,
+          membership_plan_nombre: 'Básico mensual',
           phone: '',
           birth_date: null,
           emergency_contact: '',
@@ -160,6 +175,8 @@ describe('TrainerDashboard', () => {
     expect(getByTestId('membership-critical-member-10')).toHaveTextContent('Premium mensual')
     expect(getByTestId('membership-critical-member-10')).toHaveTextContent('₡50 000')
     expect(getByTestId('membership-critical-member-10')).toHaveTextContent('5 día(s) vencido(s)')
+    expect(getByTestId('membership-critical-member-14')).toHaveTextContent('Plan sin cobro')
+    expect(getByTestId('membership-critical-member-14')).toHaveTextContent('Básico mensual')
     expect(getByTestId('membership-critical-member-13')).toHaveTextContent('Sin membresía')
     expect(getByTestId('risk-panel')).toBeInTheDocument()
     expect(getByTestId('risk-member-10')).toBeInTheDocument()

@@ -102,6 +102,7 @@ export interface MemberProfile {
   email: string
   full_name: string
   membership_plan: number | null
+  membership_plan_nombre?: string | null
   phone: string
   birth_date: string | null
   emergency_contact: string

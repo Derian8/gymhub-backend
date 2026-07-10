@@ -38,6 +38,14 @@ function getMembershipBadge(membership?: MemberMembershipSummary | null): {
   return { label: membership.access_allowed ? 'Vigente' : 'Revisar acceso', variant: membership.access_allowed ? 'success' : 'warning' }
 }
 
+function hasAssignedMembershipPlan(member: MemberProfile) {
+  return Boolean(member.membership_plan)
+}
+
+function getMembershipPlanName(member: MemberProfile) {
+  return member.membresia_actual?.plan_name || member.membership_plan_nombre || 'Sin plan asignado'
+}
+
 export function MembersPage() {
   const [search, setSearch] = useState('')
   const [paymentFilter, setPaymentFilter] = useState('')
@@ -214,7 +222,11 @@ export function MembersPage() {
 
 function MemberRow({ member }: { member: MemberProfile }) {
   const membership = member.membresia_actual
-  const membershipBadge = getMembershipBadge(membership)
+  const membershipBadge = membership
+    ? getMembershipBadge(membership)
+    : hasAssignedMembershipPlan(member)
+      ? { label: 'Plan sin cobro', variant: 'warning' as const }
+      : getMembershipBadge(membership)
 
   return (
     <tr className="tr-hover" data-testid={`member-row-${member.id}`}>
@@ -234,7 +246,7 @@ function MemberRow({ member }: { member: MemberProfile }) {
           <div className="flex items-center gap-2">
             <CreditCard size={14} className="text-primary" />
             <span className="text-sm font-semibold text-neutral-900 dark:text-white">
-              {membership?.plan_name || 'Sin plan asignado'}
+              {getMembershipPlanName(member)}
             </span>
           </div>
           <Badge variant={membershipBadge.variant}>{membershipBadge.label}</Badge>
@@ -252,7 +264,11 @@ function MemberRow({ member }: { member: MemberProfile }) {
               </p>
             </>
           ) : (
-            <p className="text-xs text-neutral-400">Asigna una membresía desde facturación.</p>
+            <p className="text-xs text-neutral-400">
+              {hasAssignedMembershipPlan(member)
+                ? 'Plan asignado, falta crear suscripción y cobro.'
+                : 'Asigna una membresía desde facturación.'}
+            </p>
           )}
         </div>
       </td>

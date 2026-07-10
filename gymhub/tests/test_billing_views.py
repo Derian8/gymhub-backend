@@ -112,6 +112,7 @@ class TestBillingViews:
         item = next(member for member in results if member['id'] == member_profile.id)
         summary = item['membresia_actual']
 
+        assert item['membership_plan_nombre'] == 'Plan Test'
         assert summary['subscription_id'] == subscription.id
         assert summary['plan_id'] == membership_plan.id
         assert summary['plan_name'] == 'Plan Test'

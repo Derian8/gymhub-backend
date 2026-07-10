@@ -45,7 +45,7 @@ vi.mock('../hooks/useBilling', () => ({
 vi.mock('@/modules/members/hooks/useMembers', () => ({
   useMembersQuery: () => ({
     data: {
-      count: 1,
+      count: 2,
       next: null,
       previous: null,
       results: [
@@ -82,6 +82,21 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
             access_reason: null,
           },
         },
+        {
+          id: 16,
+          user: null,
+          email: 'plan-sin-cobro@test.com',
+          full_name: 'Cliente Plan Sin Cobro',
+          membership_plan: 8,
+          membership_plan_nombre: 'Premium',
+          phone: '8888-0000',
+          birth_date: null,
+          emergency_contact: '',
+          join_date: '2026-03-02',
+          is_active: true,
+          photo: null,
+          membresia_actual: null,
+        },
       ],
     },
     isLoading: false,
@@ -114,6 +129,9 @@ describe('BillingPage', () => {
     expect(getByTestId('portfolio-member-15')).toHaveTextContent('Maria Perez')
     expect(getByTestId('portfolio-member-15')).toHaveTextContent('₡79 000')
     expect(getByTestId('portfolio-member-15')).toHaveTextContent('Vigente')
+    expect(getByTestId('portfolio-member-16')).toHaveTextContent('Cliente Plan Sin Cobro')
+    expect(getByTestId('portfolio-member-16')).toHaveTextContent('Plan sin cobro')
+    expect(getByTestId('portfolio-member-16')).toHaveTextContent('Pendiente de suscripción')
   })
 
   it('shows member-specific header when member filter is present', () => {

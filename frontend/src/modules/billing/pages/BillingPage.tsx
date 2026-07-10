@@ -77,6 +77,14 @@ function getMembershipBadge(membership?: MemberMembershipSummary | null): {
   return { label: membership.access_allowed ? 'Vigente' : 'Revisar acceso', variant: membership.access_allowed ? 'success' : 'warning' }
 }
 
+function hasAssignedMembershipPlan(member: MemberProfile) {
+  return Boolean(member.membership_plan)
+}
+
+function getPortfolioPlanName(member: MemberProfile) {
+  return member.membresia_actual?.plan_name || member.membership_plan_nombre || 'Sin plan'
+}
+
 export function BillingPage() {
   const [searchParams] = useSearchParams()
   const memberId = searchParams.get('member')
@@ -540,8 +548,9 @@ function SummaryCard({
 
 function MembershipPortfolio({ members, isLoading }: { members: MemberProfile[]; isLoading: boolean }) {
   const membersWithMembership = members.filter((member) => Boolean(member.membresia_actual))
-  const membersWithoutMembership = members.filter((member) => !member.membresia_actual)
-  const visibleMembers = [...membersWithMembership, ...membersWithoutMembership]
+  const membersWithPlanWithoutSubscription = members.filter((member) => !member.membresia_actual && hasAssignedMembershipPlan(member))
+  const membersWithoutPlan = members.filter((member) => !member.membresia_actual && !hasAssignedMembershipPlan(member))
+  const visibleMembers = [...membersWithMembership, ...membersWithPlanWithoutSubscription, ...membersWithoutPlan]
 
   return (
     <section className="card p-6 mb-8" data-testid="membership-portfolio">
@@ -555,7 +564,12 @@ function MembershipPortfolio({ members, isLoading }: { members: MemberProfile[];
             Revisa rápidamente qué plan tiene cada persona, cuánto paga y cuándo vence.
           </p>
         </div>
-        <Badge variant="info">{membersWithMembership.length} con membresía</Badge>
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="info">{membersWithMembership.length} con membresía</Badge>
+          {membersWithPlanWithoutSubscription.length > 0 && (
+            <Badge variant="warning">{membersWithPlanWithoutSubscription.length} con plan sin cobro</Badge>
+          )}
+        </div>
       </div>
 
       {isLoading ? (
@@ -583,7 +597,11 @@ function MembershipPortfolio({ members, isLoading }: { members: MemberProfile[];
 
 function MembershipPortfolioCard({ member }: { member: MemberProfile }) {
   const membership = member.membresia_actual
-  const badge = getMembershipBadge(membership)
+  const badge = membership
+    ? getMembershipBadge(membership)
+    : hasAssignedMembershipPlan(member)
+      ? { label: 'Plan sin cobro', variant: 'warning' as const }
+      : getMembershipBadge(membership)
 
   return (
     <div className="rounded-sm border border-neutral-200 p-4 dark:border-neutral-800" data-testid={`portfolio-member-${member.id}`}>
@@ -596,10 +614,10 @@ function MembershipPortfolioCard({ member }: { member: MemberProfile }) {
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <PortfolioMetric label="Plan" value={membership?.plan_name || 'Sin plan'} />
+        <PortfolioMetric label="Plan" value={getPortfolioPlanName(member)} />
         <PortfolioMetric
           label="Precio"
-          value={membership ? `${formatCurrency(membership.agreed_price)} / ${RECURRENCE_SHORT_LABELS[membership.recurrence_type]}` : 'Sin precio'}
+          value={membership ? `${formatCurrency(membership.agreed_price)} / ${RECURRENCE_SHORT_LABELS[membership.recurrence_type]}` : hasAssignedMembershipPlan(member) ? 'Pendiente de suscripción' : 'Sin precio'}
         />
         <PortfolioMetric
           label="Vence"
@@ -615,7 +633,9 @@ function MembershipPortfolioCard({ member }: { member: MemberProfile }) {
               ? `${membership.days_until_due} día(s) restante(s)`
               : membership
                 ? 'Sin señal de vencimiento'
-                : 'Debe crearse una membresía comercial.'}
+                : hasAssignedMembershipPlan(member)
+                  ? 'Tiene plan asignado, falta crear cobro.'
+                  : 'Debe crearse una membresía comercial.'}
         </p>
         <Link to={`/billing?member=${member.id}`} className="btn-secondary">
           Gestionar

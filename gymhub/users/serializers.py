@@ -139,6 +139,7 @@ class MemberProfileSerializer(serializers.ModelSerializer):
     estado_prescripcion = serializers.SerializerMethodField()
     tiene_plan_activo = serializers.SerializerMethodField()
     prescripcion_lista_para_member = serializers.SerializerMethodField()
+    membership_plan_nombre = serializers.SerializerMethodField()
     suscripcion_activa_id = serializers.SerializerMethodField()
     precio_suscripcion_actual = serializers.SerializerMethodField()
     membresia_actual = serializers.SerializerMethodField()
@@ -153,7 +154,8 @@ class MemberProfileSerializer(serializers.ModelSerializer):
             'riesgo_adherencia', 'nivel_riesgo', 'motivos_riesgo',
             'days_since_last_checkin', 'days_since_last_session', 'days_since_last_progress',
             'estado_prescripcion', 'tiene_plan_activo', 'prescripcion_lista_para_member',
-            'suscripcion_activa_id', 'precio_suscripcion_actual', 'membresia_actual',
+            'membership_plan_nombre', 'suscripcion_activa_id', 'precio_suscripcion_actual',
+            'membresia_actual',
         )
         read_only_fields = ('id', 'user', 'email', 'full_name')
 
@@ -231,6 +233,14 @@ class MemberProfileSerializer(serializers.ModelSerializer):
 
     def get_prescripcion_lista_para_member(self, obj):
         return self._prescription(obj)['esta_lista_para_member']
+
+    def get_membership_plan_nombre(self, obj):
+        if obj.membership_plan:
+            return obj.membership_plan.name
+        subscription = self._active_subscription(obj)
+        if subscription:
+            return subscription.plan.name
+        return None
 
     def get_suscripcion_activa_id(self, obj):
         subscription = self._active_subscription(obj)

@@ -37,6 +37,34 @@ Para reconstruir las demos numeradas sin tocar cuentas reales, ejecuta primero
 `python manage.py restablecer_demo` y confirma después con
 `python manage.py restablecer_demo --yes`.
 
+### Arranque local sin Docker
+
+Si Docker Desktop no está iniciado o no está integrado con WSL, puedes levantar ambos proyectos directamente:
+
+Backend:
+
+```bash
+cd gymhub
+set -a; source ../.env; set +a
+REDIS_URL=locmem:// CELERY_BROKER_URL=locmem:// CELERY_RESULT_BACKEND=locmem:// ../.venv/bin/python manage.py runserver 127.0.0.1:8000 --noreload
+```
+
+Frontend:
+
+```bash
+cd frontend
+VITE_API_BASE_URL= VITE_PROXY_TARGET=http://127.0.0.1:8000 npm run dev
+```
+
+Valida conexión local con:
+
+```bash
+curl http://127.0.0.1:8000/health/live/
+curl http://localhost:3000/api/members/
+```
+
+El segundo comando debe responder `401` si no hay sesión; eso confirma que el proxy del frontend llega al backend.
+
 ## Base De Datos
 - PostgreSQL vive en Supabase. Usa `DATABASE_URL` con `sslmode=require` o las variables `DB_*` de [`.env.example`](/mnt/c/dev/proyectos/proyectoappgym/.env.example).
 - Para aplicaciones Django persistentes, usa el Session Pooler de Supabase y configura `DB_CONN_MAX_AGE`.

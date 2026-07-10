@@ -51,6 +51,10 @@ function getMembershipStatusCopy(summary: ReturnType<typeof useMemberDashboardQu
   }
 }
 
+function getAssignedMembershipPlanName(member: { membresia_actual?: { plan_name: string } | null; membership_plan_nombre?: string | null }) {
+  return member.membresia_actual?.plan_name || member.membership_plan_nombre || 'Sin membresía asignada'
+}
+
 export function MemberDetailPage() {
   const { id } = useParams<{ id: string }>()
   const memberId = parseInt(id || '0')
@@ -173,7 +177,14 @@ export function MemberDetailPage() {
       ? 'success'
       : 'warning'
   const membership = member.membresia_actual
-  const membershipStatus = getMembershipStatusCopy(dashboardSummary)
+  const hasPlanWithoutSubscription = Boolean(member.membership_plan && !membership)
+  const membershipStatus = hasPlanWithoutSubscription
+    ? {
+        label: 'Plan sin cobro',
+        variant: 'warning' as const,
+        detail: 'El miembro tiene un plan asignado, pero falta crear la suscripción comercial y su cobro desde facturación.',
+      }
+    : getMembershipStatusCopy(dashboardSummary)
 
   return (
     <div data-testid="member-detail-page" className="page-enter">
@@ -265,7 +276,7 @@ export function MemberDetailPage() {
               <div>
                 <p className="label-base">Membresía y cobro</p>
                 <h3 className="font-heading font-bold text-lg text-neutral-900 dark:text-white">
-                  {membership?.plan_name || dashboardSummary?.membership_plan_name || 'Sin membresía asignada'}
+                  {membership?.plan_name || dashboardSummary?.membership_plan_name || getAssignedMembershipPlanName(member)}
                 </h3>
                 <p className="text-sm text-neutral-500 mt-1">
                   Estado comercial del miembro. Esto es independiente del plan de entrenamiento.
@@ -281,7 +292,7 @@ export function MemberDetailPage() {
               />
               <PrescriptionTile
                 label="Recurrencia"
-                value={membership?.recurrence_type ? MEMBERSHIP_PERIOD_LABELS[membership.recurrence_type] : 'Sin dato'}
+                value={membership?.recurrence_type ? MEMBERSHIP_PERIOD_LABELS[membership.recurrence_type] : hasPlanWithoutSubscription ? 'Pendiente de cobro' : 'Sin dato'}
               />
               <PrescriptionTile
                 label="Vencimiento"
@@ -293,7 +304,7 @@ export function MemberDetailPage() {
               />
               <PrescriptionTile
                 label="Acceso"
-                value={membership ? membership.access_allowed ? 'Permitido' : 'Requiere revisión' : 'Sin membresía'}
+                value={membership ? membership.access_allowed ? 'Permitido' : 'Requiere revisión' : hasPlanWithoutSubscription ? 'Pendiente de suscripción' : 'Sin membresía'}
               />
               <PrescriptionTile
                 label="Días"
