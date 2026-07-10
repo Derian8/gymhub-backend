@@ -77,15 +77,16 @@ describe('Sidebar', () => {
   })
 
   it('shows only the essential member destinations including membership', () => {
-    const { getByRole, queryByText } = renderWithProviders(
+    const { getByRole, getByTestId, queryByText } = renderWithProviders(
       <Sidebar collapsed={false} mobileOpen={true} onToggle={vi.fn()} onCloseMobile={closeMobileMock} />,
     )
 
+    expect(getByRole('link', { name: /Mi membresía/ })).toHaveAttribute('href', '/membership')
     expect(getByRole('link', { name: /Entrenamiento/ })).toHaveAttribute('href', '/today')
     expect(getByRole('link', { name: /Mi Plan/ })).toHaveAttribute('href', '/plans/my')
-    expect(getByRole('link', { name: /Mi membresía/ })).toHaveAttribute('href', '/membership')
     expect(getByRole('link', { name: /Registros/ })).toHaveAttribute('href', '/records')
     expect(getByRole('link', { name: /Progreso/ })).toHaveAttribute('href', '/progress')
+    expect(getByTestId('nav-membership').compareDocumentPosition(getByTestId('nav-today')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(queryByText('Nutrición')).not.toBeInTheDocument()
     expect(queryByText('Chat IA')).not.toBeInTheDocument()
     expect(queryByText('Pagos')).not.toBeInTheDocument()

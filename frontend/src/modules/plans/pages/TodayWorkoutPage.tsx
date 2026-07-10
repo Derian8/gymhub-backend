@@ -6,7 +6,7 @@ import { useTodayWorkoutQuery, useWeeklyPlanQuery, useCreateSessionMutation, use
 import { EmptyState, Badge } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
 import { SymbolFrame } from '@/shared/components/Brand'
-import { DAY_OF_WEEK_LABELS, formatDate, MUSCLE_LABELS, cn } from '@/shared/lib/utils'
+import { DAY_OF_WEEK_LABELS, formatCurrency, formatDate, MUSCLE_LABELS, cn } from '@/shared/lib/utils'
 import type { Exercise, ExerciseLogPayload } from '@/shared/types'
 import { useAuthStore } from '@/shared/store/authStore'
 import { useMemberActivePrescriptionQuery, useMemberDashboardQuery } from '@/modules/members/hooks/useMembers'
@@ -339,6 +339,45 @@ function TodayWorkoutPageContent() {
           <ArrowLeft size={16} />
           Volver al plan
         </Link>
+      ) : null}
+
+      {isMember ? (
+        <section
+          className="rounded-[1.75rem] border border-primary/25 bg-primary/5 p-5 shadow-sm dark:border-primary/20 dark:bg-primary/10"
+          data-testid="today-membership-spotlight"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <SymbolFrame size="md" tone={dashboardSummary?.payment_status === 'late' ? 'danger' : dashboardSummary?.payment_status === 'paid' ? 'success' : 'warning'}>
+                <CalendarClock size={18} />
+              </SymbolFrame>
+              <div>
+                <p className="label-base">Mi membresía</p>
+                <h2 className="font-heading text-2xl font-black text-neutral-900 dark:text-white">
+                  {dashboardSummary?.membership_plan_name || 'Sin membresía asignada'}
+                </h2>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <Badge variant={dashboardSummary?.payment_status === 'paid' ? 'success' : dashboardSummary?.payment_status === 'late' ? 'error' : 'warning'}>
+                    {dashboardSummary?.payment_status === 'paid' ? 'Vigente' : dashboardSummary?.payment_status === 'late' ? 'Vencida' : 'Pendiente'}
+                  </Badge>
+                  <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+                    {dashboardSummary?.membership_agreed_price ? formatCurrency(dashboardSummary.membership_agreed_price) : 'Precio pendiente'}
+                  </span>
+                </div>
+                <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-300">
+                  {dashboardSummary?.days_overdue != null
+                    ? `${dashboardSummary.days_overdue} día(s) vencida. Regulariza tu pago para mantener acceso.`
+                    : dashboardSummary?.days_until_due != null
+                      ? `${dashboardSummary.days_until_due} día(s) restantes antes del vencimiento.`
+                      : 'Revisa el detalle completo de tu estado comercial.'}
+                </p>
+              </div>
+            </div>
+            <Link to="/membership" className="btn-primary" data-testid="today-membership-link">
+              Ver mi membresía
+            </Link>
+          </div>
+        </section>
       ) : null}
 
       <section

@@ -23,7 +23,7 @@ export function useLoginMutation() {
       if (role === 'trainer' || data.user.is_staff) {
         navigate('/dashboard/trainer')
       } else {
-        navigate('/today')
+        navigate('/membership')
       }
     },
     onError: (error) => {
@@ -48,7 +48,7 @@ export function useRegisterMutation() {
       if (data.user.role === 'trainer' || data.user.is_staff) {
         navigate('/dashboard/trainer')
       } else {
-        navigate('/today')
+        navigate('/membership')
       }
     },
     onError: (error) => {

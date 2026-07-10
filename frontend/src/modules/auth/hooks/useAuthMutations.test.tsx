@@ -53,6 +53,7 @@ function renderMutation(ui: ReactElement, route = '/login') {
         <Routes>
           <Route path="/login" element={ui} />
           <Route path="/today" element={<div>Entrenamiento de hoy</div>} />
+          <Route path="/membership" element={<div>Mi membresía</div>} />
           <Route path="/dashboard/member" element={<div>Dashboard Member</div>} />
           <Route path="/dashboard/trainer" element={<div>Dashboard Trainer</div>} />
           <Route path="/logout" element={ui} />
@@ -129,7 +130,7 @@ describe('useAuthMutations', () => {
     vi.clearAllMocks()
   })
 
-  it('stores authenticated member and redirects to today workout', async () => {
+  it('stores authenticated member and redirects to membership', async () => {
     vi.mocked(authApi.login).mockResolvedValue({
       user: {
         id: 1,
@@ -150,11 +151,11 @@ describe('useAuthMutations', () => {
     await waitFor(() => {
       expect(useAuthStore.getState().isAuthenticated).toBe(true)
       expect(useAuthStore.getState().user?.role).toBe('member')
-      expect(navegarMock).toHaveBeenCalledWith('/today')
+      expect(navegarMock).toHaveBeenCalledWith('/membership')
     })
   })
 
-  it('stores registered member and redirects to today workout', async () => {
+  it('stores registered member and redirects to membership', async () => {
     vi.mocked(authApi.register).mockResolvedValue({
       user: {
         id: 3,
@@ -175,7 +176,7 @@ describe('useAuthMutations', () => {
     await waitFor(() => {
       expect(useAuthStore.getState().isAuthenticated).toBe(true)
       expect(useAuthStore.getState().user?.email).toBe('new.member@test.com')
-      expect(navegarMock).toHaveBeenCalledWith('/today')
+      expect(navegarMock).toHaveBeenCalledWith('/membership')
     })
   })
 

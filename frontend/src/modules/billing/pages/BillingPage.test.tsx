@@ -126,6 +126,7 @@ describe('BillingPage', () => {
     expect(getAllByText('Premium').length).toBeGreaterThan(0)
     expect(getByText('Planes de membresía configurables')).toBeInTheDocument()
     expect(getByTestId('membership-portfolio')).toHaveTextContent('Cartera de membresías')
+    expect(getByTestId('membership-portfolio')).toHaveTextContent('Membresías por miembro')
     expect(getByTestId('portfolio-member-15')).toHaveTextContent('Maria Perez')
     expect(getByTestId('portfolio-member-15')).toHaveTextContent('#55')
     expect(getByTestId('portfolio-member-15')).toHaveTextContent('₡79 000')

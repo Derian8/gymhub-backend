@@ -558,10 +558,10 @@ function MembershipPortfolio({ members, isLoading }: { members: MemberProfile[];
         <div>
           <p className="label-base">Cartera de membresías</p>
           <h2 className="font-heading text-2xl font-black text-neutral-900 dark:text-white">
-            Plan y estado por miembro
+            Membresías por miembro
           </h2>
           <p className="text-sm text-neutral-500">
-            Revisa rápidamente qué plan tiene cada persona, cuánto paga y cuándo vence.
+            Revisa exactamente qué membresía y qué suscripción corresponde a cada member.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

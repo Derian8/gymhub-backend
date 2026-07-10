@@ -146,6 +146,10 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
       days_overdue: null,
       membership_plan_name: 'Plan semanal',
       membership_expires_at: '2026-03-28',
+      membership_agreed_price: '15000.00',
+      membership_recurrence_type: 'weekly',
+      membership_next_billing_date: '2026-03-29',
+      membership_access_allowed: true,
       weekly_sessions_done: 2,
       cumplimiento_semanal: 50,
     },
@@ -268,6 +272,20 @@ describe('TodayWorkoutPage', () => {
     })
 
     expect(queryByTestId('complete-session-btn')).not.toBeInTheDocument()
+  })
+
+  it('shows the member membership spotlight before workout details', () => {
+    const { getByTestId } = renderWithProviders(<TodayWorkoutPage />)
+
+    expect(getByTestId('today-membership-spotlight')).toHaveTextContent('Mi membresía')
+    expect(getByTestId('today-membership-spotlight')).toHaveTextContent('Plan semanal')
+    expect(getByTestId('today-membership-spotlight')).toHaveTextContent('Pendiente')
+    expect(getByTestId('today-membership-spotlight')).toHaveTextContent('₡15 000')
+    expect(getByTestId('today-membership-link')).toHaveAttribute('href', '/membership')
+    expect(
+      getByTestId('today-membership-spotlight').compareDocumentPosition(getByTestId('workout-primary'))
+      & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
   })
 
   it('allows opening another day while keeping today as the main workout', async () => {
