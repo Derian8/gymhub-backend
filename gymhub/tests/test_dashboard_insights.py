@@ -24,6 +24,7 @@ def test_member_dashboard_summary_includes_risk_and_actions(
     MemberSubscription.objects.create(
         member=member_profile,
         plan=membership_plan,
+        membership_name=membership_plan.name,
         trainer=trainer_profile,
         agreed_price=membership_plan.price,
         start_date=timezone.localdate(),

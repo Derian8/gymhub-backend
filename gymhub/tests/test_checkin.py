@@ -12,6 +12,7 @@ def create_active_subscription(member_profile, membership_plan, **overrides):
     values = {
         'member': member_profile,
         'plan': membership_plan,
+        'membership_name': membership_plan.name,
         'trainer': member_profile.trainer_asignado,
         'agreed_price': membership_plan.price,
         'start_date': date.today() - timedelta(days=5),

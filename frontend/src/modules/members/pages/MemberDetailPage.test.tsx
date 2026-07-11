@@ -156,16 +156,6 @@ vi.mock('@/modules/progress/api/progressApi', () => ({
   },
 }))
 
-vi.mock('@/modules/billing/hooks/useBilling', () => ({
-  useMembershipPlansQuery: () => ({
-    data: {
-      results: [
-        { id: 2, name: 'Estandar', description: '', price: '50000.00', recurrence_type: 'monthly', grace_period_days: 7, features: '' },
-      ],
-    },
-  }),
-}))
-
 describe('MemberDetailPage', () => {
   beforeEach(() => {
     activateMock.mockReset()

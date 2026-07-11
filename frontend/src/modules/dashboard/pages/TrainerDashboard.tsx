@@ -33,9 +33,6 @@ function getMembershipStatus(member: MemberProfile): {
 } {
   const membership = member.membresia_actual
   if (!membership) {
-    if (member.membership_plan) {
-      return { label: 'Falta activar cobro', variant: 'warning', priority: 2 }
-    }
     return { label: 'Sin membresía', variant: 'neutral', priority: 3 }
   }
   if (membership.payment_status === 'late' || membership.status === 'past_due') {
@@ -51,7 +48,7 @@ function getMembershipStatus(member: MemberProfile): {
 }
 
 function getMembershipPlanName(member: MemberProfile) {
-  return member.membresia_actual?.plan_name || member.membership_plan_nombre || 'Sin plan'
+  return member.membresia_actual?.plan_name || 'Sin membresía'
 }
 
 export function TrainerDashboard() {
@@ -367,7 +364,7 @@ function MembershipCriticalPanel({
   const activeCount = withStatus.filter((item) => item.status.label === 'Vigente').length
   const dueSoonCount = withStatus.filter((item) => item.status.label === 'Por vencer').length
   const overdueCount = withStatus.filter((item) => item.status.label === 'Vencida').length
-  const planWithoutBillingCount = withStatus.filter((item) => item.status.label === 'Falta activar cobro').length
+  const planWithoutBillingCount = withStatus.filter((item) => item.status.label === 'Sin membresía').length
   const withoutMembershipCount = withStatus.filter((item) => item.status.label === 'Sin membresía').length
   const criticalMembers = [...withStatus]
     .sort((a, b) => a.status.priority - b.status.priority)
@@ -477,10 +474,10 @@ function MembershipCriticalCard({
 
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MembershipMiniMetric label="Plan" value={getMembershipPlanName(member)} />
-        <MembershipMiniMetric label="Suscripción" value={membership ? `#${membership.subscription_id}` : member.membership_plan ? 'Crear cobro' : 'Sin suscripción'} />
+        <MembershipMiniMetric label="Suscripción" value={membership ? `#${membership.subscription_id}` : 'Sin suscripción'} />
         <MembershipMiniMetric
           label="Precio"
-          value={membership ? `${formatCurrency(membership.agreed_price)} / ${MEMBERSHIP_RECURRENCE_LABELS[membership.recurrence_type]}` : member.membership_plan ? 'Crear cobro para activar' : 'Sin precio'}
+          value={membership ? `${formatCurrency(membership.agreed_price)} / ${MEMBERSHIP_RECURRENCE_LABELS[membership.recurrence_type]}` : 'Sin precio'}
         />
         <MembershipMiniMetric
           label="Vence"
@@ -496,12 +493,10 @@ function MembershipCriticalCard({
               ? `${membership.days_until_due} día(s) restante(s)`
               : membership
                 ? 'Sin alerta de fecha'
-                : member.membership_plan
-                  ? 'Crear suscripción y cobro para este plan asignado.'
-                  : 'Asigna un plan de membresía para habilitar control de cobro.'}
+                : 'Crea una membresía desde facturación para habilitar control de cobro.'}
         </p>
         <Link to={`/billing?member=${member.id}`} className="text-sm font-semibold text-primary hover:underline">
-          Gestionar cobro
+          {membership ? 'Gestionar cobro' : 'Crear membresía'}
         </Link>
       </div>
     </div>

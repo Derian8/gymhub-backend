@@ -45,6 +45,7 @@ def test_payment_activates_period_and_creates_next_charge(
     subscription = MemberSubscription.objects.create(
         member=member_profile,
         plan=membership_plan,
+        membership_name=membership_plan.name,
         trainer=trainer_profile,
         agreed_price=10000,
         start_date=date(2026, 7, 5),
@@ -79,6 +80,7 @@ def test_payment_retry_does_not_duplicate_next_charge(
     subscription = MemberSubscription.objects.create(
         member=member_profile,
         plan=membership_plan,
+        membership_name=membership_plan.name,
         trainer=trainer_profile,
         agreed_price=30000,
         start_date=date.today(),
@@ -103,6 +105,7 @@ def test_access_uses_subscription_grace(member_profile, membership_plan, trainer
     subscription = MemberSubscription.objects.create(
         member=member_profile,
         plan=membership_plan,
+        membership_name=membership_plan.name,
         trainer=trainer_profile,
         agreed_price=3000,
         start_date=date.today() - timedelta(days=8),

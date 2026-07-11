@@ -90,7 +90,6 @@ class TestBillingViews:
         today = timezone.now().date().isoformat()
         resp = trainer_client.post('/api/member-subscriptions/', {
             'member': member_profile.id,
-            'plan': None,
             'membership_name': 'Mensual personalizada',
             'description': 'Creada directamente para el cliente',
             'agreed_price': '72.00',
@@ -129,6 +128,7 @@ class TestBillingViews:
         subscription = MemberSubscription.objects.create(
             member=member_profile,
             plan=membership_plan,
+            membership_name='Plan Test',
             trainer=trainer_profile,
             agreed_price='62.50',
             start_date=today,
