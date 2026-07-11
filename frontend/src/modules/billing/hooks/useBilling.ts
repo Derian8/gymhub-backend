@@ -4,13 +4,6 @@ import { billingApi } from '../api/billingApi'
 import { QUERY_KEYS } from '@/shared/constants/queryKeys'
 import { extractApiError } from '@/shared/lib/utils'
 
-export function useMembershipPlansQuery() {
-  return useQuery({
-    queryKey: QUERY_KEYS.MEMBERSHIP_PLANS,
-    queryFn: billingApi.membershipPlans,
-  })
-}
-
 export function usePaymentRecordsQuery(params?: Record<string, string>) {
   return useQuery({
     queryKey: QUERY_KEYS.PAYMENT_RECORDS(params),
@@ -29,32 +22,6 @@ export function useMemberSubscriptionsQuery(params?: Record<string, string>) {
   return useQuery({
     queryKey: QUERY_KEYS.MEMBER_SUBSCRIPTIONS(params),
     queryFn: () => billingApi.memberSubscriptions(params),
-  })
-}
-
-export function useCreateMembershipPlanMutation() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: billingApi.createMembershipPlan,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERSHIP_PLANS })
-      toast.success('Plan configurable guardado')
-    },
-    onError: (error) => toast.error(extractApiError(error)),
-  })
-}
-
-export function useUpdateMembershipPlanMutation() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: Record<string, unknown> }) => billingApi.updateMembershipPlan(id, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERSHIP_PLANS })
-      toast.success('Plan configurable actualizado')
-    },
-    onError: (error) => toast.error(extractApiError(error)),
   })
 }
 

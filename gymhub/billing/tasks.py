@@ -54,13 +54,12 @@ def check_upcoming_payments():
         schedule__is_active=True,
         schedule__due_date__lte=cutoff,
         schedule__due_date__gte=today,
-    ).select_related('schedule__member__user', 'schedule__plan', 'schedule__subscription__plan')
+    ).select_related('schedule__member__user', 'schedule__plan', 'schedule__subscription')
 
     for record in records:
         member = record.schedule.member
         due_date = record.schedule.due_date
-        plan = record.schedule.resolved_plan
-        plan_name = plan.name if plan else 'Plan'
+        plan_name = record.schedule.resolved_membership_name or 'Membresía'
 
         dedupe_key = f'payment_due:{record.id}:{due_date.isoformat()}'
         already_notified = Notification.objects.filter(
@@ -132,8 +131,7 @@ def check_overdue_payments():
                 subscription.save(update_fields=['status'])
 
             member = record.schedule.member
-            plan = record.schedule.resolved_plan
-            plan_name = plan.name if plan else 'Plan'
+            plan_name = record.schedule.resolved_membership_name or 'Membresía'
 
             member_dedupe_key = f'payment_overdue:member:{record.id}:{due_date.isoformat()}'
             _, created = Notification.objects.get_or_create(

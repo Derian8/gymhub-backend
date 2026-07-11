@@ -29,7 +29,7 @@ def test_seed_data_creates_only_first_demo_trainer_and_member():
     weekday_codes = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
     today_code = weekday_codes[date.today().weekday()]
 
-    assert MembershipPlan.objects.exists()
+    assert not MembershipPlan.objects.exists()
     assert member.membership_plan_id is None
     assert not MemberSubscription.objects.filter(member=member).exists()
     assert not PaymentRecord.objects.filter(schedule__member=member).exists()

@@ -54,7 +54,9 @@ export interface MembershipPlan {
 export interface MemberSubscription {
   id: number
   member: number
-  plan: number
+  plan: number | null
+  membership_name: string
+  description: string
   trainer: number
   agreed_price: string
   start_date: string
@@ -72,7 +74,6 @@ export interface MemberSubscription {
   cancellation_date: string | null
   cancellation_reason: string
   commercial_notes: string
-  plan_detail?: MembershipPlan
 }
 
 export interface MemberMembershipSummary {

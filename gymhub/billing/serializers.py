@@ -30,14 +30,13 @@ class MembershipPlanSerializer(serializers.ModelSerializer):
 
 
 class MemberSubscriptionSerializer(serializers.ModelSerializer):
-    plan_detail = MembershipPlanSerializer(source='plan', read_only=True)
     access_allowed = serializers.SerializerMethodField()
     days_overdue = serializers.SerializerMethodField()
 
     class Meta:
         model = MemberSubscription
         fields = (
-            'id', 'member', 'plan', 'plan_detail', 'trainer',
+            'id', 'member', 'plan', 'membership_name', 'description', 'trainer',
             'agreed_price', 'start_date', 'next_billing_date',
             'recurrence_type', 'grace_period_days',
             'auto_generate_next', 'is_active', 'status',
@@ -47,10 +46,13 @@ class MemberSubscriptionSerializer(serializers.ModelSerializer):
             'access_allowed', 'days_overdue',
         )
         read_only_fields = (
-            'trainer', 'next_billing_date', 'recurrence_type',
-            'grace_period_days', 'renewal_date',
+            'trainer', 'next_billing_date', 'renewal_date',
             'current_period_start', 'current_period_end',
         )
+        extra_kwargs = {
+            'plan': {'required': False, 'allow_null': True},
+            'membership_name': {'required': False, 'allow_blank': True},
+        }
 
     def get_access_allowed(self, obj):
         return membership_access(obj.member)['allowed']
@@ -105,8 +107,7 @@ class PaymentRecordSerializer(serializers.ModelSerializer):
         return 0
 
     def get_plan_name(self, obj):
-        plan = obj.schedule.resolved_plan
-        return plan.name if plan else None
+        return obj.schedule.resolved_membership_name
 
     def get_receipt_number(self, obj):
         if not obj.receipt_issued_at:

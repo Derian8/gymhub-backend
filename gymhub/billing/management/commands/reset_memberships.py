@@ -5,7 +5,7 @@ from django.db import transaction
 class Command(BaseCommand):
     help = (
         'Quita las membresías asignadas a clientes para reasignarlas desde cero. '
-        'Conserva el catálogo de planes.'
+        'Elimina también el catálogo de planes configurables.'
     )
 
     def add_arguments(self, parser):
@@ -16,7 +16,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        from billing.models import MemberSubscription, PaymentRecord, PaymentSchedule
+        from billing.models import MemberSubscription, MembershipPlan, PaymentRecord, PaymentSchedule
         from users.models import MemberProfile
 
         member_ids = list(
@@ -36,13 +36,14 @@ class Command(BaseCommand):
         )
         all_schedule_ids = schedule_ids + orphan_schedule_ids
         record_count = PaymentRecord.objects.filter(schedule_id__in=all_schedule_ids).count()
+        plan_count = MembershipPlan.objects.count()
 
         self.stdout.write('Resumen de limpieza de membresías:')
         self.stdout.write(f'  Clientes con plan asignado: {len(member_ids)}')
         self.stdout.write(f'  Suscripciones a eliminar: {len(subscription_ids)}')
         self.stdout.write(f'  Cobros programados a eliminar: {len(all_schedule_ids)}')
         self.stdout.write(f'  Registros de pago a eliminar: {record_count}')
-        self.stdout.write('  Planes comerciales: se conservan')
+        self.stdout.write(f'  Planes configurables a eliminar: {plan_count}')
 
         if not options['confirm']:
             self.stdout.write(self.style.WARNING('Dry-run: ejecuta con --confirm para aplicar cambios.'))
@@ -53,5 +54,6 @@ class Command(BaseCommand):
             PaymentSchedule.objects.filter(id__in=all_schedule_ids).delete()
             MemberSubscription.objects.filter(id__in=subscription_ids).delete()
             MemberProfile.objects.filter(membership_plan__isnull=False).update(membership_plan=None)
+            MembershipPlan.objects.all().delete()
 
-        self.stdout.write(self.style.SUCCESS('Membresías existentes eliminadas. Clientes listos para asignación desde cero.'))
+        self.stdout.write(self.style.SUCCESS('Membresías y planes configurables eliminados. Clientes listos para asignación desde cero.'))

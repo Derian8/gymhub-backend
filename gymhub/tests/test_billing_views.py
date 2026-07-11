@@ -79,6 +79,43 @@ class TestBillingViews:
         assert subscription.current_period_end is None
         assert subscription.commercial_notes == 'Primer cierre comercial'
 
+    def test_trainer_can_create_member_subscription_without_plan_catalog(
+        self,
+        trainer_client,
+        trainer_profile,
+        member_profile,
+    ):
+        from billing.models import MemberSubscription, PaymentRecord, PaymentSchedule
+
+        today = timezone.now().date().isoformat()
+        resp = trainer_client.post('/api/member-subscriptions/', {
+            'member': member_profile.id,
+            'plan': None,
+            'membership_name': 'Mensual personalizada',
+            'description': 'Creada directamente para el cliente',
+            'agreed_price': '72.00',
+            'start_date': today,
+            'recurrence_type': 'biweekly',
+            'grace_period_days': 2,
+            'auto_generate_next': True,
+            'is_active': True,
+            'status': 'active',
+        })
+
+        assert resp.status_code == status.HTTP_201_CREATED
+        subscription = MemberSubscription.objects.get(member=member_profile, is_active=True)
+        schedule = PaymentSchedule.objects.get(subscription=subscription)
+        payment_record = PaymentRecord.objects.get(schedule=schedule)
+
+        assert subscription.plan_id is None
+        assert subscription.membership_name == 'Mensual personalizada'
+        assert subscription.description == 'Creada directamente para el cliente'
+        assert subscription.recurrence_type == 'biweekly'
+        assert subscription.grace_period_days == 2
+        assert schedule.plan_id is None
+        assert schedule.resolved_membership_name == 'Mensual personalizada'
+        assert str(payment_record.amount) == '72.00'
+
     def test_members_endpoint_includes_current_membership_summary(
         self,
         trainer_client,

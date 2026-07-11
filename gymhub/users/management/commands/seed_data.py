@@ -39,7 +39,6 @@ class Command(BaseCommand):
 
         self.stdout.write('Iniciando seed_data...')
         with transaction.atomic():
-            plans_list = self._seed_membership_plans()
             trainers = self._seed_trainers()
             members = self._seed_members(trainers)
             training_plans = self._seed_training_plans(members, trainers)
@@ -86,29 +85,6 @@ class Command(BaseCommand):
         MembershipPlan.objects.all().delete()
         NutritionGuideline.objects.all().delete()
         self.stdout.write('Datos limpiados.')
-
-    def _seed_membership_plans(self):
-        from billing.models import MembershipPlan
-        plans = []
-        plan_data = [
-            {'name': 'Básico', 'price': 30000.00, 'recurrence_type': 'monthly',
-             'grace_period_days': 7,
-             'features': 'Acceso sala de pesas, duchas', 'description': 'Plan básico mensual'},
-            {'name': 'Estándar', 'price': 50000.00, 'recurrence_type': 'monthly',
-             'grace_period_days': 7,
-             'features': 'Básico + clases grupales + locker', 'description': 'Plan estándar con clases'},
-            {'name': 'Premium', 'price': 80000.00, 'recurrence_type': 'monthly',
-             'grace_period_days': 7,
-             'features': 'Todo incluido + trainer personalizado + nutrición',
-             'description': 'Plan premium todo incluido'},
-        ]
-        for pd in plan_data:
-            plan, _ = MembershipPlan.objects.update_or_create(
-                name=pd['name'], trainer=None, defaults=pd
-            )
-            plans.append(plan)
-        self.stdout.write(f'  {len(plans)} MembershipPlans creados.')
-        return plans
 
     def _seed_trainers(self):
         from django.contrib.auth import get_user_model

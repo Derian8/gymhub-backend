@@ -3,20 +3,17 @@ import { CreditCard, Calendar, DollarSign, ReceiptText, TrendingUp, Users } from
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import {
   useCreateMemberSubscriptionMutation,
-  useCreateMembershipPlanMutation,
   useMarkPaymentAsPaidMutation,
   useMemberSubscriptionsQuery,
-  useMembershipPlansQuery,
   usePaymentRecordsQuery,
   usePaymentSchedulesQuery,
   useUpdateMemberSubscriptionMutation,
-  useUpdateMembershipPlanMutation,
 } from '../hooks/useBilling'
 import { useMembersQuery } from '@/modules/members/hooks/useMembers'
 import { Badge, EmptyState, PageHeader } from '@/shared/components/UI'
 import { TableRowSkeleton } from '@/shared/components/Skeleton'
 import { formatCurrency, formatDate } from '@/shared/lib/utils'
-import type { MemberMembershipSummary, MemberProfile, MemberSubscription, MembershipPlan, PaymentRecord } from '@/shared/types'
+import type { MemberMembershipSummary, MemberProfile, MemberSubscription, PaymentRecord } from '@/shared/types'
 
 type CobroFormState = {
   payment_reference: string
@@ -87,31 +84,19 @@ export function BillingPage() {
   const filtros = memberId ? { member: memberId } : undefined
   const memberIdNumber = memberId ? Number(memberId) : undefined
   const { data: records, isLoading } = usePaymentRecordsQuery(filtros)
-  const { data: plans } = useMembershipPlansQuery()
   const { data: membersPortfolio, isLoading: isLoadingMembersPortfolio } = useMembersQuery(
     { ordering: 'riesgo_desc' },
     !memberId,
   )
   usePaymentSchedulesQuery(filtros)
   const { data: subscriptions } = useMemberSubscriptionsQuery(filtros)
-  const createPlan = useCreateMembershipPlanMutation()
-  const updatePlan = useUpdateMembershipPlanMutation()
   const createSubscription = useCreateMemberSubscriptionMutation(memberIdNumber)
   const updateSubscription = useUpdateMemberSubscriptionMutation(memberIdNumber)
   const markPaymentAsPaid = useMarkPaymentAsPaidMutation(memberIdNumber)
-  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null)
   const [paymentDrafts, setPaymentDrafts] = useState<Record<number, CobroFormState>>({})
-  const [planForm, setPlanForm] = useState({
-    name: '',
-    description: '',
-    price: '0',
-    recurrence_type: 'monthly' as MembershipPlan['recurrence_type'],
-    grace_period_days: 7,
-    features: '',
-    is_active: true,
-  })
   const [subscriptionForm, setSubscriptionForm] = useState({
-    plan: 0,
+    membership_name: '',
+    description: '',
     agreed_price: '0',
     start_date: new Date().toISOString().slice(0, 10),
     next_billing_date: new Date().toISOString().slice(0, 10),
@@ -131,17 +116,13 @@ export function BillingPage() {
     [subscriptions],
   )
 
-  const selectedPlan = useMemo(
-    () => plans?.results.find((plan) => plan.id === selectedPlanId) ?? null,
-    [plans, selectedPlanId],
-  )
-
   useEffect(() => {
     if (!activeSubscription) {
       return
     }
     setSubscriptionForm({
-      plan: activeSubscription.plan,
+      membership_name: activeSubscription.membership_name,
+      description: activeSubscription.description,
       agreed_price: activeSubscription.agreed_price,
       start_date: activeSubscription.start_date,
       next_billing_date: activeSubscription.next_billing_date,
@@ -157,36 +138,9 @@ export function BillingPage() {
     })
   }, [activeSubscription])
 
-  const beginPlanEdit = (plan: MembershipPlan) => {
-    setSelectedPlanId(plan.id)
-    setPlanForm({
-      name: plan.name,
-      description: plan.description,
-      price: plan.price,
-      recurrence_type: plan.recurrence_type,
-      grace_period_days: plan.grace_period_days,
-      features: plan.features,
-      is_active: plan.is_active ?? true,
-    })
-  }
-
-  const handlePlanSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const payload = {
-      ...planForm,
-      price: planForm.price,
-      grace_period_days: Number(planForm.grace_period_days),
-    }
-    if (selectedPlanId) {
-      updatePlan.mutate({ id: selectedPlanId, payload })
-      return
-    }
-    createPlan.mutate(payload)
-  }
-
   const handleSubscriptionSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!memberIdNumber || !subscriptionForm.plan) {
+    if (!memberIdNumber || !subscriptionForm.membership_name.trim()) {
       return
     }
     const nextBillingDate = activeSubscription
@@ -194,7 +148,9 @@ export function BillingPage() {
       : subscriptionForm.start_date
     const payload = {
       member: memberIdNumber,
-      plan: subscriptionForm.plan,
+      plan: null,
+      membership_name: subscriptionForm.membership_name.trim(),
+      description: subscriptionForm.description,
       agreed_price: subscriptionForm.agreed_price,
       start_date: subscriptionForm.start_date,
       next_billing_date: nextBillingDate,
@@ -254,7 +210,7 @@ export function BillingPage() {
               {activeSubscription ? (
                 <div className="space-y-3">
                   <p className="text-sm text-neutral-600 dark:text-neutral-300">
-                    Plan de membresía: <span className="font-semibold text-neutral-900 dark:text-white">{activeSubscription.plan_detail?.name || activeSubscription.plan}</span>
+                    Membresía: <span className="font-semibold text-neutral-900 dark:text-white">{activeSubscription.membership_name}</span>
                   </p>
                   <p className="text-sm text-neutral-600 dark:text-neutral-300">
                     Precio acordado: <span className="font-semibold text-neutral-900 dark:text-white">{formatCurrency(activeSubscription.agreed_price)}</span>
@@ -297,7 +253,7 @@ export function BillingPage() {
               ) : (
                 <div className="space-y-3">
                   <p className="text-sm text-neutral-500">Este miembro todavía no tiene una suscripción comercial creada.</p>
-                  <p className="text-sm text-neutral-500">Selecciona un plan para crear la suscripción y el primer cobro desde cero.</p>
+                  <p className="text-sm text-neutral-500">Completa los datos de la membresía para crear la suscripción y el primer cobro desde cero.</p>
                 </div>
               )}
             </div>
@@ -306,29 +262,20 @@ export function BillingPage() {
               <h4 className="font-heading font-bold text-lg text-neutral-900 dark:text-white">
                 {activeSubscription ? 'Actualizar suscripción del miembro' : 'Crear suscripción y primer cobro'}
               </h4>
-              <select
+              <input
                 className="input"
-                data-testid="subscription-plan-select"
-                value={subscriptionForm.plan}
-                onChange={(event) => {
-                  const nextPlanId = Number(event.target.value)
-                  const nextPlan = plans?.results.find((plan) => plan.id === nextPlanId)
-                  setSubscriptionForm({
-                    ...subscriptionForm,
-                    plan: nextPlanId,
-                    agreed_price: nextPlan?.price ?? subscriptionForm.agreed_price,
-                    recurrence_type: nextPlan?.recurrence_type ?? subscriptionForm.recurrence_type,
-                    grace_period_days: nextPlan?.grace_period_days ?? subscriptionForm.grace_period_days,
-                  })
-                }}
-              >
-                <option value={0}>Selecciona un plan de membresía</option>
-                {plans?.results.map((plan) => (
-                  <option key={plan.id} value={plan.id}>
-                    {plan.name} · {formatCurrency(plan.price)} / {RECURRENCE_TYPE_LABELS[plan.recurrence_type].toLowerCase()}
-                  </option>
-                ))}
-              </select>
+                data-testid="subscription-name-input"
+                placeholder="Nombre de la membresía"
+                value={subscriptionForm.membership_name}
+                onChange={(event) => setSubscriptionForm({ ...subscriptionForm, membership_name: event.target.value })}
+                required
+              />
+              <textarea
+                className="input min-h-20"
+                placeholder="Descripción de la membresía"
+                value={subscriptionForm.description}
+                onChange={(event) => setSubscriptionForm({ ...subscriptionForm, description: event.target.value })}
+              />
               <input
                 className="input"
                 data-testid="subscription-agreed-price-input"
@@ -361,8 +308,7 @@ export function BillingPage() {
                   className="input"
                   data-testid="subscription-recurrence-select"
                   value={subscriptionForm.recurrence_type}
-                  disabled
-                  title="La recurrencia se define en el plan comercial"
+                  onChange={(event) => setSubscriptionForm({ ...subscriptionForm, recurrence_type: event.target.value as MemberSubscription['recurrence_type'] })}
                   aria-label="Recurrencia del plan de membresía"
                 >
                   <option value="daily">Diario</option>
@@ -454,93 +400,6 @@ export function BillingPage() {
           </table>
         </div>
       )}
-
-      <div className="mt-8">
-        <h3 className="font-heading font-bold text-xl text-neutral-900 dark:text-white mb-4">
-          Planes de membresía configurables
-        </h3>
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {plans?.results.length ? plans.results.map((plan) => (
-              <button
-                key={plan.id}
-                type="button"
-                className="card p-5 text-left"
-                data-testid={`plan-card-${plan.id}`}
-                onClick={() => beginPlanEdit(plan)}
-              >
-                <h4 className="font-heading font-bold text-lg text-neutral-900 dark:text-white mb-1">{plan.name}</h4>
-                <p className="text-2xl font-heading font-black text-primary mb-2">
-                  {formatCurrency(plan.price)}<span className="text-sm font-body font-normal text-neutral-400"> / {RECURRENCE_TYPE_LABELS[plan.recurrence_type].toLowerCase()}</span>
-                </p>
-                {plan.description && <p className="text-xs text-neutral-500 mb-2">{plan.description}</p>}
-                {plan.features && <p className="text-xs text-neutral-400">{plan.features}</p>}
-                <div className="mt-3">
-                  <Badge variant={plan.is_active === false ? 'warning' : 'success'}>
-                    {plan.is_active === false ? 'Inactivo' : 'Activo'}
-                  </Badge>
-                </div>
-              </button>
-            )) : (
-              <div className="md:col-span-3">
-                <EmptyState
-                  icon={<CreditCard size={32} />}
-                  title="Sin planes configurados"
-                  description="Crea tu primer plan comercial para empezar a suscribir members con precio negociable."
-                />
-              </div>
-            )}
-          </div>
-
-          <form className="card p-5 space-y-3" onSubmit={handlePlanSubmit}>
-            <h4 className="font-heading font-bold text-lg text-neutral-900 dark:text-white">
-              {selectedPlan ? 'Editar plan comercial' : 'Nuevo plan comercial'}
-            </h4>
-            <input className="input" placeholder="Nombre" value={planForm.name} onChange={(event) => setPlanForm({ ...planForm, name: event.target.value })} required />
-            <textarea className="input min-h-24" placeholder="Descripción" value={planForm.description} onChange={(event) => setPlanForm({ ...planForm, description: event.target.value })} />
-            <input className="input" type="number" min={0} placeholder="Precio del periodo" value={planForm.price} onChange={(event) => setPlanForm({ ...planForm, price: event.target.value })} required />
-            <select
-              className="input"
-              value={planForm.recurrence_type}
-              onChange={(event) => {
-                const recurrence = event.target.value as MembershipPlan['recurrence_type']
-                const graceDefaults: Record<MembershipPlan['recurrence_type'], number> = {
-                  daily: 0, weekly: 1, biweekly: 2, monthly: 7, quarterly: 7, annual: 7,
-                }
-                setPlanForm({ ...planForm, recurrence_type: recurrence, grace_period_days: graceDefaults[recurrence] })
-              }}
-              data-testid="plan-recurrence-select"
-            >
-              {Object.entries(RECURRENCE_TYPE_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-            <input className="input" type="number" min={0} placeholder="Días de tolerancia" value={planForm.grace_period_days} onChange={(event) => setPlanForm({ ...planForm, grace_period_days: Number(event.target.value) })} required />
-            <textarea className="input min-h-24" placeholder="Beneficios / features" value={planForm.features} onChange={(event) => setPlanForm({ ...planForm, features: event.target.value })} />
-            <label className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
-              <input type="checkbox" checked={planForm.is_active} onChange={(event) => setPlanForm({ ...planForm, is_active: event.target.checked })} />
-              Plan de membresía activo
-            </label>
-            <div className="flex justify-end gap-2">
-              {selectedPlan ? (
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => {
-                    setSelectedPlanId(null)
-                    setPlanForm({ name: '', description: '', price: '0', recurrence_type: 'monthly', grace_period_days: 7, features: '', is_active: true })
-                  }}
-                >
-                  Nuevo
-                </button>
-              ) : null}
-              <button className="btn-primary" type="submit">
-                {selectedPlan ? 'Guardar plan de membresía' : 'Crear plan de membresía'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
     </div>
   )
 }

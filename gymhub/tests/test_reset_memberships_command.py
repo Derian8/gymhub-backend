@@ -74,9 +74,9 @@ def test_reset_memberships_confirm_clears_assignments_and_keeps_plans(member_pro
     call_command('reset_memberships', confirm=True, stdout=output)
 
     member_profile.refresh_from_db()
-    assert 'Membresías existentes eliminadas' in output.getvalue()
+    assert 'Membresías y planes configurables eliminados' in output.getvalue()
     assert member_profile.membership_plan_id is None
     assert not MemberSubscription.objects.exists()
     assert not PaymentSchedule.objects.exists()
     assert not PaymentRecord.objects.exists()
-    assert MembershipPlan.objects.filter(pk=membership_plan.pk).exists()
+    assert not MembershipPlan.objects.filter(pk=membership_plan.pk).exists()

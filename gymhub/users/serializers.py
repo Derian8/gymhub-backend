@@ -239,7 +239,7 @@ class MemberProfileSerializer(serializers.ModelSerializer):
             return obj.membership_plan.name
         subscription = self._active_subscription(obj)
         if subscription:
-            return subscription.plan.name
+            return subscription.membership_name
         return None
 
     def get_suscripcion_activa_id(self, obj):
@@ -273,7 +273,7 @@ class MemberProfileSerializer(serializers.ModelSerializer):
         return {
             'subscription_id': subscription.id,
             'plan_id': subscription.plan_id,
-            'plan_name': subscription.plan.name,
+            'plan_name': subscription.membership_name,
             'agreed_price': str(subscription.agreed_price),
             'recurrence_type': subscription.recurrence_type,
             'status': subscription.status,

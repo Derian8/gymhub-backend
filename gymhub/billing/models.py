@@ -67,9 +67,13 @@ class MemberSubscription(models.Model):
     )
     plan = models.ForeignKey(
         MembershipPlan,
-        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
         related_name='subscriptions'
     )
+    membership_name = models.CharField(max_length=200, default='Membresía')
+    description = models.TextField(blank=True)
     trainer = models.ForeignKey(
         'users.TrainerProfile',
         on_delete=models.CASCADE,
@@ -110,7 +114,7 @@ class MemberSubscription(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.member} — {self.plan.name} (${self.agreed_price})"
+        return f"{self.member} — {self.membership_name} (${self.agreed_price})"
 
 
 class PaymentMethod(models.Model):
@@ -181,6 +185,14 @@ class PaymentSchedule(models.Model):
         if self.subscription_id:
             return self.subscription.plan
         return self.plan
+
+    @property
+    def resolved_membership_name(self):
+        if self.subscription_id:
+            return self.subscription.membership_name
+        if self.plan_id:
+            return self.plan.name
+        return None
 
 
 class PaymentRecord(models.Model):

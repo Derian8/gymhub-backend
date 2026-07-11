@@ -403,13 +403,12 @@ def get_member_dashboard_summary(member):
     risk = get_member_risk_snapshot(member)
     current_subscription = (
         MemberSubscription.objects
-        .select_related('plan')
         .filter(member=member, is_active=True)
         .order_by('-start_date', '-id')
         .first()
     )
     membership_plan_name = (
-        current_subscription.plan.name
+        current_subscription.membership_name
         if current_subscription
         else getattr(member.membership_plan, 'name', None)
     )

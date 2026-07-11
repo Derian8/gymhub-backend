@@ -90,8 +90,8 @@ class MemberSubscriptionViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(member_id=member_id)
         return queryset
 
-    def _resolve_plan_and_member(self, serializer):
-        plan = serializer.validated_data['plan']
+    def _resolve_subscription_owner(self, serializer):
+        plan = serializer.validated_data.get('plan')
         member = serializer.validated_data['member']
         user = self.request.user
         if user.is_staff:
@@ -99,20 +99,33 @@ class MemberSubscriptionViewSet(viewsets.ModelViewSet):
         trainer_profile = _get_trainer_profile(user)
         if member.trainer_asignado_id != trainer_profile.id:
             raise PermissionDenied('Solo puedes suscribir clientes asignados.')
-        if plan.trainer_id != trainer_profile.id:
+        if plan and plan.trainer_id != trainer_profile.id:
             raise PermissionDenied('Solo puedes usar tus propios planes configurables.')
         return plan, member, trainer_profile
 
     @transaction.atomic
     def perform_create(self, serializer):
-        plan, member, trainer_profile = self._resolve_plan_and_member(serializer)
+        plan, member, trainer_profile = self._resolve_subscription_owner(serializer)
+        if trainer_profile is None:
+            raise ValidationError({'trainer': 'El miembro necesita un trainer asignado para crear membresía.'})
         MemberSubscription.objects.filter(member=member, is_active=True).update(is_active=False)
         PaymentSchedule.objects.filter(member=member, is_active=True).update(is_active=False)
         start_date = serializer.validated_data['start_date']
+        recurrence_type = serializer.validated_data.get(
+            'recurrence_type',
+            plan.recurrence_type if plan else 'monthly',
+        )
+        grace_period_days = serializer.validated_data.get(
+            'grace_period_days',
+            plan.grace_period_days if plan else 7,
+        )
         subscription = serializer.save(
             trainer=trainer_profile,
-            recurrence_type=plan.recurrence_type,
-            grace_period_days=plan.grace_period_days,
+            plan=plan,
+            membership_name=serializer.validated_data.get('membership_name') or (plan.name if plan else 'Membresía'),
+            description=serializer.validated_data.get('description') or (plan.description if plan else ''),
+            recurrence_type=recurrence_type,
+            grace_period_days=grace_period_days,
             next_billing_date=start_date,
             renewal_date=None,
             status='suspended',
@@ -126,7 +139,8 @@ class MemberSubscriptionViewSet(viewsets.ModelViewSet):
             request=self.request,
             details={
                 'member_id': member.id,
-                'plan_id': plan.id,
+                'plan_id': plan.id if plan else None,
+                'membership_name': subscription.membership_name,
                 'agreed_price': str(subscription.agreed_price),
                 'status': subscription.status,
             },
@@ -146,9 +160,17 @@ class MemberSubscriptionViewSet(viewsets.ModelViewSet):
             'cancellation_date': subscription.cancellation_date.isoformat() if subscription.cancellation_date else None,
         }
         target_plan = serializer.validated_data.get('plan', subscription.plan)
+        recurrence_type = serializer.validated_data.get(
+            'recurrence_type',
+            target_plan.recurrence_type if target_plan else subscription.recurrence_type,
+        )
+        grace_period_days = serializer.validated_data.get(
+            'grace_period_days',
+            target_plan.grace_period_days if target_plan else subscription.grace_period_days,
+        )
         updated = serializer.save(
-            recurrence_type=target_plan.recurrence_type,
-            grace_period_days=target_plan.grace_period_days,
+            recurrence_type=recurrence_type,
+            grace_period_days=grace_period_days,
         )
         if updated.is_active:
             MemberSubscription.objects.filter(member=updated.member).exclude(id=updated.id).update(is_active=False)

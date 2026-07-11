@@ -2,8 +2,6 @@ import { fireEvent } from '@testing-library/react'
 import { renderWithProviders } from '@/test/utils'
 import { BillingPage } from './BillingPage'
 
-const createPlanMock = vi.fn()
-const updatePlanMock = vi.fn()
 const createSubscriptionMock = vi.fn()
 const updateSubscriptionMock = vi.fn()
 const markPaymentAsPaidMock = vi.fn()
@@ -19,14 +17,6 @@ vi.mock('../hooks/useBilling', () => ({
     },
     isLoading: false,
   }),
-  useMembershipPlansQuery: () => ({
-    data: {
-      results: [
-        { id: 8, trainer: 9, trainer_nombre: 'Trainer Demo', name: 'Premium', description: 'Acceso total', price: '79000.00', recurrence_type: 'biweekly', grace_period_days: 2, features: 'Todo incluido', is_active: true },
-      ],
-    },
-    isLoading: false,
-  }),
   usePaymentSchedulesQuery: () => ({
     data: { results: [] },
     isLoading: false,
@@ -35,34 +25,12 @@ vi.mock('../hooks/useBilling', () => ({
     data: { results: [] },
     isLoading: false,
   }),
-  useCreateMembershipPlanMutation: () => ({ mutate: createPlanMock, isPending: false }),
-  useUpdateMembershipPlanMutation: () => ({ mutate: updatePlanMock, isPending: false }),
   useCreateMemberSubscriptionMutation: () => ({ mutate: createSubscriptionMock, isPending: false }),
   useUpdateMemberSubscriptionMutation: () => ({ mutate: updateSubscriptionMock, isPending: false }),
   useMarkPaymentAsPaidMutation: () => ({ mutate: markPaymentAsPaidMock, isPending: false }),
 }))
 
 vi.mock('@/modules/members/hooks/useMembers', () => ({
-  useMemberDetailQuery: (id: number) => ({
-    data: id
-      ? {
-          id: 15,
-          user: null,
-          email: 'maria@test.com',
-          full_name: 'Maria Perez',
-          membership_plan: 8,
-          membership_plan_nombre: 'Premium',
-          phone: '8888-9999',
-          birth_date: null,
-          emergency_contact: '',
-          join_date: '2026-03-01',
-          is_active: true,
-          photo: null,
-          membresia_actual: null,
-        }
-      : undefined,
-    isLoading: false,
-  }),
   useMembersQuery: () => ({
     data: {
       count: 2,
@@ -125,15 +93,13 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
 
 describe('BillingPage', () => {
   beforeEach(() => {
-    createPlanMock.mockReset()
-    updatePlanMock.mockReset()
     createSubscriptionMock.mockReset()
     updateSubscriptionMock.mockReset()
     markPaymentAsPaidMock.mockReset()
   })
 
-  it('renders billing summary, payment rows and membership plans', () => {
-    const { getAllByText, getByTestId, getByText } = renderWithProviders(<BillingPage />)
+  it('renders billing summary, payment rows and membership portfolio without plan catalog', () => {
+    const { getAllByText, getByTestId, getByText, queryByText } = renderWithProviders(<BillingPage />)
 
     expect(getByTestId('billing-page')).toBeInTheDocument()
     expect(getByText('Pendientes')).toBeInTheDocument()
@@ -142,9 +108,8 @@ describe('BillingPage', () => {
     expect(getByTestId('payment-row-1')).toBeInTheDocument()
     expect(getByTestId('payment-row-2')).toBeInTheDocument()
     expect(getByTestId('payment-row-3')).toBeInTheDocument()
-    expect(getByTestId('plan-card-8')).toBeInTheDocument()
     expect(getAllByText('Premium').length).toBeGreaterThan(0)
-    expect(getByText('Planes de membresía configurables')).toBeInTheDocument()
+    expect(queryByText('Planes de membresía configurables')).not.toBeInTheDocument()
     expect(getByTestId('membership-portfolio')).toHaveTextContent('Cartera de membresías')
     expect(getByTestId('membership-portfolio')).toHaveTextContent('Membresías por miembro')
     expect(getByTestId('portfolio-member-15')).toHaveTextContent('Maria Perez')
@@ -163,30 +128,32 @@ describe('BillingPage', () => {
     expect(getByText('Cobros, recibos y estado comercial del miembro seleccionado')).toBeInTheDocument()
     expect(getByText('Membresía del miembro')).toBeInTheDocument()
     expect(queryByText(/Plan asignado:/)).not.toBeInTheDocument()
-    expect(getByTestId('subscription-plan-select')).toHaveValue('0')
+    expect(getByTestId('subscription-name-input')).toHaveValue('')
     expect(getByTestId('subscription-agreed-price-input')).toHaveValue(0)
   })
 
   it('creates a member subscription with an agreed price', () => {
     const { getAllByRole, getAllByTestId } = renderWithProviders(<BillingPage />, { route: '/billing?member=15' })
 
-    fireEvent.change(getAllByTestId('subscription-plan-select')[0], { target: { value: '8' } })
+    fireEvent.change(getAllByTestId('subscription-name-input')[0], { target: { value: 'Mensual personalizada' } })
     fireEvent.change(getAllByTestId('subscription-agreed-price-input')[0], { target: { value: '72.00' } })
+    fireEvent.change(getAllByTestId('subscription-recurrence-select')[0], { target: { value: 'biweekly' } })
     fireEvent.click(getAllByRole('button', { name: 'Crear suscripción y primer cobro' })[0])
 
     expect(createSubscriptionMock).toHaveBeenCalledWith(
       expect.objectContaining({
         member: 15,
-        plan: 8,
+        plan: null,
+        membership_name: 'Mensual personalizada',
         agreed_price: '72.00',
         recurrence_type: 'biweekly',
       }),
     )
   })
 
-  it('offers short billing recurrences for membership plans', () => {
+  it('offers short billing recurrences for direct memberships', () => {
     const { getByTestId } = renderWithProviders(<BillingPage />, { route: '/billing?member=15' })
-    const recurrenceSelect = getByTestId('plan-recurrence-select') as HTMLSelectElement
+    const recurrenceSelect = getByTestId('subscription-recurrence-select') as HTMLSelectElement
     const labels = Array.from(recurrenceSelect.options).map((option) => option.text)
 
     expect(labels).toEqual(expect.arrayContaining(['Diario', 'Semanal', 'Quincenal', 'Mensual', 'Trimestral', 'Anual']))

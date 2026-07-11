@@ -1,22 +1,7 @@
 import apiClient from '@/shared/api/client'
-import type { MemberSubscription, MembershipPlan, PaymentRecord, PaymentSchedule, PaymentMethod, PaginatedResponse } from '@/shared/types'
+import type { MemberSubscription, PaymentRecord, PaymentSchedule, PaymentMethod, PaginatedResponse } from '@/shared/types'
 
 export const billingApi = {
-  membershipPlans: async (): Promise<PaginatedResponse<MembershipPlan>> => {
-    const { data } = await apiClient.get('/api/membership-plans/')
-    return data
-  },
-
-  createMembershipPlan: async (payload: Partial<MembershipPlan>): Promise<MembershipPlan> => {
-    const { data } = await apiClient.post('/api/membership-plans/', payload)
-    return data
-  },
-
-  updateMembershipPlan: async (id: number, payload: Partial<MembershipPlan>): Promise<MembershipPlan> => {
-    const { data } = await apiClient.patch(`/api/membership-plans/${id}/`, payload)
-    return data
-  },
-
   paymentSchedules: async (params?: Record<string, string>): Promise<PaginatedResponse<PaymentSchedule>> => {
     const { data } = await apiClient.get('/api/payment-schedules/', { params })
     return data
