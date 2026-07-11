@@ -38,12 +38,8 @@ function getMembershipBadge(membership?: MemberMembershipSummary | null): {
   return { label: membership.access_allowed ? 'Vigente' : 'Revisar acceso', variant: membership.access_allowed ? 'success' : 'warning' }
 }
 
-function hasAssignedMembershipPlan(member: MemberProfile) {
-  return Boolean(member.membership_plan)
-}
-
 function getMembershipPlanName(member: MemberProfile) {
-  return member.membresia_actual?.plan_name || member.membership_plan_nombre || 'Sin plan asignado'
+  return member.membresia_actual?.plan_name || 'Sin membresía'
 }
 
 export function MembersPage() {
@@ -222,11 +218,7 @@ export function MembersPage() {
 
 function MemberRow({ member }: { member: MemberProfile }) {
   const membership = member.membresia_actual
-  const membershipBadge = membership
-    ? getMembershipBadge(membership)
-    : hasAssignedMembershipPlan(member)
-      ? { label: 'Falta activar cobro', variant: 'warning' as const }
-      : getMembershipBadge(membership)
+  const membershipBadge = getMembershipBadge(membership)
 
   return (
     <tr className="tr-hover" data-testid={`member-row-${member.id}`}>
@@ -268,9 +260,7 @@ function MemberRow({ member }: { member: MemberProfile }) {
             </>
           ) : (
             <p className="text-xs text-neutral-400">
-              {hasAssignedMembershipPlan(member)
-                ? 'Plan asignado. Crea la suscripción y el primer cobro.'
-                : 'Asigna una membresía desde facturación.'}
+              Asigna una membresía desde facturación.
             </p>
           )}
         </div>

@@ -8,7 +8,7 @@ from django.core.management import call_command
 @pytest.mark.django_db
 def test_seed_data_creates_only_first_demo_trainer_and_member():
     from users.models import User
-    from billing.models import MemberSubscription, PaymentRecord
+    from billing.models import MemberSubscription, MembershipPlan, PaymentRecord
     from plans.models import TrainingPlan, WorkoutDay
 
     call_command(
@@ -26,14 +26,13 @@ def test_seed_data_creates_only_first_demo_trainer_and_member():
 
     member = User.objects.get(email='member1@gymhub.com').memberprofile
     plan = TrainingPlan.objects.get(member=member, is_active=True)
-    subscription = MemberSubscription.objects.get(member=member, is_active=True)
-    payment_record = PaymentRecord.objects.get(schedule__subscription=subscription)
     weekday_codes = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
     today_code = weekday_codes[date.today().weekday()]
 
-    assert subscription.plan_id == member.membership_plan_id
-    assert subscription.current_period_start <= date.today() <= subscription.current_period_end
-    assert payment_record.status == 'paid'
+    assert MembershipPlan.objects.exists()
+    assert member.membership_plan_id is None
+    assert not MemberSubscription.objects.filter(member=member).exists()
+    assert not PaymentRecord.objects.filter(schedule__member=member).exists()
     assert WorkoutDay.objects.filter(plan=plan, day_of_week=today_code).exists()
 
 

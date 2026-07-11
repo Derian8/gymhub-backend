@@ -4,7 +4,7 @@ from rest_framework import status
 
 @pytest.mark.django_db
 class TestTrainerClients:
-    def test_trainer_can_activate_member_with_plan_and_agreed_price(self, trainer_client, trainer_profile, membership_plan):
+    def test_trainer_can_activate_member_without_creating_membership(self, trainer_client, trainer_profile, membership_plan):
         from billing.models import MemberSubscription, PaymentRecord, PaymentSchedule
         from django.contrib.auth import get_user_model
 
@@ -26,14 +26,12 @@ class TestTrainerClients:
 
         assert response.status_code == status.HTTP_200_OK
         member.refresh_from_db()
-        subscription = MemberSubscription.objects.get(member=member, is_active=True)
-        schedule = PaymentSchedule.objects.get(subscription=subscription)
-        record = PaymentRecord.objects.get(schedule=schedule)
 
         assert member.is_active is True
-        assert member.membership_plan_id == membership_plan.id
-        assert str(subscription.agreed_price) == '64.90'
-        assert str(record.amount) == '64.90'
+        assert member.membership_plan_id is None
+        assert not MemberSubscription.objects.filter(member=member).exists()
+        assert not PaymentSchedule.objects.filter(member=member).exists()
+        assert not PaymentRecord.objects.filter(schedule__member=member).exists()
 
     def test_trainer_can_assign_self_to_unassigned_member(self, trainer_client, membership_plan):
         from django.contrib.auth import get_user_model

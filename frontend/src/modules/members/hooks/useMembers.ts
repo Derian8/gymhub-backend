@@ -51,8 +51,7 @@ export function useActivateMemberMutation() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, planId, agreedPrice }: { id: number; planId?: number; agreedPrice?: number }) =>
-      membersApi.activate(id, { plan_id: planId, agreed_price: agreedPrice }),
+    mutationFn: ({ id }: { id: number }) => membersApi.activate(id),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERS })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_DETAIL(data.member.id) })

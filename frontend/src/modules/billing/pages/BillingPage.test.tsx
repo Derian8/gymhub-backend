@@ -152,19 +152,19 @@ describe('BillingPage', () => {
     expect(getByTestId('portfolio-member-15')).toHaveTextContent('₡79 000')
     expect(getByTestId('portfolio-member-15')).toHaveTextContent('Vigente')
     expect(getByTestId('portfolio-member-16')).toHaveTextContent('Cliente Plan Sin Cobro')
-    expect(getByTestId('portfolio-member-16')).toHaveTextContent('Falta activar cobro')
-    expect(getByTestId('portfolio-member-16')).toHaveTextContent('Crear cobro para activar')
+    expect(getByTestId('portfolio-member-16')).toHaveTextContent('Sin membresía')
+    expect(getByTestId('portfolio-member-16')).toHaveTextContent('Sin precio')
   })
 
   it('shows member-specific header when member filter is present', () => {
-    const { getByDisplayValue, getByTestId, getByText } = renderWithProviders(<BillingPage />, { route: '/billing?member=15' })
+    const { getByTestId, getByText, queryByText } = renderWithProviders(<BillingPage />, { route: '/billing?member=15' })
 
     expect(getByText('Facturación del miembro')).toBeInTheDocument()
     expect(getByText('Cobros, recibos y estado comercial del miembro seleccionado')).toBeInTheDocument()
     expect(getByText('Membresía del miembro')).toBeInTheDocument()
-    expect(getByText(/Plan asignado:/)).toBeInTheDocument()
-    expect(getByTestId('subscription-plan-select')).toHaveValue('8')
-    expect(getByDisplayValue('79000.00')).toBeInTheDocument()
+    expect(queryByText(/Plan asignado:/)).not.toBeInTheDocument()
+    expect(getByTestId('subscription-plan-select')).toHaveValue('0')
+    expect(getByTestId('subscription-agreed-price-input')).toHaveValue(0)
   })
 
   it('creates a member subscription with an agreed price', () => {

@@ -1,7 +1,6 @@
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Phone, Calendar, Mail, Dumbbell, CreditCard, CheckSquare, Apple, AlertTriangle, Activity, Ruler, Scale, PencilLine } from 'lucide-react'
 import { useMemberActivePrescriptionQuery, useMemberDetailQuery, useActivateMemberMutation, useAssignTrainerMutation, useMemberDashboardQuery, useMemberPhysicalSummaryQuery } from '../hooks/useMembers'
-import { useMembershipPlansQuery } from '@/modules/billing/hooks/useBilling'
 import { Badge, PageHeader, Avatar, EmptyState } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
 import { extractApiError, formatCurrency, formatDate, formatDateTime, RISK_LEVEL_BADGE, RISK_LEVEL_LABELS } from '@/shared/lib/utils'
@@ -12,9 +11,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { QUERY_KEYS } from '@/shared/constants/queryKeys'
 import { progressApi } from '@/modules/progress/api/progressApi'
 import { toast } from 'sonner'
-import type { MembershipPlan, ProgressLog } from '@/shared/types'
+import type { MemberSubscription, ProgressLog } from '@/shared/types'
 
-const MEMBERSHIP_PERIOD_LABELS: Record<MembershipPlan['recurrence_type'], string> = {
+const MEMBERSHIP_PERIOD_LABELS: Record<MemberSubscription['recurrence_type'], string> = {
   daily: 'día',
   weekly: 'semana',
   biweekly: 'quincena',
@@ -51,10 +50,6 @@ function getMembershipStatusCopy(summary: ReturnType<typeof useMemberDashboardQu
   }
 }
 
-function getAssignedMembershipPlanName(member: { membresia_actual?: { plan_name: string } | null; membership_plan_nombre?: string | null }) {
-  return member.membresia_actual?.plan_name || member.membership_plan_nombre || 'Sin membresía asignada'
-}
-
 export function MemberDetailPage() {
   const { id } = useParams<{ id: string }>()
   const memberId = parseInt(id || '0')
@@ -63,12 +58,9 @@ export function MemberDetailPage() {
   const { data: dashboardSummary } = useMemberDashboardQuery(memberId)
   const { data: physicalSummary } = useMemberPhysicalSummaryQuery(memberId)
   const { data: activePrescription } = useMemberActivePrescriptionQuery(memberId)
-  const { data: plans } = useMembershipPlansQuery()
   const { mutate: activate, isPending: isActivating } = useActivateMemberMutation()
   const { mutate: assignTrainer, isPending: isAssigningTrainer } = useAssignTrainerMutation()
   const { user } = useAuthStore()
-  const [selectedPlanId, setSelectedPlanId] = useState<number | undefined>()
-  const [agreedPrice, setAgreedPrice] = useState<number | undefined>()
   const [isMeasurementFormOpen, setIsMeasurementFormOpen] = useState(false)
   const [editingMeasurementId, setEditingMeasurementId] = useState<number | null>(null)
   const [measurementForm, setMeasurementForm] = useState({
@@ -108,18 +100,6 @@ export function MemberDetailPage() {
       toast.error(extractApiError(error))
     },
   })
-
-  useEffect(() => {
-    if (!member || !plans?.results.length || selectedPlanId) {
-      return
-    }
-    const defaultPlan = plans.results.find((plan) => plan.id === member.membership_plan) ?? plans.results[0]
-    if (!defaultPlan) {
-      return
-    }
-    setSelectedPlanId(defaultPlan.id)
-    setAgreedPrice(Number(member.precio_suscripcion_actual ?? defaultPlan.price))
-  }, [member, plans, selectedPlanId])
 
   function resetMeasurementForm() {
     setMeasurementForm({
@@ -177,14 +157,13 @@ export function MemberDetailPage() {
       ? 'success'
       : 'warning'
   const membership = member.membresia_actual
-  const hasPlanWithoutSubscription = Boolean(member.membership_plan && !membership)
-  const membershipStatus = hasPlanWithoutSubscription
-    ? {
-        label: 'Falta activar cobro',
-        variant: 'warning' as const,
-        detail: 'El miembro tiene un plan asignado. Crea la suscripción y el primer cobro para activar precio, vencimiento y acceso.',
+  const membershipStatus = membership
+    ? getMembershipStatusCopy(dashboardSummary)
+    : {
+        label: 'Sin membresía',
+        variant: 'neutral' as const,
+        detail: 'Crea la membresía comercial desde facturación para definir precio, vencimiento y acceso.',
       }
-    : getMembershipStatusCopy(dashboardSummary)
 
   return (
     <div data-testid="member-detail-page" className="page-enter">
@@ -219,7 +198,7 @@ export function MemberDetailPage() {
             )}
             {!member.is_active && (
               <button
-                onClick={() => activate({ id: member.id, planId: selectedPlanId, agreedPrice })}
+                onClick={() => activate({ id: member.id })}
                 disabled={isActivating}
                 className="btn-primary flex items-center gap-2"
                 data-testid="activate-member-btn"
@@ -276,7 +255,7 @@ export function MemberDetailPage() {
               <div>
                 <p className="label-base">Membresía y cobro</p>
                 <h3 className="font-heading font-bold text-lg text-neutral-900 dark:text-white">
-                  {membership?.plan_name || dashboardSummary?.membership_plan_name || getAssignedMembershipPlanName(member)}
+                  {membership?.plan_name || 'Sin membresía asignada'}
                 </h3>
                 <p className="text-sm text-neutral-500 mt-1">
                   Estado comercial del miembro. Esto es independiente del plan de entrenamiento.
@@ -288,11 +267,11 @@ export function MemberDetailPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
               <PrescriptionTile
                 label="Precio acordado"
-                value={membership?.agreed_price ? formatCurrency(membership.agreed_price) : member.precio_suscripcion_actual ? formatCurrency(member.precio_suscripcion_actual) : 'Sin precio'}
+                value={membership?.agreed_price ? formatCurrency(membership.agreed_price) : 'Sin precio'}
               />
               <PrescriptionTile
                 label="Recurrencia"
-                value={membership?.recurrence_type ? MEMBERSHIP_PERIOD_LABELS[membership.recurrence_type] : hasPlanWithoutSubscription ? 'Crear cobro para activar' : 'Sin dato'}
+                value={membership?.recurrence_type ? MEMBERSHIP_PERIOD_LABELS[membership.recurrence_type] : 'Sin dato'}
               />
               <PrescriptionTile
                 label="Vencimiento"
@@ -304,7 +283,7 @@ export function MemberDetailPage() {
               />
               <PrescriptionTile
                 label="Acceso"
-                value={membership ? membership.access_allowed ? 'Permitido' : 'Requiere revisión' : hasPlanWithoutSubscription ? 'Crear cobro para activar' : 'Sin membresía'}
+                value={membership ? membership.access_allowed ? 'Permitido' : 'Requiere revisión' : 'Sin membresía'}
               />
               <PrescriptionTile
                 label="Días"
@@ -316,7 +295,7 @@ export function MemberDetailPage() {
               />
               <PrescriptionTile
                 label="Suscripción"
-                value={membership?.subscription_id ? `#${membership.subscription_id}` : member.suscripcion_activa_id ? `#${member.suscripcion_activa_id}` : 'Sin suscripción activa'}
+                value={membership?.subscription_id ? `#${membership.subscription_id}` : 'Sin suscripción activa'}
               />
             </div>
 
@@ -324,10 +303,10 @@ export function MemberDetailPage() {
               <p className="text-sm text-neutral-500">{membershipStatus.detail}</p>
               <Link
                 to={`/billing?member=${member.id}`}
-                className={hasPlanWithoutSubscription ? 'btn-primary' : 'btn-secondary'}
+                className={membership ? 'btn-secondary' : 'btn-primary'}
                 data-testid="member-membership-billing-link"
               >
-                {hasPlanWithoutSubscription ? 'Crear suscripción y cobro' : 'Ver facturación'}
+                {membership ? 'Ver facturación' : 'Crear membresía'}
               </Link>
             </div>
           </div>
@@ -692,51 +671,11 @@ export function MemberDetailPage() {
                 Activar miembro
               </h3>
               <p className="text-sm text-neutral-500 mb-4">
-                Selecciona un plan de membresía y define el precio acordado para activar al miembro y generar su suscripción comercial.
+                Activa el perfil del miembro. La membresía, el precio acordado y el primer cobro se crean después desde facturación.
               </p>
-              {plans?.results && (
-                <div className="space-y-2 mb-4">
-                  {plans.results.map((plan) => (
-                    <label
-                      key={plan.id}
-                      className={`flex items-center gap-3 p-3 border rounded-sm cursor-pointer transition-colors ${
-                        selectedPlanId === plan.id
-                          ? 'border-primary bg-primary/5'
-                          : 'border-neutral-200 dark:border-neutral-800 hover:border-primary/50'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="plan"
-                        value={plan.id}
-                        checked={selectedPlanId === plan.id}
-                        onChange={() => {
-                          setSelectedPlanId(plan.id)
-                          setAgreedPrice(Number(plan.price))
-                        }}
-                        className="accent-primary"
-                      />
-                      <div>
-                        <p className="font-medium text-neutral-900 dark:text-white text-sm">{plan.name}</p>
-                        <p className="text-xs text-neutral-500">{formatCurrency(plan.price)} / {MEMBERSHIP_PERIOD_LABELS[plan.recurrence_type]}</p>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              )}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                  Precio acordado de la suscripción
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  className="input"
-                  value={agreedPrice ?? ''}
-                  onChange={(event) => setAgreedPrice(event.target.value ? Number(event.target.value) : undefined)}
-                  data-testid="activation-agreed-price-input"
-                />
-              </div>
+              <Link to={`/billing?member=${member.id}`} className="btn-secondary">
+                Ir a facturación
+              </Link>
             </div>
           )}
 

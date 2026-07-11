@@ -44,12 +44,8 @@ export const membersApi = {
     return data
   },
 
-  activate: async (id: number, payload?: { plan_id?: number; agreed_price?: number }): Promise<{ message: string; member: MemberProfile }> => {
-    const { data } = await apiClient.post(`/api/members/${id}/activate/`, {
-      membership_plan_id: payload?.plan_id,
-      plan_id: payload?.plan_id,
-      agreed_price: payload?.agreed_price,
-    })
+  activate: async (id: number): Promise<{ message: string; member: MemberProfile }> => {
+    const { data } = await apiClient.post(`/api/members/${id}/activate/`)
     return data
   },
 

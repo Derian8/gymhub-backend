@@ -34,11 +34,11 @@ function getMembershipPresentation(data?: MemberDashboardSummary) {
   if (!data.membership_agreed_price && !data.membership_next_billing_date && data.payment_status == null) {
     return {
       label: data.membership_plan_name,
-      badge: 'Falta activar cobro',
+      badge: 'Sin membresía activa',
       variant: 'warning' as const,
       tone: 'warning' as const,
-      title: 'Tu plan está asignado, pero falta activar el cobro',
-      detail: 'El plan ya está ligado a tu perfil. Falta que el gimnasio cree la suscripción comercial para controlar pagos y vencimientos.',
+      title: 'Aún no tienes una membresía activa',
+      detail: 'Cuando el gimnasio cree tu membresía comercial, verás aquí precio, pagos y vencimientos.',
       icon: <AlertTriangle size={24} />,
     }
   }

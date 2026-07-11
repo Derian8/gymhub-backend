@@ -12,7 +12,7 @@ import {
   useUpdateMemberSubscriptionMutation,
   useUpdateMembershipPlanMutation,
 } from '../hooks/useBilling'
-import { useMemberDetailQuery, useMembersQuery } from '@/modules/members/hooks/useMembers'
+import { useMembersQuery } from '@/modules/members/hooks/useMembers'
 import { Badge, EmptyState, PageHeader } from '@/shared/components/UI'
 import { TableRowSkeleton } from '@/shared/components/Skeleton'
 import { formatCurrency, formatDate } from '@/shared/lib/utils'
@@ -77,12 +77,8 @@ function getMembershipBadge(membership?: MemberMembershipSummary | null): {
   return { label: membership.access_allowed ? 'Vigente' : 'Revisar acceso', variant: membership.access_allowed ? 'success' : 'warning' }
 }
 
-function hasAssignedMembershipPlan(member: MemberProfile) {
-  return Boolean(member.membership_plan)
-}
-
 function getPortfolioPlanName(member: MemberProfile) {
-  return member.membresia_actual?.plan_name || member.membership_plan_nombre || 'Sin plan'
+  return member.membresia_actual?.plan_name || 'Sin membresía'
 }
 
 export function BillingPage() {
@@ -96,7 +92,6 @@ export function BillingPage() {
     { ordering: 'riesgo_desc' },
     !memberId,
   )
-  const { data: selectedMember } = useMemberDetailQuery(memberIdNumber || 0)
   usePaymentSchedulesQuery(filtros)
   const { data: subscriptions } = useMemberSubscriptionsQuery(filtros)
   const createPlan = useCreateMembershipPlanMutation()
@@ -161,23 +156,6 @@ export function BillingPage() {
       commercial_notes: activeSubscription.commercial_notes,
     })
   }, [activeSubscription])
-
-  useEffect(() => {
-    if (activeSubscription || !selectedMember?.membership_plan || !plans?.results.length || subscriptionForm.plan) {
-      return
-    }
-    const assignedPlan = plans.results.find((plan) => plan.id === selectedMember.membership_plan)
-    if (!assignedPlan) {
-      return
-    }
-    setSubscriptionForm((current) => ({
-      ...current,
-      plan: assignedPlan.id,
-      agreed_price: assignedPlan.price,
-      recurrence_type: assignedPlan.recurrence_type,
-      grace_period_days: assignedPlan.grace_period_days,
-    }))
-  }, [activeSubscription, plans, selectedMember, subscriptionForm.plan])
 
   const beginPlanEdit = (plan: MembershipPlan) => {
     setSelectedPlanId(plan.id)
@@ -319,13 +297,7 @@ export function BillingPage() {
               ) : (
                 <div className="space-y-3">
                   <p className="text-sm text-neutral-500">Este miembro todavía no tiene una suscripción comercial creada.</p>
-                  {selectedMember?.membership_plan_nombre ? (
-                    <p className="text-sm text-neutral-600 dark:text-neutral-300">
-                      Plan asignado: <span className="font-semibold text-neutral-900 dark:text-white">{selectedMember.membership_plan_nombre}</span>
-                    </p>
-                  ) : (
-                    <p className="text-sm text-neutral-500">Selecciona un plan para crear la suscripción y el primer cobro.</p>
-                  )}
+                  <p className="text-sm text-neutral-500">Selecciona un plan para crear la suscripción y el primer cobro desde cero.</p>
                 </div>
               )}
             </div>
@@ -599,9 +571,8 @@ function SummaryCard({
 
 function MembershipPortfolio({ members, isLoading }: { members: MemberProfile[]; isLoading: boolean }) {
   const membersWithMembership = members.filter((member) => Boolean(member.membresia_actual))
-  const membersWithPlanWithoutSubscription = members.filter((member) => !member.membresia_actual && hasAssignedMembershipPlan(member))
-  const membersWithoutPlan = members.filter((member) => !member.membresia_actual && !hasAssignedMembershipPlan(member))
-  const visibleMembers = [...membersWithMembership, ...membersWithPlanWithoutSubscription, ...membersWithoutPlan]
+  const membersWithoutMembership = members.filter((member) => !member.membresia_actual)
+  const visibleMembers = [...membersWithMembership, ...membersWithoutMembership]
 
   return (
     <section className="card p-6 mb-8" data-testid="membership-portfolio">
@@ -617,8 +588,8 @@ function MembershipPortfolio({ members, isLoading }: { members: MemberProfile[];
         </div>
         <div className="flex flex-wrap gap-2">
           <Badge variant="info">{membersWithMembership.length} con membresía</Badge>
-          {membersWithPlanWithoutSubscription.length > 0 && (
-            <Badge variant="warning">{membersWithPlanWithoutSubscription.length} falta activar cobro</Badge>
+          {membersWithoutMembership.length > 0 && (
+            <Badge variant="warning">{membersWithoutMembership.length} sin membresía</Badge>
           )}
         </div>
       </div>
@@ -648,11 +619,7 @@ function MembershipPortfolio({ members, isLoading }: { members: MemberProfile[];
 
 function MembershipPortfolioCard({ member }: { member: MemberProfile }) {
   const membership = member.membresia_actual
-  const badge = membership
-    ? getMembershipBadge(membership)
-    : hasAssignedMembershipPlan(member)
-      ? { label: 'Falta activar cobro', variant: 'warning' as const }
-      : getMembershipBadge(membership)
+  const badge = getMembershipBadge(membership)
 
   return (
     <div className="rounded-sm border border-neutral-200 p-4 dark:border-neutral-800" data-testid={`portfolio-member-${member.id}`}>
@@ -666,10 +633,10 @@ function MembershipPortfolioCard({ member }: { member: MemberProfile }) {
 
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <PortfolioMetric label="Plan" value={getPortfolioPlanName(member)} />
-        <PortfolioMetric label="Suscripción" value={membership ? `#${membership.subscription_id}` : hasAssignedMembershipPlan(member) ? 'Crear cobro' : 'Sin suscripción'} />
+        <PortfolioMetric label="Suscripción" value={membership ? `#${membership.subscription_id}` : 'Sin suscripción'} />
         <PortfolioMetric
           label="Precio"
-          value={membership ? `${formatCurrency(membership.agreed_price)} / ${RECURRENCE_SHORT_LABELS[membership.recurrence_type]}` : hasAssignedMembershipPlan(member) ? 'Crear cobro para activar' : 'Sin precio'}
+          value={membership ? `${formatCurrency(membership.agreed_price)} / ${RECURRENCE_SHORT_LABELS[membership.recurrence_type]}` : 'Sin precio'}
         />
         <PortfolioMetric
           label="Vence"
@@ -685,9 +652,7 @@ function MembershipPortfolioCard({ member }: { member: MemberProfile }) {
               ? `${membership.days_until_due} día(s) restante(s)`
                 : membership
                   ? 'Sin señal de vencimiento'
-                : hasAssignedMembershipPlan(member)
-                  ? 'Tiene plan asignado. Crea la suscripción y el primer cobro.'
-                  : 'Debe crearse una membresía comercial.'}
+                  : 'Debe crearse una membresía comercial desde cero.'}
         </p>
         <Link to={`/billing?member=${member.id}`} className="btn-secondary">
           Gestionar

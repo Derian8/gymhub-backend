@@ -117,8 +117,6 @@ class MemberSubscriptionViewSet(viewsets.ModelViewSet):
             renewal_date=None,
             status='suspended',
         )
-        member.membership_plan = plan
-        member.save(update_fields=['membership_plan'])
         initialize_subscription(subscription)
         registrar_auditoria(
             self.request.user,
@@ -160,8 +158,6 @@ class MemberSubscriptionViewSet(viewsets.ModelViewSet):
             updated.is_active = False
             PaymentSchedule.objects.filter(subscription=updated, is_active=True).update(is_active=False)
         updated.save(update_fields=['status', 'is_active'])
-        updated.member.membership_plan = updated.plan
-        updated.member.save(update_fields=['membership_plan'])
         pending_schedules = PaymentSchedule.objects.filter(
             subscription=updated,
             records__status='pending',

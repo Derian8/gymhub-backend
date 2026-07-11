@@ -41,12 +41,11 @@ class Command(BaseCommand):
         with transaction.atomic():
             plans_list = self._seed_membership_plans()
             trainers = self._seed_trainers()
-            members = self._seed_members(plans_list, trainers)
+            members = self._seed_members(trainers)
             training_plans = self._seed_training_plans(members, trainers)
             self._seed_nutrition(training_plans)
             self._seed_attendance(members)
             self._seed_workout_sessions(members, training_plans)
-            self._seed_payment_records(members, plans_list)
             self._seed_inactivity_alerts(members, trainers)
             self._seed_notifications(members, trainers)
 
@@ -140,7 +139,7 @@ class Command(BaseCommand):
         self.stdout.write(f'  {len(trainers)} Trainers creados.')
         return trainers
 
-    def _seed_members(self, plans_list, trainers):
+    def _seed_members(self, trainers):
         from django.contrib.auth import get_user_model
         from users.models import MemberProfile
         User = get_user_model()
@@ -163,20 +162,19 @@ class Command(BaseCommand):
                 'member',
             )
 
-            plan = plans_list[i % len(plans_list)]
             profile, _ = MemberProfile.objects.get_or_create(
                 user=user,
                 defaults={
                     'trainer_asignado': trainers[i % len(trainers)],
-                    'membership_plan': plan,
+                    'membership_plan': None,
                     'phone': f'+5491100{i+1:04d}',
                     'join_date': date.today() - timedelta(days=90 + i * 5),
                     'is_active': True,
                 }
             )
             profile.trainer_asignado = trainers[i % len(trainers)]
-            profile.membership_plan = plan
-            profile.save()
+            profile.membership_plan = None
+            profile.save(update_fields=['trainer_asignado', 'membership_plan'])
             members.append(profile)
 
         self.stdout.write(f'  {len(members)} Members creados.')

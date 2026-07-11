@@ -418,48 +418,11 @@ class MemberViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='activate')
     def activate(self, request, pk=None):
-        """POST /api/members/{id}/activate/ — Activa el perfil y genera PaymentSchedule."""
+        """POST /api/members/{id}/activate/ — Activa el perfil sin crear membresía."""
         member = self.get_object()
-        from billing.models import MembershipPlan, MemberSubscription, PaymentSchedule
-        from billing.services import initialize_subscription
-        from datetime import date
 
         member.is_active = True
-        member.save()
-
-        plan_id = request.data.get('plan_id') or request.data.get('membership_plan_id')
-        agreed_price = request.data.get('agreed_price')
-        if plan_id:
-            try:
-                plan = MembershipPlan.objects.get(id=plan_id)
-                if request.user.is_staff:
-                    trainer_profile = member.trainer_asignado
-                else:
-                    trainer_profile = _get_trainer_profile(request.user)
-                    if member.trainer_asignado_id != trainer_profile.id:
-                        raise PermissionDenied('Solo puedes activar clientes asignados a ti.')
-
-                MemberSubscription.objects.filter(member=member, is_active=True).update(is_active=False)
-                subscription = MemberSubscription.objects.create(
-                    member=member,
-                    plan=plan,
-                    trainer=trainer_profile,
-                    agreed_price=agreed_price or plan.price,
-                    start_date=date.today(),
-                    next_billing_date=date.today(),
-                    recurrence_type=plan.recurrence_type,
-                    grace_period_days=plan.grace_period_days,
-                    auto_generate_next=True,
-                    is_active=True,
-                    status='suspended',
-                    renewal_date=None,
-                )
-                member.membership_plan = plan
-                member.save(update_fields=['membership_plan', 'is_active'])
-
-                initialize_subscription(subscription)
-            except MembershipPlan.DoesNotExist:
-                pass
+        member.save(update_fields=['is_active'])
 
         registrar_auditoria(
             request.user,
@@ -469,8 +432,6 @@ class MemberViewSet(viewsets.ModelViewSet):
             request=request,
             details={
                 'member_id': member.id,
-                'plan_id': plan_id,
-                'agreed_price': str(agreed_price) if agreed_price is not None else None,
             },
         )
 

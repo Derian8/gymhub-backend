@@ -71,7 +71,7 @@ class TestBillingViews:
 
         assert str(subscription.agreed_price) == '62.50'
         assert subscription.trainer_id == trainer_profile.id
-        assert member_profile.membership_plan_id == membership_plan.id
+        assert member_profile.membership_plan_id is None
         assert schedule.plan_id == membership_plan.id
         assert schedule.member_id == member_profile.id
         assert str(payment_record.amount) == '62.50'

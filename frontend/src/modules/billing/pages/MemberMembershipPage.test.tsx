@@ -97,7 +97,7 @@ describe('MemberMembershipPage', () => {
     const { getByTestId } = renderWithProviders(<MemberMembershipPage />)
 
     expect(getByTestId('membership-hero')).toHaveTextContent('Ganancia de masa')
-    expect(getByTestId('membership-hero')).toHaveTextContent('Falta activar cobro')
-    expect(getByTestId('membership-hero')).toHaveTextContent('Tu plan está asignado, pero falta activar el cobro')
+    expect(getByTestId('membership-hero')).toHaveTextContent('Sin membresía activa')
+    expect(getByTestId('membership-hero')).toHaveTextContent('Aún no tienes una membresía activa')
   })
 })

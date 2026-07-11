@@ -218,7 +218,7 @@ describe('MemberDetailPage', () => {
     expect(getAllByText('Maria Perez').length).toBeGreaterThan(1)
     expect(getByTestId('activation-panel')).toBeInTheDocument()
     expect(getByTestId('activate-member-btn')).toBeInTheDocument()
-    expect(getByTestId('activation-agreed-price-input')).toHaveValue(50000)
+    expect(getByTestId('activation-panel')).toHaveTextContent('La membresía, el precio acordado y el primer cobro se crean después desde facturación.')
     expect(getByTestId('assign-trainer-btn')).toBeInTheDocument()
     expect(getByTestId('prescription-assign-trainer-btn')).toBeInTheDocument()
     expect(getAllByText('Sin trainer asignado').length).toBeGreaterThan(0)
