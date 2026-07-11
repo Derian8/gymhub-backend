@@ -77,4 +77,27 @@ describe('MemberMembershipPage', () => {
     expect(getByTestId('membership-hero')).toHaveTextContent('Aún no tienes una membresía asignada')
     expect(getByTestId('membership-hero')).toHaveTextContent('Sin membresía')
   })
+
+  it('renders an assigned plan without billing as a pending activation', () => {
+    dashboardMock.mockReturnValue({
+      data: {
+        payment_status: null,
+        days_until_due: null,
+        days_overdue: null,
+        membership_plan_name: 'Ganancia de masa',
+        membership_expires_at: null,
+        membership_agreed_price: null,
+        membership_recurrence_type: null,
+        membership_next_billing_date: null,
+        membership_access_allowed: false,
+      },
+      isLoading: false,
+    })
+
+    const { getByTestId } = renderWithProviders(<MemberMembershipPage />)
+
+    expect(getByTestId('membership-hero')).toHaveTextContent('Ganancia de masa')
+    expect(getByTestId('membership-hero')).toHaveTextContent('Falta activar cobro')
+    expect(getByTestId('membership-hero')).toHaveTextContent('Tu plan está asignado, pero falta activar el cobro')
+  })
 })

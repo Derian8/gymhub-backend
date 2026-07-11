@@ -211,12 +211,15 @@ export function BillingPage() {
     if (!memberIdNumber || !subscriptionForm.plan) {
       return
     }
+    const nextBillingDate = activeSubscription
+      ? subscriptionForm.next_billing_date
+      : subscriptionForm.start_date
     const payload = {
       member: memberIdNumber,
       plan: subscriptionForm.plan,
       agreed_price: subscriptionForm.agreed_price,
       start_date: subscriptionForm.start_date,
-      next_billing_date: subscriptionForm.next_billing_date,
+      next_billing_date: nextBillingDate,
       recurrence_type: subscriptionForm.recurrence_type,
       grace_period_days: Number(subscriptionForm.grace_period_days),
       auto_generate_next: subscriptionForm.auto_generate_next,
@@ -291,9 +294,13 @@ export function BillingPage() {
                     Vigencia pagada: <span className="font-semibold text-neutral-900 dark:text-white">{activeSubscription.current_period_end ? `hasta ${formatDate(activeSubscription.current_period_end)}` : 'Pendiente del primer pago'}</span>
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    <Badge variant={SUBSCRIPTION_STATUS_VARIANT[activeSubscription.status]}>
-                      {SUBSCRIPTION_STATUS_LABELS[activeSubscription.status]}
-                    </Badge>
+                    {activeSubscription.current_period_end ? (
+                      <Badge variant={SUBSCRIPTION_STATUS_VARIANT[activeSubscription.status]}>
+                        {SUBSCRIPTION_STATUS_LABELS[activeSubscription.status]}
+                      </Badge>
+                    ) : (
+                      <Badge variant="warning">Primer cobro pendiente</Badge>
+                    )}
                     <Badge variant={activeSubscription.is_active ? 'success' : 'warning'}>
                       {activeSubscription.is_active ? 'Cobro habilitado' : 'Cobro pausado'}
                     </Badge>
@@ -360,10 +367,23 @@ export function BillingPage() {
                 onChange={(event) => setSubscriptionForm({ ...subscriptionForm, agreed_price: event.target.value })}
                 required
               />
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <input className="input" type="date" value={subscriptionForm.start_date} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, start_date: event.target.value })} required />
-                <input className="input" type="date" value={subscriptionForm.next_billing_date} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, next_billing_date: event.target.value })} required />
-              </div>
+              {activeSubscription ? (
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <label className="space-y-1">
+                    <span className="text-xs font-medium text-neutral-500">Inicio</span>
+                    <input className="input" type="date" value={subscriptionForm.start_date} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, start_date: event.target.value })} required />
+                  </label>
+                  <label className="space-y-1">
+                    <span className="text-xs font-medium text-neutral-500">Próximo cobro</span>
+                    <input className="input" type="date" value={subscriptionForm.next_billing_date} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, next_billing_date: event.target.value })} required />
+                  </label>
+                </div>
+              ) : (
+                <label className="space-y-1">
+                  <span className="text-xs font-medium text-neutral-500">Inicio y primer cobro</span>
+                  <input className="input" type="date" value={subscriptionForm.start_date} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, start_date: event.target.value, next_billing_date: event.target.value })} required />
+                </label>
+              )}
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <select
                   className="input"
@@ -382,19 +402,23 @@ export function BillingPage() {
                 </select>
                 <input className="input" type="number" min={0} value={subscriptionForm.grace_period_days} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, grace_period_days: Number(event.target.value) })} />
               </div>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <select className="input" value={subscriptionForm.status} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, status: event.target.value as MemberSubscription['status'] })}>
-                  <option value="active">Activa</option>
-                  <option value="past_due">Con mora</option>
-                  <option value="suspended">Suspendida</option>
-                  <option value="cancelled">Cancelada</option>
-                </select>
-                <input className="input" type="date" value={subscriptionForm.renewal_date} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, renewal_date: event.target.value })} />
-              </div>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <input className="input" type="date" value={subscriptionForm.cancellation_date} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, cancellation_date: event.target.value })} />
-                <input className="input" placeholder="Motivo de cancelación" value={subscriptionForm.cancellation_reason} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, cancellation_reason: event.target.value })} />
-              </div>
+              {activeSubscription ? (
+                <>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <select className="input" value={subscriptionForm.status} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, status: event.target.value as MemberSubscription['status'] })}>
+                      <option value="active">Activa</option>
+                      <option value="past_due">Con mora</option>
+                      <option value="suspended">Suspendida</option>
+                      <option value="cancelled">Cancelada</option>
+                    </select>
+                    <input className="input" type="date" value={subscriptionForm.renewal_date} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, renewal_date: event.target.value })} />
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <input className="input" type="date" value={subscriptionForm.cancellation_date} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, cancellation_date: event.target.value })} />
+                    <input className="input" placeholder="Motivo de cancelación" value={subscriptionForm.cancellation_reason} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, cancellation_reason: event.target.value })} />
+                  </div>
+                </>
+              ) : null}
               <textarea className="input min-h-24" placeholder="Notas comerciales" value={subscriptionForm.commercial_notes} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, commercial_notes: event.target.value })} />
               <label className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
                 <input type="checkbox" checked={subscriptionForm.auto_generate_next} onChange={(event) => setSubscriptionForm({ ...subscriptionForm, auto_generate_next: event.target.checked })} />

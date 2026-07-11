@@ -5,7 +5,7 @@ import { MembersPage } from './MembersPage'
 vi.mock('../hooks/useMembers', () => ({
   useMembersQuery: () => ({
     data: {
-      count: 1,
+      count: 2,
       next: null,
       previous: null,
       results: [
@@ -51,6 +51,30 @@ vi.mock('../hooks/useMembers', () => ({
             access_reason: null,
           },
         },
+        {
+          id: 16,
+          user: null,
+          email: 'sin-cobro@test.com',
+          full_name: 'Cliente Falta Cobro',
+          membership_plan: 2,
+          membership_plan_nombre: 'Ganancia de masa',
+          phone: '',
+          birth_date: null,
+          emergency_contact: '',
+          join_date: '2026-03-02',
+          is_active: true,
+          photo: null,
+          riesgo_adherencia: 20,
+          nivel_riesgo: 'low',
+          motivos_riesgo: [],
+          days_since_last_checkin: null,
+          days_since_last_session: null,
+          days_since_last_progress: null,
+          estado_prescripcion: 'sin_plan',
+          tiene_plan_activo: false,
+          prescripcion_lista_para_member: false,
+          membresia_actual: null,
+        },
       ],
     },
     isLoading: false,
@@ -75,6 +99,9 @@ describe('MembersPage', () => {
     expect(getByTestId('member-membership-15')).toHaveTextContent('Suscripción #44')
     expect(getByTestId('member-membership-15')).toHaveTextContent('₡50 000')
     expect(getByTestId('member-membership-15')).toHaveTextContent('Vigente')
+    expect(getByTestId('member-membership-16')).toHaveTextContent('Ganancia de masa')
+    expect(getByTestId('member-membership-16')).toHaveTextContent('Falta activar cobro')
+    expect(getByTestId('member-membership-16')).toHaveTextContent('Plan asignado. Crea la suscripción y el primer cobro.')
     expect(within(row).getByText(/Tiene pagos en mora/i)).toBeInTheDocument()
     expect(within(row).getByText(/Prescripción incompleta/i)).toBeInTheDocument()
     expect(getByTestId('member-program-15')).toHaveAttribute('href', '/members/15/program')

@@ -43,22 +43,24 @@ vi.mock('../hooks/useBilling', () => ({
 }))
 
 vi.mock('@/modules/members/hooks/useMembers', () => ({
-  useMemberDetailQuery: () => ({
-    data: {
-      id: 15,
-      user: null,
-      email: 'maria@test.com',
-      full_name: 'Maria Perez',
-      membership_plan: 8,
-      membership_plan_nombre: 'Premium',
-      phone: '8888-9999',
-      birth_date: null,
-      emergency_contact: '',
-      join_date: '2026-03-01',
-      is_active: true,
-      photo: null,
-      membresia_actual: null,
-    },
+  useMemberDetailQuery: (id: number) => ({
+    data: id
+      ? {
+          id: 15,
+          user: null,
+          email: 'maria@test.com',
+          full_name: 'Maria Perez',
+          membership_plan: 8,
+          membership_plan_nombre: 'Premium',
+          phone: '8888-9999',
+          birth_date: null,
+          emergency_contact: '',
+          join_date: '2026-03-01',
+          is_active: true,
+          photo: null,
+          membresia_actual: null,
+        }
+      : undefined,
     isLoading: false,
   }),
   useMembersQuery: () => ({
@@ -155,11 +157,14 @@ describe('BillingPage', () => {
   })
 
   it('shows member-specific header when member filter is present', () => {
-    const { getByText } = renderWithProviders(<BillingPage />, { route: '/billing?member=15' })
+    const { getByDisplayValue, getByTestId, getByText } = renderWithProviders(<BillingPage />, { route: '/billing?member=15' })
 
     expect(getByText('Facturación del miembro')).toBeInTheDocument()
     expect(getByText('Cobros, recibos y estado comercial del miembro seleccionado')).toBeInTheDocument()
     expect(getByText('Membresía del miembro')).toBeInTheDocument()
+    expect(getByText(/Plan asignado:/)).toBeInTheDocument()
+    expect(getByTestId('subscription-plan-select')).toHaveValue('8')
+    expect(getByDisplayValue('79000.00')).toBeInTheDocument()
   })
 
   it('creates a member subscription with an agreed price', () => {
