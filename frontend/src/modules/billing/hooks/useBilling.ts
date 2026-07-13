@@ -4,6 +4,18 @@ import { billingApi } from '../api/billingApi'
 import { QUERY_KEYS } from '@/shared/constants/queryKeys'
 import { extractApiError } from '@/shared/lib/utils'
 
+function invalidateMembershipViews(queryClient: ReturnType<typeof useQueryClient>, memberId?: number) {
+  queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_SUBSCRIPTIONS_ALL })
+  queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PAYMENT_SCHEDULES_ALL })
+  queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PAYMENT_RECORDS_ALL })
+  queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERS })
+  queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TRAINER_OVERVIEW })
+  if (memberId) {
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_DETAIL(memberId) })
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_DASHBOARD(memberId) })
+  }
+}
+
 export function usePaymentRecordsQuery(params?: Record<string, string>) {
   return useQuery({
     queryKey: QUERY_KEYS.PAYMENT_RECORDS(params),
@@ -31,13 +43,7 @@ export function useCreateMemberSubscriptionMutation(memberId?: number) {
   return useMutation({
     mutationFn: billingApi.createMemberSubscription,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_SUBSCRIPTIONS(memberId ? { member: String(memberId) } : undefined) })
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PAYMENT_SCHEDULES(memberId ? { member: String(memberId) } : undefined) })
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PAYMENT_RECORDS(memberId ? { member: String(memberId) } : undefined) })
-      if (memberId) {
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_DETAIL(memberId) })
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_DASHBOARD(memberId) })
-      }
+      invalidateMembershipViews(queryClient, memberId)
       toast.success('Suscripción y primer cobro creados')
     },
     onError: (error) => toast.error(extractApiError(error)),
@@ -50,11 +56,7 @@ export function useUpdateMemberSubscriptionMutation(memberId?: number) {
   return useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: Record<string, unknown> }) => billingApi.updateMemberSubscription(id, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_SUBSCRIPTIONS(memberId ? { member: String(memberId) } : undefined) })
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PAYMENT_SCHEDULES(memberId ? { member: String(memberId) } : undefined) })
-      if (memberId) {
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_DETAIL(memberId) })
-      }
+      invalidateMembershipViews(queryClient, memberId)
       toast.success('Suscripción actualizada')
     },
     onError: (error) => toast.error(extractApiError(error)),
@@ -68,12 +70,7 @@ export function useMarkPaymentAsPaidMutation(memberId?: number) {
     mutationFn: ({ id, payload }: { id: number; payload: { payment_reference: string; notes: string } }) =>
       billingApi.markPaymentAsPaid(id, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PAYMENT_RECORDS(memberId ? { member: String(memberId) } : undefined) })
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_SUBSCRIPTIONS(memberId ? { member: String(memberId) } : undefined) })
-      if (memberId) {
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_DETAIL(memberId) })
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_DASHBOARD(memberId) })
-      }
+      invalidateMembershipViews(queryClient, memberId)
       toast.success('Pago registrado y recibo emitido')
     },
     onError: (error) => toast.error(extractApiError(error)),

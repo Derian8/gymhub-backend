@@ -115,6 +115,37 @@ class TestBillingViews:
         assert schedule.resolved_membership_name == 'Mensual personalizada'
         assert str(payment_record.amount) == '72.00'
 
+    def test_direct_member_subscription_is_visible_in_member_summary(
+        self,
+        trainer_client,
+        member_profile,
+    ):
+        today = timezone.now().date().isoformat()
+        create_resp = trainer_client.post('/api/member-subscriptions/', {
+            'member': member_profile.id,
+            'membership_name': 'Derian mensual',
+            'description': 'Membresía creada desde cero',
+            'agreed_price': '72.00',
+            'start_date': today,
+            'recurrence_type': 'monthly',
+            'grace_period_days': 7,
+            'auto_generate_next': True,
+            'is_active': True,
+        })
+
+        assert create_resp.status_code == status.HTTP_201_CREATED
+
+        detail_resp = trainer_client.get(f'/api/members/{member_profile.id}/')
+
+        assert detail_resp.status_code == status.HTTP_200_OK
+        summary = detail_resp.data['membresia_actual']
+        assert summary is not None
+        assert summary['subscription_id'] == create_resp.data['id']
+        assert summary['plan_id'] is None
+        assert summary['plan_name'] == 'Derian mensual'
+        assert summary['status'] == 'suspended'
+        assert summary['access_allowed'] is False
+
     def test_members_endpoint_includes_current_membership_summary(
         self,
         trainer_client,
