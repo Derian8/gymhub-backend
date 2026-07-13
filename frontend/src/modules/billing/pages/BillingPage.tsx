@@ -52,6 +52,26 @@ const RECURRENCE_SHORT_LABELS: Record<MemberSubscription['recurrence_type'], str
   annual: 'año',
 }
 
+function emptySubscriptionForm() {
+  const today = new Date().toISOString().slice(0, 10)
+  return {
+    membership_name: '',
+    description: '',
+    agreed_price: '0',
+    start_date: today,
+    next_billing_date: today,
+    recurrence_type: 'monthly' as MemberSubscription['recurrence_type'],
+    grace_period_days: 7,
+    auto_generate_next: true,
+    is_active: true,
+    status: 'active' as MemberSubscription['status'],
+    renewal_date: today,
+    cancellation_date: '',
+    cancellation_reason: '',
+    commercial_notes: '',
+  }
+}
+
 function getMembershipBadge(membership?: MemberMembershipSummary | null): {
   label: string
   variant: 'success' | 'warning' | 'error' | 'neutral'
@@ -94,30 +114,20 @@ export function BillingPage() {
   const updateSubscription = useUpdateMemberSubscriptionMutation(memberIdNumber)
   const markPaymentAsPaid = useMarkPaymentAsPaidMutation(memberIdNumber)
   const [paymentDrafts, setPaymentDrafts] = useState<Record<number, CobroFormState>>({})
-  const [subscriptionForm, setSubscriptionForm] = useState({
-    membership_name: '',
-    description: '',
-    agreed_price: '0',
-    start_date: new Date().toISOString().slice(0, 10),
-    next_billing_date: new Date().toISOString().slice(0, 10),
-    recurrence_type: 'monthly' as MemberSubscription['recurrence_type'],
-    grace_period_days: 7,
-    auto_generate_next: true,
-    is_active: true,
-    status: 'active' as MemberSubscription['status'],
-    renewal_date: new Date().toISOString().slice(0, 10),
-    cancellation_date: '',
-    cancellation_reason: '',
-    commercial_notes: '',
-  })
+  const [subscriptionForm, setSubscriptionForm] = useState(emptySubscriptionForm)
 
   const activeSubscription = useMemo(
-    () => subscriptions?.results.find((item) => item.is_active) ?? subscriptions?.results[0] ?? null,
+    () => subscriptions?.results.find((item) => item.is_active) ?? null,
+    [subscriptions],
+  )
+  const latestSubscription = useMemo(
+    () => subscriptions?.results[0] ?? null,
     [subscriptions],
   )
 
   useEffect(() => {
     if (!activeSubscription) {
+      setSubscriptionForm(emptySubscriptionForm())
       return
     }
     setSubscriptionForm({
@@ -248,6 +258,20 @@ export function BillingPage() {
                       Nota comercial: {activeSubscription.commercial_notes}
                     </p>
                   )}
+                </div>
+              ) : latestSubscription ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-neutral-500">Este miembro no tiene una membresía activa ahora mismo.</p>
+                  <div className="rounded-lg border border-neutral-200 p-3 text-sm dark:border-neutral-800">
+                    <p className="font-semibold text-neutral-900 dark:text-white">Último historial</p>
+                    <p className="text-neutral-600 dark:text-neutral-300">
+                      {latestSubscription.membership_name} · {SUBSCRIPTION_STATUS_LABELS[latestSubscription.status]}
+                    </p>
+                    <p className="text-neutral-500">
+                      {formatCurrency(latestSubscription.agreed_price)} / {RECURRENCE_SHORT_LABELS[latestSubscription.recurrence_type]}
+                    </p>
+                  </div>
+                  <p className="text-sm text-neutral-500">Completa el formulario para crear una membresía nueva desde cero.</p>
                 </div>
               ) : (
                 <div className="space-y-3">

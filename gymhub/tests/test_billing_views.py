@@ -146,6 +146,79 @@ class TestBillingViews:
         assert summary['status'] == 'suspended'
         assert summary['access_allowed'] is False
 
+    def test_cancelled_subscription_is_not_visible_in_member_summary(
+        self,
+        trainer_client,
+        trainer_profile,
+        member_profile,
+    ):
+        from billing.models import MemberSubscription
+
+        today = timezone.now().date()
+        MemberSubscription.objects.create(
+            member=member_profile,
+            plan=None,
+            membership_name='Membresía cancelada',
+            trainer=trainer_profile,
+            agreed_price='12000.00',
+            start_date=today,
+            next_billing_date=today,
+            recurrence_type='weekly',
+            grace_period_days=7,
+            is_active=False,
+            status='cancelled',
+            cancellation_date=today,
+        )
+
+        detail_resp = trainer_client.get(f'/api/members/{member_profile.id}/')
+
+        assert detail_resp.status_code == status.HTTP_200_OK
+        assert detail_resp.data['membresia_actual'] is None
+
+    def test_trainer_can_create_new_subscription_when_member_has_cancelled_history(
+        self,
+        trainer_client,
+        trainer_profile,
+        member_profile,
+    ):
+        from billing.models import MemberSubscription
+
+        today = timezone.now().date()
+        MemberSubscription.objects.create(
+            member=member_profile,
+            plan=None,
+            membership_name='Membresía cancelada',
+            trainer=trainer_profile,
+            agreed_price='12000.00',
+            start_date=today,
+            next_billing_date=today,
+            recurrence_type='weekly',
+            grace_period_days=7,
+            is_active=False,
+            status='cancelled',
+            cancellation_date=today,
+        )
+
+        create_resp = trainer_client.post('/api/member-subscriptions/', {
+            'member': member_profile.id,
+            'membership_name': 'Membresía nueva',
+            'description': 'Creada después de historial cancelado',
+            'agreed_price': '12000.00',
+            'start_date': today.isoformat(),
+            'recurrence_type': 'weekly',
+            'grace_period_days': 7,
+            'auto_generate_next': True,
+            'is_active': True,
+        })
+
+        assert create_resp.status_code == status.HTTP_201_CREATED
+        active_subscriptions = MemberSubscription.objects.filter(member=member_profile, is_active=True)
+        assert active_subscriptions.count() == 1
+        assert active_subscriptions.get().membership_name == 'Membresía nueva'
+
+        detail_resp = trainer_client.get(f'/api/members/{member_profile.id}/')
+        assert detail_resp.data['membresia_actual']['subscription_id'] == create_resp.data['id']
+
     def test_members_endpoint_includes_current_membership_summary(
         self,
         trainer_client,

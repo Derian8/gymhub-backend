@@ -5,6 +5,7 @@ import { BillingPage } from './BillingPage'
 const createSubscriptionMock = vi.fn()
 const updateSubscriptionMock = vi.fn()
 const markPaymentAsPaidMock = vi.fn()
+let subscriptionsMock: Array<Record<string, unknown>> = []
 
 vi.mock('../hooks/useBilling', () => ({
   usePaymentRecordsQuery: () => ({
@@ -22,7 +23,7 @@ vi.mock('../hooks/useBilling', () => ({
     isLoading: false,
   }),
   useMemberSubscriptionsQuery: () => ({
-    data: { results: [] },
+    data: { results: subscriptionsMock },
     isLoading: false,
   }),
   useCreateMemberSubscriptionMutation: () => ({ mutate: createSubscriptionMock, isPending: false }),
@@ -96,6 +97,7 @@ describe('BillingPage', () => {
     createSubscriptionMock.mockReset()
     updateSubscriptionMock.mockReset()
     markPaymentAsPaidMock.mockReset()
+    subscriptionsMock = []
   })
 
   it('renders billing summary, payment rows and membership portfolio without plan catalog', () => {
@@ -148,6 +150,50 @@ describe('BillingPage', () => {
         recurrence_type: 'biweekly',
       }),
     )
+  })
+
+  it('creates a fresh subscription when the member only has cancelled history', () => {
+    subscriptionsMock = [
+      {
+        id: 9,
+        member: 15,
+        plan: null,
+        membership_name: 'pérdida de peso',
+        description: '2 semanas para pérdida de peso',
+        trainer: 3,
+        agreed_price: '12000.00',
+        start_date: '2026-07-13',
+        next_billing_date: '2026-07-13',
+        recurrence_type: 'weekly',
+        grace_period_days: 7,
+        auto_generate_next: false,
+        is_active: false,
+        status: 'cancelled',
+        renewal_date: null,
+        current_period_start: null,
+        current_period_end: null,
+        access_allowed: false,
+        days_overdue: 0,
+        cancellation_date: '2026-07-27',
+        cancellation_reason: '',
+        commercial_notes: '',
+      },
+    ]
+    const { getAllByRole, getByTestId, getByText } = renderWithProviders(<BillingPage />, { route: '/billing?member=15' })
+
+    expect(getByText('Último historial')).toBeInTheDocument()
+    expect(getByTestId('subscription-name-input')).toHaveValue('')
+
+    fireEvent.change(getByTestId('subscription-name-input'), { target: { value: 'Nueva membresía Derian' } })
+    fireEvent.change(getByTestId('subscription-agreed-price-input'), { target: { value: '12000.00' } })
+    fireEvent.click(getAllByRole('button', { name: 'Crear suscripción y primer cobro' })[0])
+
+    expect(createSubscriptionMock).toHaveBeenCalledWith(expect.objectContaining({
+      member: 15,
+      membership_name: 'Nueva membresía Derian',
+      agreed_price: '12000.00',
+    }))
+    expect(updateSubscriptionMock).not.toHaveBeenCalled()
   })
 
   it('offers short billing recurrences for direct memberships', () => {
