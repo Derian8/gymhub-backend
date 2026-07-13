@@ -148,7 +148,6 @@ export function BillingPage() {
       : subscriptionForm.start_date
     const payload = {
       member: memberIdNumber,
-      plan: null,
       membership_name: subscriptionForm.membership_name.trim(),
       description: subscriptionForm.description,
       agreed_price: subscriptionForm.agreed_price,

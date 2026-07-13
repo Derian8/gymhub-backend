@@ -143,7 +143,6 @@ describe('BillingPage', () => {
     expect(createSubscriptionMock).toHaveBeenCalledWith(
       expect.objectContaining({
         member: 15,
-        plan: null,
         membership_name: 'Mensual personalizada',
         agreed_price: '72.00',
         recurrence_type: 'biweekly',
