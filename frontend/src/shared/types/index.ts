@@ -116,7 +116,7 @@ export interface MemberMembership {
   next_payment: {
     id: number
     amount: string
-    status: 'paid' | 'pending' | 'late'
+    status: 'paid' | 'pending' | 'late' | 'void'
     due_date: string
     paid_at: string | null
     receipt_number: string | null
@@ -124,7 +124,7 @@ export interface MemberMembership {
   last_payment: {
     id: number
     amount: string
-    status: 'paid' | 'pending' | 'late'
+    status: 'paid' | 'pending' | 'late' | 'void'
     due_date: string
     paid_at: string | null
     receipt_number: string | null
@@ -633,7 +633,7 @@ export interface ProgressByExercise {
 }
 
 // --- Billing ---
-export type PaymentStatus = 'paid' | 'pending' | 'late'
+export type PaymentStatus = 'paid' | 'pending' | 'late' | 'void'
 
 export interface PaymentSchedule {
   id: number

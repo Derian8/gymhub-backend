@@ -17,7 +17,7 @@ from .serializers import (
 )
 from .services import (
     cancel_membership, initialize_subscription, mark_payment_paid, membership_summary,
-    period_end, renew_membership, suspend_membership
+    period_end, renew_membership, suspend_membership, void_non_collectable_charges
 )
 from users.permissions import IsStaffOrTrainer
 from users.audit import registrar_auditoria
@@ -115,6 +115,14 @@ class MemberSubscriptionViewSet(viewsets.ModelViewSet):
             raise ValidationError({'trainer': 'El miembro necesita un trainer asignado para crear membresía.'})
         MemberSubscription.objects.filter(member=member, is_active=True).update(is_active=False)
         PaymentSchedule.objects.filter(member=member, is_active=True).update(is_active=False)
+        PaymentRecord.objects.filter(
+            schedule__member=member,
+            schedule__is_active=False,
+            status__in=['pending', 'late'],
+        ).update(
+            status='void',
+            notes='Cobro anulado automáticamente: se creó una nueva membresía para el miembro.',
+        )
         start_date = serializer.validated_data['start_date']
         recurrence_type = serializer.validated_data.get(
             'recurrence_type',
@@ -183,7 +191,7 @@ class MemberSubscriptionViewSet(viewsets.ModelViewSet):
         if updated.status == 'cancelled' or updated.cancellation_date:
             updated.status = 'cancelled'
             updated.is_active = False
-            PaymentSchedule.objects.filter(subscription=updated, is_active=True).update(is_active=False)
+            void_non_collectable_charges(updated)
         updated.save(update_fields=['status', 'is_active'])
         pending_schedules = PaymentSchedule.objects.filter(
             subscription=updated,
@@ -415,14 +423,25 @@ class PaymentRecordViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         member_id = self.request.query_params.get('member')
+        include_void = (
+            self.request.query_params.get('include_void') == 'true'
+            or self.action == 'mark_paid'
+        )
         if user.role == 'member' and not user.is_staff:
-            return PaymentRecord.objects.filter(schedule__member__user=user)
-        queryset = PaymentRecord.objects.select_related('schedule__member__user', 'schedule__plan').all()
+            queryset = PaymentRecord.objects.filter(schedule__member__user=user)
+            if not include_void:
+                queryset = queryset.exclude(status='void')
+            return queryset
+        queryset = PaymentRecord.objects.select_related(
+            'schedule__member__user', 'schedule__plan', 'schedule__subscription'
+        ).all()
         if user.role == 'trainer' and not user.is_staff:
             trainer_profile = _get_trainer_profile(user)
             queryset = queryset.filter(schedule__member__trainer_asignado=trainer_profile)
         if member_id:
             queryset = queryset.filter(schedule__member_id=member_id)
+        if not include_void:
+            queryset = queryset.exclude(status='void')
         return queryset
 
     @action(detail=True, methods=['post'], url_path='mark-paid')
@@ -430,6 +449,11 @@ class PaymentRecordViewSet(viewsets.ModelViewSet):
         record = self.get_object()
         if record.status == 'paid':
             return Response({'error': 'El pago ya fue registrado.'}, status=status.HTTP_400_BAD_REQUEST)
+        if record.status == 'void':
+            return Response(
+                {'error': 'Este cobro fue anulado y no debe registrarse como pagado.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         subscription = record.schedule.subscription
         if subscription and subscription.status == 'cancelled':
             return Response(
@@ -438,7 +462,10 @@ class PaymentRecordViewSet(viewsets.ModelViewSet):
             )
         reference = request.data.get('payment_reference', '').strip()
         notes = request.data.get('notes', '').strip()
-        record, _ = mark_payment_paid(record, reference=reference, notes=notes)
+        try:
+            record, _ = mark_payment_paid(record, reference=reference, notes=notes)
+        except ValueError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         registrar_auditoria(
             request.user,
             'payment_marked_paid',

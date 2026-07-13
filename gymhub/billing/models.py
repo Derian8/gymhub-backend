@@ -6,6 +6,7 @@ PAYMENT_STATUS_CHOICES = [
     ('paid', 'Paid'),
     ('pending', 'Pending'),
     ('late', 'Late'),
+    ('void', 'Void'),
 ]
 
 SUBSCRIPTION_STATUS_CHOICES = [

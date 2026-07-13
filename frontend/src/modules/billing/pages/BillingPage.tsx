@@ -537,8 +537,8 @@ function PaymentRow({
   onMarkPaid: (payload: CobroFormState) => void
   isSubmitting: boolean
 }) {
-  const badgeVariant = record.status === 'paid' ? 'success' : record.status === 'late' ? 'error' : 'warning'
-  const statusLabel = record.status === 'paid' ? 'Pagado' : record.status === 'late' ? 'En mora' : 'Pendiente'
+  const badgeVariant = record.status === 'paid' ? 'success' : record.status === 'late' ? 'error' : record.status === 'void' ? 'neutral' : 'warning'
+  const statusLabel = record.status === 'paid' ? 'Pagado' : record.status === 'late' ? 'En mora' : record.status === 'void' ? 'Anulado' : 'Pendiente'
 
   return (
     <tr className="tr-hover align-top" data-testid={`payment-row-${record.id}`}>
@@ -571,6 +571,11 @@ function PaymentRow({
           <div className="text-xs text-neutral-500">
             <div>{record.paid_at ? `Cobrado el ${formatDate(record.paid_at)}` : 'Cobrado'}</div>
             <div>{record.notes || 'Sin observaciones'}</div>
+          </div>
+        ) : record.status === 'void' ? (
+          <div className="text-xs text-neutral-500">
+            <div>Cobro anulado</div>
+            <div>{record.notes || 'No debe registrarse como pagado.'}</div>
           </div>
         ) : (
           <div className="space-y-2 min-w-44">

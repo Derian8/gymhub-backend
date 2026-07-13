@@ -544,6 +544,88 @@ class TestBillingViews:
         assert log.action_type == 'payment_marked_paid'
         assert log.details['payment_reference'] == 'TRX-900'
 
+    def test_void_payment_record_cannot_be_marked_paid(self, trainer_client, member_profile, membership_plan):
+        from billing.models import PaymentSchedule, PaymentRecord
+
+        schedule = PaymentSchedule.objects.create(
+            member=member_profile,
+            plan=membership_plan,
+            due_date=timezone.now().date(),
+            is_active=False,
+        )
+        record = PaymentRecord.objects.create(
+            schedule=schedule,
+            amount=50.00,
+            status='void',
+        )
+
+        resp = trainer_client.post(f'/api/payment-records/{record.id}/mark-paid/')
+
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert resp.data['error'] == 'Este cobro fue anulado y no debe registrarse como pagado.'
+        record.refresh_from_db()
+        assert record.status == 'void'
+        assert record.paid_at is None
+
+    def test_payment_records_hide_void_by_default_and_allow_history(self, trainer_client, member_profile, membership_plan):
+        from billing.models import PaymentSchedule, PaymentRecord
+
+        active_schedule = PaymentSchedule.objects.create(
+            member=member_profile,
+            plan=membership_plan,
+            due_date=timezone.now().date(),
+            is_active=True,
+        )
+        visible_record = PaymentRecord.objects.create(
+            schedule=active_schedule,
+            amount=50.00,
+            status='pending',
+        )
+        inactive_schedule = PaymentSchedule.objects.create(
+            member=member_profile,
+            plan=membership_plan,
+            due_date=timezone.now().date() - timedelta(days=1),
+            is_active=False,
+        )
+        void_record = PaymentRecord.objects.create(
+            schedule=inactive_schedule,
+            amount=50.00,
+            status='void',
+        )
+
+        default_resp = trainer_client.get(f'/api/payment-records/?member={member_profile.id}')
+        history_resp = trainer_client.get(f'/api/payment-records/?member={member_profile.id}&include_void=true')
+
+        assert default_resp.status_code == status.HTTP_200_OK
+        assert [item['id'] for item in default_resp.data.get('results', default_resp.data)] == [visible_record.id]
+        assert history_resp.status_code == status.HTTP_200_OK
+        history_ids = [item['id'] for item in history_resp.data.get('results', history_resp.data)]
+        assert visible_record.id in history_ids
+        assert void_record.id in history_ids
+
+    def test_cancel_membership_voids_pending_charges(self, trainer_client, member_profile, membership_plan):
+        from billing.models import MemberSubscription, PaymentRecord
+
+        create_resp = trainer_client.post('/api/member-memberships/', {
+            'member': member_profile.id,
+            'membership_plan': membership_plan.id,
+            'start_date': timezone.now().date().isoformat(),
+            'auto_renew': True,
+        })
+        subscription_id = create_resp.data['id']
+
+        cancel_resp = trainer_client.post(
+            f'/api/member-memberships/{subscription_id}/cancel/',
+            {'reason': 'Corrección de membresía duplicada'},
+        )
+
+        assert cancel_resp.status_code == status.HTTP_200_OK
+        subscription = MemberSubscription.objects.get(pk=subscription_id)
+        record = PaymentRecord.objects.get(schedule__subscription=subscription)
+        assert subscription.status == 'cancelled'
+        assert record.status == 'void'
+        assert record.schedule.is_active is False
+
     def test_member_creates_payment_method_for_self(self, member_client, member_profile):
         resp = member_client.post('/api/payment-methods/', {
             'type': 'card',

@@ -63,14 +63,28 @@ def create_pending_charge(subscription, period_start_date):
     if schedule.period_end is None:
         schedule.period_end = period_end_date
         schedule.save(update_fields=['period_end'])
-    record, _ = PaymentRecord.objects.get_or_create(
-        schedule=schedule,
-        defaults={
-            'amount': subscription.agreed_price,
-            'status': 'pending',
-        },
+    record = (
+        PaymentRecord.objects
+        .filter(schedule=schedule)
+        .exclude(status='void')
+        .first()
     )
+    if record is None:
+        record = PaymentRecord.objects.create(
+            schedule=schedule,
+            amount=subscription.agreed_price,
+            status='pending',
+        )
     return schedule, record
+
+
+def void_non_collectable_charges(subscription, reason='Cobro anulado: la membresía ya no está cobrable.'):
+    schedules = PaymentSchedule.objects.filter(subscription=subscription)
+    schedules.update(is_active=False)
+    return PaymentRecord.objects.filter(
+        schedule__in=schedules,
+        status__in=['pending', 'late'],
+    ).update(status='void', notes=reason)
 
 
 def initialize_subscription(subscription):
@@ -184,6 +198,8 @@ def mark_payment_paid(record, reference='', notes=''):
     ).get(pk=record.pk)
     if record.status == 'paid':
         return record, None
+    if record.status == 'void':
+        raise ValueError('Este cobro fue anulado y no debe registrarse como pagado.')
 
     now = timezone.now()
     record.status = 'paid'
@@ -287,7 +303,7 @@ def cancel_membership(subscription, reason=''):
     if reason:
         subscription.cancellation_reason = reason
     subscription.save(update_fields=['status', 'is_active', 'cancellation_date', 'cancellation_reason'])
-    PaymentSchedule.objects.filter(subscription=subscription, is_active=True).update(is_active=False)
+    void_non_collectable_charges(subscription)
     return subscription
 
 

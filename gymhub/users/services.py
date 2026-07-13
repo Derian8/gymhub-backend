@@ -60,7 +60,7 @@ def annotate_member_metrics(queryset):
     ).order_by('-recorded_at')
     latest_payment = PaymentRecord.objects.filter(
         schedule__member=OuterRef('pk')
-    ).order_by('-schedule__due_date', '-id')
+    ).exclude(status='void').order_by('-schedule__due_date', '-id')
     active_nutrition = NutritionProfile.objects.filter(
         training_plan__member=OuterRef('pk'),
         training_plan__is_active=True,
@@ -193,7 +193,7 @@ def get_latest_payment_record(member):
         )
     return PaymentRecord.objects.filter(
         schedule__member=member
-    ).select_related('schedule', 'schedule__plan').order_by('-schedule__due_date').first()
+    ).exclude(status='void').select_related('schedule', 'schedule__plan').order_by('-schedule__due_date').first()
 
 
 def get_member_payment_access_status(member, overdue_days_threshold=30):
@@ -588,6 +588,7 @@ def get_trainer_overview(user, trainer_profile):
             schedule__member_id__in=member_ids,
             schedule__due_date__gte=month_start,
             schedule__due_date__lte=today,
+            status__in=['pending', 'late'],
         )
     ), 2)
 
