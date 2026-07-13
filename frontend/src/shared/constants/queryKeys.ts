@@ -48,6 +48,8 @@ export const QUERY_KEYS = {
   PAYMENT_METHODS: ['payment-methods'] as const,
   MEMBER_SUBSCRIPTIONS_ALL: ['member-subscriptions'] as const,
   MEMBER_SUBSCRIPTIONS: (params?: Record<string, string>) => ['member-subscriptions', params] as const,
+  MEMBER_MEMBERSHIPS_ALL: ['member-memberships'] as const,
+  MEMBER_MEMBERSHIPS: (params?: Record<string, string>) => ['member-memberships', params] as const,
 
   // Alerts
   ALERTS: ['alerts'] as const,

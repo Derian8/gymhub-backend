@@ -121,12 +121,11 @@ class Command(BaseCommand):
         User = get_user_model()
         members = []
 
-        member_names = [
-            ('Luis', 'Hernández'),
+        member_data = [
+            ('member1@gymhub.com', 'Luis', 'Hernández'),
         ]
 
-        for i, (first, last) in enumerate(member_names):
-            email = f'member{i+1}@gymhub.com'
+        for i, (email, first, last) in enumerate(member_data):
             user, _ = self._get_or_create_demo_user(
                 User,
                 {
@@ -407,82 +406,6 @@ class Command(BaseCommand):
                         logs_created += 1
 
         self.stdout.write(f'  {sessions_created} WorkoutSessions y {logs_created} ExerciseLogs creados.')
-
-    def _seed_payment_records(self, members, plans_list):
-        from billing.models import MemberSubscription, PaymentSchedule, PaymentRecord
-
-        today = date.today()
-        records_created = 0
-
-        payment_configs = [
-            (today, 'paid', False),
-        ]
-
-        for i, member in enumerate(members):
-            if i >= len(payment_configs):
-                break
-
-            due_date, initial_status, should_be_late = payment_configs[i]
-            plan = member.membership_plan or plans_list[0]
-            trainer = member.trainer_asignado
-            period_start = today - timedelta(days=20)
-            period_end = today + timedelta(days=10)
-            next_billing_date = period_end
-
-            subscription, _ = MemberSubscription.objects.update_or_create(
-                member=member,
-                plan=plan,
-                trainer=trainer,
-                defaults={
-                    'agreed_price': plan.price,
-                    'start_date': period_start,
-                    'next_billing_date': next_billing_date,
-                    'recurrence_type': plan.recurrence_type,
-                    'grace_period_days': plan.grace_period_days,
-                    'auto_generate_next': True,
-                    'is_active': True,
-                    'status': 'active',
-                    'renewal_date': next_billing_date,
-                    'current_period_start': period_start,
-                    'current_period_end': period_end,
-                    'cancellation_date': None,
-                    'cancellation_reason': '',
-                    'commercial_notes': 'Membresía demo activa para validar facturación y acceso.',
-                },
-            )
-
-            schedule, _ = PaymentSchedule.objects.update_or_create(
-                subscription=subscription,
-                period_start=period_start,
-                defaults={
-                    'member': member,
-                    'plan': plan,
-                    'due_date': due_date,
-                    'period_end': period_end,
-                    'grace_period_days': plan.grace_period_days,
-                    'recurrence_type': plan.recurrence_type,
-                    'auto_generate_next': True,
-                    'is_active': True,
-                }
-            )
-
-            # Status final
-            final_status = 'late' if should_be_late else initial_status
-
-            record, created = PaymentRecord.objects.update_or_create(
-                schedule=schedule,
-                defaults={
-                    'amount': plan.price,
-                    'status': final_status,
-                    'paid_at': timezone.now() if final_status == 'paid' else None,
-                    'receipt_issued_at': timezone.now() if final_status == 'paid' else None,
-                    'payment_reference': 'DEMO-SEED-PAID' if final_status == 'paid' else '',
-                    'notes': 'Cobro demo generado por seed_data.',
-                }
-            )
-            records_created += 1
-
-        self.stdout.write(f'  {records_created} PaymentRecords creados.')
 
     def _seed_inactivity_alerts(self, members, trainers):
         alerts_created = 0

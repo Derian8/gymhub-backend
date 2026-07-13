@@ -51,7 +51,7 @@ class TestCheckIn:
         create_active_subscription(
             member_profile,
             membership_plan,
-            status='past_due',
+            status='expired',
             current_period_end=date.today() - timedelta(days=35),
         )
         # Crear pago muy vencido (35 días > 7+7=14 días)
@@ -74,13 +74,13 @@ class TestCheckIn:
         assert resp.data['reason'] == 'payment_overdue'
         assert 'days_overdue' in resp.data
 
-    def test_checkin_with_grace_period_ok(self, member_client, member_profile, membership_plan):
-        """Miembro con mora dentro del período de gracia → 201."""
+    def test_checkin_with_expired_membership_returns_403(self, member_client, member_profile, membership_plan):
+        """Miembro con membresía vencida → 403 aunque esté cerca del vencimiento."""
         from billing.models import PaymentSchedule, PaymentRecord
         create_active_subscription(
             member_profile,
             membership_plan,
-            status='past_due',
+            status='expired',
             current_period_end=date.today() - timedelta(days=5),
         )
         # 5 días de mora, grace_period = 7 días → dentro del grace
@@ -98,7 +98,8 @@ class TestCheckIn:
         )
 
         resp = member_client.post('/api/attendance/check-in/', {})
-        assert resp.status_code == status.HTTP_201_CREATED
+        assert resp.status_code == status.HTTP_403_FORBIDDEN
+        assert resp.data['reason'] == 'payment_overdue'
 
     def test_trainer_override_creates_manual_attendance(self, trainer_client, trainer_profile, member_profile, membership_plan):
         """
@@ -120,6 +121,7 @@ class TestCheckIn:
         resp = trainer_client.post('/api/attendance/check-in/', {
             'trainer_override': True,
             'member_id': member_profile.id,
+            'notes': 'Excepción aprobada por recepción.',
         })
         assert resp.status_code == status.HTTP_201_CREATED
         assert resp.data['is_manual_override'] is True
@@ -141,6 +143,7 @@ class TestCheckIn:
         resp = trainer_client.post('/api/attendance/check-in/', {
             'trainer_override': True,
             'member_id': member_profile.id,
+            'notes': 'Excepción por pago en revisión.',
         })
         assert resp.status_code == status.HTTP_201_CREATED
         assert AuditLog.objects.count() == initial_count + 1

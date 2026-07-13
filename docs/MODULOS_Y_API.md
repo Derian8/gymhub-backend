@@ -76,6 +76,7 @@ Rutas principales:
 ## Facturación
 Entidades principales:
 - `MembershipPlan`
+- `MemberSubscription` (membresía individual del miembro; expuesta también como member membership)
 - `PaymentSchedule`
 - `PaymentRecord`
 - `PaymentMethod`
@@ -83,13 +84,32 @@ Entidades principales:
 
 Rutas principales:
 - REST `/api/membership-plans/`
+- REST `/api/member-memberships/`
+- `POST /api/member-memberships/{id}/renew/`
+- `POST /api/member-memberships/{id}/suspend/`
+- `POST /api/member-memberships/{id}/cancel/`
+- `GET /api/member-memberships/expiring/`
+- `GET /api/member-memberships/expired/`
+- REST `/api/member-subscriptions/` (compatibilidad)
 - REST `/api/payment-schedules/`
 - REST `/api/payment-records/`
 - `POST /api/payment-records/{id}/mark-paid/`
 - REST `/api/payment-methods/`
 - REST `/api/payment-instructions/`
+- `GET /api/my-membership/`
+- `GET /api/members/{id}/membership-summary/`
+
+Estados de membresía:
+- `pending`: creada, esperando primer pago.
+- `active`: vigente y habilitada para check-in.
+- `expiring`: vence en `MEMBERSHIP_EXPIRING_DAYS` días o menos.
+- `expired`: vencida; bloquea check-in.
+- `suspended`: pausa manual; bloquea check-in.
+- `cancelled`: cancelada e inactiva.
 
 Tareas programadas:
+- `billing.tasks.run_daily_membership_maintenance`
+- `billing.tasks.check_membership_status_alerts`
 - `billing.tasks.check_upcoming_payments`
 - `billing.tasks.check_overdue_payments`
 

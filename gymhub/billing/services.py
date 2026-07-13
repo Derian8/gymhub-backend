@@ -1,10 +1,15 @@
 from datetime import timedelta
 
 from dateutil.relativedelta import relativedelta
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
 from .models import MemberSubscription, PaymentRecord, PaymentSchedule
+
+VISIBLE_MEMBERSHIP_STATUSES = {'pending', 'active', 'expiring', 'expired', 'suspended'}
+OPERATIVE_MEMBERSHIP_STATUSES = {'pending', 'active', 'expiring', 'suspended'}
+BLOCKED_ACCESS_STATUSES = {'pending', 'expired', 'suspended', 'cancelled'}
 
 
 DEFAULT_GRACE_DAYS = {
@@ -73,12 +78,103 @@ def initialize_subscription(subscription):
     subscription.current_period_end = None
     subscription.next_billing_date = subscription.start_date
     subscription.renewal_date = None
-    subscription.status = 'suspended'
+    subscription.status = 'pending'
     subscription.save(update_fields=[
         'current_period_start', 'current_period_end', 'next_billing_date',
         'renewal_date', 'status',
     ])
     return create_pending_charge(subscription, subscription.start_date)
+
+
+def current_member_membership(member):
+    return (
+        member.subscriptions
+        .filter(is_active=True, status__in=VISIBLE_MEMBERSHIP_STATUSES)
+        .order_by('-start_date', '-id')
+        .first()
+    )
+
+
+def refresh_membership_status(subscription, today=None, save=True):
+    today = today or timezone.localdate()
+    if not subscription.is_active or subscription.status in ('cancelled', 'suspended'):
+        return subscription.status
+    if not subscription.current_period_end:
+        target = 'pending'
+    elif subscription.current_period_end < today:
+        target = 'expired'
+    elif (subscription.current_period_end - today).days <= settings.MEMBERSHIP_EXPIRING_DAYS:
+        target = 'expiring'
+    else:
+        target = 'active'
+    if subscription.status != target:
+        subscription.status = target
+        if save:
+            subscription.save(update_fields=['status'])
+    return target
+
+
+def _payment_summary(record):
+    if not record:
+        return None
+    return {
+        'id': record.id,
+        'amount': str(record.amount),
+        'status': record.status,
+        'due_date': record.schedule.due_date.isoformat(),
+        'paid_at': record.paid_at.isoformat() if record.paid_at else None,
+        'receipt_number': f"REC-{record.receipt_issued_at:%Y%m%d}-{record.id}" if record.receipt_issued_at else None,
+    }
+
+
+def membership_summary(member):
+    subscription = current_member_membership(member)
+    if subscription:
+        refresh_membership_status(subscription)
+    last_record = (
+        PaymentRecord.objects
+        .filter(schedule__member=member, status='paid')
+        .select_related('schedule')
+        .order_by('-paid_at', '-id')
+        .first()
+    )
+    next_record = (
+        PaymentRecord.objects
+        .filter(schedule__member=member, schedule__is_active=True, status__in=['pending', 'late'])
+        .select_related('schedule')
+        .order_by('schedule__due_date', 'id')
+        .first()
+    )
+    access = membership_access(member)
+    if not subscription:
+        return {
+            'membership_id': None,
+            'plan_name': None,
+            'status': None,
+            'start_date': None,
+            'end_date': None,
+            'days_remaining': None,
+            'price': None,
+            'next_payment': _payment_summary(next_record),
+            'last_payment': _payment_summary(last_record),
+            'can_check_in': False,
+            'access_reason': access['reason'],
+        }
+    return {
+        'membership_id': subscription.id,
+        'plan_name': subscription.membership_name,
+        'status': subscription.status,
+        'start_date': (
+            subscription.current_period_start or subscription.start_date
+        ).isoformat(),
+        'end_date': subscription.current_period_end.isoformat() if subscription.current_period_end else None,
+        'days_remaining': subscription.days_remaining,
+        'price': str(subscription.agreed_price),
+        'next_payment': _payment_summary(next_record),
+        'last_payment': _payment_summary(last_record),
+        'can_check_in': access['allowed'],
+        'access_reason': access['reason'],
+    }
 
 
 @transaction.atomic
@@ -127,13 +223,22 @@ def mark_payment_paid(record, reference='', notes=''):
 
 def membership_access(member, on_date=None):
     today = on_date or timezone.localdate()
-    subscription = member.subscriptions.filter(is_active=True).order_by('-id').first()
+    subscription = current_member_membership(member)
     if not member.is_active:
         return {'allowed': False, 'reason': 'member_inactive', 'days_overdue': 0}
-    if not subscription or subscription.status in ('suspended', 'cancelled'):
-        return {'allowed': False, 'reason': 'payment_required', 'days_overdue': 0}
+    if not subscription:
+        return {'allowed': False, 'reason': 'no_membership', 'days_overdue': 0}
+    refresh_membership_status(subscription, today=today)
     if not subscription.current_period_end:
         return {'allowed': False, 'reason': 'payment_required', 'days_overdue': 0}
+    if subscription.status in {'pending', 'suspended', 'cancelled'}:
+        return {'allowed': False, 'reason': 'payment_required', 'days_overdue': 0}
+    if subscription.status == 'expired':
+        return {
+            'allowed': False,
+            'reason': 'payment_overdue',
+            'days_overdue': max(0, (today - subscription.current_period_end).days),
+        }
     if today <= subscription.current_period_end:
         return {'allowed': True, 'reason': None, 'days_overdue': 0}
     days_overdue = (today - subscription.current_period_end).days
@@ -145,17 +250,57 @@ def membership_access(member, on_date=None):
     }
 
 
+@transaction.atomic
+def renew_membership(subscription, start_date=None):
+    subscription = MemberSubscription.objects.select_for_update().get(pk=subscription.pk)
+    if subscription.status == 'cancelled':
+        raise ValueError('No puedes renovar una membresía cancelada.')
+    start = start_date or subscription.next_billing_date or timezone.localdate()
+    if subscription.current_period_end and start <= subscription.current_period_end:
+        start = subscription.current_period_end + timedelta(days=1)
+    schedule, record = create_pending_charge(subscription, start)
+    subscription.is_active = True
+    subscription.status = 'pending'
+    subscription.next_billing_date = start
+    subscription.save(update_fields=['is_active', 'status', 'next_billing_date'])
+    return subscription, schedule, record
+
+
+@transaction.atomic
+def suspend_membership(subscription, reason=''):
+    subscription = MemberSubscription.objects.select_for_update().get(pk=subscription.pk)
+    if subscription.status != 'cancelled':
+        subscription.status = 'suspended'
+        subscription.is_active = True
+        if reason:
+            subscription.cancellation_reason = reason
+        subscription.save(update_fields=['status', 'is_active', 'cancellation_reason'])
+    return subscription
+
+
+@transaction.atomic
+def cancel_membership(subscription, reason=''):
+    subscription = MemberSubscription.objects.select_for_update().get(pk=subscription.pk)
+    subscription.status = 'cancelled'
+    subscription.is_active = False
+    subscription.cancellation_date = timezone.localdate()
+    if reason:
+        subscription.cancellation_reason = reason
+    subscription.save(update_fields=['status', 'is_active', 'cancellation_date', 'cancellation_reason'])
+    PaymentSchedule.objects.filter(subscription=subscription, is_active=True).update(is_active=False)
+    return subscription
+
+
 def run_daily_billing_maintenance(today=None):
     today = today or timezone.localdate()
     subscriptions_updated = 0
     for subscription in MemberSubscription.objects.filter(
         is_active=True,
     ).exclude(status__in=('suspended', 'cancelled')).iterator():
-        if subscription.current_period_end and subscription.current_period_end < today:
-            if subscription.status != 'past_due':
-                subscription.status = 'past_due'
-                subscription.save(update_fields=['status'])
-                subscriptions_updated += 1
+        previous = subscription.status
+        refresh_membership_status(subscription, today=today)
+        if subscription.status != previous:
+            subscriptions_updated += 1
     return {
         'subscriptions_updated': subscriptions_updated,
         'records_updated': 0,

@@ -65,7 +65,7 @@ export interface MemberSubscription {
   grace_period_days: number
   auto_generate_next: boolean
   is_active: boolean
-  status: 'active' | 'past_due' | 'suspended' | 'cancelled'
+  status: 'pending' | 'active' | 'expiring' | 'expired' | 'suspended' | 'cancelled'
   renewal_date: string | null
   current_period_start: string | null
   current_period_end: string | null
@@ -95,6 +95,42 @@ export interface MemberMembershipSummary {
   days_overdue: number | null
   access_allowed: boolean
   access_reason: 'member_inactive' | 'payment_required' | 'payment_overdue' | null
+}
+
+export interface MemberMembership {
+  id: number
+  member: number
+  membership_plan: number | null
+  plan_name: string | null
+  start_date: string
+  end_date: string | null
+  agreed_price: string
+  status: MemberSubscription['status']
+  auto_renew: boolean
+  created_at: string
+  updated_at: string
+  cancelled_at: string | null
+  notes: string
+  days_remaining: number | null
+  can_check_in: boolean
+  next_payment: {
+    id: number
+    amount: string
+    status: 'paid' | 'pending' | 'late'
+    due_date: string
+    paid_at: string | null
+    receipt_number: string | null
+  } | null
+  last_payment: {
+    id: number
+    amount: string
+    status: 'paid' | 'pending' | 'late'
+    due_date: string
+    paid_at: string | null
+    receipt_number: string | null
+  } | null
+  recurrence_type: MemberSubscription['recurrence_type']
+  grace_period_days: number
 }
 
 export interface MemberProfile {

@@ -357,7 +357,7 @@ class MemberViewSet(viewsets.ModelViewSet):
         return qs
 
     def get_permissions(self):
-        if self.action in ('list', 'retrieve', 'dashboard_summary', 'active_prescription', 'progress_by_exercise', 'physical_summary'):
+        if self.action in ('list', 'retrieve', 'dashboard_summary', 'membership_summary', 'active_prescription', 'progress_by_exercise', 'physical_summary'):
             return [IsAuthenticated()]
         if self.action == 'assign_trainer':
             return [IsAuthenticated(), IsTrainer()]
@@ -368,6 +368,13 @@ class MemberViewSet(viewsets.ModelViewSet):
         """GET /api/members/{id}/dashboard-summary/"""
         member = self.get_object()
         return Response(get_member_dashboard_summary(member))
+
+    @action(detail=True, methods=['get'], url_path='membership-summary')
+    def membership_summary(self, request, pk=None):
+        """GET /api/members/{id}/membership-summary/"""
+        from billing.services import membership_summary
+        member = self.get_object()
+        return Response(membership_summary(member))
 
     @action(detail=True, methods=['get'], url_path='prescription-summary')
     def prescription_summary(self, request, pk=None):

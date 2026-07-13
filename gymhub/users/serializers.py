@@ -4,6 +4,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from .models import MemberProfile, TrainerProfile, AuditLog
 from .services import get_member_prescription_status, get_member_risk_snapshot
+from billing.services import current_member_membership, refresh_membership_status
 
 User = get_user_model()
 
@@ -200,9 +201,7 @@ class MemberProfileSerializer(serializers.ModelSerializer):
                 reverse=True,
             )[0] if active_subscriptions else None
         else:
-            subscription = obj.subscriptions.select_related('plan').filter(
-                is_active=True,
-            ).order_by('-start_date', '-id').first()
+            subscription = current_member_membership(obj)
 
         self._subscription_cache[obj.id] = subscription
         return subscription
@@ -256,10 +255,11 @@ class MemberProfileSerializer(serializers.ModelSerializer):
             return None
 
         risk = self._risk(obj)
+        refresh_membership_status(subscription)
         today = timezone.localdate()
         access_allowed = False
         access_reason = 'payment_required'
-        if obj.is_active and subscription.status not in ('suspended', 'cancelled') and subscription.current_period_end:
+        if obj.is_active and subscription.status not in ('pending', 'expired', 'suspended', 'cancelled') and subscription.current_period_end:
             if today <= subscription.current_period_end:
                 access_allowed = True
                 access_reason = None

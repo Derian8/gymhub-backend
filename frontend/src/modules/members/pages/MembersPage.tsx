@@ -29,7 +29,7 @@ function getMembershipBadge(membership?: MemberMembershipSummary | null): {
   if (membership.status === 'suspended') {
     return { label: 'Suspendida', variant: 'warning' }
   }
-  if (membership.payment_status === 'late' || membership.status === 'past_due') {
+  if (membership.payment_status === 'late' || membership.status === 'expired') {
     return { label: 'Vencida', variant: 'error' }
   }
   if (membership.payment_status === 'pending') {

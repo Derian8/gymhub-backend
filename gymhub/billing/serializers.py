@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import MembershipPlan, MemberSubscription, PaymentSchedule, PaymentRecord, PaymentMethod, PaymentInstruction
-from .services import default_grace_days, membership_access
+from .services import default_grace_days, membership_access, membership_summary, refresh_membership_status
 
 
 class MembershipPlanSerializer(serializers.ModelSerializer):
@@ -59,6 +59,89 @@ class MemberSubscriptionSerializer(serializers.ModelSerializer):
 
     def get_days_overdue(self, obj):
         return membership_access(obj.member)['days_overdue']
+
+
+class MemberMembershipSerializer(serializers.ModelSerializer):
+    membership_plan = serializers.PrimaryKeyRelatedField(
+        source='plan',
+        queryset=MembershipPlan.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    plan_name = serializers.CharField(source='membership_name', read_only=True)
+    end_date = serializers.DateField(source='current_period_end', read_only=True)
+    auto_renew = serializers.BooleanField(source='auto_generate_next', required=False)
+    cancelled_at = serializers.DateField(source='cancellation_date', read_only=True)
+    notes = serializers.CharField(source='commercial_notes', required=False, allow_blank=True)
+    days_remaining = serializers.SerializerMethodField()
+    can_check_in = serializers.SerializerMethodField()
+    next_payment = serializers.SerializerMethodField()
+    last_payment = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MemberSubscription
+        fields = (
+            'id', 'member', 'membership_plan', 'plan_name',
+            'start_date', 'end_date', 'agreed_price', 'status',
+            'auto_renew', 'created_at', 'updated_at', 'cancelled_at', 'notes',
+            'days_remaining', 'can_check_in', 'next_payment', 'last_payment',
+            'recurrence_type', 'grace_period_days',
+        )
+        read_only_fields = (
+            'id', 'end_date', 'created_at', 'updated_at', 'cancelled_at',
+            'days_remaining', 'can_check_in', 'next_payment', 'last_payment',
+        )
+        extra_kwargs = {
+            'agreed_price': {'required': False},
+            'recurrence_type': {'required': False},
+            'grace_period_days': {'required': False},
+        }
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        member = attrs.get('member') or getattr(self.instance, 'member', None)
+        plan = attrs.get('plan') or getattr(self.instance, 'plan', None)
+        if self.instance is None and not plan:
+            raise serializers.ValidationError({'membership_plan': 'Selecciona un plan de membresía.'})
+        if self.instance is None and member:
+            existing = MemberSubscription.objects.filter(
+                member=member,
+                is_active=True,
+                status__in=['pending', 'active', 'expiring', 'suspended'],
+            )
+            if existing.exists():
+                raise serializers.ValidationError({'member': 'El miembro ya tiene una membresía operativa.'})
+        request = self.context.get('request')
+        if request and request.user.role == 'trainer' and not request.user.is_staff:
+            trainer = request.user.trainerprofile
+            if member and member.trainer_asignado_id != trainer.id:
+                raise serializers.ValidationError({'member': 'Solo puedes administrar miembros asignados.'})
+            if plan and plan.trainer_id and plan.trainer_id != trainer.id:
+                raise serializers.ValidationError({'membership_plan': 'Solo puedes usar tus propios planes.'})
+        return attrs
+
+    def create(self, validated_data):
+        plan = validated_data.get('plan')
+        if plan:
+            validated_data.setdefault('membership_name', plan.name)
+            validated_data.setdefault('description', plan.description)
+            validated_data.setdefault('agreed_price', plan.price)
+            validated_data.setdefault('recurrence_type', plan.recurrence_type)
+            validated_data.setdefault('grace_period_days', plan.grace_period_days)
+        return super().create(validated_data)
+
+    def get_days_remaining(self, obj):
+        refresh_membership_status(obj)
+        return obj.days_remaining
+
+    def get_can_check_in(self, obj):
+        return membership_access(obj.member)['allowed']
+
+    def get_next_payment(self, obj):
+        return membership_summary(obj.member)['next_payment']
+
+    def get_last_payment(self, obj):
+        return membership_summary(obj.member)['last_payment']
 
 
 class PaymentMethodSerializer(serializers.ModelSerializer):

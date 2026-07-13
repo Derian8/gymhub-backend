@@ -75,9 +75,102 @@ class TestBillingViews:
         assert schedule.plan_id == membership_plan.id
         assert schedule.member_id == member_profile.id
         assert str(payment_record.amount) == '62.50'
-        assert subscription.status == 'suspended'
+        assert subscription.status == 'pending'
         assert subscription.current_period_end is None
         assert subscription.commercial_notes == 'Primer cierre comercial'
+
+    def test_trainer_can_assign_member_membership_from_plan(
+        self,
+        trainer_client,
+        member_profile,
+        membership_plan,
+    ):
+        resp = trainer_client.post('/api/member-memberships/', {
+            'member': member_profile.id,
+            'membership_plan': membership_plan.id,
+            'start_date': timezone.now().date().isoformat(),
+            'auto_renew': True,
+        })
+
+        assert resp.status_code == status.HTTP_201_CREATED
+        assert resp.data['member'] == member_profile.id
+        assert resp.data['membership_plan'] == membership_plan.id
+        assert resp.data['plan_name'] == membership_plan.name
+        assert resp.data['status'] == 'pending'
+
+    def test_member_membership_prevents_two_operational_memberships(
+        self,
+        trainer_client,
+        member_profile,
+        membership_plan,
+    ):
+        payload = {
+            'member': member_profile.id,
+            'membership_plan': membership_plan.id,
+            'start_date': timezone.now().date().isoformat(),
+            'auto_renew': True,
+        }
+
+        first = trainer_client.post('/api/member-memberships/', payload)
+        second = trainer_client.post('/api/member-memberships/', payload)
+
+        assert first.status_code == status.HTTP_201_CREATED
+        assert second.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'member' in second.data
+
+    def test_member_membership_actions_and_summary(
+        self,
+        trainer_client,
+        member_profile,
+        membership_plan,
+    ):
+        create_resp = trainer_client.post('/api/member-memberships/', {
+            'member': member_profile.id,
+            'membership_plan': membership_plan.id,
+            'start_date': timezone.now().date().isoformat(),
+            'auto_renew': True,
+        })
+        membership_id = create_resp.data['id']
+
+        renew_resp = trainer_client.post(f'/api/member-memberships/{membership_id}/renew/')
+        suspend_resp = trainer_client.post(
+            f'/api/member-memberships/{membership_id}/suspend/',
+            {'reason': 'Pago en revisión'},
+        )
+        summary_resp = trainer_client.get(f'/api/members/{member_profile.id}/membership-summary/')
+        cancel_resp = trainer_client.post(
+            f'/api/member-memberships/{membership_id}/cancel/',
+            {'reason': 'Solicitud del miembro'},
+        )
+
+        assert renew_resp.status_code == status.HTTP_200_OK
+        assert suspend_resp.status_code == status.HTTP_200_OK
+        assert suspend_resp.data['status'] == 'suspended'
+        assert summary_resp.status_code == status.HTTP_200_OK
+        assert summary_resp.data['membership_id'] == membership_id
+        assert summary_resp.data['can_check_in'] is False
+        assert cancel_resp.status_code == status.HTTP_200_OK
+        assert cancel_resp.data['status'] == 'cancelled'
+
+    def test_member_only_reads_own_membership_summary(
+        self,
+        member_client,
+        trainer_client,
+        member_profile,
+        membership_plan,
+    ):
+        trainer_client.post('/api/member-memberships/', {
+            'member': member_profile.id,
+            'membership_plan': membership_plan.id,
+            'start_date': timezone.now().date().isoformat(),
+            'auto_renew': True,
+        })
+
+        resp = member_client.get('/api/my-membership/')
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert resp.data['membership_id'] is not None
+        assert resp.data['plan_name'] == membership_plan.name
 
     def test_trainer_can_create_member_subscription_without_plan_catalog(
         self,
@@ -143,7 +236,7 @@ class TestBillingViews:
         assert summary['subscription_id'] == create_resp.data['id']
         assert summary['plan_id'] is None
         assert summary['plan_name'] == 'Derian mensual'
-        assert summary['status'] == 'suspended'
+        assert summary['status'] == 'pending'
         assert summary['access_allowed'] is False
 
     def test_cancelled_subscription_is_not_visible_in_member_summary(

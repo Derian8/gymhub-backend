@@ -14,11 +14,13 @@ def run_daily_membership_maintenance():
     from billing.services import run_daily_billing_maintenance
 
     result = run_daily_billing_maintenance()
+    membership_alerts = check_membership_status_alerts()
     upcoming = check_upcoming_payments()
     overdue = check_overdue_payments()
     return {
         **result,
         'records_updated': overdue['updated'],
+        'membership_notifications': membership_alerts['notifications_created'],
         'upcoming_notifications': upcoming['notifications_created'],
         'overdue_notifications': overdue['notifications_created'],
     }
@@ -97,6 +99,55 @@ def check_upcoming_payments():
     return {'notifications_created': notifications_created}
 
 
+@shared_task(name='billing.tasks.check_membership_status_alerts')
+def check_membership_status_alerts():
+    from alerts.models import Notification
+    from billing.models import MemberSubscription
+
+    today = timezone.localdate()
+    notifications_created = 0
+    subscriptions = MemberSubscription.objects.filter(
+        is_active=True,
+        status__in=['expiring', 'expired'],
+    ).select_related('member__user', 'member__trainer_asignado__user')
+
+    for subscription in subscriptions:
+        member = subscription.member
+        plan_name = subscription.membership_name or 'Membresía'
+        if subscription.status == 'expiring':
+            event = 'membership_expiring'
+            message = f"Tu membresía '{plan_name}' está próxima a vencer."
+        else:
+            event = 'membership_expired'
+            message = f"Tu membresía '{plan_name}' está vencida. Regulariza tu pago para recuperar acceso."
+
+        member_key = f'{event}:member:{member.user_id}:{subscription.id}:{today.isoformat()}'
+        _, created = Notification.objects.get_or_create(
+            user=member.user,
+            type='payment_due' if subscription.status == 'expiring' else 'payment_overdue',
+            dedupe_key=member_key,
+            defaults={'message': message},
+        )
+        notifications_created += int(created)
+
+        for recipient in _notification_recipients(member):
+            trainer_key = f'{event}:trainer:{recipient.id}:{subscription.id}:{today.isoformat()}'
+            _, created = Notification.objects.get_or_create(
+                user=recipient,
+                type='payment_due' if subscription.status == 'expiring' else 'payment_overdue',
+                dedupe_key=trainer_key,
+                defaults={
+                    'message': (
+                        f"El miembro {member.user.get_full_name() or member.user.email} "
+                        f"tiene membresía {subscription.status}: {plan_name}."
+                    ),
+                },
+            )
+            notifications_created += int(created)
+
+    return {'notifications_created': notifications_created}
+
+
 @shared_task(name='billing.tasks.check_overdue_payments')
 def check_overdue_payments():
     """
@@ -127,7 +178,7 @@ def check_overdue_payments():
             updated += 1
             subscription = record.schedule.subscription
             if subscription and subscription.status != 'cancelled':
-                subscription.status = 'past_due'
+                subscription.status = 'expired'
                 subscription.save(update_fields=['status'])
 
             member = record.schedule.member

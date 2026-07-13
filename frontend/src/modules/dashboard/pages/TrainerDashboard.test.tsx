@@ -27,7 +27,7 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
             plan_name: 'Premium mensual',
             agreed_price: '50000.00',
             recurrence_type: 'monthly',
-            status: 'past_due',
+            status: 'expired',
             is_active: true,
             start_date: '2026-03-01',
             next_billing_date: '2026-04-01',

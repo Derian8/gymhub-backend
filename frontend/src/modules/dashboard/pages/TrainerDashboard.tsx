@@ -35,7 +35,7 @@ function getMembershipStatus(member: MemberProfile): {
   if (!membership) {
     return { label: 'Sin membresía', variant: 'neutral', priority: 3 }
   }
-  if (membership.payment_status === 'late' || membership.status === 'past_due') {
+  if (membership.payment_status === 'late' || membership.status === 'expired') {
     return { label: 'Vencida', variant: 'error', priority: 0 }
   }
   if (membership.payment_status === 'pending' || (membership.days_until_due != null && membership.days_until_due <= 7)) {

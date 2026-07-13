@@ -401,12 +401,10 @@ def get_member_dashboard_summary(member):
             nutrition_goal = None
 
     risk = get_member_risk_snapshot(member)
-    current_subscription = (
-        MemberSubscription.objects
-        .filter(member=member, is_active=True)
-        .order_by('-start_date', '-id')
-        .first()
-    )
+    from billing.services import current_member_membership, membership_access, refresh_membership_status
+    current_subscription = current_member_membership(member)
+    if current_subscription:
+        refresh_membership_status(current_subscription)
     membership_plan_name = (
         current_subscription.membership_name
         if current_subscription
@@ -453,7 +451,7 @@ def get_member_dashboard_summary(member):
         'membership_agreed_price': str(current_subscription.agreed_price) if current_subscription else None,
         'membership_recurrence_type': current_subscription.recurrence_type if current_subscription else None,
         'membership_next_billing_date': current_subscription.next_billing_date.isoformat() if current_subscription and current_subscription.next_billing_date else None,
-        'membership_access_allowed': current_subscription.status == 'active' if current_subscription else False,
+        'membership_access_allowed': membership_access(member)['allowed'] if current_subscription else False,
         'last_checkin': last_checkin_at or (last_attendance.check_in_time if last_attendance else None),
         'active_plan': active_plan_payload,
         'nutrition_goal': nutrition_goal,

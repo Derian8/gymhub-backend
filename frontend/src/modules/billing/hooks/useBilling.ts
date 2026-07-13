@@ -6,6 +6,7 @@ import { extractApiError } from '@/shared/lib/utils'
 
 function invalidateMembershipViews(queryClient: ReturnType<typeof useQueryClient>, memberId?: number) {
   queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_SUBSCRIPTIONS_ALL })
+  queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_MEMBERSHIPS_ALL })
   queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PAYMENT_SCHEDULES_ALL })
   queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PAYMENT_RECORDS_ALL })
   queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERS })
@@ -23,6 +24,13 @@ export function usePaymentRecordsQuery(params?: Record<string, string>) {
   })
 }
 
+export function useMembershipPlansQuery() {
+  return useQuery({
+    queryKey: QUERY_KEYS.MEMBERSHIP_PLANS,
+    queryFn: billingApi.membershipPlans,
+  })
+}
+
 export function usePaymentSchedulesQuery(params?: Record<string, string>) {
   return useQuery({
     queryKey: QUERY_KEYS.PAYMENT_SCHEDULES(params),
@@ -37,6 +45,13 @@ export function useMemberSubscriptionsQuery(params?: Record<string, string>) {
   })
 }
 
+export function useMemberMembershipsQuery(params?: Record<string, string>) {
+  return useQuery({
+    queryKey: QUERY_KEYS.MEMBER_MEMBERSHIPS(params),
+    queryFn: () => billingApi.memberMemberships(params),
+  })
+}
+
 export function useCreateMemberSubscriptionMutation(memberId?: number) {
   const queryClient = useQueryClient()
 
@@ -45,6 +60,58 @@ export function useCreateMemberSubscriptionMutation(memberId?: number) {
     onSuccess: () => {
       invalidateMembershipViews(queryClient, memberId)
       toast.success('Suscripción y primer cobro creados')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useCreateMemberMembershipMutation(memberId?: number) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: billingApi.createMemberMembership,
+    onSuccess: () => {
+      invalidateMembershipViews(queryClient, memberId)
+      toast.success('Membresía asignada')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useRenewMemberMembershipMutation(memberId?: number) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: billingApi.renewMemberMembership,
+    onSuccess: () => {
+      invalidateMembershipViews(queryClient, memberId)
+      toast.success('Membresía renovada')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useSuspendMemberMembershipMutation(memberId?: number) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason?: string }) => billingApi.suspendMemberMembership(id, reason),
+    onSuccess: () => {
+      invalidateMembershipViews(queryClient, memberId)
+      toast.success('Membresía suspendida')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useCancelMemberMembershipMutation(memberId?: number) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason?: string }) => billingApi.cancelMemberMembership(id, reason),
+    onSuccess: () => {
+      invalidateMembershipViews(queryClient, memberId)
+      toast.success('Membresía cancelada')
     },
     onError: (error) => toast.error(extractApiError(error)),
   })

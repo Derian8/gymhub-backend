@@ -1,4 +1,6 @@
+from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q
 
 PAYMENT_STATUS_CHOICES = [
     ('paid', 'Paid'),
@@ -7,8 +9,10 @@ PAYMENT_STATUS_CHOICES = [
 ]
 
 SUBSCRIPTION_STATUS_CHOICES = [
+    ('pending', 'Pending'),
     ('active', 'Active'),
-    ('past_due', 'Past Due'),
+    ('expiring', 'Expiring'),
+    ('expired', 'Expired'),
     ('suspended', 'Suspended'),
     ('cancelled', 'Cancelled'),
 ]
@@ -93,7 +97,7 @@ class MemberSubscription(models.Model):
     status = models.CharField(
         max_length=20,
         choices=SUBSCRIPTION_STATUS_CHOICES,
-        default='active',
+        default='pending',
     )
     renewal_date = models.DateField(null=True, blank=True)
     current_period_start = models.DateField(null=True, blank=True)
@@ -106,12 +110,44 @@ class MemberSubscription(models.Model):
 
     class Meta:
         ordering = ['-is_active', '-start_date', '-id']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['member'],
+                condition=Q(is_active=True) & Q(status__in=['pending', 'active', 'expiring', 'suspended']),
+                name='billing_unique_operational_member_membership',
+            ),
+        ]
         indexes = [
             models.Index(fields=['member', 'is_active']),
             models.Index(fields=['trainer', 'is_active']),
             models.Index(fields=['plan', 'is_active']),
             models.Index(fields=['status', 'is_active']),
         ]
+
+    def clean(self):
+        super().clean()
+        if not self.is_active or self.status not in {'pending', 'active', 'expiring', 'suspended'}:
+            return
+        qs = MemberSubscription.objects.filter(
+            member=self.member,
+            is_active=True,
+            status__in=['pending', 'active', 'expiring', 'suspended'],
+        )
+        if self.pk:
+            qs = qs.exclude(pk=self.pk)
+        if qs.exists():
+            raise ValidationError({'member': 'El miembro ya tiene una membresía operativa.'})
+
+    @property
+    def end_date(self):
+        return self.current_period_end
+
+    @property
+    def days_remaining(self):
+        if not self.current_period_end:
+            return None
+        from django.utils import timezone
+        return (self.current_period_end - timezone.localdate()).days
 
     def __str__(self):
         return f"{self.member} — {self.membership_name} (${self.agreed_price})"

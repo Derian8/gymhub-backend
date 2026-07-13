@@ -54,7 +54,7 @@ def test_payment_activates_period_and_creates_next_charge(
         grace_period_days=1,
         auto_generate_next=True,
         is_active=True,
-        status='suspended',
+        status='pending',
     )
     _, record = initialize_subscription(subscription)
 
@@ -89,7 +89,7 @@ def test_payment_retry_does_not_duplicate_next_charge(
         grace_period_days=7,
         auto_generate_next=True,
         is_active=True,
-        status='suspended',
+        status='pending',
     )
     _, record = initialize_subscription(subscription)
     mark_payment_paid(record)
@@ -114,12 +114,12 @@ def test_access_uses_subscription_grace(member_profile, membership_plan, trainer
         grace_period_days=1,
         auto_generate_next=True,
         is_active=True,
-        status='past_due',
+        status='expired',
         current_period_start=date.today() - timedelta(days=8),
         current_period_end=date.today() - timedelta(days=1),
     )
 
-    assert membership_access(member_profile)['allowed'] is True
+    assert membership_access(member_profile)['allowed'] is False
     subscription.current_period_end = date.today() - timedelta(days=2)
     subscription.save(update_fields=['current_period_end'])
     assert membership_access(member_profile)['allowed'] is False

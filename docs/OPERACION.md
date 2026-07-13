@@ -111,10 +111,18 @@ Para E2E con Playwright:
 - `AI_CHAT_HISTORY_WINDOW`
 - `INACTIVITY_DAYS_THRESHOLD`
 - `PAYMENT_GRACE_DAYS`
+- `MEMBERSHIP_EXPIRING_DAYS`: días para marcar una membresía como próxima a vencer. Valor por defecto: `5`.
 - `CRON_SECRET`: secreto compartido que Vercel Cron envía como `Authorization: Bearer ...` al mantenimiento diario.
 - `DB_DISABLE_SERVER_SIDE_CURSORS=True`: obligatorio al usar el Transaction Pooler de Supabase en el puerto 6543.
 
 Las tolerancias operativas se guardan por plan: 0 días para diario, 1 para semanal, 2 para quincenal y 7 para periodos mayores. `PAYMENT_GRACE_DAYS` queda como valor heredado para flujos antiguos.
+
+## Membresías
+- `MemberSubscription` es la membresía individual del miembro y se administra desde `/api/member-memberships/`.
+- Cada miembro puede tener solo una membresía operativa a la vez (`pending`, `active`, `expiring` o `suspended` con `is_active=True`).
+- La renovación extiende de forma controlada la membresía existente y crea un nuevo `PaymentSchedule`/`PaymentRecord` para el siguiente periodo.
+- Una membresía `expired`, `suspended` o `cancelled` bloquea check-in. El trainer/admin puede hacer override manual solo si envía un motivo en `notes`; el motivo queda en `AuditLog.details`.
+- La tarea diaria `run_daily_membership_maintenance` actualiza `expiring`/`expired` y crea notificaciones deduplicadas por evento y día.
 
 En Vercel, `gymhub/vercel.json` invoca diariamente `/api/internal/daily-membership-maintenance/` a las 12:05 UTC (06:05 Costa Rica). El endpoint es idempotente y exige `CRON_SECRET`.
 - `DEMO_TRAINER_PASSWORD`

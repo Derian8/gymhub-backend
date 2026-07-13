@@ -7,13 +7,18 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .models import MembershipPlan, MemberSubscription, PaymentSchedule, PaymentRecord, PaymentMethod, PaymentInstruction
 from .serializers import (
     MembershipPlanSerializer, PaymentScheduleSerializer,
-    PaymentRecordSerializer, PaymentMethodSerializer, PaymentInstructionSerializer, MemberSubscriptionSerializer
+    PaymentRecordSerializer, PaymentMethodSerializer, PaymentInstructionSerializer,
+    MemberSubscriptionSerializer, MemberMembershipSerializer
 )
-from .services import initialize_subscription, mark_payment_paid, period_end
+from .services import (
+    cancel_membership, initialize_subscription, mark_payment_paid, membership_summary,
+    period_end, renew_membership, suspend_membership
+)
 from users.permissions import IsStaffOrTrainer
 from users.audit import registrar_auditoria
 from users.views import _get_trainer_profile
@@ -128,7 +133,7 @@ class MemberSubscriptionViewSet(viewsets.ModelViewSet):
             grace_period_days=grace_period_days,
             next_billing_date=start_date,
             renewal_date=None,
-            status='suspended',
+            status='pending',
         )
         initialize_subscription(subscription)
         registrar_auditoria(
@@ -218,6 +223,142 @@ class MemberSubscriptionViewSet(viewsets.ModelViewSet):
                 },
             },
         )
+
+
+class MemberMembershipViewSet(MemberSubscriptionViewSet):
+    serializer_class = MemberMembershipSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        state = self.request.query_params.get('status')
+        search = self.request.query_params.get('search')
+        if state:
+            queryset = queryset.filter(status=state)
+        if search:
+            queryset = queryset.filter(
+                member__user__email__icontains=search
+            ) | queryset.filter(member__user__first_name__icontains=search) | queryset.filter(member__user__last_name__icontains=search)
+        return queryset.distinct()
+
+    @transaction.atomic
+    def perform_create(self, serializer):
+        plan, member, trainer_profile = self._resolve_subscription_owner(serializer)
+        if trainer_profile is None:
+            raise ValidationError({'trainer': 'El miembro necesita un trainer asignado para crear membresía.'})
+        if MemberSubscription.objects.filter(
+            member=member,
+            is_active=True,
+            status__in=['pending', 'active', 'expiring', 'suspended'],
+        ).exists():
+            raise ValidationError({'member': 'El miembro ya tiene una membresía operativa.'})
+        start_date = serializer.validated_data['start_date']
+        recurrence_type = serializer.validated_data.get(
+            'recurrence_type',
+            plan.recurrence_type if plan else 'monthly',
+        )
+        grace_period_days = serializer.validated_data.get(
+            'grace_period_days',
+            plan.grace_period_days if plan else 7,
+        )
+        subscription = serializer.save(
+            trainer=trainer_profile,
+            plan=plan,
+            membership_name=serializer.validated_data.get('membership_name') or (plan.name if plan else 'Membresía'),
+            description=serializer.validated_data.get('description') or (plan.description if plan else ''),
+            recurrence_type=recurrence_type,
+            grace_period_days=grace_period_days,
+            next_billing_date=start_date,
+            renewal_date=None,
+            status='pending',
+            is_active=True,
+        )
+        initialize_subscription(subscription)
+        registrar_auditoria(
+            self.request.user,
+            'membership_created',
+            'MemberSubscription',
+            subscription.id,
+            request=self.request,
+            details={'member_id': member.id, 'plan_id': plan.id if plan else None},
+        )
+
+    @action(detail=True, methods=['post'], url_path='renew')
+    def renew(self, request, pk=None):
+        subscription = self.get_object()
+        start_date = request.data.get('start_date')
+        if start_date:
+            from datetime import date
+            start_date = date.fromisoformat(start_date)
+        try:
+            subscription, schedule, record = renew_membership(subscription, start_date=start_date)
+        except ValueError as exc:
+            raise ValidationError({'membership': str(exc)}) from exc
+        registrar_auditoria(
+            request.user,
+            'membership_renewed',
+            'MemberSubscription',
+            subscription.id,
+            request=request,
+            details={'schedule_id': schedule.id if schedule else None, 'record_id': record.id if record else None},
+        )
+        return Response(self.get_serializer(subscription).data)
+
+    @action(detail=True, methods=['post'], url_path='suspend')
+    def suspend(self, request, pk=None):
+        reason = request.data.get('reason', '').strip()
+        subscription = suspend_membership(self.get_object(), reason=reason)
+        registrar_auditoria(
+            request.user,
+            'membership_suspended',
+            'MemberSubscription',
+            subscription.id,
+            request=request,
+            details={'reason': reason},
+        )
+        return Response(self.get_serializer(subscription).data)
+
+    @action(detail=True, methods=['post'], url_path='cancel')
+    def cancel(self, request, pk=None):
+        reason = request.data.get('reason', '').strip()
+        subscription = cancel_membership(self.get_object(), reason=reason)
+        registrar_auditoria(
+            request.user,
+            'membership_cancelled',
+            'MemberSubscription',
+            subscription.id,
+            request=request,
+            details={'reason': reason},
+        )
+        return Response(self.get_serializer(subscription).data)
+
+    @action(detail=False, methods=['get'], url_path='expiring')
+    def expiring(self, request):
+        queryset = self.filter_queryset(self.get_queryset().filter(status='expiring'))
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            return self.get_paginated_response(self.get_serializer(page, many=True).data)
+        return Response(self.get_serializer(queryset, many=True).data)
+
+    @action(detail=False, methods=['get'], url_path='expired')
+    def expired(self, request):
+        queryset = self.filter_queryset(self.get_queryset().filter(status='expired'))
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            return self.get_paginated_response(self.get_serializer(page, many=True).data)
+        return Response(self.get_serializer(queryset, many=True).data)
+
+
+class MyMembershipView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != 'member' or request.user.is_staff:
+            return Response({'error': 'Solo miembros pueden consultar esta vista.'}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            member = request.user.memberprofile
+        except ObjectDoesNotExist:
+            return Response({'error': 'Perfil de miembro no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(membership_summary(member))
 
 
 class PaymentScheduleViewSet(viewsets.ModelViewSet):
