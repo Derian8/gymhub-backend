@@ -142,6 +142,35 @@ class TestWorkoutSessions:
         assert resp.data['is_completed'] is True
         assert resp.data['completed_at'] is not None
 
+    def test_complete_workout_session_can_create_physical_progress_log(self, member_client, workout_session):
+        from progress.models import ProgressLog
+
+        resp = member_client.patch(
+            f'/api/workout-sessions/{workout_session.id}/complete/',
+            {
+                'overall_feeling': 4,
+                'body_weight_kg': 82.5,
+                'waist_cm': 88,
+            },
+        )
+
+        assert resp.status_code == status.HTTP_200_OK
+        log = ProgressLog.objects.get(member=workout_session.member)
+        assert log.weight_kg == 82.5
+        assert log.waist_cm == 88
+        assert log.source == 'manual'
+
+    def test_complete_workout_session_without_measurements_does_not_create_progress_log(self, member_client, workout_session):
+        from progress.models import ProgressLog
+
+        resp = member_client.patch(
+            f'/api/workout-sessions/{workout_session.id}/complete/',
+            {'overall_feeling': 4},
+        )
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert not ProgressLog.objects.filter(member=workout_session.member).exists()
+
     def test_complete_session_sets_timestamp(self, member_client, workout_session):
         """El completed_at se fija al momento de completar."""
         before = timezone.now()
@@ -204,6 +233,37 @@ class TestWorkoutSessions:
         assert resp.data['today_session_id'] == create_resp.data['id']
         assert resp.data['today_session_completed'] is True
         assert resp.data['today_session_started'] is False
+
+    def test_today_workout_includes_previous_completed_exercise_log(self, member_client, training_plan):
+        from progress.models import WorkoutSession, ExerciseLog
+
+        today_weekday = date.today().strftime('%a').lower()[:3]
+        workout_day = training_plan.workout_days.get(day_of_week=today_weekday)
+        exercise = workout_day.exercises.filter(exercise_type='strength').first()
+        previous_session = WorkoutSession.objects.create(
+            member=training_plan.member,
+            workout_day=workout_day,
+            is_completed=True,
+            completed_at=timezone.now() - timedelta(days=7),
+        )
+        ExerciseLog.objects.create(
+            session=previous_session,
+            exercise=exercise,
+            sets_completed=3,
+            reps_completed=8,
+            weight_used_kg=55,
+            rpe=7,
+        )
+        exercise.weight_suggestion_kg = 60
+        exercise.save(update_fields=['weight_suggestion_kg'])
+
+        resp = member_client.get(f'/api/plans/{training_plan.id}/today-workout/')
+
+        assert resp.status_code == status.HTTP_200_OK
+        payload = next(item for item in resp.data['exercises'] if item['id'] == exercise.id)
+        assert payload['previous_log']['weight_used_kg'] == 55
+        assert payload['previous_log']['reps_completed'] == 8
+        assert payload['previous_log']['weight_delta_kg'] == 5
 
 
 @pytest.mark.django_db

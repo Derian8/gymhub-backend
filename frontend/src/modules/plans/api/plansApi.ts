@@ -10,6 +10,7 @@ import type {
   WorkoutSession,
   ExerciseLog,
   ExerciseLogPayload,
+  CompleteWorkoutSessionPayload,
   TrainingPlanPayload,
   TrainingTemplateUpdatePayload,
   WorkoutDayPayload,
@@ -153,7 +154,7 @@ export const plansApi = {
     return data
   },
 
-  completeSession: async (sessionId: number, payload: { overall_feeling?: number; trainer_notes?: string }): Promise<WorkoutSession> => {
+  completeSession: async (sessionId: number, payload: CompleteWorkoutSessionPayload): Promise<WorkoutSession> => {
     const { data } = await apiClient.patch(`/api/workout-sessions/${sessionId}/complete/`, payload)
     return data
   },

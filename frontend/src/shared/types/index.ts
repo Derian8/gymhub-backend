@@ -381,6 +381,18 @@ export interface Exercise {
   rest_seconds: number
   technique_notes: string
   order: number
+  previous_log?: PreviousExerciseLog | null
+}
+
+export interface PreviousExerciseLog {
+  session_id: number
+  date: string
+  sets_completed: number
+  reps_completed: number
+  minutes_completed: number | null
+  weight_used_kg: number | null
+  rpe: number | null
+  weight_delta_kg: number | null
 }
 
 export interface WorkoutDay {
@@ -617,6 +629,15 @@ export interface ExerciseLogPayload {
   weight_used_kg?: number
   rpe?: number
   notes?: string
+}
+
+export interface CompleteWorkoutSessionPayload {
+  overall_feeling?: number
+  trainer_notes?: string
+  body_weight_kg?: number
+  waist_cm?: number
+  body_fat_pct?: number
+  muscle_mass_kg?: number
 }
 
 export interface ProgressByExercise {

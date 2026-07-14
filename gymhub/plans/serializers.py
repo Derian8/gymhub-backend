@@ -14,6 +14,7 @@ class GymMachineSerializer(serializers.ModelSerializer):
 
 class ExerciseSerializer(serializers.ModelSerializer):
     machine_detail = GymMachineSerializer(source='machine', read_only=True)
+    previous_log = serializers.SerializerMethodField()
 
     def validate(self, attrs):
         exercise_type = attrs.get('exercise_type', getattr(self.instance, 'exercise_type', 'strength'))
@@ -43,8 +44,50 @@ class ExerciseSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'workout_day', 'name', 'muscle_group', 'exercise_type',
             'sets', 'reps_range', 'target_minutes', 'machine', 'machine_detail',
-            'weight_suggestion_kg', 'rest_seconds', 'technique_notes', 'order'
+            'weight_suggestion_kg', 'rest_seconds', 'technique_notes', 'order',
+            'previous_log',
         )
+
+    def get_previous_log(self, obj):
+        member = self.context.get('member')
+        if not member:
+            request = self.context.get('request')
+            if request and getattr(request.user, 'role', None) == 'member':
+                member = getattr(request.user, 'memberprofile', None)
+        if not member:
+            return None
+
+        from progress.models import ExerciseLog
+
+        previous = (
+            ExerciseLog.objects
+            .filter(
+                exercise=obj,
+                session__member=member,
+                session__is_completed=True,
+            )
+            .exclude(session__completed_at__date=timezone.localdate())
+            .select_related('session')
+            .order_by('-session__completed_at', '-session__started_at', '-id')
+            .first()
+        )
+        if not previous:
+            return None
+
+        weight_delta = None
+        if obj.weight_suggestion_kg is not None and previous.weight_used_kg is not None:
+            weight_delta = round(obj.weight_suggestion_kg - previous.weight_used_kg, 1)
+
+        return {
+            'session_id': previous.session_id,
+            'date': previous.session.completed_at.date().isoformat() if previous.session.completed_at else previous.session.started_at.date().isoformat(),
+            'sets_completed': previous.sets_completed,
+            'reps_completed': previous.reps_completed,
+            'minutes_completed': previous.minutes_completed,
+            'weight_used_kg': previous.weight_used_kg,
+            'rpe': previous.rpe,
+            'weight_delta_kg': weight_delta,
+        }
 
 
 class WorkoutDaySerializer(serializers.ModelSerializer):
@@ -91,7 +134,7 @@ class TrainingPlanSerializer(serializers.ModelSerializer):
 
 
 class TodayWorkoutSerializer(serializers.ModelSerializer):
-    exercises = ExerciseSerializer(many=True, read_only=True)
+    exercises = serializers.SerializerMethodField()
     today_session_id = serializers.SerializerMethodField()
     today_session_completed = serializers.SerializerMethodField()
     today_session_started = serializers.SerializerMethodField()
@@ -141,6 +184,13 @@ class TodayWorkoutSerializer(serializers.ModelSerializer):
     def get_today_session_started(self, obj):
         session = self._get_today_session(obj)
         return bool(session and not session.is_completed)
+
+    def get_exercises(self, obj):
+        return ExerciseSerializer(
+            obj.exercises.all(),
+            many=True,
+            context={**self.context, 'member': self._get_member()},
+        ).data
 
     class Meta:
         model = WorkoutDay

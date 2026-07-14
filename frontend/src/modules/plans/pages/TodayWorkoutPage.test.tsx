@@ -33,6 +33,16 @@ const mockTodayWorkout: TodayWorkout = {
       rest_seconds: 90,
       technique_notes: '',
       order: 0,
+      previous_log: {
+        session_id: 44,
+        date: '2026-03-16',
+        sets_completed: 4,
+        reps_completed: 8,
+        minutes_completed: null,
+        weight_used_kg: 55,
+        rpe: 7,
+        weight_delta_kg: 5,
+      },
     },
     {
       id: 502,
@@ -48,6 +58,7 @@ const mockTodayWorkout: TodayWorkout = {
       rest_seconds: 30,
       technique_notes: 'Mantén ritmo constante',
       order: 1,
+      previous_log: null,
     },
   ],
 }
@@ -241,10 +252,14 @@ describe('TodayWorkoutPage', () => {
       )
       expect(getByTestId('complete-session-btn')).toBeInTheDocument()
       expect(getAllByText('Prescripción del trainer')).toHaveLength(2)
+      expect(getByTestId('previous-log-501')).toHaveTextContent('Última vez')
+      expect(getByTestId('previous-log-501')).toHaveTextContent('55 kg')
       expect(getByTestId('rpe-input-501')).toBeInTheDocument()
       expect(getByTestId('minutes-input-502')).toBeInTheDocument()
     })
 
+    await user.clear(getByTestId('body-weight-input'))
+    await user.type(getByTestId('body-weight-input'), '82.5')
     await user.click(getByTestId('complete-session-btn'))
 
     await waitFor(() => {
@@ -266,7 +281,7 @@ describe('TodayWorkoutPage', () => {
         expect.objectContaining({ onSuccess: expect.any(Function) }),
       )
       expect(completarSesion).toHaveBeenCalledWith(
-        { sessionId: 901, payload: { overall_feeling: 4 } },
+        { sessionId: 901, payload: { overall_feeling: 4, body_weight_kg: 82.5 } },
         expect.objectContaining({ onSuccess: expect.any(Function) }),
       )
     })

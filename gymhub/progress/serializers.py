@@ -59,3 +59,7 @@ class CreateWorkoutSessionSerializer(serializers.Serializer):
 class CompleteWorkoutSessionSerializer(serializers.Serializer):
     overall_feeling = serializers.IntegerField(required=False, min_value=1, max_value=5)
     trainer_notes = serializers.CharField(required=False, allow_blank=True)
+    body_weight_kg = serializers.FloatField(required=False, allow_null=True, min_value=0)
+    waist_cm = serializers.FloatField(required=False, allow_null=True, min_value=0)
+    body_fat_pct = serializers.FloatField(required=False, allow_null=True, min_value=0, max_value=100)
+    muscle_mass_kg = serializers.FloatField(required=False, allow_null=True, min_value=0)

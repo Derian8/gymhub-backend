@@ -7,7 +7,7 @@ import { EmptyState, Badge } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
 import { SymbolFrame } from '@/shared/components/Brand'
 import { DAY_OF_WEEK_LABELS, formatCurrency, formatDate, MUSCLE_LABELS, cn } from '@/shared/lib/utils'
-import type { Exercise, ExerciseLogPayload } from '@/shared/types'
+import type { CompleteWorkoutSessionPayload, Exercise, ExerciseLogPayload } from '@/shared/types'
 import { useAuthStore } from '@/shared/store/authStore'
 import { useMemberActivePrescriptionQuery, useMemberDashboardQuery } from '@/modules/members/hooks/useMembers'
 
@@ -19,6 +19,28 @@ interface ExerciseLogEntry {
   weight_used_kg?: number
   rpe?: number
   notes?: string
+}
+
+type MeasurementDraft = {
+  body_weight_kg: string
+  waist_cm: string
+  body_fat_pct: string
+  muscle_mass_kg: string
+}
+
+function emptyMeasurementDraft(): MeasurementDraft {
+  return {
+    body_weight_kg: '',
+    waist_cm: '',
+    body_fat_pct: '',
+    muscle_mass_kg: '',
+  }
+}
+
+function parseOptionalMeasurement(value: string) {
+  if (!value.trim()) return undefined
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : undefined
 }
 
 function getExercisePrescriptionLabel(exercise: Exercise) {
@@ -59,6 +81,7 @@ function TodayWorkoutPageContent() {
   const [sessionStarted, setSessionStarted] = useState(false)
   const [logs, setLogs] = useState<Record<number, ExerciseLogEntry>>({})
   const [overallFeeling, setOverallFeeling] = useState(4)
+  const [measurementDraft, setMeasurementDraft] = useState<MeasurementDraft>(emptyMeasurementDraft)
   const [sessionCompletedToday, setSessionCompletedToday] = useState(false)
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState<string | null>(null)
   const [isDaySelectorOpen, setIsDaySelectorOpen] = useState(false)
@@ -197,16 +220,30 @@ function TodayWorkoutPageContent() {
       }
     })
 
+    const physicalPayload = {
+      body_weight_kg: parseOptionalMeasurement(measurementDraft.body_weight_kg),
+      waist_cm: parseOptionalMeasurement(measurementDraft.waist_cm),
+      body_fat_pct: parseOptionalMeasurement(measurementDraft.body_fat_pct),
+      muscle_mass_kg: parseOptionalMeasurement(measurementDraft.muscle_mass_kg),
+    }
+    const completionPayload = Object.fromEntries(
+      Object.entries({
+        overall_feeling: overallFeeling,
+        ...physicalPayload,
+      }).filter(([, value]) => value !== undefined),
+    ) as CompleteWorkoutSessionPayload
+
     bulkLogs(
       { session_id: sessionId, logs: logsArray },
       {
         onSuccess: () => {
           completeSession(
-            { sessionId, payload: { overall_feeling: overallFeeling } },
+            { sessionId, payload: completionPayload },
             {
               onSuccess: () => {
                 setSessionStarted(false)
                 setSessionCompletedToday(true)
+                setMeasurementDraft(emptyMeasurementDraft())
               },
             },
           )
@@ -497,6 +534,32 @@ function TodayWorkoutPageContent() {
                 <span>Muy difícil</span>
                 <span>Excelente</span>
               </div>
+            </div>
+            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <MeasurementInput
+                label="Peso corporal (kg)"
+                value={measurementDraft.body_weight_kg}
+                onChange={(value) => setMeasurementDraft((current) => ({ ...current, body_weight_kg: value }))}
+                testId="body-weight-input"
+              />
+              <MeasurementInput
+                label="Cintura (cm)"
+                value={measurementDraft.waist_cm}
+                onChange={(value) => setMeasurementDraft((current) => ({ ...current, waist_cm: value }))}
+                testId="waist-input"
+              />
+              <MeasurementInput
+                label="Grasa corporal (%)"
+                value={measurementDraft.body_fat_pct}
+                onChange={(value) => setMeasurementDraft((current) => ({ ...current, body_fat_pct: value }))}
+                testId="body-fat-input"
+              />
+              <MeasurementInput
+                label="Masa muscular (kg)"
+                value={measurementDraft.muscle_mass_kg}
+                onChange={(value) => setMeasurementDraft((current) => ({ ...current, muscle_mass_kg: value }))}
+                testId="muscle-mass-input"
+              />
             </div>
             <button
               onClick={handleCompleteSession}
@@ -1040,6 +1103,7 @@ function ExerciseCard({ exercise, log, active, onUpdate }: ExerciseCardProps) {
           {exercise.technique_notes ? (
             <p className="mt-3 text-xs italic text-neutral-500 dark:text-neutral-400">{exercise.technique_notes}</p>
           ) : null}
+          <PreviousExerciseLogSummary exercise={exercise} />
         </div>
 
         <div className="rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
@@ -1086,6 +1150,63 @@ function ExerciseCard({ exercise, log, active, onUpdate }: ExerciseCardProps) {
         </div>
       </div>
     </div>
+  )
+}
+
+function PreviousExerciseLogSummary({ exercise }: { exercise: Exercise }) {
+  const previous = exercise.previous_log
+  if (!previous) {
+    return (
+      <div className="mt-3 rounded-2xl border border-dashed border-neutral-200 p-3 text-xs text-neutral-500 dark:border-neutral-800">
+        Sin historial previo para este ejercicio.
+      </div>
+    )
+  }
+
+  const isTimed = exercise.exercise_type === 'timed'
+  const delta = previous.weight_delta_kg
+  const deltaLabel = delta == null || isTimed
+    ? null
+    : `${delta > 0 ? '+' : ''}${delta} kg vs peso sugerido`
+
+  return (
+    <div className="mt-3 rounded-2xl border border-primary/20 bg-primary/5 p-3 text-xs text-neutral-600 dark:text-neutral-300" data-testid={`previous-log-${exercise.id}`}>
+      <p className="font-semibold text-neutral-900 dark:text-white">Última vez · {formatDate(previous.date)}</p>
+      <p className="mt-1">
+        {isTimed
+          ? `${previous.minutes_completed ?? 0} min completados`
+          : `${previous.weight_used_kg ?? 0} kg · ${previous.reps_completed} reps · RPE ${previous.rpe ?? '-'}`
+        }
+      </p>
+      {deltaLabel ? <p className="mt-1 text-primary">{deltaLabel}</p> : null}
+    </div>
+  )
+}
+
+function MeasurementInput({
+  label,
+  value,
+  onChange,
+  testId,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  testId: string
+}) {
+  return (
+    <label className="space-y-1">
+      <span className="text-xs font-medium text-neutral-500">{label}</span>
+      <input
+        className="input"
+        type="number"
+        min={0}
+        step="0.1"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        data-testid={testId}
+      />
+    </label>
   )
 }
 

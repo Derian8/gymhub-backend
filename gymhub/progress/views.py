@@ -229,6 +229,20 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
             session.trainer_notes = ser.validated_data['trainer_notes']
         session.save()
 
+        physical_payload = {
+            'weight_kg': ser.validated_data.get('body_weight_kg'),
+            'waist_cm': ser.validated_data.get('waist_cm'),
+            'body_fat_pct': ser.validated_data.get('body_fat_pct'),
+            'muscle_mass_kg': ser.validated_data.get('muscle_mass_kg'),
+        }
+        if any(value is not None for value in physical_payload.values()):
+            ProgressLog.objects.create(
+                member=session.member,
+                source='manual',
+                notes=f'Registro físico al completar sesión #{session.id}.',
+                **physical_payload,
+            )
+
         return Response(WorkoutSessionSerializer(session).data)
 
 

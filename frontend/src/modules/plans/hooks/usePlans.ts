@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { plansApi } from '../api/plansApi'
 import { QUERY_KEYS } from '@/shared/constants/queryKeys'
 import { extractApiError } from '@/shared/lib/utils'
+import type { CompleteWorkoutSessionPayload } from '@/shared/types'
 import type { ExercisePayload, TrainingPlanPayload, TrainingTemplateUpdatePayload, WorkoutDayPayload } from '@/shared/types'
 
 export function usePlansQuery(params?: Record<string, string>) {
@@ -392,7 +393,7 @@ export function useCompleteSessionMutation() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ sessionId, payload }: { sessionId: number; payload: { overall_feeling?: number; trainer_notes?: string } }) =>
+    mutationFn: ({ sessionId, payload }: { sessionId: number; payload: CompleteWorkoutSessionPayload }) =>
       plansApi.completeSession(sessionId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WORKOUT_SESSIONS })
