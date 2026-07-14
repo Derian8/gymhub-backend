@@ -193,7 +193,8 @@ def membership_summary(member):
 
 @transaction.atomic
 def mark_payment_paid(record, reference='', notes=''):
-    record = PaymentRecord.objects.select_for_update().select_related(
+    record = PaymentRecord.objects.select_for_update().get(pk=record.pk)
+    record = PaymentRecord.objects.select_related(
         'schedule__subscription', 'schedule__member', 'schedule__plan'
     ).get(pk=record.pk)
     if record.status == 'paid':

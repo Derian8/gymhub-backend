@@ -71,6 +71,41 @@ def test_payment_activates_period_and_creates_next_charge(
 
 
 @pytest.mark.django_db
+def test_payment_with_nullable_schedule_plan_does_not_fail(
+    member_profile, trainer_profile
+):
+    from billing.models import MemberSubscription, PaymentRecord
+    from billing.services import initialize_subscription
+
+    subscription = MemberSubscription.objects.create(
+        member=member_profile,
+        plan=None,
+        membership_name='Membresía directa',
+        trainer=trainer_profile,
+        agreed_price=12000,
+        start_date=date(2026, 7, 13),
+        next_billing_date=date(2026, 7, 13),
+        recurrence_type='weekly',
+        grace_period_days=1,
+        auto_generate_next=True,
+        is_active=True,
+        status='pending',
+    )
+    schedule, record = initialize_subscription(subscription)
+
+    assert schedule.plan_id is None
+
+    paid, next_schedule = mark_payment_paid(record, reference='CAJA-NULL')
+    subscription.refresh_from_db()
+
+    assert paid.status == 'paid'
+    assert subscription.status == 'active'
+    assert subscription.current_period_end == date(2026, 7, 19)
+    assert next_schedule.plan_id is None
+    assert PaymentRecord.objects.filter(schedule=next_schedule, status='pending').count() == 1
+
+
+@pytest.mark.django_db
 def test_payment_retry_does_not_duplicate_next_charge(
     member_profile, membership_plan, trainer_profile
 ):

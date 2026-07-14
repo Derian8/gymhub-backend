@@ -11,6 +11,8 @@ const cancelMembershipMock = vi.fn()
 const markPaymentAsPaidMock = vi.fn()
 let subscriptionsMock: Array<Record<string, unknown>> = []
 let membershipsMock: Array<Record<string, unknown>> = []
+let membersMock: Array<Record<string, unknown>> = []
+let membersQueryParams: Array<Record<string, unknown> | undefined> = []
 
 vi.mock('../hooks/useBilling', () => ({
   usePaymentRecordsQuery: () => ({
@@ -63,64 +65,17 @@ vi.mock('../hooks/useBilling', () => ({
 }))
 
 vi.mock('@/modules/members/hooks/useMembers', () => ({
-  useMembersQuery: () => ({
+  useMembersQuery: (params?: Record<string, unknown>) => {
+    membersQueryParams.push(params)
+    return {
     data: {
-      count: 2,
+      count: membersMock.length,
       next: null,
       previous: null,
-      results: [
-        {
-          id: 15,
-          user: null,
-          email: 'maria@test.com',
-          full_name: 'Maria Perez',
-          membership_plan: 8,
-          phone: '8888-9999',
-          birth_date: null,
-          emergency_contact: '',
-          join_date: '2026-03-01',
-          is_active: true,
-          photo: null,
-          membresia_actual: {
-            subscription_id: 55,
-            plan_id: 8,
-            plan_name: 'Premium',
-            agreed_price: '79000.00',
-            recurrence_type: 'biweekly',
-            status: 'active',
-            is_active: true,
-            start_date: '2026-03-01',
-            next_billing_date: '2026-03-15',
-            renewal_date: '2026-03-14',
-            current_period_start: '2026-03-01',
-            current_period_end: '2026-03-14',
-            grace_period_days: 2,
-            payment_status: 'paid',
-            days_until_due: 4,
-            days_overdue: null,
-            access_allowed: true,
-            access_reason: null,
-          },
-        },
-        {
-          id: 16,
-          user: null,
-          email: 'plan-sin-cobro@test.com',
-          full_name: 'Cliente Plan Sin Cobro',
-          membership_plan: 8,
-          membership_plan_nombre: 'Premium',
-          phone: '8888-0000',
-          birth_date: null,
-          emergency_contact: '',
-          join_date: '2026-03-02',
-          is_active: true,
-          photo: null,
-          membresia_actual: null,
-        },
-      ],
+      results: membersMock,
     },
     isLoading: false,
-  }),
+  }},
 }))
 
 describe('BillingPage', () => {
@@ -134,15 +89,66 @@ describe('BillingPage', () => {
     markPaymentAsPaidMock.mockReset()
     subscriptionsMock = []
     membershipsMock = []
+    membersQueryParams = []
+    membersMock = [
+      {
+        id: 15,
+        user: null,
+        email: 'maria@test.com',
+        full_name: 'Maria Perez',
+        membership_plan: 8,
+        phone: '8888-9999',
+        birth_date: null,
+        emergency_contact: '',
+        join_date: '2026-03-01',
+        is_active: true,
+        photo: null,
+        membresia_actual: {
+          subscription_id: 55,
+          plan_id: 8,
+          plan_name: 'Premium',
+          agreed_price: '79000.00',
+          recurrence_type: 'biweekly',
+          status: 'active',
+          is_active: true,
+          start_date: '2026-03-01',
+          next_billing_date: '2026-03-15',
+          renewal_date: '2026-03-14',
+          current_period_start: '2026-03-01',
+          current_period_end: '2026-03-14',
+          grace_period_days: 2,
+          payment_status: 'paid',
+          days_until_due: 4,
+          days_overdue: null,
+          access_allowed: true,
+          access_reason: null,
+        },
+      },
+      {
+        id: 16,
+        user: null,
+        email: 'plan-sin-cobro@test.com',
+        full_name: 'Cliente Plan Sin Cobro',
+        membership_plan: 8,
+        membership_plan_nombre: 'Premium',
+        phone: '8888-0000',
+        birth_date: null,
+        emergency_contact: '',
+        join_date: '2026-03-02',
+        is_active: true,
+        photo: null,
+        membresia_actual: null,
+      },
+    ]
   })
 
   it('renders billing summary, payment rows and membership portfolio without plan catalog', () => {
     const { getAllByText, getByTestId, getByText, queryByText } = renderWithProviders(<BillingPage />)
 
     expect(getByTestId('billing-page')).toBeInTheDocument()
-    expect(getByText('Pendientes')).toBeInTheDocument()
+    expect(getAllByText('Pendientes').length).toBeGreaterThan(0)
     expect(getByText('Recibos emitidos')).toBeInTheDocument()
-    expect(getAllByText('En mora')).toHaveLength(2)
+    expect(getAllByText('En mora').length).toBeGreaterThan(0)
     expect(getByTestId('payment-row-1')).toBeInTheDocument()
     expect(getByTestId('payment-row-2')).toBeInTheDocument()
     expect(getByTestId('payment-row-3')).toBeInTheDocument()
@@ -150,6 +156,8 @@ describe('BillingPage', () => {
     expect(queryByText('Planes de membresía configurables')).not.toBeInTheDocument()
     expect(getByTestId('membership-portfolio')).toHaveTextContent('Cartera de membresías')
     expect(getByTestId('membership-portfolio')).toHaveTextContent('Membresías por miembro')
+    expect(getByTestId('billing-member-search')).toBeInTheDocument()
+    expect(getByTestId('membership-portfolio')).toHaveTextContent('2 resultado(s)')
     expect(getByTestId('portfolio-member-15')).toHaveTextContent('Maria Perez')
     expect(getByTestId('portfolio-member-15')).toHaveTextContent('#55')
     expect(getByTestId('portfolio-member-15')).toHaveTextContent('₡79 000')
@@ -157,6 +165,40 @@ describe('BillingPage', () => {
     expect(getByTestId('portfolio-member-16')).toHaveTextContent('Cliente Plan Sin Cobro')
     expect(getByTestId('portfolio-member-16')).toHaveTextContent('Sin membresía')
     expect(getByTestId('portfolio-member-16')).toHaveTextContent('Sin precio')
+  })
+
+  it('filters billing membership portfolio by search and unpaid status', () => {
+    const { getByTestId } = renderWithProviders(<BillingPage />)
+
+    fireEvent.change(getByTestId('billing-member-search'), { target: { value: 'Derian' } })
+    expect(membersQueryParams.at(-1)).toEqual(expect.objectContaining({
+      ordering: 'riesgo_desc',
+      search: 'Derian',
+      payment_status: undefined,
+    }))
+
+    fireEvent.click(getByTestId('billing-payment-filter-pending'))
+    expect(membersQueryParams.at(-1)).toEqual(expect.objectContaining({
+      ordering: 'riesgo_desc',
+      search: 'Derian',
+      payment_status: 'pending',
+    }))
+
+    fireEvent.click(getByTestId('billing-payment-filter-late'))
+    expect(membersQueryParams.at(-1)).toEqual(expect.objectContaining({
+      ordering: 'riesgo_desc',
+      search: 'Derian',
+      payment_status: 'late',
+    }))
+  })
+
+  it('shows an empty state when billing portfolio filters have no matches', () => {
+    membersMock = []
+    const { getByTestId, getByText } = renderWithProviders(<BillingPage />)
+
+    fireEvent.click(getByTestId('billing-payment-filter-pending'))
+
+    expect(getByText('No hay miembros con ese filtro')).toBeInTheDocument()
   })
 
   it('shows member-specific header when member filter is present', () => {

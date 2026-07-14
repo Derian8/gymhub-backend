@@ -24,6 +24,8 @@ type CobroFormState = {
   notes: string
 }
 
+type PaymentPortfolioFilter = '' | 'pending' | 'late'
+
 const SUBSCRIPTION_STATUS_LABELS: Record<MemberSubscription['status'], string> = {
   pending: 'Pendiente',
   active: 'Activa',
@@ -101,9 +103,19 @@ export function BillingPage() {
   const memberId = searchParams.get('member')
   const filtros = memberId ? { member: memberId } : undefined
   const memberIdNumber = memberId ? Number(memberId) : undefined
+  const [portfolioSearch, setPortfolioSearch] = useState('')
+  const [portfolioPaymentFilter, setPortfolioPaymentFilter] = useState<PaymentPortfolioFilter>('')
+  const memberPortfolioParams = useMemo(
+    () => ({
+      ordering: 'riesgo_desc',
+      search: portfolioSearch.trim() || undefined,
+      payment_status: portfolioPaymentFilter || undefined,
+    }),
+    [portfolioPaymentFilter, portfolioSearch],
+  )
   const { data: records, isLoading } = usePaymentRecordsQuery(filtros)
   const { data: membersPortfolio, isLoading: isLoadingMembersPortfolio } = useMembersQuery(
-    { ordering: 'riesgo_desc' },
+    memberPortfolioParams,
     !memberId,
   )
   usePaymentSchedulesQuery(filtros)
@@ -180,7 +192,12 @@ export function BillingPage() {
       {!memberId && (
         <MembershipPortfolio
           members={membersPortfolio?.results || []}
+          totalCount={membersPortfolio?.count || 0}
           isLoading={isLoadingMembersPortfolio}
+          search={portfolioSearch}
+          paymentFilter={portfolioPaymentFilter}
+          onSearchChange={setPortfolioSearch}
+          onPaymentFilterChange={setPortfolioPaymentFilter}
         />
       )}
 
@@ -422,10 +439,28 @@ function SummaryCard({
   )
 }
 
-function MembershipPortfolio({ members, isLoading }: { members: MemberProfile[]; isLoading: boolean }) {
+function MembershipPortfolio({
+  members,
+  totalCount,
+  isLoading,
+  search,
+  paymentFilter,
+  onSearchChange,
+  onPaymentFilterChange,
+}: {
+  members: MemberProfile[]
+  totalCount: number
+  isLoading: boolean
+  search: string
+  paymentFilter: PaymentPortfolioFilter
+  onSearchChange: (value: string) => void
+  onPaymentFilterChange: (value: PaymentPortfolioFilter) => void
+}) {
   const membersWithMembership = members.filter((member) => Boolean(member.membresia_actual))
   const membersWithoutMembership = members.filter((member) => !member.membresia_actual)
   const visibleMembers = [...membersWithMembership, ...membersWithoutMembership]
+  const hasActiveFilter = Boolean(search.trim() || paymentFilter)
+  const filterLabel = paymentFilter === 'pending' ? 'pagos pendientes' : paymentFilter === 'late' ? 'pagos en mora' : 'todos los pagos'
 
   return (
     <section className="card p-6 mb-8" data-testid="membership-portfolio">
@@ -440,10 +475,50 @@ function MembershipPortfolio({ members, isLoading }: { members: MemberProfile[];
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Badge variant="neutral">{totalCount} resultado(s)</Badge>
           <Badge variant="info">{membersWithMembership.length} con membresía</Badge>
           {membersWithoutMembership.length > 0 && (
             <Badge variant="warning">{membersWithoutMembership.length} sin membresía</Badge>
           )}
+        </div>
+      </div>
+
+      <div className="mb-5 grid grid-cols-1 gap-3 lg:grid-cols-[1fr_auto]">
+        <label className="space-y-1">
+          <span className="text-xs font-medium text-neutral-500">Buscar miembro</span>
+          <input
+            className="input"
+            data-testid="billing-member-search"
+            placeholder="Nombre, apellido o correo"
+            value={search}
+            onChange={(event) => onSearchChange(event.target.value)}
+          />
+        </label>
+        <div className="flex flex-wrap items-end gap-2">
+          <button
+            type="button"
+            className={paymentFilter === '' ? 'btn-primary' : 'btn-secondary'}
+            data-testid="billing-payment-filter-all"
+            onClick={() => onPaymentFilterChange('')}
+          >
+            Todos
+          </button>
+          <button
+            type="button"
+            className={paymentFilter === 'pending' ? 'btn-primary' : 'btn-secondary'}
+            data-testid="billing-payment-filter-pending"
+            onClick={() => onPaymentFilterChange('pending')}
+          >
+            Pendientes
+          </button>
+          <button
+            type="button"
+            className={paymentFilter === 'late' ? 'btn-primary' : 'btn-secondary'}
+            data-testid="billing-payment-filter-late"
+            onClick={() => onPaymentFilterChange('late')}
+          >
+            En mora
+          </button>
         </div>
       </div>
 
@@ -456,8 +531,8 @@ function MembershipPortfolio({ members, isLoading }: { members: MemberProfile[];
       ) : !visibleMembers.length ? (
         <EmptyState
           icon={<Users size={40} />}
-          title="Sin miembros para mostrar"
-          description="Cuando existan miembros asignados, aparecerán aquí con su información de membresía."
+          title={hasActiveFilter ? 'No hay miembros con ese filtro' : 'Sin miembros para mostrar'}
+          description={hasActiveFilter ? `No se encontraron miembros para "${search || filterLabel}".` : 'Cuando existan miembros asignados, aparecerán aquí con su información de membresía.'}
         />
       ) : (
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
