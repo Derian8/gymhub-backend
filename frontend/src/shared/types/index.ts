@@ -244,6 +244,7 @@ export interface ChartSeriesPoint {
   label: string
   value: number
   week_start?: string
+  date?: string
   month?: string
 }
 
@@ -322,15 +323,32 @@ export interface MemberChartsOverview {
 
 export interface TrainerChartsOverview {
   role: 'trainer'
+  filters?: {
+    period: string
+    start_date: string
+    end_date: string
+    membership_status: string
+    followup_status: string
+    search: string
+  }
   summary: {
     members_count: number
-    high_risk_count: number
+    high_risk_count?: number
+    active_attendance_count?: number
+    inactive_count?: number
+    expiring_membership_count?: number
+    expired_membership_count?: number
+    pending_payment_count?: number
     late_payment_count: number
-    ready_prescriptions_count: number
+    ready_prescriptions_count?: number
+    urgent_followup_count?: number
+    attention_followup_count?: number
     average_weekly_completion: number | null
   }
   risk_distribution: ChartSeriesPoint[]
   payment_distribution: ChartSeriesPoint[]
+  membership_distribution?: ChartSeriesPoint[]
+  followup_distribution?: ChartSeriesPoint[]
   prescription_distribution: ChartSeriesPoint[]
   inactivity_distribution: ChartSeriesPoint[]
   attendance_trend: ChartSeriesPoint[]
@@ -344,6 +362,20 @@ export interface TrainerChartsOverview {
     nivel_riesgo: 'low' | 'medium' | 'high'
     payment_status: 'paid' | 'pending' | 'late' | null
     days_since_last_checkin: number | null
+    next_action: string
+  }>
+  members_needing_followup?: Array<{
+    id: number
+    full_name: string
+    email: string
+    followup_status: 'ok' | 'attention' | 'urgent'
+    membership_status: 'pending' | 'active' | 'expiring' | 'expired' | 'suspended' | 'cancelled' | 'none'
+    membership_name: string | null
+    membership_end_date: string | null
+    payment_status: 'paid' | 'pending' | 'late' | null
+    days_since_last_checkin: number | null
+    weekly_completion: number | null
+    reason: string
     next_action: string
   }>
   insights: string[]

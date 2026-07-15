@@ -30,7 +30,61 @@ class TestCharts:
         assert resp.data['role'] == 'trainer'
         assert 'risk_distribution' in resp.data
         assert 'payment_distribution' in resp.data
+        assert 'membership_distribution' in resp.data
+        assert 'followup_distribution' in resp.data
+        assert 'members_needing_followup' in resp.data
         assert 'top_risk_members' in resp.data
+
+    def test_trainer_chart_overview_filters_by_search(self, trainer_client, trainer_profile, member_profile):
+        from django.contrib.auth import get_user_model
+
+        member_profile.user.first_name = 'Derian'
+        member_profile.user.last_name = 'Filtro'
+        member_profile.user.save(update_fields=['first_name', 'last_name'])
+
+        User = get_user_model()
+        other_user = User.objects.create_user(
+            username='charts_search_other',
+            email='charts-search-other@test.com',
+            password='member123!',
+            role='member',
+            first_name='Maria',
+            last_name='Otra',
+        )
+        other_profile = other_user.memberprofile
+        other_profile.trainer_asignado = trainer_profile
+        other_profile.is_active = True
+        other_profile.save(update_fields=['trainer_asignado', 'is_active'])
+
+        resp = trainer_client.get('/api/charts/overview/?search=Derian')
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert resp.data['summary']['members_count'] == 1
+
+    def test_trainer_chart_overview_filters_by_membership_status(self, trainer_client, trainer_profile, member_profile, membership_plan):
+        from datetime import timedelta
+        from django.utils import timezone
+        from billing.models import MemberSubscription
+
+        MemberSubscription.objects.create(
+            member=member_profile,
+            plan=membership_plan,
+            membership_name=membership_plan.name,
+            trainer=trainer_profile,
+            agreed_price=membership_plan.price,
+            start_date=timezone.localdate() - timedelta(days=40),
+            next_billing_date=timezone.localdate() - timedelta(days=5),
+            current_period_start=timezone.localdate() - timedelta(days=40),
+            current_period_end=timezone.localdate() - timedelta(days=5),
+            status='expired',
+            is_active=True,
+        )
+
+        resp = trainer_client.get('/api/charts/overview/?membership_status=expired')
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert resp.data['summary']['members_count'] == 1
+        assert any(item['label'] == 'expired' and item['value'] == 1 for item in resp.data['membership_distribution'])
 
     def test_exercise_progression_without_exercise_id_returns_400(
         self, trainer_client, member_profile

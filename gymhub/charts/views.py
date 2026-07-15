@@ -331,7 +331,7 @@ class ChartOverviewView(APIView):
 
         if user.role == 'trainer':
             trainer_profile = _get_trainer_profile(user)
-            return Response(build_trainer_charts(trainer_profile, user))
+            return Response(build_trainer_charts(trainer_profile, user, request.query_params))
 
         if user.is_staff:
             member_id = request.query_params.get('member_id')

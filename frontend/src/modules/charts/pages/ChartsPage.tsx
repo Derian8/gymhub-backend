@@ -1,3 +1,5 @@
+import { useMemo, useState } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -7,6 +9,8 @@ import {
   CreditCard,
   Dumbbell,
   Loader2,
+  RefreshCcw,
+  Search,
   Scale,
   TrendingUp,
 } from 'lucide-react'
@@ -25,7 +29,7 @@ import {
 import { chartsApi } from '../api/chartsApi'
 import { PageHeader, EmptyState, Badge } from '@/shared/components/UI'
 import { QUERY_KEYS } from '@/shared/constants/queryKeys'
-import { formatCurrency } from '@/shared/lib/utils'
+import { formatDate } from '@/shared/lib/utils'
 import { useAuthStore } from '@/shared/store/authStore'
 import type { ChartSeriesPoint, MemberChartsOverview, TrainerChartsOverview } from '@/shared/types'
 
@@ -42,20 +46,67 @@ const PAYMENT_LABELS: Record<string, string> = {
   sin_dato: 'Sin dato',
 }
 
+const MEMBERSHIP_LABELS: Record<string, string> = {
+  active: 'Activa',
+  expiring: 'Próxima a vencer',
+  expired: 'Vencida',
+  suspended: 'Suspendida',
+  pending: 'Pendiente',
+  none: 'Sin membresía',
+}
+
+const FOLLOWUP_LABELS: Record<string, string> = {
+  ok: 'Al día',
+  attention: 'Atención',
+  urgent: 'Urgente',
+}
+
+const FOLLOWUP_BADGE: Record<'ok' | 'attention' | 'urgent', 'success' | 'warning' | 'error'> = {
+  ok: 'success',
+  attention: 'warning',
+  urgent: 'error',
+}
+
+type TrainerChartFilters = {
+  period: '7' | '30' | '90' | 'custom'
+  start_date: string
+  end_date: string
+  membership_status: string
+  followup_status: string
+  search: string
+}
+
+const DEFAULT_TRAINER_FILTERS: TrainerChartFilters = {
+  period: '30',
+  start_date: '',
+  end_date: '',
+  membership_status: 'all',
+  followup_status: 'all',
+  search: '',
+}
+
 export function ChartsPage() {
   const { user } = useAuthStore()
+  const [trainerFilters, setTrainerFilters] = useState<TrainerChartFilters>(DEFAULT_TRAINER_FILTERS)
+  const trainerQueryParams = useMemo(() => {
+    if (user?.role !== 'trainer') return undefined
+    return Object.fromEntries(
+      Object.entries(trainerFilters).filter(([, value]) => value),
+    ) as Record<string, string>
+  }, [trainerFilters, user?.role])
   const { data, isLoading } = useQuery({
-    queryKey: QUERY_KEYS.CHART_OVERVIEW,
-    queryFn: chartsApi.getOverview,
+    queryKey: [...QUERY_KEYS.CHART_OVERVIEW, trainerQueryParams],
+    queryFn: () => chartsApi.getOverview(trainerQueryParams),
   })
+  const hasActiveTrainerFilters = user?.role === 'trainer' && JSON.stringify(trainerFilters) !== JSON.stringify(DEFAULT_TRAINER_FILTERS)
 
   return (
     <div data-testid="charts-page" className="page-enter space-y-6">
       <PageHeader
-        title={user?.role === 'trainer' ? 'Gráficos Del Trainer' : 'Mis Gráficos'}
+        title={user?.role === 'trainer' ? 'Resumen de tus miembros' : 'Mis Gráficos'}
         subtitle={
           user?.role === 'trainer'
-            ? 'Lectura conjunta de riesgo, cumplimiento y pagos de tu cartera.'
+            ? 'Revisa asistencia, progreso y estado de membresías para identificar quién necesita seguimiento.'
             : 'Progreso físico, adherencia y estado operativo de tu proceso.'
         }
       />
@@ -71,7 +122,13 @@ export function ChartsPage() {
           description="Todavía no hay suficientes datos para construir tus gráficos."
         />
       ) : data.role === 'trainer' ? (
-        <TrainerChartsView data={data} />
+        <TrainerChartsView
+          data={data}
+          filters={trainerFilters}
+          setFilters={setTrainerFilters}
+          hasActiveFilters={hasActiveTrainerFilters}
+          onResetFilters={() => setTrainerFilters(DEFAULT_TRAINER_FILTERS)}
+        />
       ) : (
         <MemberChartsView data={data} />
       )}
@@ -235,32 +292,146 @@ function MemberChartsView({ data }: { data: MemberChartsOverview }) {
   )
 }
 
-function TrainerChartsView({ data }: { data: TrainerChartsOverview }) {
+function TrainerChartsView({
+  data,
+  filters,
+  setFilters,
+  hasActiveFilters,
+  onResetFilters,
+}: {
+  data: TrainerChartsOverview
+  filters: TrainerChartFilters
+  setFilters: Dispatch<SetStateAction<TrainerChartFilters>>
+  hasActiveFilters: boolean
+  onResetFilters: () => void
+}) {
   const cards = [
     {
-      label: 'Members asignados',
+      label: 'Miembros asignados',
       value: String(data.summary.members_count),
       icon: <Activity size={18} className="text-primary" />,
     },
     {
-      label: 'Riesgo alto',
-      value: String(data.summary.high_risk_count),
+      label: 'Asistieron en el periodo',
+      value: String(data.summary.active_attendance_count ?? 0),
+      icon: <Calendar size={18} className="text-sky-500" />,
+    },
+    {
+      label: 'Necesitan seguimiento',
+      value: String((data.summary.urgent_followup_count ?? 0) + (data.summary.attention_followup_count ?? 0)),
       icon: <AlertTriangle size={18} className="text-red-500" />,
     },
     {
-      label: 'En mora',
-      value: String(data.summary.late_payment_count),
+      label: 'Pagos pendientes',
+      value: String((data.summary.pending_payment_count ?? 0) + data.summary.late_payment_count),
       icon: <CreditCard size={18} className="text-amber-500" />,
     },
-    {
-      label: 'Cumplimiento medio',
-      value: data.summary.average_weekly_completion == null ? 'Sin meta' : `${data.summary.average_weekly_completion}%`,
-      icon: <TrendingUp size={18} className="text-emerald-500" />,
-    },
   ]
+  const followupMembers = data.members_needing_followup ?? []
 
   return (
     <>
+      <div className="card p-5">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[160px_1fr_1fr_1fr_1.2fr_auto]">
+          <label className="space-y-1">
+            <span className="label-base">Periodo</span>
+            <select
+              className="input"
+              value={filters.period}
+              onChange={(event) => setFilters((current) => ({ ...current, period: event.target.value as TrainerChartFilters['period'] }))}
+              data-testid="trainer-chart-period"
+            >
+              <option value="7">Últimos 7 días</option>
+              <option value="30">Últimos 30 días</option>
+              <option value="90">Últimos 90 días</option>
+              <option value="custom">Rango personalizado</option>
+            </select>
+          </label>
+          <label className="space-y-1">
+            <span className="label-base">Desde</span>
+            <input
+              className="input"
+              type="date"
+              value={filters.start_date}
+              disabled={filters.period !== 'custom'}
+              onChange={(event) => setFilters((current) => ({ ...current, start_date: event.target.value }))}
+              data-testid="trainer-chart-start-date"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="label-base">Hasta</span>
+            <input
+              className="input"
+              type="date"
+              value={filters.end_date}
+              disabled={filters.period !== 'custom'}
+              onChange={(event) => setFilters((current) => ({ ...current, end_date: event.target.value }))}
+              data-testid="trainer-chart-end-date"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="label-base">Membresía</span>
+            <select
+              className="input"
+              value={filters.membership_status}
+              onChange={(event) => setFilters((current) => ({ ...current, membership_status: event.target.value }))}
+              data-testid="trainer-chart-membership"
+            >
+              <option value="all">Todas</option>
+              <option value="active">Activa</option>
+              <option value="expiring">Próxima a vencer</option>
+              <option value="expired">Vencida</option>
+              <option value="suspended">Suspendida</option>
+            </select>
+          </label>
+          <label className="space-y-1">
+            <span className="label-base">Seguimiento</span>
+            <select
+              className="input"
+              value={filters.followup_status}
+              onChange={(event) => setFilters((current) => ({ ...current, followup_status: event.target.value }))}
+              data-testid="trainer-chart-followup"
+            >
+              <option value="all">Todos</option>
+              <option value="ok">Al día</option>
+              <option value="attention">Atención</option>
+              <option value="urgent">Urgente</option>
+            </select>
+          </label>
+          <div className="flex items-end">
+            <button
+              type="button"
+              className="btn-secondary flex w-full items-center justify-center gap-2"
+              disabled={!hasActiveFilters}
+              onClick={onResetFilters}
+              data-testid="trainer-chart-reset"
+            >
+              <RefreshCcw size={16} />
+              Limpiar
+            </button>
+          </div>
+        </div>
+        <label className="mt-3 block space-y-1">
+          <span className="label-base flex items-center gap-2">
+            <Search size={14} />
+            Buscar miembro
+          </span>
+          <input
+            className="input"
+            value={filters.search}
+            onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
+            placeholder="Nombre o correo"
+            data-testid="trainer-chart-search"
+          />
+        </label>
+        {hasActiveFilters ? (
+          <div className="mt-3 flex flex-wrap gap-2 text-xs text-neutral-500">
+            <Badge variant="neutral">Filtros activos</Badge>
+            <span>{data.filters?.start_date ? `${formatDate(data.filters.start_date)} - ${formatDate(data.filters.end_date)}` : 'Periodo filtrado'}</span>
+          </div>
+        ) : null}
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {cards.map((card) => (
           <div key={card.label} className="card p-5">
@@ -275,18 +446,7 @@ function TrainerChartsView({ data }: { data: TrainerChartsOverview }) {
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <div className="card p-6">
-          <SectionTitle title="Riesgo de la cartera" subtitle="Distribución de members por nivel de riesgo." />
-          <SeriesBarChart data={data.risk_distribution} barKey="value" barName="Members" color="#ef4444" />
-        </div>
-        <div className="card p-6">
-          <SectionTitle title="Estado de pagos" subtitle="Situación comercial visible del grupo asignado." />
-          <SeriesBarChart data={normalizeLabels(data.payment_distribution)} barKey="value" barName="Members" color="#f59e0b" />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="card p-6">
-          <SectionTitle title="Adherencia del grupo" subtitle="Check-ins y sesiones completadas por semana." />
+          <SectionTitle title="Asistencia y rutinas" subtitle="Check-ins y sesiones completadas en el periodo seleccionado." />
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={mergeWeeklySeries(data.attendance_trend, data.sessions_trend)}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-neutral-200 dark:stroke-neutral-800" />
@@ -295,73 +455,58 @@ function TrainerChartsView({ data }: { data: TrainerChartsOverview }) {
               <Tooltip />
               <Legend />
               <Line type="monotone" dataKey="asistencias" stroke="#2563eb" name="Check-ins" strokeWidth={2} />
-              <Line type="monotone" dataKey="sesiones" stroke="#f97316" name="Sesiones" strokeWidth={2} />
+              <Line type="monotone" dataKey="sesiones" stroke="#f97316" name="Rutinas completadas" strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
         </div>
         <div className="card p-6">
-          <SectionTitle title="Prescripción e inactividad" subtitle="Members listos, incompletos y rangos de inactividad." />
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={composeTrainerStatusData(data.prescription_distribution, data.inactivity_distribution)}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-neutral-200 dark:stroke-neutral-800" />
-              <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="prescripcion" name="Prescripción" fill="#10b981" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="inactividad" name="Inactividad" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <SectionTitle title="Estado de membresías" subtitle="Vigencia actual de las membresías de tus miembros." />
+          <SeriesBarChart data={normalizeLabels(data.membership_distribution ?? [], MEMBERSHIP_LABELS)} barKey="value" barName="Miembros" color="#0ea5e9" />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_0.9fr] gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <div className="card p-6">
-          <SectionTitle title="Ingresos y planes" subtitle="Cobrado por mes y distribución de suscripciones activas." />
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <SeriesBarChart data={data.revenue_monthly} barKey="value" barName="Cobrado" color="#22c55e" formatValue={formatCurrency} />
-            {data.plan_distribution.length ? (
-              <SeriesBarChart data={data.plan_distribution} barKey="value" barName="Suscripciones" color="#0ea5e9" />
-            ) : (
-              <EmptyChartState text="Aún no hay suscripciones activas para comparar planes." />
-            )}
-          </div>
+          <SectionTitle title="Pagos de miembros" subtitle="Miembros al día, pendientes o en mora." />
+          <SeriesBarChart data={normalizeLabels(data.payment_distribution, PAYMENT_LABELS)} barKey="value" barName="Miembros" color="#f59e0b" />
         </div>
-
         <div className="card p-6">
-          <SectionTitle title="Members prioritarios" subtitle="A quién intervenir primero según el estado conjunto." />
-          <div className="space-y-3">
-            {data.top_risk_members.length ? data.top_risk_members.map((member) => (
+          <SectionTitle title="Seguimiento necesario" subtitle="Cuántos miembros están al día, en atención o urgentes." />
+          <SeriesBarChart data={normalizeLabels(data.followup_distribution ?? [], FOLLOWUP_LABELS)} barKey="value" barName="Miembros" color="#ef4444" />
+        </div>
+      </div>
+
+      <div className="card p-6">
+        <SectionTitle title="Miembros que necesitan seguimiento" subtitle="Casos concretos derivados de asistencia, pagos, membresía y rutinas." />
+        <div className="space-y-3">
+          {followupMembers.length ? followupMembers.map((member) => (
               <Link
                 key={member.id}
                 to={`/members/${member.id}`}
-                className="block rounded-sm border border-neutral-200 dark:border-neutral-800 p-3 hover:border-primary transition-colors"
+                className="block rounded-sm border border-neutral-200 p-3 transition-colors hover:border-primary dark:border-neutral-800"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-semibold text-neutral-900 dark:text-white">{member.full_name}</p>
-                    <p className="text-sm text-neutral-500">
-                      Pago: {member.payment_status ? PAYMENT_LABELS[member.payment_status] : 'Sin dato'} ·
-                      Último check-in: {member.days_since_last_checkin == null ? ' sin registros' : ` ${member.days_since_last_checkin} días`}
+                    <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                      {member.email} · Membresía: {MEMBERSHIP_LABELS[member.membership_status] ?? member.membership_status}
                     </p>
                   </div>
-                  <Badge variant={RISK_BADGE[member.nivel_riesgo]}>
-                    {member.riesgo_adherencia}/100
+                  <Badge variant={FOLLOWUP_BADGE[member.followup_status]}>
+                    {FOLLOWUP_LABELS[member.followup_status]}
                   </Badge>
                 </div>
+                <div className="mt-3 grid grid-cols-1 gap-2 text-sm text-neutral-600 dark:text-neutral-300 md:grid-cols-3">
+                  <span>Pago: {member.payment_status ? PAYMENT_LABELS[member.payment_status] : 'Sin dato'}</span>
+                  <span>Check-in: {member.days_since_last_checkin == null ? 'sin registros' : `${member.days_since_last_checkin} días`}</span>
+                  <span>Rutinas: {member.weekly_completion == null ? 'sin meta' : `${member.weekly_completion}%`}</span>
+                </div>
+                <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">{member.reason}</p>
                 <p className="mt-2 text-sm text-primary">{member.next_action}</p>
               </Link>
-            )) : (
-              <EmptyChartState text="No hay members críticos priorizados con los datos actuales." />
-            )}
-          </div>
-          <div className="mt-4 space-y-2">
-            {data.insights.map((insight) => (
-              <div key={insight} className="text-sm text-neutral-600 dark:text-neutral-300">
-                {insight}
-              </div>
-            ))}
-          </div>
+          )) : (
+            <EmptyChartState text="No hay miembros que necesiten seguimiento con los filtros actuales." />
+          )}
         </div>
       </div>
     </>
@@ -423,18 +568,9 @@ function mergeWeeklySeries(attendance: ChartSeriesPoint[], sessions: Array<Chart
   }))
 }
 
-function composeTrainerStatusData(prescription: ChartSeriesPoint[], inactivity: ChartSeriesPoint[]) {
-  const max = Math.max(prescription.length, inactivity.length)
-  return Array.from({ length: max }).map((_, index) => ({
-    label: prescription[index]?.label ?? inactivity[index]?.label ?? '',
-    prescripcion: prescription[index]?.value ?? 0,
-    inactividad: inactivity[index]?.value ?? 0,
-  }))
-}
-
-function normalizeLabels(series: ChartSeriesPoint[]) {
+function normalizeLabels(series: ChartSeriesPoint[], labels: Record<string, string>) {
   return series.map((item) => ({
     ...item,
-    label: PAYMENT_LABELS[item.label] ?? item.label,
+    label: labels[item.label] ?? item.label,
   }))
 }

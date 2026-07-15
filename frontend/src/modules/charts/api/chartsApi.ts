@@ -12,8 +12,8 @@ export const chartsApi = {
     return data
   },
 
-  getOverview: async (): Promise<ChartsOverview> => {
-    const { data } = await apiClient.get('/api/charts/overview/')
+  getOverview: async (params?: Record<string, string>): Promise<ChartsOverview> => {
+    const { data } = await apiClient.get('/api/charts/overview/', { params })
     return data
   },
 }

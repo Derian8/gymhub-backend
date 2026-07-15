@@ -1,4 +1,5 @@
-import { waitFor } from '@testing-library/react'
+import { fireEvent, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { renderWithProviders } from '@/test/utils'
 import { ChartsPage } from './ChartsPage'
 import { chartsApi } from '../api/chartsApi'
@@ -115,13 +116,20 @@ describe('ChartsPage', () => {
       role: 'trainer',
       summary: {
         members_count: 12,
-        high_risk_count: 3,
+        active_attendance_count: 9,
+        inactive_count: 3,
+        expiring_membership_count: 2,
+        expired_membership_count: 1,
+        pending_payment_count: 3,
         late_payment_count: 2,
-        ready_prescriptions_count: 7,
+        urgent_followup_count: 2,
+        attention_followup_count: 3,
         average_weekly_completion: 68,
       },
       risk_distribution: [{ label: 'low', value: 4 }, { label: 'medium', value: 5 }, { label: 'high', value: 3 }],
       payment_distribution: [{ label: 'paid', value: 7 }, { label: 'pending', value: 3 }, { label: 'late', value: 2 }],
+      membership_distribution: [{ label: 'active', value: 8 }, { label: 'expiring', value: 2 }, { label: 'expired', value: 1 }, { label: 'suspended', value: 1 }],
+      followup_distribution: [{ label: 'ok', value: 7 }, { label: 'attention', value: 3 }, { label: 'urgent', value: 2 }],
       prescription_distribution: [{ label: 'lista', value: 7 }, { label: 'incompleta', value: 4 }, { label: 'sin_plan', value: 1 }],
       inactivity_distribution: [{ label: '0-3', value: 6 }, { label: '4-7', value: 3 }, { label: '8-14', value: 2 }, { label: '15+', value: 1 }],
       attendance_trend: [{ label: '03 Mar', value: 10 }, { label: '10 Mar', value: 12 }],
@@ -139,18 +147,106 @@ describe('ChartsPage', () => {
           next_action: 'Contáctala hoy para retomar rutina y pago.',
         },
       ],
+      members_needing_followup: [
+        {
+          id: 15,
+          full_name: 'Maria Perez',
+          email: 'maria@test.com',
+          followup_status: 'urgent',
+          membership_status: 'expired',
+          membership_name: 'Premium',
+          membership_end_date: '2026-03-10',
+          payment_status: 'late',
+          days_since_last_checkin: 11,
+          weekly_completion: 25,
+          reason: 'Lleva 11 días sin check-in',
+          next_action: 'Contactar por inasistencia',
+        },
+      ],
       insights: ['3 members están en riesgo alto.'],
     })
 
-    const { getByText, getByTestId } = renderWithProviders(<ChartsPage />)
+    const { getByText, getByTestId, queryByText } = renderWithProviders(<ChartsPage />)
 
     await waitFor(() => {
       expect(getByTestId('charts-page')).toBeInTheDocument()
-      expect(getByText('Gráficos Del Trainer')).toBeInTheDocument()
-      expect(getByText('Riesgo de la cartera')).toBeInTheDocument()
-      expect(getByText('Ingresos y planes')).toBeInTheDocument()
-      expect(getByText('Members prioritarios')).toBeInTheDocument()
+      expect(getByText('Resumen de tus miembros')).toBeInTheDocument()
+      expect(getByText('Asistencia y rutinas')).toBeInTheDocument()
+      expect(getByText('Estado de membresías')).toBeInTheDocument()
+      expect(getByText('Pagos de miembros')).toBeInTheDocument()
+      expect(getByText('Seguimiento necesario')).toBeInTheDocument()
+      expect(getByText('Miembros que necesitan seguimiento')).toBeInTheDocument()
       expect(getByText('Maria Perez')).toBeInTheDocument()
+      expect(queryByText('Riesgo de la cartera')).not.toBeInTheDocument()
+      expect(queryByText('Ingresos y planes')).not.toBeInTheDocument()
+    })
+  })
+
+  it('sends trainer chart filters to the overview API', async () => {
+    useAuthStore.setState({
+      user: {
+        id: 2,
+        email: 'trainer@gymhub.com',
+        username: 'trainer',
+        first_name: 'Trainer',
+        last_name: 'Demo',
+        role: 'trainer',
+        is_staff: false,
+        memberprofile_id: null,
+        trainerprofile_id: 3,
+      },
+      isAuthenticated: true,
+      authResolved: true,
+      theme: 'dark',
+    })
+
+    vi.mocked(chartsApi.getOverview).mockResolvedValue({
+      role: 'trainer',
+      summary: {
+        members_count: 0,
+        active_attendance_count: 0,
+        inactive_count: 0,
+        expiring_membership_count: 0,
+        expired_membership_count: 0,
+        pending_payment_count: 0,
+        late_payment_count: 0,
+        urgent_followup_count: 0,
+        attention_followup_count: 0,
+        average_weekly_completion: null,
+      },
+      risk_distribution: [],
+      payment_distribution: [],
+      membership_distribution: [],
+      followup_distribution: [],
+      prescription_distribution: [],
+      inactivity_distribution: [],
+      attendance_trend: [],
+      sessions_trend: [],
+      revenue_monthly: [],
+      plan_distribution: [],
+      top_risk_members: [],
+      members_needing_followup: [],
+      insights: [],
+    })
+
+    const user = userEvent.setup()
+    const { getByTestId } = renderWithProviders(<ChartsPage />)
+
+    await waitFor(() => expect(getByTestId('trainer-chart-period')).toBeInTheDocument())
+    await user.selectOptions(getByTestId('trainer-chart-period'), '90')
+    await user.selectOptions(getByTestId('trainer-chart-membership'), 'expired')
+    await user.selectOptions(getByTestId('trainer-chart-followup'), 'urgent')
+    fireEvent.change(getByTestId('trainer-chart-search'), { target: { value: 'Derian' } })
+
+    await waitFor(() => {
+      expect(chartsApi.getOverview).toHaveBeenCalledWith(
+        expect.objectContaining({
+          period: '90',
+          membership_status: 'expired',
+          followup_status: 'urgent',
+          search: 'Derian',
+        }),
+      )
     })
   })
 })
