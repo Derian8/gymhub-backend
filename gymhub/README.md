@@ -62,7 +62,9 @@ docker compose exec backend python manage.py createsuperuser
 | POST | `/api/exercise-logs/bulk/` | Registrar múltiples ejercicios (atómico) |
 | GET | `/api/members/{id}/progress-by-exercise/{exercise_id}/` | Progresión por ejercicio |
 | POST | `/api/attendance/check-in/` | Check-in (throttle 30/min) |
-| POST | `/api/alerts/{id}/resolve/` | Resolver alerta de inactividad |
+| GET | `/api/trainer/inactivity-alerts/` | Bandeja de seguimiento de inactividad |
+| GET | `/api/trainer/inactivity-alerts/summary/` | Resumen de alertas de inactividad |
+| POST | `/api/trainer/inactivity-alerts/{id}/resolve/` | Resolver alerta de inactividad |
 | GET | `/api/charts/{type}/` | Gráficas PNG (cache 6h) |
 | POST | `/api/ai-chat/` | Chat IA contextual por rol |
 | GET | `/api/ai-chat/history/` | Historial de conversación IA |
@@ -98,7 +100,7 @@ docker compose exec backend pytest tests/ -v
 | `AI_DAILY_LIMIT_MEMBER` | Límite diario efectivo para members (default: `AI_DAILY_LIMIT_PER_USER`) |
 | `AI_DAILY_LIMIT_TRAINER` | Límite diario de mensajes IA para trainers (default: 60) |
 | `AI_CHAT_HISTORY_WINDOW` | Cantidad de mensajes recientes incluidos en el contexto (default: 10) |
-| `INACTIVITY_DAYS_THRESHOLD` | Días de inactividad para alerta (default: 30) |
+| `INACTIVITY_DAYS_THRESHOLD` | Umbral heredado usado en señales de riesgo de miembros (default: 30) |
 | `PAYMENT_GRACE_DAYS` | Valor heredado de gracia (los planes nuevos guardan su propia tolerancia) |
 | `CRON_SECRET` | Protege el endpoint diario invocado por Vercel Cron |
 | `DB_DISABLE_SERVER_SIDE_CURSORS` | Desactiva cursores persistentes para el pool transaccional de Supabase |
@@ -113,7 +115,7 @@ y preserva cuentas reales y superusuarios.
 
 | Tarea | Horario | Descripción |
 |-------|---------|-------------|
-| `check_member_inactivity` | 08:00 Costa Rica | Crea InactivityAlert si >30 días sin check-in |
+| `check_member_inactivity` | 08:00 Costa Rica | Crea y resuelve alertas de inactividad desde 5 días sin asistir, solo con membresía activa e historial previo |
 | `run_daily_membership_maintenance` | 06:05 Costa Rica | Actualiza vigencias, mora y recordatorios de pago |
 
 ## Modelos (22)

@@ -6,6 +6,29 @@ from datetime import date, timedelta
 from unittest.mock import patch
 
 
+def create_active_subscription(member_profile, membership_plan, **overrides):
+    from billing.models import MemberSubscription
+
+    values = {
+        'member': member_profile,
+        'plan': membership_plan,
+        'membership_name': membership_plan.name,
+        'trainer': member_profile.trainer_asignado,
+        'agreed_price': membership_plan.price,
+        'start_date': date.today() - timedelta(days=10),
+        'next_billing_date': date.today() + timedelta(days=20),
+        'recurrence_type': 'monthly',
+        'grace_period_days': 7,
+        'auto_generate_next': True,
+        'is_active': True,
+        'status': 'active',
+        'current_period_start': date.today() - timedelta(days=10),
+        'current_period_end': date.today() + timedelta(days=20),
+    }
+    values.update(overrides)
+    return MemberSubscription.objects.create(**values)
+
+
 @pytest.mark.django_db
 class TestCheckOverduePayments:
     @patch('billing.tasks.send_mail')
@@ -127,39 +150,43 @@ class TestCheckOverduePayments:
 
 @pytest.mark.django_db
 class TestCheckMemberInactivity:
-    def test_creates_inactivity_alert_if_none_open(self, member_profile):
+    def test_creates_inactivity_alert_if_none_open(self, member_profile, membership_plan):
         """check_member_inactivity crea InactivityAlert solo si no hay una abierta."""
         from attendance.models import Attendance
         from alerts.models import InactivityAlert
         from alerts.tasks import check_member_inactivity
         from django.utils import timezone
 
+        create_active_subscription(member_profile, membership_plan)
         # Registrar última asistencia hace 35 días
         Attendance.objects.filter(member=member_profile).delete()
         Attendance.objects.create(
             member=member_profile,
+            attendance_date=date.today() - timedelta(days=35),
             check_in_time=timezone.now() - timedelta(days=35),
         )
 
-        InactivityAlert.objects.filter(member=member_profile, resolved=False).delete()
+        InactivityAlert.objects.filter(member=member_profile, status__in=['new', 'in_follow_up']).delete()
         initial_count = InactivityAlert.objects.filter(member=member_profile).count()
 
         result = check_member_inactivity()
 
-        final_count = InactivityAlert.objects.filter(member=member_profile, resolved=False).count()
+        final_count = InactivityAlert.objects.filter(member=member_profile, status__in=['new', 'in_follow_up']).count()
         assert final_count == 1
         assert result['alerts_created'] >= 1
 
-    def test_no_duplicate_alert_if_open_exists(self, member_profile):
+    def test_no_duplicate_alert_if_open_exists(self, member_profile, membership_plan):
         """Si ya hay una alerta abierta, no se crea otra."""
         from attendance.models import Attendance
         from alerts.models import InactivityAlert
         from alerts.tasks import check_member_inactivity
         from django.utils import timezone
 
+        create_active_subscription(member_profile, membership_plan)
         Attendance.objects.filter(member=member_profile).delete()
         Attendance.objects.create(
             member=member_profile,
+            attendance_date=date.today() - timedelta(days=35),
             check_in_time=timezone.now() - timedelta(days=35),
         )
 
@@ -168,13 +195,13 @@ class TestCheckMemberInactivity:
             member=member_profile,
             last_checkin_date=date.today() - timedelta(days=35),
             days_inactive=35,
-            resolved=False,
+            status='new',
         )
-        existing_count = InactivityAlert.objects.filter(member=member_profile, resolved=False).count()
+        existing_count = InactivityAlert.objects.filter(member=member_profile, status__in=['new', 'in_follow_up']).count()
 
         check_member_inactivity()
 
-        new_count = InactivityAlert.objects.filter(member=member_profile, resolved=False).count()
+        new_count = InactivityAlert.objects.filter(member=member_profile, status__in=['new', 'in_follow_up']).count()
         assert new_count == existing_count  # Sin duplicados
 
 

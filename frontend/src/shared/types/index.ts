@@ -739,9 +739,57 @@ export interface InactivityAlert {
   created_at: string
   last_checkin_date: string | null
   days_inactive: number
+  status: 'new' | 'in_follow_up' | 'resolved' | 'dismissed'
   resolved: boolean
   resolved_by: number | null
   resolved_at: string | null
+  status_changed_by: number | null
+  status_changed_at: string | null
+  status_change_reason: string
+  reopened_at: string | null
+  member_name: string
+  member_email: string
+  member_phone: string
+  member_photo: string | null
+  membership_status: 'none' | 'pending' | 'active' | 'expiring' | 'expired' | 'suspended' | 'cancelled'
+  membership_name: string | null
+  membership_end_date: string | null
+  weekly_attendance_average: number
+  priority: 'low' | 'medium' | 'high' | 'urgent' | null
+  last_contact: InactivityAlertContact | null
+  latest_note: string
+  recommended_action: string
+  whatsapp_url: string | null
+}
+
+export interface InactivityAlertContact {
+  id: number
+  member: number
+  trainer: number
+  trainer_name: string
+  alert: number
+  contacted_at: string
+  method: 'whatsapp' | 'call' | 'email' | 'in_person'
+  result: string
+  note: string
+  next_follow_up_date: string | null
+  created_at: string
+}
+
+export interface InactivityAlertSummary {
+  new_alerts: number
+  in_follow_up: number
+  resolved_this_month: number
+  recovered_this_month: number
+  attention_message: string
+}
+
+export interface MemberWithoutInactivityAlert {
+  id: number
+  full_name: string
+  email: string
+  photo: string | null
+  message: string
 }
 
 export interface Notification {

@@ -226,6 +226,9 @@ class CheckInView(APIView):
             )
             logger.info('Trainer override check-in creado attendance_id=%s member_id=%s trainer_user_id=%s', attendance.id, member.id, request.user.id)
 
+        from alerts.services import resolve_open_alerts_for_attendance
+        resolve_open_alerts_for_attendance(attendance)
+
         return Response(
             AttendanceSerializer(attendance).data,
             status=status.HTTP_201_CREATED

@@ -107,7 +107,7 @@ def annotate_member_metrics(queryset):
             distinct=True,
         ),
         inactivity_alert_open_cached=Exists(
-            InactivityAlert.objects.filter(member=OuterRef('pk'), resolved=False)
+            InactivityAlert.objects.filter(member=OuterRef('pk'), status__in=['new', 'in_follow_up'])
         ),
     )
 
@@ -421,7 +421,7 @@ def get_member_dashboard_summary(member):
     unread_notifications = Notification.objects.filter(user=member.user, read=False).count()
     inactivity_alert = getattr(member, 'inactivity_alert_open_cached', None)
     if inactivity_alert is None:
-        inactivity_alert = InactivityAlert.objects.filter(member=member, resolved=False).exists()
+        inactivity_alert = InactivityAlert.objects.filter(member=member, status__in=['new', 'in_follow_up']).exists()
 
     today = timezone.localdate()
     week_start = today - timedelta(days=today.weekday())
@@ -563,7 +563,7 @@ def get_trainer_overview(user, trainer_profile):
 
     pending_alerts = InactivityAlert.objects.filter(
         member_id__in=member_ids,
-        resolved=False,
+        status__in=['new', 'in_follow_up'],
     ).count()
 
     revenue_this_month = float(PaymentRecord.objects.filter(

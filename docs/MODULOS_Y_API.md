@@ -64,14 +64,31 @@ Rutas principales:
 ## Alertas
 Entidades principales:
 - `InactivityAlert`
+- `InactivityAlertContact`
+- `MemberJustifiedAbsence`
 - `Notification`
 
 Rutas principales:
-- REST `/api/alerts/`
-- `POST /api/alerts/{id}/resolve/`
+- REST `/api/trainer/inactivity-alerts/`
+- `GET /api/trainer/inactivity-alerts/summary/`
+- `POST /api/trainer/inactivity-alerts/{id}/start-follow-up/`
+- `POST /api/trainer/inactivity-alerts/{id}/resolve/`
+- `POST /api/trainer/inactivity-alerts/{id}/dismiss/`
+- `POST /api/trainer/inactivity-alerts/{id}/reopen/`
+- `GET|POST /api/trainer/inactivity-alerts/{id}/contacts/`
+- `GET /api/trainer/members-without-alerts/`
+- REST `/api/alerts/` (compatibilidad)
 - REST `/api/notifications/`
 - `POST /api/notifications/mark-all-read/`
 - `POST /api/notifications/{id}/mark-read/`
+
+Estados de alerta:
+- `new`: alerta nueva sin gestión.
+- `in_follow_up`: trainer ya inició seguimiento.
+- `resolved`: caso cerrado.
+- `dismissed`: descartada con motivo.
+
+La prioridad de inactividad se calcula desde los días sin asistir: baja 5-7, media 8-14, alta 15-21 y urgente desde 22 días cuando la membresía sigue activa y no hay contacto reciente.
 
 ## Facturación
 Entidades principales:
