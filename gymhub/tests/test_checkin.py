@@ -193,6 +193,69 @@ class TestCheckIn:
         results = resp.data.get('results', resp.data)
         assert [item['id'] for item in results] == [own_attendance.id]
 
+    def test_attendance_list_includes_member_identity(self, trainer_client, member_profile):
+        from attendance.models import Attendance
+
+        attendance = Attendance.objects.create(member=member_profile)
+
+        resp = trainer_client.get('/api/attendance/')
+
+        assert resp.status_code == status.HTTP_200_OK
+        results = resp.data.get('results', resp.data)
+        payload = next(item for item in results if item['id'] == attendance.id)
+        assert payload['member_name'] == (member_profile.user.get_full_name() or member_profile.user.email)
+        assert payload['member_email'] == member_profile.user.email
+        assert 'checked_in_by_name' in payload
+
+    def test_trainer_can_search_attendance_by_member_name_or_email(self, trainer_client, trainer_profile, member_profile):
+        from django.contrib.auth import get_user_model
+        from users.models import MemberProfile
+        from attendance.models import Attendance
+
+        member_profile.user.first_name = 'Derian'
+        member_profile.user.last_name = 'Salas'
+        member_profile.user.save(update_fields=['first_name', 'last_name'])
+        matching = Attendance.objects.create(member=member_profile)
+
+        User = get_user_model()
+        other_user = User.objects.create_user(
+            username='attendance_search_other',
+            email='attendance-search-other@test.com',
+            password='member123!',
+            role='member',
+            first_name='Maria',
+            last_name='Lopez',
+        )
+        other_profile, _ = MemberProfile.objects.get_or_create(user=other_user)
+        other_profile.trainer_asignado = trainer_profile
+        other_profile.is_active = True
+        other_profile.save(update_fields=['trainer_asignado', 'is_active'])
+        Attendance.objects.create(member=other_profile)
+
+        resp = trainer_client.get('/api/attendance/?search=derian')
+
+        assert resp.status_code == status.HTTP_200_OK
+        results = resp.data.get('results', resp.data)
+        assert [item['id'] for item in results] == [matching.id]
+
+    def test_trainer_can_filter_attendance_by_date(self, trainer_client, member_profile):
+        from django.utils import timezone
+        from attendance.models import Attendance
+
+        selected_day = date.today() - timedelta(days=2)
+        selected = Attendance.objects.create(
+            member=member_profile,
+            attendance_date=selected_day,
+            check_in_time=timezone.now() - timedelta(days=2),
+        )
+        Attendance.objects.create(member=member_profile)
+
+        resp = trainer_client.get(f'/api/attendance/?date={selected_day.isoformat()}')
+
+        assert resp.status_code == status.HTTP_200_OK
+        results = resp.data.get('results', resp.data)
+        assert [item['id'] for item in results] == [selected.id]
+
     def test_throttle_30_per_minute(self, member_client, member_profile, membership_plan):
         """
         Más de 30 requests/min → 429.

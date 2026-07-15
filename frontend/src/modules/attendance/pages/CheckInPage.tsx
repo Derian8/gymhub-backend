@@ -1,24 +1,35 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
-import { Activity, AlertTriangle, CheckSquare, Clock3, Loader2, NotebookPen, ShieldAlert } from 'lucide-react'
+import { Activity, AlertTriangle, CalendarDays, CheckSquare, Clock3, Loader2, NotebookPen, Search, ShieldAlert, UserCheck } from 'lucide-react'
 
 import { useCheckInMutation, useCheckOutMutation, useAttendanceQuery } from '../hooks/useAttendance'
 import { PageHeader, EmptyState, Badge } from '@/shared/components/UI'
 import { SymbolFrame } from '@/shared/components/Brand'
 import { TableRowSkeleton } from '@/shared/components/Skeleton'
-import { formatDateTime, formatRelative } from '@/shared/lib/utils'
+import { formatDate, formatDateTime, formatRelative } from '@/shared/lib/utils'
 import { useAuthStore } from '@/shared/store/authStore'
 import { progressApi } from '@/modules/progress/api/progressApi'
 import { QUERY_KEYS } from '@/shared/constants/queryKeys'
-import type { CheckInBlockedResponse } from '@/shared/types'
+import type { Attendance, CheckInBlockedResponse } from '@/shared/types'
 
 export function CheckInPage() {
   const { user } = useAuthStore()
   const esEntrenador = user?.role === 'trainer' || user?.is_staff
   const [searchParams] = useSearchParams()
   const memberId = searchParams.get('member')
-  const filtros = esEntrenador && memberId ? { member: memberId } : undefined
+  const todayCostaRica = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Costa_Rica', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date())
+  const [searchTerm, setSearchTerm] = useState('')
+  const [dateFilter, setDateFilter] = useState(() => (esEntrenador ? todayCostaRica : ''))
+  const filtros = esEntrenador
+    ? {
+        ...(memberId ? { member: memberId } : {}),
+        ...(dateFilter ? { date: dateFilter } : {}),
+        ...(searchTerm.trim() ? { search: searchTerm.trim() } : {}),
+      }
+    : undefined
   const [notes, setNotes] = useState('')
   const [blockedState, setBlockedState] = useState<CheckInBlockedResponse | null>(null)
   const { mutate: checkIn, isPending } = useCheckInMutation()
@@ -31,10 +42,8 @@ export function CheckInPage() {
   })
 
   const ultimoRegistro = attendance?.results?.[0]
-  const todayCostaRica = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Costa_Rica', year: 'numeric', month: '2-digit', day: '2-digit',
-  }).format(new Date())
   const registroHoy = attendance?.results.find((item) => item.attendance_date === todayCostaRica)
+  const todayAttendanceCount = attendance?.results.filter((item) => item.attendance_date === todayCostaRica).length ?? 0
 
   const handleCheckIn = () => {
     checkIn(notes, {
@@ -195,12 +204,61 @@ export function CheckInPage() {
         </div>
       ) : null}
 
+      {esEntrenador ? (
+        <section className="mt-6 rounded-[1.5rem] border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex items-start gap-4">
+              <SymbolFrame size="lg" tone="success">
+                <UserCheck size={26} />
+              </SymbolFrame>
+              <div>
+                <p className="label-base">Asistencia de hoy</p>
+                <h2 className="font-heading text-2xl font-bold text-neutral-900 dark:text-white">
+                  {todayAttendanceCount} check-ins registrados
+                </h2>
+                <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                  {dateFilter ? `Mostrando registros del ${formatDate(dateFilter)}` : 'Mostrando registros recientes del gimnasio'}
+                </p>
+              </div>
+            </div>
+            <div className="grid w-full gap-3 sm:grid-cols-[1fr_180px] lg:max-w-xl">
+              <label className="space-y-1">
+                <span className="label-base flex items-center gap-2">
+                  <Search size={14} />
+                  Buscar miembro
+                </span>
+                <input
+                  className="input"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Nombre o correo"
+                  data-testid="attendance-search"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="label-base flex items-center gap-2">
+                  <CalendarDays size={14} />
+                  Día
+                </span>
+                <input
+                  className="input"
+                  type="date"
+                  value={dateFilter}
+                  onChange={(event) => setDateFilter(event.target.value)}
+                  data-testid="attendance-date-filter"
+                />
+              </label>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       <section className="mt-6">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h3 className="font-heading text-lg font-bold text-neutral-900 dark:text-white">
-            {esEntrenador ? (memberId ? 'Registros recientes del miembro' : 'Registros recientes del gimnasio') : 'Historial reciente'}
+            {esEntrenador ? (memberId ? 'Registros del miembro' : 'Registro de asistencia') : 'Historial reciente'}
           </h3>
-          {!esEntrenador && attendance?.results?.length ? (
+          {attendance?.results?.length ? (
             <Badge variant="neutral">{attendance.results.length} registros</Badge>
           ) : null}
         </div>
@@ -218,31 +276,32 @@ export function CheckInPage() {
             description="Tu historial de check-ins aparecerá aquí."
           />
         ) : esEntrenador ? (
-          <div className="table-container">
-            <table className="table-base">
-              <thead>
-                <tr>
-                  <th className="th-base">Fecha</th>
-                  <th className="th-base">Check-in</th>
-                  <th className="th-base">Salida</th>
-                  <th className="th-base">Duración</th>
-                  <th className="th-base">Notas</th>
-                </tr>
-              </thead>
-              <tbody>
-                {attendance.results.map((item) => (
-                  <tr key={item.id} className="tr-hover" data-testid={`attendance-row-${item.id}`}>
-                    <td className="td-base">{formatDateTime(item.check_in_time)}</td>
-                    <td className="td-base">
-                      <span className="text-xs font-medium text-green-500">✓ Presente</span>
-                    </td>
-                    <td className="td-base text-xs">{item.check_out_time ? formatDateTime(item.check_out_time) : 'Pendiente'}</td>
-                    <td className="td-base text-xs">{item.duration_minutes == null ? '—' : `${item.duration_minutes} min`}</td>
-                    <td className="td-base text-xs text-neutral-400">{item.notes || '—'}</td>
+          <div>
+            <div className="hidden overflow-hidden rounded-2xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950 md:block">
+              <table className="table-base">
+                <thead>
+                  <tr>
+                    <th className="th-base">Miembro</th>
+                    <th className="th-base">Día</th>
+                    <th className="th-base">Entrada</th>
+                    <th className="th-base">Salida</th>
+                    <th className="th-base">Duración</th>
+                    <th className="th-base">Registrado por</th>
+                    <th className="th-base">Notas</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {attendance.results.map((item) => (
+                    <TrainerAttendanceRow key={item.id} item={item} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="space-y-3 md:hidden">
+              {attendance.results.map((item) => (
+                <TrainerAttendanceCard key={item.id} item={item} />
+              ))}
+            </div>
           </div>
         ) : (
           <div className="space-y-3">
@@ -334,6 +393,84 @@ export function CheckInPage() {
           )}
         </section>
       ) : null}
+    </div>
+  )
+}
+
+function formatAttendanceTime(value: string | null | undefined) {
+  if (!value) return '—'
+  try {
+    return new Intl.DateTimeFormat('es-CR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'America/Costa_Rica',
+    }).format(new Date(value))
+  } catch {
+    return value
+  }
+}
+
+function memberDisplayName(item: Attendance) {
+  return item.member_name || item.member_email || `Miembro #${item.member}`
+}
+
+function TrainerAttendanceRow({ item }: { item: Attendance }) {
+  return (
+    <tr className="tr-hover" data-testid={`attendance-row-${item.id}`}>
+      <td className="td-base">
+        <div className="min-w-0">
+          <p className="font-semibold text-neutral-900 dark:text-white">{memberDisplayName(item)}</p>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">{item.member_email || 'Sin correo registrado'}</p>
+        </div>
+      </td>
+      <td className="td-base">{formatDate(item.attendance_date)}</td>
+      <td className="td-base">
+        <div className="flex items-center gap-2">
+          <Badge variant="success">Presente</Badge>
+          <span className="text-sm font-semibold">{formatAttendanceTime(item.check_in_time)}</span>
+        </div>
+      </td>
+      <td className="td-base text-sm">{item.check_out_time ? formatAttendanceTime(item.check_out_time) : 'Pendiente'}</td>
+      <td className="td-base text-sm">{item.duration_minutes == null ? '—' : `${item.duration_minutes} min`}</td>
+      <td className="td-base text-sm">{item.checked_in_by_name || 'El miembro'}</td>
+      <td className="td-base max-w-[220px] truncate text-sm text-neutral-500 dark:text-neutral-400">{item.notes || '—'}</td>
+    </tr>
+  )
+}
+
+function TrainerAttendanceCard({ item }: { item: Attendance }) {
+  return (
+    <div
+      className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
+      data-testid={`attendance-row-${item.id}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-semibold text-neutral-900 dark:text-white">{memberDisplayName(item)}</p>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">{item.member_email || 'Sin correo registrado'}</p>
+        </div>
+        <Badge variant="success">Presente</Badge>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+        <AttendanceFact label="Día" value={formatDate(item.attendance_date)} />
+        <AttendanceFact label="Entrada" value={formatAttendanceTime(item.check_in_time)} />
+        <AttendanceFact label="Salida" value={item.check_out_time ? formatAttendanceTime(item.check_out_time) : 'Pendiente'} />
+        <AttendanceFact label="Duración" value={item.duration_minutes == null ? '—' : `${item.duration_minutes} min`} />
+      </div>
+      <p className="mt-3 text-xs text-neutral-500 dark:text-neutral-400">
+        Registrado por: {item.checked_in_by_name || 'El miembro'}
+      </p>
+      <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">{item.notes || 'Sin notas.'}</p>
+    </div>
+  )
+}
+
+function AttendanceFact({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[11px] uppercase text-neutral-500 dark:text-neutral-400">{label}</p>
+      <p className="mt-1 font-semibold text-neutral-900 dark:text-white">{value}</p>
     </div>
   )
 }

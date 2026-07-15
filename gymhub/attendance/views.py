@@ -2,7 +2,9 @@ import logging
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -36,14 +38,31 @@ class AttendanceViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         user = self.request.user
         member_id = self.request.query_params.get('member')
+        search = self.request.query_params.get('search', '').strip()
+        attendance_date = self.request.query_params.get('date', '').strip()
         if user.role == 'member' and not user.is_staff:
-            return Attendance.objects.filter(member__user=user)
-        queryset = Attendance.objects.select_related('member__user').all()
+            queryset = Attendance.objects.select_related(
+                'member__user', 'checked_in_by'
+            ).filter(member__user=user)
+        else:
+            queryset = Attendance.objects.select_related(
+                'member__user', 'checked_in_by'
+            ).all()
         if user.role == 'trainer' and not user.is_staff:
             trainer_profile = _get_trainer_profile(user)
             queryset = queryset.filter(member__trainer_asignado=trainer_profile)
         if member_id:
             queryset = queryset.filter(member_id=member_id)
+        if attendance_date:
+            parsed_date = parse_date(attendance_date)
+            if parsed_date:
+                queryset = queryset.filter(attendance_date=parsed_date)
+        if search and not (user.role == 'member' and not user.is_staff):
+            queryset = queryset.filter(
+                Q(member__user__first_name__icontains=search)
+                | Q(member__user__last_name__icontains=search)
+                | Q(member__user__email__icontains=search)
+            )
         return queryset
 
     @action(detail=True, methods=['post'], url_path='check-out')

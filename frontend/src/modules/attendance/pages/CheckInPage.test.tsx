@@ -144,11 +144,67 @@ describe('CheckInPage', () => {
       authResolved: true,
       theme: 'dark',
     })
-    useAttendanceQuery.mockReturnValue({ data: { results: [] }, isLoading: false })
+    useAttendanceQuery.mockReturnValue({
+      data: {
+        results: [
+          {
+            id: 91,
+            member: 15,
+            member_name: 'Derian Salas',
+            member_email: 'derian@test.com',
+            attendance_date: '2026-07-14',
+            check_in_time: '2026-07-14T15:30:00-06:00',
+            check_out_time: null,
+            duration_minutes: null,
+            checked_in_by_name: 'Derian Salas',
+            notes: 'Pierna',
+          },
+        ],
+      },
+      isLoading: false,
+    })
 
-    const { queryByTestId, getAllByText } = renderWithProviders(<CheckInPage />)
+    const { queryByTestId, getByTestId, getAllByText } = renderWithProviders(<CheckInPage />)
 
     expect(queryByTestId('checkin-submit')).not.toBeInTheDocument()
-    expect(getAllByText('Registros recientes del gimnasio').length).toBeGreaterThan(0)
+    expect(getAllByText('Registro de asistencia').length).toBeGreaterThan(0)
+    expect(getAllByText('Derian Salas').length).toBeGreaterThan(0)
+    expect(getAllByText('derian@test.com').length).toBeGreaterThan(0)
+    expect(getAllByText('Pierna').length).toBeGreaterThan(0)
+    expect(getByTestId('attendance-search')).toBeInTheDocument()
+    expect(getByTestId('attendance-date-filter')).toBeInTheDocument()
+  })
+
+  it('sends trainer search and date filters to attendance query', async () => {
+    useAuthStore.setState({
+      user: {
+        id: 2,
+        email: 'trainer@test.com',
+        username: 'trainer',
+        first_name: 'Trainer',
+        last_name: 'User',
+        role: 'trainer',
+        is_staff: false,
+        memberprofile_id: null,
+        trainerprofile_id: 4,
+      },
+      isAuthenticated: true,
+      authResolved: true,
+      theme: 'dark',
+    })
+    useAttendanceQuery.mockReturnValue({ data: { results: [] }, isLoading: false })
+
+    const user = userEvent.setup()
+    const { getByTestId } = renderWithProviders(<CheckInPage />)
+
+    await user.clear(getByTestId('attendance-date-filter'))
+    await user.type(getByTestId('attendance-date-filter'), '2026-07-14')
+    await user.type(getByTestId('attendance-search'), 'Derian')
+
+    await waitFor(() => {
+      expect(useAttendanceQuery).toHaveBeenLastCalledWith(
+        expect.objectContaining({ date: '2026-07-14', search: 'Derian' }),
+      )
+    })
   })
 })

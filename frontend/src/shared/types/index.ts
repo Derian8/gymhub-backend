@@ -566,12 +566,15 @@ export interface WeeklyWorkoutStatus {
 export interface Attendance {
   id: number
   member: number
+  member_name?: string
+  member_email?: string
   check_in_time: string
   attendance_date: string
   check_out_time: string | null
   duration_minutes: number | null
   gym_class?: number | null
   checked_in_by?: number | null
+  checked_in_by_name?: string | null
   is_manual_override?: boolean
   notes: string
 }
