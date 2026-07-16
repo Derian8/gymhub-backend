@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Bot, Copy, Loader2, Send, Sparkles, User, Users } from 'lucide-react'
+import { AlertTriangle, Bot, CheckCircle, Copy, Loader2, Send, Sparkles, Target, User, Users } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { useAiChatContextQuery, useAiChatHistoryQuery, useAiChatMutation, useAiChatSendMessageMutation } from '../hooks/useAiChat'
@@ -8,7 +8,7 @@ import { useMembersQuery } from '@/modules/members/hooks/useMembers'
 import { Badge, EmptyState, PageHeader } from '@/shared/components/UI'
 import { useAuthStore } from '@/shared/store/authStore'
 import { cn, PAYMENT_STATUS_LABELS, RISK_LEVEL_BADGE, RISK_LEVEL_LABELS } from '@/shared/lib/utils'
-import type { AIChatResponse } from '@/shared/types'
+import type { AIChatContext, AIChatResponse } from '@/shared/types'
 
 type LocalMessage = {
   role: 'user' | 'assistant'
@@ -129,8 +129,8 @@ export function AiChatPage() {
   return (
     <div data-testid="ai-chat-page" className="page-enter flex flex-col gap-6">
       <PageHeader
-        title="Chat IA"
-        subtitle={isTrainer ? 'Copiloto contextual por cliente' : 'Coach personal con contexto real'}
+        title={isTrainer ? 'Asistente Inteligente del Trainer' : 'Chat IA'}
+        subtitle={isTrainer ? 'Analiza miembros con datos reales de GymHub y decide el siguiente paso.' : 'Coach personal con contexto real'}
       />
 
       {(contextError || historyError) && (
@@ -158,7 +158,7 @@ export function AiChatPage() {
               members={membersPage?.results ?? []}
             />
             <PromptPanel
-              prompts={context?.suggested_prompts ?? []}
+              prompts={context?.trainer_assistant?.quick_questions ?? (context?.suggested_prompts ?? []).map((prompt) => ({ label: prompt, prompt }))}
               onPromptClick={handleSend}
               disabled={isPending || context?.requires_member_selection}
             />
@@ -169,7 +169,7 @@ export function AiChatPage() {
               <div className="flex items-center gap-2">
                 <Bot size={18} className="text-primary" />
                 <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                  {context?.mode === 'trainer_member' ? 'Copiloto del trainer' : 'GymHub AI'}
+                  {context?.mode === 'trainer_member' ? 'Asistente del trainer' : 'GymHub AI'}
                 </span>
                 {context?.engine_mode === 'deterministic' ? (
                   <Badge variant="info">Asistente contextual</Badge>
@@ -235,10 +235,10 @@ export function AiChatPage() {
               ) : localMessages.length === 0 ? (
                 <EmptyState
                   icon={<Sparkles size={42} />}
-                  title={context?.mode === 'trainer_member' ? 'Copiloto listo' : 'Coach listo'}
+                  title={context?.mode === 'trainer_member' ? 'Asistente listo' : 'Coach listo'}
                   description={
                     context?.mode === 'trainer_member'
-                      ? 'Pregunta por adherencia, siguiente sesión o cómo comunicarte con este cliente.'
+                      ? 'Pregunta por progreso, asistencia, pagos, entrenamiento o riesgos de este miembro.'
                       : 'Pregunta por tu sesión de hoy, adherencia o nutrición general.'
                   }
                 />
@@ -428,6 +428,10 @@ function ChatContextPanel({
         </div>
       ) : null}
 
+      {isTrainer && context.trainer_assistant ? (
+        <TrainerAssistantOverview context={context} />
+      ) : null}
+
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <ContextTile label="Siguiente acción" value={context.member?.siguiente_accion || '—'} />
           <ContextTile label="Plan de entrenamiento" value={context.summary?.active_plan_name || 'Sin plan de entrenamiento'} />
@@ -494,33 +498,110 @@ function PromptPanel({
   onPromptClick,
   disabled,
 }: {
-  prompts: string[]
+  prompts: Array<{ label: string; prompt: string }>
   onPromptClick: (prompt: string) => void
   disabled?: boolean
 }) {
   return (
     <div className="card p-6">
-      <p className="label-base mb-3">Prompts sugeridos</p>
+      <p className="label-base mb-3">Preguntas rápidas</p>
       <div className="flex flex-wrap gap-2">
         {prompts.length === 0 ? (
           <p className="text-sm text-neutral-500">No hay sugerencias todavía.</p>
         ) : (
           prompts.map((prompt) => (
             <button
-              key={prompt}
+              key={prompt.label}
               type="button"
-              onClick={() => onPromptClick(prompt)}
+              onClick={() => onPromptClick(prompt.prompt)}
               disabled={disabled}
               className="rounded-full border border-neutral-200 px-3 py-2 text-left text-xs text-neutral-700 transition-colors hover:border-primary/50 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-800 dark:text-neutral-300"
               data-testid="chat-prompt"
             >
-              {prompt}
+              {prompt.label}
             </button>
           ))
         )}
       </div>
     </div>
   )
+}
+
+function TrainerAssistantOverview({ context }: { context: AIChatContext }) {
+  const assistant = context.trainer_assistant
+  if (!assistant) return null
+  const status = STATUS_META[assistant.overall_status]
+  return (
+    <div className="space-y-4">
+      <div className={cn('rounded-sm border p-4', status.className)} data-testid="trainer-assistant-status">
+        <div className="flex items-center gap-3">
+          <status.Icon size={20} />
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide">Estado general</p>
+            <p className="font-heading text-xl font-bold">{status.label}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-sm border border-neutral-200 p-4 dark:border-neutral-800" data-testid="trainer-detected-insights">
+        <div className="mb-3 flex items-center gap-2">
+          <Sparkles size={16} className="text-primary" />
+          <p className="font-heading text-lg font-bold text-neutral-900 dark:text-white">Lo que detecté</p>
+        </div>
+        {assistant.detected_insights.length ? (
+          <div className="space-y-2">
+            {assistant.detected_insights.map((insight) => (
+              <div key={`${insight.code}-${insight.title}`} className="rounded-sm bg-neutral-100 p-3 dark:bg-neutral-900">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-neutral-900 dark:text-white">{insight.title}</p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400">{insight.detail}</p>
+                  </div>
+                  <Badge variant={INSIGHT_BADGE[insight.severity]}>{INSIGHT_LABEL[insight.severity]}</Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-neutral-500">No hay señales automáticas con los datos actuales.</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+const STATUS_META = {
+  excellent: {
+    label: 'Excelente',
+    Icon: CheckCircle,
+    className: 'border-green-500/30 bg-green-50 text-green-700 dark:bg-green-950/20 dark:text-green-300',
+  },
+  needs_follow_up: {
+    label: 'Requiere seguimiento',
+    Icon: Target,
+    className: 'border-yellow-500/30 bg-yellow-50 text-yellow-700 dark:bg-yellow-950/20 dark:text-yellow-300',
+  },
+  immediate_attention: {
+    label: 'Atención inmediata',
+    Icon: AlertTriangle,
+    className: 'border-red-500/30 bg-red-50 text-red-700 dark:bg-red-950/20 dark:text-red-300',
+  },
+} as const
+
+const INSIGHT_BADGE: Record<string, 'success' | 'warning' | 'error' | 'info' | 'neutral'> = {
+  positive: 'success',
+  neutral: 'neutral',
+  info: 'info',
+  warning: 'warning',
+  critical: 'error',
+}
+
+const INSIGHT_LABEL: Record<string, string> = {
+  positive: 'Bien',
+  neutral: 'Neutro',
+  info: 'Dato faltante',
+  warning: 'Seguimiento',
+  critical: 'Urgente',
 }
 
 function ContextTile({ label, value }: { label: string; value: string }) {

@@ -14,6 +14,11 @@ INTENT_NUTRITION = 'nutrition'
 INTENT_PAYMENT = 'payment'
 INTENT_CLIENT_MESSAGE = 'client_message'
 INTENT_FULL_ANALYSIS = 'full_analysis'
+INTENT_PROGRESS = 'progress'
+INTENT_ATTENDANCE = 'attendance'
+INTENT_LAST_30_DAYS = 'last_30_days'
+INTENT_RISKS = 'risks'
+INTENT_NEXT_ACTION = 'next_action'
 INTENT_GENERAL = 'general'
 
 SUPPORTED_ENGINE_MODES = ('deterministic', 'local_hybrid')
@@ -76,6 +81,16 @@ def is_local_llm_available():
 def detect_intent(message, mode):
     content = (message or '').lower()
 
+    if any(keyword in content for keyword in ('últimos 30', 'ultimos 30', '30 días', '30 dias')):
+        return INTENT_LAST_30_DAYS
+    if any(keyword in content for keyword in ('progreso', 'peso', 'medidas', 'medición', 'medicion', 'grasa', 'musculo', 'músculo')):
+        return INTENT_PROGRESS
+    if any(keyword in content for keyword in ('asistencia', 'asist', 'check-in', 'checkin', 'inactividad', 'constancia')):
+        return INTENT_ATTENDANCE
+    if any(keyword in content for keyword in ('riesgo', 'riesgos', 'alerta', 'alertas')):
+        return INTENT_RISKS
+    if any(keyword in content for keyword in ('qué debería hacer', 'que deberia hacer', 'debo hacer', 'siguiente paso', 'accion', 'acción')):
+        return INTENT_NEXT_ACTION
     if any(keyword in content for keyword in (
         'analiza',
         'analisis',
@@ -101,10 +116,10 @@ def detect_intent(message, mode):
     return INTENT_GENERAL
 
 
-def build_deterministic_response(mode, member, summary, prescription_status, analysis_context, user_message):
+def build_deterministic_response(mode, member, summary, prescription_status, analysis_context, user_message, trainer_assistant=None):
     intent = detect_intent(user_message, mode)
     if mode == 'trainer_member':
-        return _build_trainer_response(member, summary, prescription_status, analysis_context, intent)
+        return _build_trainer_response(member, summary, prescription_status, analysis_context, intent, trainer_assistant)
     return {
         'content': _build_member_response(summary, prescription_status, analysis_context, intent),
         'sendable': False,
@@ -114,7 +129,7 @@ def build_deterministic_response(mode, member, summary, prescription_status, ana
     }
 
 
-def generate_chat_response(mode, member, summary, prescription_status, analysis_context, transcript, user_message):
+def generate_chat_response(mode, member, summary, prescription_status, analysis_context, transcript, user_message, trainer_assistant=None):
     deterministic_response = build_deterministic_response(
         mode=mode,
         member=member,
@@ -122,6 +137,7 @@ def generate_chat_response(mode, member, summary, prescription_status, analysis_
         prescription_status=prescription_status,
         analysis_context=analysis_context,
         user_message=user_message,
+        trainer_assistant=trainer_assistant,
     )
     deterministic_content = deterministic_response['content']
     engine_mode = get_engine_mode()
@@ -142,6 +158,7 @@ def generate_chat_response(mode, member, summary, prescription_status, analysis_
         member=member,
         summary=summary,
         analysis_context=analysis_context,
+        trainer_assistant=trainer_assistant,
         transcript=transcript,
         user_message=user_message,
         deterministic_response=deterministic_content,
@@ -179,7 +196,10 @@ def _build_member_response(summary, prescription_status, analysis_context, inten
     ])
 
 
-def _build_trainer_response(member, summary, prescription_status, analysis_context, intent):
+def _build_trainer_response(member, summary, prescription_status, analysis_context, intent, trainer_assistant=None):
+    if trainer_assistant:
+        return _build_trainer_assistant_response(member, summary, prescription_status, analysis_context, intent, trainer_assistant)
+
     client_name = member.user.get_full_name() or member.user.email
     priority = _detect_trainer_priority(summary)
     prescription_text = _prescription_guidance(prescription_status)
@@ -212,6 +232,256 @@ def _build_trainer_response(member, summary, prescription_status, analysis_conte
         'priority_detected': priority,
         'intent_detected': intent,
     }
+
+
+def _build_trainer_assistant_response(member, summary, prescription_status, analysis_context, intent, trainer_assistant):
+    client_name = member.user.get_full_name() or member.user.email
+    dossier = trainer_assistant['dossier']
+    priority = _detect_trainer_priority(summary)
+    missing = trainer_assistant.get('missing_data') or []
+
+    if _is_out_of_scope(intent, summary, analysis_context):
+        return {
+            'content': (
+                'Alcance del asistente: Solo puedo analizar datos registrados en GymHub para este miembro. '
+                f'Datos disponibles ahora: asistencia, membresía, pagos, rutina, progreso y alertas. '
+                f'Datos faltantes: {", ".join(missing) if missing else "ninguno crítico"}.' 
+            ),
+            'sendable': False,
+            'message_text': '',
+            'priority_detected': priority,
+            'intent_detected': intent,
+        }
+
+    if intent == INTENT_CLIENT_MESSAGE:
+        message_text = _build_client_message(summary, priority, _prescription_guidance(prescription_status))
+        content = _join_sections([
+            ('Lectura del caso', _trainer_assistant_case_read(client_name, trainer_assistant)),
+            ('Datos usados', _available_data_sentence(trainer_assistant)),
+            ('Mensaje sugerido', message_text),
+        ])
+        return {
+            'content': content,
+            'sendable': True,
+            'message_text': message_text,
+            'priority_detected': priority,
+            'intent_detected': intent,
+        }
+
+    section_builders = {
+        INTENT_PROGRESS: _trainer_progress_read,
+        INTENT_ATTENDANCE: _trainer_attendance_read,
+        INTENT_WORKOUT: _trainer_training_read,
+        INTENT_PAYMENT: _trainer_payment_read,
+        INTENT_RISKS: _trainer_risk_read,
+        INTENT_NEXT_ACTION: _trainer_next_action_read,
+        INTENT_LAST_30_DAYS: _trainer_last_30_days_read,
+        INTENT_FULL_ANALYSIS: _trainer_full_read,
+        INTENT_GENERAL: _trainer_full_read,
+        INTENT_NUTRITION: _trainer_full_read,
+        INTENT_ADHERENCE: _trainer_attendance_read,
+    }
+    content = section_builders.get(intent, _trainer_full_read)(client_name, trainer_assistant, prescription_status)
+    if missing:
+        content = f"{content}\n\nInformación faltante: No hay datos suficientes de {', '.join(missing)}. No los voy a inventar."
+    return {
+        'content': content,
+        'sendable': False,
+        'message_text': '',
+        'priority_detected': priority,
+        'intent_detected': intent,
+    }
+
+
+def _is_out_of_scope(intent, summary, analysis_context):
+    return False
+
+
+def _available_data_sentence(trainer_assistant):
+    missing = trainer_assistant.get('missing_data') or []
+    if not missing:
+        return 'Usé perfil, membresía, pagos, asistencia, rutina, sesiones, progreso y alertas registradas.'
+    return f'Usé los datos disponibles en GymHub. Faltan registros de {", ".join(missing)}.'
+
+
+def _status_label(status):
+    return {
+        'excellent': 'Excelente',
+        'needs_follow_up': 'Requiere seguimiento',
+        'immediate_attention': 'Atención inmediata',
+    }.get(status, 'Requiere seguimiento')
+
+
+def _trainer_assistant_case_read(client_name, trainer_assistant):
+    insights = trainer_assistant['detected_insights']
+    insight_text = '; '.join(item['title'] for item in insights[:4]) or 'sin señales críticas registradas'
+    return (
+        f"{client_name} tiene estado general {_status_label(trainer_assistant['overall_status'])}. "
+        f"Lo detectado: {insight_text}."
+    )
+
+
+def _trainer_full_read(client_name, trainer_assistant, prescription_status):
+    dossier = trainer_assistant['dossier']
+    return _join_sections([
+        ('Lectura del caso', _trainer_assistant_case_read(client_name, trainer_assistant)),
+        ('Asistencia', _attendance_sentence(dossier)),
+        ('Membresía y pagos', _payment_sentence(dossier)),
+        ('Entrenamiento', _training_sentence(dossier)),
+        ('Progreso', _progress_sentence(dossier)),
+        ('Acción recomendada', _next_action_sentence(dossier, prescription_status)),
+    ])
+
+
+def _trainer_progress_read(client_name, trainer_assistant, prescription_status):
+    dossier = trainer_assistant['dossier']
+    return _join_sections([
+        ('Progreso físico', _progress_sentence(dossier)),
+        ('Entrenamiento registrado', _training_sentence(dossier)),
+        ('Lectura', 'Si faltan mediciones o registros de carga, no hay base suficiente para afirmar progreso real.'),
+    ])
+
+
+def _trainer_attendance_read(client_name, trainer_assistant, prescription_status):
+    dossier = trainer_assistant['dossier']
+    return _join_sections([
+        ('Asistencia', _attendance_sentence(dossier)),
+        ('Riesgo de adherencia', _risk_sentence(dossier)),
+        ('Acción recomendada', _next_action_sentence(dossier, prescription_status)),
+    ])
+
+
+def _trainer_training_read(client_name, trainer_assistant, prescription_status):
+    dossier = trainer_assistant['dossier']
+    return _join_sections([
+        ('Rutina', _training_sentence(dossier)),
+        ('Ejercicios destacados', _exercise_highlights_sentence(dossier)),
+        ('Acción recomendada', _next_action_sentence(dossier, prescription_status)),
+    ])
+
+
+def _trainer_payment_read(client_name, trainer_assistant, prescription_status):
+    dossier = trainer_assistant['dossier']
+    return _join_sections([
+        ('Membresía y pagos', _payment_sentence(dossier)),
+        ('Acceso', f"Check-in permitido: {'sí' if dossier['membership']['can_check_in'] else 'no'}."),
+        ('Acción recomendada', 'Si hay pago pendiente o vencido, resuelve esa fricción antes de exigir continuidad de entrenamiento.'),
+    ])
+
+
+def _trainer_risk_read(client_name, trainer_assistant, prescription_status):
+    dossier = trainer_assistant['dossier']
+    insights = trainer_assistant['detected_insights']
+    risks = [item for item in insights if item['severity'] in {'critical', 'warning'}]
+    risk_text = '; '.join(f"{item['title']}: {item['detail']}" for item in risks) or 'No hay riesgos críticos visibles con los datos actuales.'
+    return _join_sections([
+        ('Riesgos detectados', risk_text),
+        ('Base de datos usada', _available_data_sentence(trainer_assistant)),
+        ('Acción recomendada', _next_action_sentence(dossier, prescription_status)),
+    ])
+
+
+def _trainer_next_action_read(client_name, trainer_assistant, prescription_status):
+    dossier = trainer_assistant['dossier']
+    return _join_sections([
+        ('Prioridad', _trainer_assistant_case_read(client_name, trainer_assistant)),
+        ('Qué hacer', _next_action_sentence(dossier, prescription_status)),
+    ])
+
+
+def _trainer_last_30_days_read(client_name, trainer_assistant, prescription_status):
+    dossier = trainer_assistant['dossier']
+    return _join_sections([
+        ('Últimos 30 días', (
+            f"{dossier['attendance']['checkins_last_30_days']} asistencias, "
+            f"{dossier['training']['completed_sessions_last_30_days']} sesiones completadas y "
+            f"{dossier['payments']['pending_count']} pagos pendientes."
+        )),
+        ('Tendencia', _attendance_sentence(dossier)),
+        ('Progreso', _progress_sentence(dossier)),
+        ('Acción recomendada', _next_action_sentence(dossier, prescription_status)),
+    ])
+
+
+def _attendance_sentence(dossier):
+    attendance = dossier['attendance']
+    days = attendance['days_since_last_attendance']
+    if days is None:
+        return 'No hay asistencias registradas; no puedo evaluar frecuencia real.'
+    trend = {
+        'increasing': 'aumentó',
+        'decreasing': 'disminuyó',
+        'stable': 'se mantuvo estable',
+    }.get(attendance['trend'], 'no tiene tendencia clara')
+    return (
+        f"Última asistencia hace {days} días. "
+        f"Registró {attendance['checkins_last_30_days']} check-ins en 30 días "
+        f"({attendance['weekly_average_last_30_days']} por semana); la frecuencia {trend} frente al periodo anterior."
+    )
+
+
+def _payment_sentence(dossier):
+    membership = dossier['membership']
+    payments = dossier['payments']
+    plan = membership['plan_name'] or 'sin membresía registrada'
+    status = membership['status'] or 'sin estado'
+    days = membership['days_remaining']
+    due_text = f"vence en {days} días" if days is not None else 'sin fecha de vencimiento visible'
+    return (
+        f"Membresía: {plan}, estado {status}, {due_text}. "
+        f"Pagos pendientes: {payments['pending_count']}; vencidos: {payments['late_count']}."
+    )
+
+
+def _training_sentence(dossier):
+    training = dossier['training']
+    if not training['active_plan']:
+        return 'No hay plan activo registrado; no puedo analizar rutina real.'
+    return (
+        f"Plan activo: {training['active_plan']['name']} con {training['days_count']} días y "
+        f"{training['exercise_count']} ejercicios. Completó {training['completed_sessions_last_30_days']} sesiones en 30 días. "
+        f"Sesión de hoy: {training['today_workout_name'] or 'sin sesión visible'}."
+    )
+
+
+def _exercise_highlights_sentence(dossier):
+    highlights = dossier['training']['exercise_highlights']
+    if not highlights:
+        return 'No hay ejercicios registrados recientemente para comparar cargas, RPE o volumen.'
+    return '; '.join(
+        f"{item['name']} ({item['sessions']} sesiones, carga máx. {item['max_weight_kg'] or 'sin dato'} kg)"
+        for item in highlights[:4]
+    )
+
+
+def _progress_sentence(dossier):
+    progress = dossier['progress']['physical_summary']
+    if progress['latest_log_id'] is None:
+        return 'No hay medidas físicas registradas; no puedo afirmar cambios de peso o composición.'
+    change = progress['weight_change_kg']
+    change_text = f"cambio de {change} kg" if change is not None else 'sin comparación previa de peso'
+    return (
+        f"Última medición: {progress['latest_recorded_at']}. Peso actual {progress['current_weight_kg'] or 'sin dato'} kg, "
+        f"{change_text}, cintura {progress['waist_cm'] or 'sin dato'} cm."
+    )
+
+
+def _risk_sentence(dossier):
+    risk = dossier['summary']['riesgo_personal']
+    reasons = ', '.join(risk['reasons']) or 'sin motivos registrados'
+    return f"Riesgo {risk['level']} ({risk['score']}/100). Motivos: {reasons}."
+
+
+def _next_action_sentence(dossier, prescription_status):
+    if dossier['payments']['late_count']:
+        return 'Primero regulariza el pago vencido y luego acuerda una acción mínima de retorno.'
+    if dossier['alerts']['has_open_alert'] or (dossier['attendance']['days_since_last_attendance'] or 0) >= 15:
+        return 'Contacta hoy, registra el contacto y acuerda una fecha concreta de regreso.'
+    if not dossier['training']['active_plan'] or prescription_status['estado'] != 'lista':
+        return 'Completa o actualiza la rutina antes de pedir ejecución.'
+    if dossier['progress']['days_since_last_measurement'] is None or dossier['progress']['days_since_last_measurement'] >= 30:
+        return 'Agenda una medición física para tener base objetiva de progreso.'
+    return 'Mantén seguimiento semanal y refuerza la constancia actual.'
 
 
 def _detect_trainer_priority(summary):
@@ -407,7 +677,7 @@ def _trainer_recommended_action(summary, prescription_status, analysis_context, 
     )
 
 
-def _rewrite_with_local_llm(mode, member, summary, analysis_context, transcript, user_message, deterministic_response):
+def _rewrite_with_local_llm(mode, member, summary, analysis_context, trainer_assistant, transcript, user_message, deterministic_response):
     if not is_local_llm_configured():
         return None
 
@@ -419,6 +689,7 @@ def _rewrite_with_local_llm(mode, member, summary, analysis_context, transcript,
             member,
             summary,
             analysis_context,
+            trainer_assistant,
             transcript,
             user_message,
             deterministic_response,
@@ -443,8 +714,16 @@ def _rewrite_with_local_llm(mode, member, summary, analysis_context, transcript,
         return None
 
 
-def _build_local_prompt(mode, member, summary, analysis_context, transcript, user_message, deterministic_response):
+def _build_local_prompt(mode, member, summary, analysis_context, trainer_assistant, transcript, user_message, deterministic_response):
     role = 'trainer' if mode == 'trainer_member' else 'miembro'
+    trainer_context = ''
+    if trainer_assistant:
+        trainer_context = f"""
+Estado general trainer: {trainer_assistant['overall_status']}
+Insights detectados: {json.dumps(trainer_assistant['detected_insights'], ensure_ascii=False)}
+Datos faltantes: {', '.join(trainer_assistant['missing_data']) or 'ninguno'}
+Expediente estructurado: {json.dumps(trainer_assistant['dossier'], ensure_ascii=False, default=str)[:6000]}
+"""
     return f"""Reescribe la respuesta base para GymHub.
 Reglas:
 - Responde en español.
@@ -453,6 +732,8 @@ Reglas:
 - Mantén el tono accionable y profesional.
 - Usa formato de diagnostico estructurado con bloques claros.
 - Máximo 5 bloques cortos.
+- Si falta información, dilo claramente.
+- En modo trainer, responde solo sobre el miembro y los datos del sistema.
 
 Rol activo: {role}
 Miembro: {member.user.get_full_name() or member.user.email}
@@ -464,6 +745,7 @@ Entrenamiento de hoy: {analysis_context['today_workout_name'] or 'sin sesion vis
 Estado de pago: {analysis_context['payment_status'] or 'sin datos'}
 Razones de riesgo: {', '.join(analysis_context['risk_reasons']) or 'sin alertas criticas'}
 Prescripcion: {analysis_context['prescription_status']}
+{trainer_context}
 Historial reciente:
 {transcript}
 

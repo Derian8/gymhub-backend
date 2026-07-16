@@ -68,7 +68,7 @@ docker compose exec backend python manage.py createsuperuser
 | GET | `/api/charts/{type}/` | Gráficas PNG (cache 6h) |
 | POST | `/api/ai-chat/` | Chat IA contextual por rol |
 | GET | `/api/ai-chat/history/` | Historial de conversación IA |
-| GET | `/api/ai-chat/context/` | Contexto, prompts sugeridos y límites |
+| GET | `/api/ai-chat/context/` | Contexto estructurado, asistente trainer, preguntas rápidas y límites |
 
 ## Tipos de gráficas
 `attendance_monthly` · `retention_rate` · `payment_status` · `physical_progress` · `exercise_progression`

@@ -990,6 +990,84 @@ export interface AIChatContext {
     }
     has_today_workout: boolean
   } | null
+  trainer_assistant?: {
+    overall_status: 'excellent' | 'needs_follow_up' | 'immediate_attention'
+    detected_insights: Array<{
+      code: string
+      title: string
+      detail: string
+      severity: 'positive' | 'neutral' | 'info' | 'warning' | 'critical'
+    }>
+    quick_questions: Array<{
+      label: string
+      prompt: string
+    }>
+    missing_data: string[]
+    dossier: {
+      member: {
+        id: number
+        full_name: string
+        email: string
+        phone: string
+        join_date: string | null
+        is_active: boolean
+        trainer_name: string | null
+      }
+      membership: {
+        membership_id: number | null
+        plan_name: string | null
+        status: string | null
+        start_date: string | null
+        end_date: string | null
+        days_remaining: number | null
+        price: string | null
+        can_check_in: boolean
+        access_reason: string | null
+      }
+      payments: {
+        pending_count: number
+        late_count: number
+        next_pending: Record<string, unknown> | null
+        last_paid: Record<string, unknown> | null
+        recent_records: Array<Record<string, unknown>>
+      }
+      attendance: {
+        last_attendance_date: string | null
+        days_since_last_attendance: number | null
+        checkins_last_30_days: number
+        checkins_previous_30_days: number
+        checkins_last_90_days: number
+        weekly_average_last_30_days: number
+        weekly_average_previous_30_days: number
+        trend: 'increasing' | 'decreasing' | 'stable'
+        recent_notes: string[]
+      }
+      training: {
+        active_plan: Record<string, unknown> | null
+        days_count: number
+        exercise_count: number
+        today_workout_name: string | null
+        completed_sessions_last_30_days: number
+        latest_session_date: string | null
+        latest_session_completed: boolean | null
+        latest_trainer_notes: string
+        exercise_highlights: Array<Record<string, unknown>>
+      }
+      progress: {
+        physical_summary: Record<string, unknown>
+        days_since_last_measurement: number | null
+        recent_measurements: Array<Record<string, unknown>>
+      }
+      alerts: {
+        has_open_alert: boolean
+        open_alert_status: string | null
+        open_alert_days_inactive: number | null
+        latest_alert_status: string | null
+        latest_alert_reason: string
+        latest_contact: Record<string, unknown> | null
+      }
+    }
+  } | null
 }
 
 // --- Classes ---

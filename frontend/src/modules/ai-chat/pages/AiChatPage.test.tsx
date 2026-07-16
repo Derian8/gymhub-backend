@@ -134,6 +134,27 @@ describe('AiChatPage', () => {
           },
           has_today_workout: true,
         },
+        trainer_assistant: {
+          overall_status: 'immediate_attention',
+          detected_insights: [
+            { code: 'attendance_gap', title: 'Lleva 12 días sin asistir', detail: 'Conviene contactar.', severity: 'critical' },
+            { code: 'payment_late', title: 'Tiene pagos vencidos', detail: 'Revisar cobros.', severity: 'critical' },
+          ],
+          quick_questions: [
+            { label: 'Resume este miembro', prompt: 'Resume este miembro usando solo los datos del sistema.' },
+            { label: 'Analiza pagos', prompt: 'Analiza su membresía y pagos pendientes o recientes.' },
+          ],
+          missing_data: [],
+          dossier: {
+            member: { id: 10, full_name: 'Ana Member', email: 'ana@test.com', phone: '', join_date: '2026-01-01', is_active: true, trainer_name: 'Luis Trainer' },
+            membership: { membership_id: 1, plan_name: 'Hipertrofia', status: 'active', start_date: '2026-03-01', end_date: '2026-04-01', days_remaining: 15, price: '50.00', can_check_in: true, access_reason: null },
+            payments: { pending_count: 1, late_count: 1, next_pending: null, last_paid: null, recent_records: [] },
+            attendance: { last_attendance_date: '2026-03-08', days_since_last_attendance: 12, checkins_last_30_days: 2, checkins_previous_30_days: 8, checkins_last_90_days: 20, weekly_average_last_30_days: 0.5, weekly_average_previous_30_days: 1.8, trend: 'decreasing', recent_notes: [] },
+            training: { active_plan: { id: 5, name: 'Hipertrofia' }, days_count: 4, exercise_count: 18, today_workout_name: 'Torso superior', completed_sessions_last_30_days: 1, latest_session_date: '2026-03-08', latest_session_completed: true, latest_trainer_notes: '', exercise_highlights: [] },
+            progress: { physical_summary: { latest_log_id: null }, days_since_last_measurement: null, recent_measurements: [] },
+            alerts: { has_open_alert: true, open_alert_status: 'new', open_alert_days_inactive: 12, latest_alert_status: 'new', latest_alert_reason: '', latest_contact: null },
+          },
+        },
       },
       isLoading: false,
     })
@@ -336,6 +357,27 @@ describe('AiChatPage', () => {
           },
           has_today_workout: true,
         },
+        trainer_assistant: {
+          overall_status: 'immediate_attention',
+          detected_insights: [
+            { code: 'attendance_gap', title: 'Lleva 12 días sin asistir', detail: 'Conviene contactar.', severity: 'critical' },
+            { code: 'payment_late', title: 'Tiene pagos vencidos', detail: 'Revisar cobros.', severity: 'critical' },
+          ],
+          quick_questions: [
+            { label: 'Resume este miembro', prompt: 'Resume este miembro usando solo los datos del sistema.' },
+            { label: 'Analiza pagos', prompt: 'Analiza su membresía y pagos pendientes o recientes.' },
+          ],
+          missing_data: [],
+          dossier: {
+            member: { id: 10, full_name: 'Ana Member', email: 'ana@test.com', phone: '', join_date: '2026-01-01', is_active: true, trainer_name: 'Luis Trainer' },
+            membership: { membership_id: 1, plan_name: 'Hipertrofia', status: 'active', start_date: '2026-03-01', end_date: '2026-04-01', days_remaining: 15, price: '50.00', can_check_in: true, access_reason: null },
+            payments: { pending_count: 1, late_count: 1, next_pending: null, last_paid: null, recent_records: [] },
+            attendance: { last_attendance_date: '2026-03-08', days_since_last_attendance: 12, checkins_last_30_days: 2, checkins_previous_30_days: 8, checkins_last_90_days: 20, weekly_average_last_30_days: 0.5, weekly_average_previous_30_days: 1.8, trend: 'decreasing', recent_notes: [] },
+            training: { active_plan: { id: 5, name: 'Hipertrofia' }, days_count: 4, exercise_count: 18, today_workout_name: 'Torso superior', completed_sessions_last_30_days: 1, latest_session_date: '2026-03-08', latest_session_completed: true, latest_trainer_notes: '', exercise_highlights: [] },
+            progress: { physical_summary: { latest_log_id: null }, days_since_last_measurement: null, recent_measurements: [] },
+            alerts: { has_open_alert: true, open_alert_status: 'new', open_alert_days_inactive: 12, latest_alert_status: 'new', latest_alert_reason: '', latest_contact: null },
+          },
+        },
       },
       isLoading: false,
     })
@@ -363,6 +405,11 @@ describe('AiChatPage', () => {
       route: '/ai-chat?member=10',
       path: '/ai-chat',
     })
+
+    expect(getByText('Asistente Inteligente del Trainer')).toBeInTheDocument()
+    expect(getByTestId('trainer-assistant-status')).toHaveTextContent('Atención inmediata')
+    expect(getByTestId('trainer-detected-insights')).toHaveTextContent('Lleva 12 días sin asistir')
+    expect(getByText('Analiza pagos')).toBeInTheDocument()
 
     await user.type(getByTestId('chat-input'), 'Escribe un mensaje corto para este cliente')
     await user.click(getByTestId('chat-send'))

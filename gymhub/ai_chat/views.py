@@ -21,6 +21,7 @@ from users.services import (
 from .engine import generate_chat_response, get_engine_mode, is_local_llm_available
 from .models import AIChatConversation, AIChatMessage
 from .serializers import AIChatContextSerializer, AIChatInputSerializer, AIChatMessageSerializer, AIChatSendMessageSerializer
+from .trainer_context import build_trainer_assistant_context
 
 logger = logging.getLogger(__name__)
 
@@ -120,10 +121,14 @@ def _get_suggested_prompts(mode, summary, analysis_context=None):
     plan_name = summary['active_plan']['name'] if summary['active_plan'] else 'mi plan actual'
     if mode == 'trainer_member':
         return [
-            'Haz una lectura completa del caso y dime qué debo intervenir hoy.',
-            'Escribe un mensaje corto para motivar a este cliente a retomar adherencia.',
-            f'¿Qué ajuste táctico recomiendas para la próxima sesión de {plan_name}?',
-            'Explícame cómo abordar nutrición y pagos sin generar fricción.',
+            'Resume este miembro',
+            'Analiza su progreso',
+            'Analiza asistencia',
+            'Analiza entrenamiento',
+            'Analiza pagos',
+            'Qué debería hacer',
+            'Qué riesgos detectas',
+            'Resume últimos 30 días',
         ]
 
     prompts = [
@@ -253,6 +258,11 @@ def _build_context_payload(user, member, mode, conversation):
     active_prescription = get_active_prescription(member)
     prescription_status = get_member_prescription_status(member)
     analysis_context = _serialize_analysis_context(member, summary, active_prescription, prescription_status)
+    trainer_assistant = (
+        build_trainer_assistant_context(member, summary, active_prescription)
+        if mode == 'trainer_member'
+        else None
+    )
     payload = {
         'mode': mode,
         'conversation_id': conversation.id if conversation else None,
@@ -268,6 +278,7 @@ def _build_context_payload(user, member, mode, conversation):
         'member': _serialize_member_context(member, summary, prescription_status),
         'summary': _serialize_summary_context(summary, active_prescription),
         'analysis_context': analysis_context,
+        'trainer_assistant': trainer_assistant,
     }
     return AIChatContextSerializer(payload).data
 
@@ -337,6 +348,11 @@ class AIChatView(APIView):
         active_prescription = get_active_prescription(member)
         prescription_status = get_member_prescription_status(member)
         analysis_context = _serialize_analysis_context(member, summary, active_prescription, prescription_status)
+        trainer_assistant = (
+            build_trainer_assistant_context(member, summary, active_prescription)
+            if mode == 'trainer_member'
+            else None
+        )
 
         AIChatMessage.objects.create(
             conversation=conversation,
@@ -354,6 +370,7 @@ class AIChatView(APIView):
             summary=summary,
             prescription_status=prescription_status,
             analysis_context=analysis_context,
+            trainer_assistant=trainer_assistant,
             transcript=transcript,
             user_message=user_message,
         )

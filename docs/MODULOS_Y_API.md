@@ -144,10 +144,15 @@ Rutas principales:
 ## Chat IA
 Entidad principal:
 - `AIChatMessage`
+- `AIChatConversation`
 
 Rutas principales:
 - `POST /api/ai-chat/`
+- `GET /api/ai-chat/context/`
 - `GET /api/ai-chat/history/`
+- `POST /api/ai-chat/send-message/`
+
+En modo trainer, `/api/ai-chat/context/?member_id={id}` construye un expediente automático del miembro con perfil, membresía, pagos, asistencia, rutina, ejercicios, progreso, medidas y alertas. La respuesta incluye `trainer_assistant` con estado general, insights detectados, preguntas rápidas, datos faltantes y dossier estructurado.
 
 ## Gráficas
 Tipos observados:

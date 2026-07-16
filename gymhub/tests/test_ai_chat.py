@@ -203,3 +203,31 @@ class TestAIChat:
         assert resp.data['mode'] == 'trainer_member'
         assert resp.data['requires_member_selection'] is True
         assert resp.data['member'] is None
+
+    def test_trainer_context_includes_assistant_dossier_and_insights(self, trainer_client, member_profile):
+        resp = trainer_client.get('/api/ai-chat/context/', {'member_id': member_profile.id})
+
+        assert resp.status_code == status.HTTP_200_OK
+        assistant = resp.data['trainer_assistant']
+        assert assistant['overall_status'] in ('excellent', 'needs_follow_up', 'immediate_attention')
+        assert isinstance(assistant['detected_insights'], list)
+        assert len(assistant['quick_questions']) == 8
+        assert 'dossier' in assistant
+        assert 'attendance' in assistant['dossier']
+        assert 'membership' in assistant['dossier']
+        assert 'payments' in assistant['dossier']
+        assert 'training' in assistant['dossier']
+        assert 'progress' in assistant['dossier']
+
+    def test_trainer_response_declares_missing_data_instead_of_inventing(self, settings, trainer_client, member_profile):
+        settings.AI_PROVIDER = 'deterministic'
+
+        resp = trainer_client.post(
+            '/api/ai-chat/',
+            {'message': 'Analiza su progreso', 'member_id': member_profile.id},
+            format='json',
+        )
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert 'no hay datos suficientes' in resp.data['content'].lower() or 'no hay medidas' in resp.data['content'].lower()
+        assert 'no los voy a inventar' in resp.data['content'].lower()

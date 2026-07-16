@@ -63,3 +63,4 @@ class AIChatContextSerializer(serializers.Serializer):
     member = serializers.DictField(required=False, allow_null=True)
     summary = serializers.DictField(required=False, allow_null=True)
     analysis_context = serializers.DictField(required=False, allow_null=True)
+    trainer_assistant = serializers.DictField(required=False, allow_null=True)
