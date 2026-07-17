@@ -4,7 +4,7 @@ import { AlertTriangle, Copy, Plus, Trash2, X } from 'lucide-react'
 import { Avatar, Badge } from '@/shared/components/UI'
 import { DAY_OF_WEEK_LABELS, GOAL_LABELS, MUSCLE_LABELS, formatDate } from '@/shared/lib/utils'
 import { useMembersQuery } from '@/modules/members/hooks/useMembers'
-import { useCreateCompletePlanMutation, useTrainingTemplatesQuery } from '../hooks/usePlans'
+import { useCreateCompletePlanMutation, useGymMachinesQuery, useTrainingTemplatesQuery } from '../hooks/usePlans'
 import type {
   CompleteTrainingPlanPayload,
   DayLabel,
@@ -111,6 +111,7 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
   })
   const [days, setDays] = useState<WizardDay[]>([])
   const membersQuery = useMembersQuery({ search, ordering: 'prescripcion' }, open)
+  const gymMachinesQuery = useGymMachinesQuery(open)
   const templatesQuery = useTrainingTemplatesQuery()
   const createCompletePlan = useCreateCompletePlanMutation()
 
@@ -132,6 +133,8 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
   const canContinueMember = !!selectedMember && (!hasActivePlan || conflictStrategy !== 'keep' || form.status !== 'active')
   const canSave = !!selectedMember && form.name.trim().length > 0 && days.every((day) => day.name.trim() && day.exercises.every((exercise) => exercise.name.trim()))
   const filteredMembers = membersQuery.data?.results ?? []
+  const activeMachines = (gymMachinesQuery.data?.results ?? []).filter((machine) => machine.is_active)
+  const exercisesWithMachine = days.reduce((total, day) => total + day.exercises.filter((exercise) => !!exercise.machine).length, 0)
 
   const activeFiltersText = useMemo(() => search.trim() ? `Búsqueda activa: ${search.trim()}` : '', [search])
 
@@ -436,6 +439,21 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
                           <Field label="Descanso">
                             <input className="input" type="number" min={1} value={exercise.rest_seconds} onChange={(event) => updateExercise(dayIndex, exerciseIndex, { rest_seconds: Number(event.target.value) || 60 })} />
                           </Field>
+                          <Field label="Máquina">
+                            <select
+                              className="input"
+                              value={exercise.machine ?? ''}
+                              onChange={(event) => updateExercise(dayIndex, exerciseIndex, { machine: event.target.value ? Number(event.target.value) : null })}
+                              data-testid={`wizard-exercise-machine-${dayIndex}-${exerciseIndex}`}
+                            >
+                              <option value="">Sin máquina específica</option>
+                              {activeMachines.map((machine) => (
+                                <option key={machine.id} value={machine.id}>
+                                  {machine.category ? `${machine.name} · ${machine.category}` : machine.name}
+                                </option>
+                              ))}
+                            </select>
+                          </Field>
                           <Field label="Peso inicial">
                             <input className="input" type="number" min={0} value={exercise.weight_suggestion_kg ?? ''} onChange={(event) => updateExercise(dayIndex, exerciseIndex, { weight_suggestion_kg: event.target.value ? Number(event.target.value) : null })} disabled={exercise.exercise_type === 'timed'} />
                           </Field>
@@ -452,6 +470,11 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
                       <button type="button" className="btn-secondary" onClick={() => setDays((current) => current.map((item, index) => index === dayIndex ? { ...item, exercises: [...item.exercises, emptyExercise(item.exercises.length)] } : item))}>
                         <Plus size={16} /> Agregar ejercicio
                       </button>
+                      {!activeMachines.length && !gymMachinesQuery.isLoading ? (
+                        <p className="text-xs text-neutral-500">
+                          No hay máquinas activas en el catálogo. Puedes dejar el ejercicio sin máquina específica.
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 ))}
@@ -473,6 +496,7 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
               <ReviewItem label="Días semanales" value={`${form.days_per_week}`} />
               <ReviewItem label="Total de días" value={`${days.length}`} />
               <ReviewItem label="Total ejercicios" value={`${totalExercises}`} />
+              <ReviewItem label="Con máquina" value={`${exercisesWithMachine}`} />
               <ReviewItem label="Estado inicial" value={form.status === 'active' ? 'Activo' : form.status === 'scheduled' ? 'Programado' : 'Borrador'} />
             </div>
             {!canSave ? (

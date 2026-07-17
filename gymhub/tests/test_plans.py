@@ -70,7 +70,9 @@ class TestTrainingPlans:
         assert resp.data['goal'] == 'maintenance'
 
     def test_trainer_can_create_complete_draft_plan_from_general_screen(self, trainer_client, member_profile):
-        from plans.models import TrainingPlan
+        from plans.models import GymMachine, TrainingPlan
+
+        machine = GymMachine.objects.create(name='Prensa 45', category='Pierna', is_active=True)
 
         resp = trainer_client.post('/api/plans/create-complete/', {
             'member': member_profile.id,
@@ -93,6 +95,7 @@ class TestTrainingPlans:
                     'exercise_type': 'strength',
                     'sets': 3,
                     'reps_range': '8-10',
+                    'machine': machine.id,
                     'rest_seconds': 90,
                     'order': 0,
                 }],
@@ -105,7 +108,13 @@ class TestTrainingPlans:
         assert resp.data['end_date'] == '2026-08-10'
         plan = TrainingPlan.objects.get(id=resp.data['id'])
         assert plan.workout_days.count() == 1
-        assert plan.workout_days.first().exercises.count() == 1
+        exercise = plan.workout_days.first().exercises.get()
+        assert exercise.machine_id == machine.id
+
+        day_resp = trainer_client.get(f'/api/workout-days/{plan.workout_days.first().id}/')
+        assert day_resp.status_code == status.HTTP_200_OK
+        assert day_resp.data['exercises'][0]['machine'] == machine.id
+        assert day_resp.data['exercises'][0]['machine_detail']['name'] == 'Prensa 45'
 
     def test_complete_plan_rejects_end_date_before_start_date(self, trainer_client, member_profile):
         resp = trainer_client.post('/api/plans/create-complete/', {

@@ -41,6 +41,7 @@ vi.mock('../hooks/usePlans', () => ({
     },
   }),
   useTrainingTemplatesQuery: () => ({ data: { results: [] } }),
+  useGymMachinesQuery: () => ({ data: { results: [] }, isLoading: false }),
   useCreateCompletePlanMutation: () => ({ mutate: vi.fn(), isPending: false }),
   useDuplicatePlanMutation: () => ({ mutate: vi.fn(), isPending: false }),
   useFinishPlanMutation: () => ({ mutate: vi.fn(), isPending: false }),

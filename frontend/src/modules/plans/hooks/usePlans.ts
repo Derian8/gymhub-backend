@@ -61,10 +61,11 @@ export function useWorkoutDayDetailQuery(dayId: number) {
   })
 }
 
-export function useGymMachinesQuery() {
+export function useGymMachinesQuery(enabled = true) {
   return useQuery({
     queryKey: QUERY_KEYS.GYM_MACHINES,
     queryFn: plansApi.gymMachines,
+    enabled,
   })
 }
 
