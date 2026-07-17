@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.utils import timezone
 from rest_framework import serializers
 from .models import (
@@ -122,15 +124,99 @@ class WorkoutDayBriefSerializer(serializers.ModelSerializer):
 
 class TrainingPlanSerializer(serializers.ModelSerializer):
     workout_days = WorkoutDayBriefSerializer(many=True, read_only=True)
+    member_name = serializers.SerializerMethodField()
+    member_email = serializers.EmailField(source='member.user.email', read_only=True)
+    member_photo = serializers.ImageField(source='member.photo', read_only=True)
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        start_date = attrs.get('start_date', getattr(self.instance, 'start_date', None))
+        end_date = attrs.get('end_date', getattr(self.instance, 'end_date', None))
+        weeks_duration = attrs.get('weeks_duration', getattr(self.instance, 'weeks_duration', None))
+        status = attrs.get('status', getattr(self.instance, 'status', None))
+        is_active = attrs.get('is_active', getattr(self.instance, 'is_active', None))
+
+        if start_date and weeks_duration and not end_date:
+            attrs['end_date'] = start_date + timedelta(weeks=weeks_duration)
+        if start_date and attrs.get('end_date') and attrs['end_date'] < start_date:
+            raise serializers.ValidationError({'end_date': 'La fecha final no puede ser anterior a la fecha inicial.'})
+        if status == 'active':
+            attrs['is_active'] = True
+        elif status in {'draft', 'scheduled', 'finished', 'archived'}:
+            attrs['is_active'] = False
+        if status and status != 'active' and is_active:
+            raise serializers.ValidationError({'is_active': 'Solo los planes activos pueden tener is_active=True.'})
+        return attrs
 
     class Meta:
         model = TrainingPlan
         fields = (
             'id', 'member', 'trainer', 'name', 'goal',
             'start_date', 'end_date', 'weeks_duration',
-            'days_per_week', 'is_active', 'workout_days'
+            'days_per_week', 'is_active', 'status', 'level', 'notes',
+            'archived_at', 'finished_at', 'workout_days',
+            'member_name', 'member_email', 'member_photo',
         )
-        read_only_fields = ('trainer',)
+        read_only_fields = ('trainer', 'archived_at', 'finished_at')
+
+    def get_member_name(self, obj):
+        return obj.member.user.get_full_name() or obj.member.user.email
+
+
+class NestedExerciseInputSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=200)
+    muscle_group = serializers.ChoiceField(choices=Exercise._meta.get_field('muscle_group').choices)
+    exercise_type = serializers.ChoiceField(choices=Exercise._meta.get_field('exercise_type').choices, default='strength')
+    sets = serializers.IntegerField(required=False, allow_null=True, min_value=1, max_value=20)
+    reps_range = serializers.CharField(required=False, allow_blank=True, max_length=10)
+    target_minutes = serializers.IntegerField(required=False, allow_null=True, min_value=1, max_value=600)
+    machine = serializers.IntegerField(required=False, allow_null=True)
+    weight_suggestion_kg = serializers.FloatField(required=False, allow_null=True, min_value=0)
+    rest_seconds = serializers.IntegerField(default=60, min_value=1, max_value=600)
+    technique_notes = serializers.CharField(required=False, allow_blank=True)
+    order = serializers.IntegerField(default=0, min_value=0)
+
+    def validate(self, attrs):
+        return ExerciseSerializer().validate(attrs)
+
+
+class NestedWorkoutDayInputSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=200)
+    day_label = serializers.ChoiceField(choices=WorkoutDay._meta.get_field('day_label').choices)
+    day_of_week = serializers.ChoiceField(choices=WorkoutDay._meta.get_field('day_of_week').choices)
+    order = serializers.IntegerField(default=0, min_value=0)
+    exercises = NestedExerciseInputSerializer(many=True, required=False)
+
+
+class CompleteTrainingPlanSerializer(serializers.Serializer):
+    member = serializers.IntegerField()
+    name = serializers.CharField(max_length=200)
+    goal = serializers.ChoiceField(choices=TrainingPlan._meta.get_field('goal').choices)
+    start_date = serializers.DateField()
+    end_date = serializers.DateField(required=False, allow_null=True)
+    weeks_duration = serializers.IntegerField(min_value=1, max_value=52, default=8)
+    days_per_week = serializers.IntegerField(min_value=1, max_value=7, default=3)
+    status = serializers.ChoiceField(choices=TrainingPlan._meta.get_field('status').choices, default='draft')
+    level = serializers.ChoiceField(choices=TrainingPlan._meta.get_field('level').choices, default='intermediate')
+    notes = serializers.CharField(required=False, allow_blank=True)
+    conflict_strategy = serializers.ChoiceField(
+        choices=('keep', 'replace_active', 'schedule_after_active'),
+        default='keep',
+    )
+    days = NestedWorkoutDayInputSerializer(many=True, required=False)
+
+    def validate(self, attrs):
+        start_date = attrs['start_date']
+        weeks_duration = attrs.get('weeks_duration') or 8
+        end_date = attrs.get('end_date') or start_date + timedelta(weeks=weeks_duration)
+        if end_date < start_date:
+            raise serializers.ValidationError({'end_date': 'La fecha final no puede ser anterior a la fecha inicial.'})
+        attrs['end_date'] = end_date
+
+        day_weekdays = [day['day_of_week'] for day in attrs.get('days', [])]
+        if len(day_weekdays) != len(set(day_weekdays)):
+            raise serializers.ValidationError({'days': 'No puedes repetir el mismo día real de la semana dentro del plan.'})
+        return attrs
 
 
 class TodayWorkoutSerializer(serializers.ModelSerializer):

@@ -1,21 +1,51 @@
 import { Link, useSearchParams } from 'react-router-dom'
-import { Dumbbell, ChevronRight, Calendar, NotebookTabs, Target, UserRound } from 'lucide-react'
-import { usePlansQuery } from '../hooks/usePlans'
+import { useMemo, useState } from 'react'
+import { Dumbbell, ChevronRight, Calendar, NotebookTabs, Target, UserRound, Plus, Archive, Copy, CheckCircle } from 'lucide-react'
+import { useArchivePlanMutation, useDuplicatePlanMutation, useFinishPlanMutation, usePlansQuery, usePlansSummaryQuery } from '../hooks/usePlans'
 import { useMemberActivePrescriptionQuery, useMemberDashboardQuery } from '@/modules/members/hooks/useMembers'
-import { Badge, PageHeader, EmptyState } from '@/shared/components/UI'
+import { Badge, PageHeader, EmptyState, StatCard } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
 import { DAY_OF_WEEK_LABELS, formatDate, GOAL_LABELS } from '@/shared/lib/utils'
 import { useAuthStore } from '@/shared/store/authStore'
 import { SymbolFrame } from '@/shared/components/Brand'
-import type { ActivePrescription, MemberDashboardSummary, TrainingPlan } from '@/shared/types'
+import { TrainingPlanWizard } from '../components/TrainingPlanWizard'
+import type { ActivePrescription, MemberDashboardSummary, TrainingPlan, TrainingPlanStatus } from '@/shared/types'
+
+const PLAN_STATUS_LABELS: Record<TrainingPlanStatus | 'all' | 'templates', string> = {
+  all: 'Todos',
+  active: 'Activo',
+  draft: 'Borrador',
+  scheduled: 'Programado',
+  finished: 'Finalizado',
+  archived: 'Archivado',
+  templates: 'Plantillas',
+}
+
+const PLAN_STATUS_VARIANT: Record<string, 'success' | 'warning' | 'info' | 'neutral'> = {
+  active: 'success',
+  draft: 'warning',
+  scheduled: 'info',
+  finished: 'neutral',
+  archived: 'neutral',
+}
 
 export function PlansPage() {
   const [searchParams] = useSearchParams()
   const memberId = searchParams.get('member')
   const { user } = useAuthStore()
+  const [wizardOpen, setWizardOpen] = useState(false)
+  const [statusFilter, setStatusFilter] = useState<TrainingPlanStatus | 'all'>('all')
+  const [search, setSearch] = useState('')
   const isMemberView = user?.role === 'member' && !memberId
-  const filtros = memberId ? { member: memberId } : undefined
+  const filtros = useMemo(() => {
+    const params: Record<string, string> = {}
+    if (memberId) params.member = memberId
+    if (statusFilter !== 'all') params.status = statusFilter
+    if (search.trim()) params.search = search.trim()
+    return Object.keys(params).length ? params : undefined
+  }, [memberId, search, statusFilter])
   const { data, isLoading } = usePlansQuery(filtros)
+  const { data: summary } = usePlansSummaryQuery(!isMemberView)
   const memberProfileId = isMemberView ? user?.memberprofile_id || 0 : 0
   const { data: activePrescription } = useMemberActivePrescriptionQuery(memberProfileId)
   const { data: dashboardSummary } = useMemberDashboardQuery(memberProfileId)
@@ -164,9 +194,46 @@ export function PlansPage() {
   return (
     <div data-testid="plans-page" className="page-enter">
       <PageHeader
-        title={memberId ? 'Planes Del Miembro' : 'Planes de Entrenamiento'}
-        subtitle={memberId ? `Mostrando ${data?.count || 0} plan(es) del miembro seleccionado` : `${data?.count || 0} planes`}
+        title={memberId ? 'Planes del miembro' : 'Planes de entrenamiento'}
+        subtitle={memberId ? `Mostrando ${data?.count || 0} plan(es) del miembro seleccionado` : 'Crea, asigna y administra las rutinas de tus miembros desde un solo lugar.'}
+        action={user?.role === 'trainer' || user?.is_staff ? (
+          <button type="button" className="btn-primary" onClick={() => setWizardOpen(true)} data-testid="open-create-plan-wizard">
+            <Plus size={16} /> Crear plan
+          </button>
+        ) : null}
       />
+
+      {!memberId && (
+        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <StatCard label="Planes activos" value={summary?.active ?? 0} icon={<Dumbbell size={18} />} variant="success" />
+          <StatCard label="Planes en borrador" value={summary?.draft ?? 0} icon={<NotebookTabs size={18} />} variant="warning" />
+          <StatCard label="Próximos a finalizar" value={summary?.ending_soon ?? 0} icon={<Calendar size={18} />} variant="info" />
+          <StatCard label="Miembros sin plan activo" value={summary?.members_without_active_plan ?? 0} icon={<UserRound size={18} />} variant="danger" />
+        </div>
+      )}
+
+      {!memberId && (summary?.members_without_active_plan ?? 0) > 0 ? (
+        <div className="mb-6 rounded-sm border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100">
+          Hay {summary?.members_without_active_plan} miembros que todavía no tienen un plan activo.
+        </div>
+      ) : null}
+
+      {!memberId && (
+        <section className="mb-6 grid grid-cols-1 gap-3 rounded-sm border border-neutral-200 p-4 md:grid-cols-[220px_minmax(0,1fr)] dark:border-neutral-800">
+          <label className="space-y-1 text-sm">
+            <span className="font-medium text-neutral-700 dark:text-neutral-300">Estado</span>
+            <select className="input" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as TrainingPlanStatus | 'all')} data-testid="plans-status-filter">
+              {(['all', 'active', 'draft', 'scheduled', 'finished', 'archived'] as Array<TrainingPlanStatus | 'all'>).map((status) => (
+                <option key={status} value={status}>{PLAN_STATUS_LABELS[status]}</option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-1 text-sm">
+            <span className="font-medium text-neutral-700 dark:text-neutral-300">Buscar por miembro, correo, plan u objetivo</span>
+            <input className="input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar..." data-testid="plans-search-input" />
+          </label>
+        </section>
+      )}
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -175,8 +242,11 @@ export function PlansPage() {
       ) : !data?.results.length ? (
         <EmptyState
           icon={<Dumbbell size={48} />}
-          title="Sin planes de entrenamiento"
-          description="No hay planes disponibles en este momento."
+          title={search || statusFilter !== 'all' ? 'No encontramos planes con estos filtros.' : 'No hay planes de entrenamiento todavía.'}
+          description={search || statusFilter !== 'all' ? 'Ajusta la búsqueda o cambia el filtro de estado.' : 'Crea el primer plan para asignar una rutina clara a un miembro.'}
+          action={user?.role === 'trainer' || user?.is_staff ? (
+            <button type="button" className="btn-primary" onClick={() => setWizardOpen(true)}>Crear primer plan</button>
+          ) : null}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -185,6 +255,8 @@ export function PlansPage() {
           ))}
         </div>
       )}
+
+      <TrainingPlanWizard open={wizardOpen} onClose={() => setWizardOpen(false)} />
     </div>
   )
 }
@@ -263,34 +335,53 @@ function ProgramSidebar({
 }
 
 function PlanCard({ plan }: { plan: TrainingPlan }) {
+  const duplicatePlan = useDuplicatePlanMutation()
+  const finishPlan = useFinishPlanMutation()
+  const archivePlan = useArchivePlanMutation()
+  const status = (plan.status || (plan.is_active ? 'active' : 'finished')) as TrainingPlanStatus
+
   return (
-    <Link
-      to={`/plans/${plan.id}`}
+    <div
       data-testid={`plan-card-${plan.id}`}
-      className="card p-6 hover:border-primary/50 transition-all duration-300 hover:-translate-y-0.5 block group"
+      className="card p-6 transition-all duration-300"
     >
       <div className="flex items-start justify-between mb-3">
         <div className="p-2 bg-primary/10 text-primary rounded-sm">
           <Dumbbell size={20} />
         </div>
-        {plan.is_active ? (
-          <Badge variant="success">Activo</Badge>
-        ) : (
-          <Badge variant="neutral">Inactivo</Badge>
-        )}
+        <Badge variant={PLAN_STATUS_VARIANT[status] ?? 'neutral'}>{PLAN_STATUS_LABELS[status]}</Badge>
       </div>
-      <h3 className="font-heading font-bold text-lg text-neutral-900 dark:text-white mb-1 group-hover:text-primary transition-colors">
+      <h3 className="font-heading font-bold text-lg text-neutral-900 dark:text-white mb-1">
         {plan.name}
       </h3>
+      <p className="mb-2 text-sm text-neutral-500">{plan.member_name || 'Miembro asignado'}{plan.member_email ? ` · ${plan.member_email}` : ''}</p>
       <Badge variant="info" className="mb-3">{GOAL_LABELS[plan.goal] || plan.goal}</Badge>
       <div className="space-y-1 text-xs text-neutral-500 dark:text-neutral-400">
         <p>{plan.days_per_week} días/semana · {plan.weeks_duration} semanas</p>
         <p>Inicio: {formatDate(plan.start_date)}</p>
         {plan.end_date && <p>Fin: {formatDate(plan.end_date)}</p>}
+        {plan.workout_days?.length ? <p>{plan.workout_days.length} día(s) configurados</p> : null}
       </div>
-      <div className="flex items-center justify-end mt-4 text-primary text-sm font-medium group-hover:gap-2 gap-1 transition-all">
-        Ver plan <ChevronRight size={14} />
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+        <Link to={`/plans/${plan.id}`} className="btn-secondary text-sm">
+          Ver plan <ChevronRight size={14} />
+        </Link>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className="btn-secondary text-sm" onClick={() => duplicatePlan.mutate({ id: plan.id })} disabled={duplicatePlan.isPending}>
+            <Copy size={14} /> Duplicar
+          </button>
+          {status === 'active' ? (
+            <button type="button" className="btn-secondary text-sm" onClick={() => finishPlan.mutate({ id: plan.id })} disabled={finishPlan.isPending}>
+              <CheckCircle size={14} /> Finalizar
+            </button>
+          ) : null}
+          {status !== 'archived' ? (
+            <button type="button" className="btn-secondary text-sm" onClick={() => archivePlan.mutate({ id: plan.id })} disabled={archivePlan.isPending}>
+              <Archive size={14} /> Archivar
+            </button>
+          ) : null}
+        </div>
       </div>
-    </Link>
+    </div>
   )
 }

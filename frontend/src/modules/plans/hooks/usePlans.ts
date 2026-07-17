@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 import { plansApi } from '../api/plansApi'
 import { QUERY_KEYS } from '@/shared/constants/queryKeys'
 import { extractApiError } from '@/shared/lib/utils'
-import type { CompleteWorkoutSessionPayload } from '@/shared/types'
+import type { CompleteTrainingPlanPayload, CompleteWorkoutSessionPayload } from '@/shared/types'
 import type { ExercisePayload, TrainingPlanPayload, TrainingTemplateUpdatePayload, WorkoutDayPayload } from '@/shared/types'
 
 export function usePlansQuery(params?: Record<string, string>) {
@@ -34,6 +34,14 @@ export function useWeeklyPlanQuery(planId: number) {
     queryKey: QUERY_KEYS.PLAN_WEEKLY(planId),
     queryFn: () => plansApi.weeklyView(planId),
     enabled: !!planId,
+  })
+}
+
+export function usePlansSummaryQuery(enabled = true) {
+  return useQuery({
+    queryKey: QUERY_KEYS.PLANS_SUMMARY,
+    queryFn: plansApi.summary,
+    enabled,
   })
 }
 
@@ -82,6 +90,24 @@ export function useCreatePlanMutation() {
   })
 }
 
+export function useCreateCompletePlanMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (payload: CompleteTrainingPlanPayload) => plansApi.createCompletePlan(payload),
+    onSuccess: (plan) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLANS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLANS_SUMMARY })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_PROGRAM(plan.member) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_ACTIVE_PRESCRIPTION(plan.member) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TRAINER_OVERVIEW })
+      toast.success(plan.status === 'draft' ? 'Plan guardado como borrador' : 'Plan creado correctamente')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
 export function useUpdatePlanMutation() {
   const queryClient = useQueryClient()
 
@@ -112,6 +138,54 @@ export function useDeletePlanMutation() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERS })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TRAINER_OVERVIEW })
       toast.success('Plan y contenido eliminados')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useDuplicatePlanMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload?: { name?: string; status?: string; start_date?: string } }) =>
+      plansApi.duplicatePlan(id, payload),
+    onSuccess: (plan) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLANS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLANS_SUMMARY })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_PROGRAM(plan.member) })
+      toast.success('Plan duplicado como copia independiente')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useFinishPlanMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id }: { id: number }) => plansApi.finishPlan(id),
+    onSuccess: (plan) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLANS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLANS_SUMMARY })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_DETAIL(plan.id) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_ACTIVE_PRESCRIPTION(plan.member) })
+      toast.success('Plan finalizado')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useArchivePlanMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id }: { id: number }) => plansApi.archivePlan(id),
+    onSuccess: (plan) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLANS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLANS_SUMMARY })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_DETAIL(plan.id) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_ACTIVE_PRESCRIPTION(plan.member) })
+      toast.success('Plan archivado')
     },
     onError: (error) => toast.error(extractApiError(error)),
   })

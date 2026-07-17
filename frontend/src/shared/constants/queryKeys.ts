@@ -18,6 +18,7 @@ export const QUERY_KEYS = {
   // Plans
   PLANS: ['plans'] as const,
   PLANS_LIST: (params?: Record<string, string>) => ['plans', 'list', params] as const,
+  PLANS_SUMMARY: ['plans', 'summary'] as const,
   PLAN_DETAIL: (id: number) => ['plans', id] as const,
   PLAN_TODAY: (id: number) => ['plans', id, 'today'] as const,
   PLAN_WEEKLY: (id: number) => ['plans', id, 'weekly'] as const,

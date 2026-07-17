@@ -36,6 +36,7 @@ import {
   useUpdatePlanMutation,
   useWorkoutDaysByPlanQuery,
 } from '@/modules/plans/hooks/usePlans'
+import { TrainingPlanWizard } from '@/modules/plans/components/TrainingPlanWizard'
 import {
   useApplyNutritionTemplateMutation,
   useCreateNutritionProfileMutation,
@@ -347,6 +348,7 @@ export function TrainerProgramPage() {
   const [lastPublication, setLastPublication] = useState(() => leerPublicacionPrescripcion(memberId))
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
   const [refreshTemplateId, setRefreshTemplateId] = useState<number | null>(null)
+  const [createPlanWizardOpen, setCreatePlanWizardOpen] = useState(false)
 
   const createPlan = useCreatePlanMutation()
   const updatePlan = useUpdatePlanMutation()
@@ -1057,9 +1059,14 @@ export function TrainerProgramPage() {
         title={`Asignacion para ${member.full_name}`}
         subtitle="Aqui defines y publicas el entrenamiento y la nutricion especifica que el member vera como su prescripcion activa."
         action={
-          <Badge variant={activePrescription?.estado_prescripcion.esta_lista_para_member ? 'success' : 'warning'}>
-            {activePrescription?.estado_prescripcion.esta_lista_para_member ? 'Lista para member' : activePlan ? 'Prescripcion incompleta' : 'Sin plan de entrenamiento'}
-          </Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={activePrescription?.estado_prescripcion.esta_lista_para_member ? 'success' : 'warning'}>
+              {activePrescription?.estado_prescripcion.esta_lista_para_member ? 'Lista para member' : activePlan ? 'Prescripcion incompleta' : 'Sin plan de entrenamiento'}
+            </Badge>
+            <button type="button" className="btn-primary" onClick={() => setCreatePlanWizardOpen(true)} data-testid="open-member-create-plan-wizard">
+              Crear plan
+            </button>
+          </div>
         }
       />
 
@@ -2294,6 +2301,12 @@ export function TrainerProgramPage() {
         onCancel={() => setDeleteTarget(null)}
         onConfirm={handleConfirmDelete}
         data-testid="delete-confirm-dialog"
+      />
+
+      <TrainingPlanWizard
+        open={createPlanWizardOpen}
+        onClose={() => setCreatePlanWizardOpen(false)}
+        preselectedMember={member}
       />
     </div>
   )

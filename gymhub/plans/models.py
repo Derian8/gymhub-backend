@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.core.validators import (
@@ -48,6 +50,21 @@ EXERCISE_TYPE_CHOICES = [
     ('timed', 'Timed'),
 ]
 
+PLAN_STATUS_CHOICES = [
+    ('draft', 'Borrador'),
+    ('active', 'Activo'),
+    ('scheduled', 'Programado'),
+    ('finished', 'Finalizado'),
+    ('archived', 'Archivado'),
+]
+
+PLAN_LEVEL_CHOICES = [
+    ('beginner', 'Principiante'),
+    ('intermediate', 'Intermedio'),
+    ('advanced', 'Avanzado'),
+    ('custom', 'Personalizado'),
+]
+
 
 class TrainingPlan(models.Model):
     member = models.ForeignKey(
@@ -70,9 +87,36 @@ class TrainingPlan(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(7)]
     )
     is_active = models.BooleanField(default=True)
+    status = models.CharField(max_length=20, choices=PLAN_STATUS_CHOICES, default='active')
+    level = models.CharField(max_length=20, choices=PLAN_LEVEL_CHOICES, default='intermediate')
+    notes = models.TextField(blank=True)
+    archived_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ['-start_date']
+        indexes = [
+            models.Index(fields=['member', 'status'], name='plans_train_member_status_idx'),
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.end_date and self.start_date and self.end_date < self.start_date:
+            raise ValidationError({'end_date': 'La fecha final no puede ser anterior a la fecha inicial.'})
+        if self.status == 'active' and not self.is_active:
+            raise ValidationError({'is_active': 'Un plan activo debe tener is_active=True.'})
+        if self.is_active and self.status != 'active':
+            raise ValidationError({'status': 'Solo los planes con estado activo pueden tener is_active=True.'})
+
+    def save(self, *args, **kwargs):
+        if not self.end_date and self.start_date and self.weeks_duration:
+            self.end_date = self.start_date + timedelta(weeks=self.weeks_duration)
+        if self.status == 'active':
+            self.is_active = True
+        elif self.status in {'draft', 'scheduled', 'finished', 'archived'}:
+            self.is_active = False
+        self.full_clean()
+        return super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.name} ({self.member})"

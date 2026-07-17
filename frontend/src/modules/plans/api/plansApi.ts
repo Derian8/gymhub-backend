@@ -16,6 +16,8 @@ import type {
   WorkoutDayPayload,
   ExercisePayload,
   TrainingTemplate,
+  CompleteTrainingPlanPayload,
+  TrainingPlansSummary,
 } from '@/shared/types'
 
 export const plansApi = {
@@ -26,6 +28,11 @@ export const plansApi = {
 
   detail: async (id: number): Promise<TrainingPlan> => {
     const { data } = await apiClient.get(`/api/plans/${id}/`)
+    return data
+  },
+
+  summary: async (): Promise<TrainingPlansSummary> => {
+    const { data } = await apiClient.get('/api/plans/summary/')
     return data
   },
 
@@ -69,6 +76,11 @@ export const plansApi = {
     return data
   },
 
+  createCompletePlan: async (payload: CompleteTrainingPlanPayload): Promise<TrainingPlan> => {
+    const { data } = await apiClient.post('/api/plans/create-complete/', payload)
+    return data
+  },
+
   updatePlan: async (id: number, payload: Partial<TrainingPlanPayload>): Promise<TrainingPlan> => {
     const { data } = await apiClient.patch(`/api/plans/${id}/`, payload)
     return data
@@ -76,6 +88,21 @@ export const plansApi = {
 
   deletePlan: async (id: number): Promise<void> => {
     await apiClient.delete(`/api/plans/${id}/`)
+  },
+
+  duplicatePlan: async (id: number, payload?: { name?: string; status?: string; start_date?: string }): Promise<TrainingPlan> => {
+    const { data } = await apiClient.post(`/api/plans/${id}/duplicate/`, payload ?? {})
+    return data
+  },
+
+  finishPlan: async (id: number): Promise<TrainingPlan> => {
+    const { data } = await apiClient.post(`/api/plans/${id}/finish/`)
+    return data
+  },
+
+  archivePlan: async (id: number): Promise<TrainingPlan> => {
+    const { data } = await apiClient.post(`/api/plans/${id}/archive/`)
+    return data
   },
 
   createWorkoutDay: async (payload: WorkoutDayPayload): Promise<WorkoutDay> => {

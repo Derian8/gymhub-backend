@@ -266,6 +266,10 @@ vi.mock('react-router-dom', async () => {
 })
 
 vi.mock('../hooks/useMembers', () => ({
+  useMembersQuery: () => ({
+    data: { count: 1, results: [memberData] },
+    isLoading: false,
+  }),
   useMemberDetailQuery: () => ({
     data: memberData,
     isLoading: false,
@@ -309,6 +313,7 @@ vi.mock('@/modules/plans/hooks/usePlans', () => ({
   useTrainingTemplatesQuery: () => ({
     data: trainingTemplatesResponse,
   }),
+  useCreateCompletePlanMutation: () => ({ mutate: vi.fn(), isPending: false, isSuccess: false }),
   useCreatePlanMutation: () => ({ mutate: vi.fn(), isPending: false, isSuccess: false }),
   useUpdatePlanMutation: () => ({ mutate: vi.fn(), isPending: false, isSuccess: true }),
   useDeletePlanMutation: () => ({ mutate: deletePlanMutate, isPending: false, isSuccess: false }),
@@ -326,6 +331,9 @@ vi.mock('@/modules/plans/hooks/usePlans', () => ({
   useUpdateTrainingTemplateMutation: () => ({ mutate: updateTrainingTemplateMutate, isPending: false, isSuccess: false }),
   useDeleteTrainingTemplateMutation: () => ({ mutate: deleteTrainingTemplateMutate, isPending: false, isSuccess: false }),
   useRefreshTrainingTemplateMutation: () => ({ mutate: refreshTrainingTemplateMutate, isPending: false, isSuccess: false }),
+  useDuplicatePlanMutation: () => ({ mutate: vi.fn(), isPending: false }),
+  useFinishPlanMutation: () => ({ mutate: vi.fn(), isPending: false }),
+  useArchivePlanMutation: () => ({ mutate: vi.fn(), isPending: false }),
 }))
 
 vi.mock('@/modules/nutrition/hooks/useNutrition', () => ({

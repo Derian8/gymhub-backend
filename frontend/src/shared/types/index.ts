@@ -441,6 +441,9 @@ export interface TrainingPlan {
   id: number
   member: number
   trainer: number
+  member_name?: string
+  member_email?: string
+  member_photo?: string | null
   name: string
   goal: GoalType
   start_date: string
@@ -448,8 +451,16 @@ export interface TrainingPlan {
   weeks_duration: number
   days_per_week: number
   is_active: boolean
+  status?: TrainingPlanStatus
+  level?: TrainingPlanLevel
+  notes?: string
+  archived_at?: string | null
+  finished_at?: string | null
   workout_days?: WorkoutDay[]
 }
+
+export type TrainingPlanStatus = 'draft' | 'active' | 'scheduled' | 'finished' | 'archived'
+export type TrainingPlanLevel = 'beginner' | 'intermediate' | 'advanced' | 'custom'
 
 export interface PrescriptionSummary {
   situacion_prescriptiva: string
@@ -546,6 +557,37 @@ export interface TrainingPlanPayload {
   weeks_duration: number
   days_per_week: number
   is_active: boolean
+  status?: TrainingPlanStatus
+  level?: TrainingPlanLevel
+  notes?: string
+}
+
+export interface CompleteTrainingPlanPayload {
+  member: number
+  name: string
+  goal: GoalType
+  start_date: string
+  end_date?: string | null
+  weeks_duration: number
+  days_per_week: number
+  status: TrainingPlanStatus
+  level: TrainingPlanLevel
+  notes?: string
+  conflict_strategy: 'keep' | 'replace_active' | 'schedule_after_active'
+  days: Array<{
+    name: string
+    day_label: DayLabel
+    day_of_week: DayOfWeek
+    order: number
+    exercises: Array<Omit<ExercisePayload, 'workout_day'>>
+  }>
+}
+
+export interface TrainingPlansSummary {
+  active: number
+  draft: number
+  ending_soon: number
+  members_without_active_plan: number
 }
 
 export interface WorkoutDayPayload {

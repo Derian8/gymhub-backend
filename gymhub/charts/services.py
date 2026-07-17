@@ -195,7 +195,7 @@ def build_member_charts(member):
             started_at__date__gte=current_week_start,
         ).values_list('workout_day__day_label', flat=True)
     )
-    active_plan = member.plans.filter(is_active=True).prefetch_related('workout_days').first()
+    active_plan = member.plans.filter(status='active').prefetch_related('workout_days').first()
     if active_plan:
         for day in active_plan.workout_days.order_by('order'):
             plan_completion.append({

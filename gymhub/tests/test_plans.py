@@ -69,6 +69,200 @@ class TestTrainingPlans:
         assert resp.status_code == status.HTTP_201_CREATED
         assert resp.data['goal'] == 'maintenance'
 
+    def test_trainer_can_create_complete_draft_plan_from_general_screen(self, trainer_client, member_profile):
+        from plans.models import TrainingPlan
+
+        resp = trainer_client.post('/api/plans/create-complete/', {
+            'member': member_profile.id,
+            'name': 'Base fuerza general',
+            'goal': 'muscle_gain',
+            'start_date': '2026-07-13',
+            'weeks_duration': 4,
+            'days_per_week': 3,
+            'status': 'draft',
+            'level': 'intermediate',
+            'conflict_strategy': 'keep',
+            'days': [{
+                'name': 'Torso',
+                'day_label': 'A',
+                'day_of_week': 'mon',
+                'order': 0,
+                'exercises': [{
+                    'name': 'Press banca',
+                    'muscle_group': 'chest',
+                    'exercise_type': 'strength',
+                    'sets': 3,
+                    'reps_range': '8-10',
+                    'rest_seconds': 90,
+                    'order': 0,
+                }],
+            }],
+        }, format='json')
+
+        assert resp.status_code == status.HTTP_201_CREATED
+        assert resp.data['status'] == 'draft'
+        assert resp.data['is_active'] is False
+        assert resp.data['end_date'] == '2026-08-10'
+        plan = TrainingPlan.objects.get(id=resp.data['id'])
+        assert plan.workout_days.count() == 1
+        assert plan.workout_days.first().exercises.count() == 1
+
+    def test_complete_plan_rejects_end_date_before_start_date(self, trainer_client, member_profile):
+        resp = trainer_client.post('/api/plans/create-complete/', {
+            'member': member_profile.id,
+            'name': 'Fechas malas',
+            'goal': 'general',
+            'start_date': '2026-07-13',
+            'end_date': '2026-06-27',
+            'weeks_duration': 4,
+            'days_per_week': 3,
+            'status': 'draft',
+            'level': 'intermediate',
+            'conflict_strategy': 'keep',
+            'days': [],
+        }, format='json')
+
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'end_date' in resp.data
+
+    def test_complete_active_plan_requires_conflict_strategy_when_member_has_active_plan(self, trainer_client, training_plan):
+        resp = trainer_client.post('/api/plans/create-complete/', {
+            'member': training_plan.member_id,
+            'name': 'Nuevo activo',
+            'goal': 'general',
+            'start_date': '2026-07-13',
+            'weeks_duration': 4,
+            'days_per_week': 3,
+            'status': 'active',
+            'level': 'intermediate',
+            'conflict_strategy': 'keep',
+            'days': [],
+        }, format='json')
+
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'member' in resp.data
+
+    def test_complete_plan_replace_active_finishes_previous_plan(self, trainer_client, training_plan):
+        from plans.models import TrainingPlan
+
+        resp = trainer_client.post('/api/plans/create-complete/', {
+            'member': training_plan.member_id,
+            'name': 'Reemplazo activo',
+            'goal': 'general',
+            'start_date': '2026-07-13',
+            'weeks_duration': 4,
+            'days_per_week': 3,
+            'status': 'active',
+            'level': 'intermediate',
+            'conflict_strategy': 'replace_active',
+            'days': [],
+        }, format='json')
+
+        assert resp.status_code == status.HTTP_201_CREATED
+        training_plan.refresh_from_db()
+        assert training_plan.status == 'finished'
+        assert training_plan.is_active is False
+        assert TrainingPlan.objects.get(id=resp.data['id']).is_active is True
+
+    def test_complete_plan_is_atomic_when_nested_exercise_invalid(self, trainer_client, member_profile):
+        from plans.models import TrainingPlan
+
+        before = TrainingPlan.objects.count()
+        resp = trainer_client.post('/api/plans/create-complete/', {
+            'member': member_profile.id,
+            'name': 'Debe fallar',
+            'goal': 'general',
+            'start_date': '2026-07-13',
+            'weeks_duration': 4,
+            'days_per_week': 3,
+            'status': 'draft',
+            'level': 'intermediate',
+            'conflict_strategy': 'keep',
+            'days': [{
+                'name': 'Torso',
+                'day_label': 'A',
+                'day_of_week': 'mon',
+                'order': 0,
+                'exercises': [{
+                    'name': 'Press banca',
+                    'muscle_group': 'chest',
+                    'exercise_type': 'strength',
+                    'sets': 3,
+                    'reps_range': '',
+                    'rest_seconds': 90,
+                    'order': 0,
+                }],
+            }],
+        }, format='json')
+
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert TrainingPlan.objects.count() == before
+
+    def test_trainer_cannot_create_complete_plan_for_unassigned_member(self, trainer_client, membership_plan):
+        from django.contrib.auth import get_user_model
+        from users.models import MemberProfile
+
+        user = get_user_model().objects.create_user(
+            username='other_member_plan',
+            email='other-member-plan@test.com',
+            password='member123!',
+            role='member',
+        )
+        other_member = MemberProfile.objects.get(user=user)
+        other_member.membership_plan = membership_plan
+        other_member.trainer_asignado = None
+        other_member.save(update_fields=['membership_plan', 'trainer_asignado'])
+
+        resp = trainer_client.post('/api/plans/create-complete/', {
+            'member': other_member.id,
+            'name': 'No permitido',
+            'goal': 'general',
+            'start_date': '2026-07-13',
+            'weeks_duration': 4,
+            'days_per_week': 3,
+            'status': 'draft',
+            'level': 'intermediate',
+            'conflict_strategy': 'keep',
+            'days': [],
+        }, format='json')
+
+        assert resp.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_trainer_can_duplicate_finish_and_archive_plan(self, trainer_client, training_plan):
+        duplicate = trainer_client.post(f'/api/plans/{training_plan.id}/duplicate/', {}, format='json')
+        assert duplicate.status_code == status.HTTP_201_CREATED
+        assert duplicate.data['status'] == 'draft'
+
+        finish = trainer_client.post(f'/api/plans/{training_plan.id}/finish/')
+        assert finish.status_code == status.HTTP_200_OK
+        assert finish.data['status'] == 'finished'
+        assert finish.data['is_active'] is False
+
+        archive = trainer_client.post(f"/api/plans/{duplicate.data['id']}/archive/")
+        assert archive.status_code == status.HTTP_200_OK
+        assert archive.data['status'] == 'archived'
+
+    def test_plans_summary_returns_real_counts(self, trainer_client, training_plan, member_profile, trainer_profile):
+        from plans.models import TrainingPlan
+
+        TrainingPlan.objects.create(
+            member=member_profile,
+            trainer=trainer_profile,
+            name='Borrador',
+            goal='general',
+            start_date=date.today(),
+            weeks_duration=2,
+            days_per_week=2,
+            status='draft',
+        )
+
+        resp = trainer_client.get('/api/plans/summary/')
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert resp.data['active'] >= 1
+        assert resp.data['draft'] >= 1
+        assert 'members_without_active_plan' in resp.data
+
 
 @pytest.mark.django_db
 class TestTodayWorkout:

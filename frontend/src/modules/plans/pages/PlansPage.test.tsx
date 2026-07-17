@@ -1,4 +1,5 @@
 import { renderWithProviders } from '@/test/utils'
+import { within } from '@testing-library/react'
 import { PlansPage } from './PlansPage'
 import { useAuthStore } from '@/shared/store/authStore'
 
@@ -31,9 +32,26 @@ vi.mock('../hooks/usePlans', () => ({
     },
     isLoading: false,
   }),
+  usePlansSummaryQuery: () => ({
+    data: {
+      active: 1,
+      draft: 1,
+      ending_soon: 1,
+      members_without_active_plan: 2,
+    },
+  }),
+  useTrainingTemplatesQuery: () => ({ data: { results: [] } }),
+  useCreateCompletePlanMutation: () => ({ mutate: vi.fn(), isPending: false }),
+  useDuplicatePlanMutation: () => ({ mutate: vi.fn(), isPending: false }),
+  useFinishPlanMutation: () => ({ mutate: vi.fn(), isPending: false }),
+  useArchivePlanMutation: () => ({ mutate: vi.fn(), isPending: false }),
 }))
 
 vi.mock('@/modules/members/hooks/useMembers', () => ({
+  useMembersQuery: () => ({
+    data: { count: 0, results: [] },
+    isLoading: false,
+  }),
   useMemberActivePrescriptionQuery: () => ({
     data: {
       trainer: {
@@ -125,15 +143,15 @@ describe('PlansPage', () => {
     expect(getByTestId('plans-page')).toBeInTheDocument()
     expect(getByText('Hipertrofia base')).toBeInTheDocument()
     expect(getByText('Definicion avanzada')).toBeInTheDocument()
-    expect(getByTestId('plan-card-12')).toHaveAttribute('href', '/plans/12')
-    expect(getByTestId('plan-card-13')).toHaveAttribute('href', '/plans/13')
+    expect(within(getByTestId('plan-card-12')).getByText('Ver plan')).toHaveAttribute('href', '/plans/12')
+    expect(within(getByTestId('plan-card-13')).getByText('Ver plan')).toHaveAttribute('href', '/plans/13')
   })
 
   it('shows member-specific header when member filter is present', () => {
     const { getAllByTestId } = renderWithProviders(<PlansPage />, { route: '/plans?member=15' })
     const page = getAllByTestId('plans-page')[0]
 
-    expect(page).toHaveTextContent('Planes Del Miembro')
+    expect(page).toHaveTextContent('Planes del miembro')
     expect(page).toHaveTextContent('Mostrando 2 plan(es) del miembro seleccionado')
   })
 

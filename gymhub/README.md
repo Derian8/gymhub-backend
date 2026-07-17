@@ -55,6 +55,11 @@ docker compose exec backend python manage.py createsuperuser
 | GET | `/api/members/{id}/dashboard-summary/` | Dashboard del miembro |
 | POST | `/api/members/{id}/activate/` | Activar miembro |
 | GET | `/api/trainer/gym-overview/` | Resumen del gimnasio |
+| GET | `/api/plans/summary/` | Métricas reales de planes para trainer |
+| POST | `/api/plans/create-complete/` | Crear plan completo con miembro, días y ejercicios |
+| POST | `/api/plans/{id}/duplicate/` | Duplicar plan como copia independiente |
+| POST | `/api/plans/{id}/finish/` | Finalizar plan |
+| POST | `/api/plans/{id}/archive/` | Archivar plan |
 | GET | `/api/plans/{id}/today-workout/` | Entrenamiento de hoy |
 | GET | `/api/plans/{id}/weekly-view/` | Vista semanal |
 | POST | `/api/workout-sessions/` | Crear sesión |

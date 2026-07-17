@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from rest_framework import viewsets, status
@@ -15,9 +16,11 @@ from .models import (
 from .serializers import (
     TrainingPlanSerializer, WorkoutDaySerializer,
     ExerciseSerializer, TodayWorkoutSerializer, PlantillaEntrenamientoSerializer,
+    CompleteTrainingPlanSerializer,
     GymMachineSerializer,
 )
 from users.permissions import IsTrainer
+from users.models import MemberProfile
 from users.views import _get_trainer_profile
 
 
@@ -31,19 +34,58 @@ def get_today_workout_day(plan):
 
 class TrainingPlanViewSet(viewsets.ModelViewSet):
     serializer_class = TrainingPlanSerializer
+    lookup_value_regex = r'\d+'
 
     def get_queryset(self):
         user = self.request.user
         member_id = self.request.query_params.get('member')
+        status_filter = self.request.query_params.get('status')
+        goal_filter = self.request.query_params.get('goal')
+        search = (self.request.query_params.get('search') or '').strip()
         if user.role == 'member' and not user.is_staff:
             return TrainingPlan.objects.filter(member__user=user)
-        queryset = TrainingPlan.objects.select_related('member__user', 'trainer__user').all()
+        queryset = TrainingPlan.objects.select_related('member__user', 'trainer__user').prefetch_related('workout_days').all()
         if user.role == 'trainer' and not user.is_staff:
             trainer_profile = _get_trainer_profile(user)
             queryset = queryset.filter(member__trainer_asignado=trainer_profile)
         if member_id:
             queryset = queryset.filter(member_id=member_id)
+        if status_filter and status_filter != 'all':
+            queryset = queryset.filter(status=status_filter)
+        if goal_filter and goal_filter != 'all':
+            queryset = queryset.filter(goal=goal_filter)
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search)
+                | Q(goal__icontains=search)
+                | Q(member__user__first_name__icontains=search)
+                | Q(member__user__last_name__icontains=search)
+                | Q(member__user__email__icontains=search)
+            )
         return queryset
+
+    def _get_plan_trainer(self, member):
+        user = self.request.user
+        if user.is_staff:
+            return member.trainer_asignado or _get_trainer_profile(user)
+        return _get_trainer_profile(user)
+
+    def _assert_member_allowed(self, member):
+        user = self.request.user
+        if user.is_staff:
+            return member.trainer_asignado or _get_trainer_profile(user)
+        trainer_profile = _get_trainer_profile(user)
+        if member.trainer_asignado_id != trainer_profile.id:
+            raise PermissionDenied('Solo puedes crear planes para clientes asignados.')
+        return trainer_profile
+
+    def _deactivate_other_plans(self, member, current_plan):
+        now = timezone.now()
+        TrainingPlan.objects.filter(member=member, status='active').exclude(id=current_plan.id).update(
+            is_active=False,
+            status='finished',
+            finished_at=now,
+        )
 
     def perform_create(self, serializer):
         member = serializer.validated_data['member']
@@ -53,7 +95,11 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
             raise PermissionDenied('Solo puedes crear planes para clientes asignados.')
         plan = serializer.save(trainer=trainer_profile)
         if plan.is_active:
-            TrainingPlan.objects.filter(member=member).exclude(id=plan.id).update(is_active=False)
+            TrainingPlan.objects.filter(member=member, status='active').exclude(id=plan.id).update(
+                is_active=False,
+                status='finished',
+                finished_at=timezone.now(),
+            )
 
     def perform_update(self, serializer):
         user = self.request.user
@@ -63,10 +109,14 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
             raise PermissionDenied('Solo puedes editar planes de clientes asignados.')
         plan = serializer.save()
         if plan.is_active:
-            TrainingPlan.objects.filter(member=member).exclude(id=plan.id).update(is_active=False)
+            TrainingPlan.objects.filter(member=member, status='active').exclude(id=plan.id).update(
+                is_active=False,
+                status='finished',
+                finished_at=timezone.now(),
+            )
 
     def get_permissions(self):
-        if self.action in ('create', 'update', 'partial_update', 'destroy'):
+        if self.action in ('create', 'update', 'partial_update', 'destroy', 'create_complete', 'duplicate', 'finish', 'archive', 'summary'):
             return [IsAuthenticated(), IsTrainer()]
         return [IsAuthenticated()]
 
@@ -173,6 +223,153 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                     )
 
         return Response(PlantillaEntrenamientoSerializer(plantilla).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['get'], url_path='summary')
+    def summary(self, request):
+        queryset = self.get_queryset()
+        today = timezone.localdate()
+        soon = today + timedelta(days=14)
+        members_qs = MemberProfile.objects.select_related('user', 'trainer_asignado')
+        if request.user.role == 'trainer' and not request.user.is_staff:
+            members_qs = members_qs.filter(trainer_asignado=_get_trainer_profile(request.user))
+        active_member_ids = TrainingPlan.objects.filter(
+            member__in=members_qs,
+            status='active',
+        ).values_list('member_id', flat=True)
+        return Response({
+            'active': queryset.filter(status='active').count(),
+            'draft': queryset.filter(status='draft').count(),
+            'ending_soon': queryset.filter(status='active', end_date__gte=today, end_date__lte=soon).count(),
+            'members_without_active_plan': members_qs.exclude(id__in=active_member_ids).count(),
+        })
+
+    @action(detail=False, methods=['post'], url_path='create-complete')
+    def create_complete(self, request):
+        serializer = CompleteTrainingPlanSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        try:
+            member = MemberProfile.objects.select_related('trainer_asignado').get(id=data['member'])
+        except MemberProfile.DoesNotExist as exc:
+            raise ValidationError({'member': 'Miembro no encontrado.'}) from exc
+
+        trainer_profile = self._assert_member_allowed(member)
+        active_plan = TrainingPlan.objects.filter(member=member, status='active').order_by('-start_date', '-id').first()
+        conflict_strategy = data.get('conflict_strategy', 'keep')
+        requested_status = data['status']
+
+        if active_plan and requested_status == 'active' and conflict_strategy == 'keep':
+            raise ValidationError({
+                'member': 'Este miembro ya tiene un plan activo. Elige reemplazarlo o programar el nuevo plan.',
+            })
+
+        start_date = data['start_date']
+        end_date = data['end_date']
+        status_value = requested_status
+        if active_plan and requested_status == 'active' and conflict_strategy == 'schedule_after_active':
+            start_date = (active_plan.end_date or active_plan.start_date) + timedelta(days=1)
+            end_date = start_date + timedelta(weeks=data['weeks_duration'])
+            status_value = 'scheduled'
+
+        with transaction.atomic():
+            plan = TrainingPlan.objects.create(
+                member=member,
+                trainer=trainer_profile,
+                name=data['name'],
+                goal=data['goal'],
+                start_date=start_date,
+                end_date=end_date,
+                weeks_duration=data['weeks_duration'],
+                days_per_week=data['days_per_week'],
+                status=status_value,
+                level=data.get('level', 'intermediate'),
+                notes=data.get('notes', ''),
+            )
+            if plan.status == 'active' and conflict_strategy == 'replace_active':
+                self._deactivate_other_plans(member, plan)
+
+            for day_data in data.get('days', []):
+                exercises = day_data.pop('exercises', [])
+                day = WorkoutDay.objects.create(plan=plan, **day_data)
+                for exercise_data in exercises:
+                    machine_id = exercise_data.pop('machine', None)
+                    Exercise.objects.create(workout_day=day, machine_id=machine_id, **exercise_data)
+
+        return Response(TrainingPlanSerializer(plan).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], url_path='duplicate')
+    def duplicate(self, request, pk=None):
+        source = self.get_object()
+        name = request.data.get('name') or f'{source.name} (copia)'
+        status_value = request.data.get('status') or 'draft'
+        start_date = request.data.get('start_date')
+        if start_date:
+            try:
+                start_date = date.fromisoformat(start_date)
+            except ValueError as exc:
+                raise ValidationError({'start_date': 'Fecha inválida.'}) from exc
+        else:
+            start_date = timezone.localdate()
+
+        with transaction.atomic():
+            plan = TrainingPlan.objects.create(
+                member=source.member,
+                trainer=source.trainer,
+                name=name,
+                goal=source.goal,
+                start_date=start_date,
+                weeks_duration=source.weeks_duration,
+                days_per_week=source.days_per_week,
+                status=status_value,
+                level=source.level,
+                notes=source.notes,
+            )
+            if plan.status == 'active':
+                self._deactivate_other_plans(source.member, plan)
+            for source_day in source.workout_days.order_by('order'):
+                day = WorkoutDay.objects.create(
+                    plan=plan,
+                    name=source_day.name,
+                    day_label=source_day.day_label,
+                    day_of_week=source_day.day_of_week,
+                    order=source_day.order,
+                )
+                for source_exercise in source_day.exercises.order_by('order'):
+                    Exercise.objects.create(
+                        workout_day=day,
+                        name=source_exercise.name,
+                        muscle_group=source_exercise.muscle_group,
+                        exercise_type=source_exercise.exercise_type,
+                        sets=source_exercise.sets,
+                        reps_range=source_exercise.reps_range,
+                        target_minutes=source_exercise.target_minutes,
+                        machine=source_exercise.machine,
+                        weight_suggestion_kg=source_exercise.weight_suggestion_kg,
+                        rest_seconds=source_exercise.rest_seconds,
+                        technique_notes=source_exercise.technique_notes,
+                        order=source_exercise.order,
+                    )
+
+        return Response(TrainingPlanSerializer(plan).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], url_path='finish')
+    def finish(self, request, pk=None):
+        plan = self.get_object()
+        plan.status = 'finished'
+        plan.is_active = False
+        plan.finished_at = timezone.now()
+        plan.save(update_fields=['status', 'is_active', 'finished_at', 'end_date'])
+        return Response(TrainingPlanSerializer(plan).data)
+
+    @action(detail=True, methods=['post'], url_path='archive')
+    def archive(self, request, pk=None):
+        plan = self.get_object()
+        plan.status = 'archived'
+        plan.is_active = False
+        plan.archived_at = timezone.now()
+        plan.save(update_fields=['status', 'is_active', 'archived_at', 'end_date'])
+        return Response(TrainingPlanSerializer(plan).data)
 
 
 class WorkoutDayViewSet(viewsets.ModelViewSet):
@@ -364,15 +561,21 @@ class PlantillaEntrenamientoViewSet(viewsets.ModelViewSet):
                 start_date=start_date_parsed,
                 weeks_duration=8,
                 days_per_week=plantilla.dias_por_semana_sugeridos,
-                is_active=True,
+                status='active',
             )
-            TrainingPlan.objects.filter(member=member).exclude(id=plan.id).update(is_active=False)
+            TrainingPlan.objects.filter(member=member, status='active').exclude(id=plan.id).update(
+                is_active=False,
+                status='finished',
+                finished_at=timezone.now(),
+            )
 
-            for template_day in plantilla.dias.order_by('orden'):
+            weekdays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+            for index, template_day in enumerate(plantilla.dias.order_by('orden')):
                 day = WorkoutDay.objects.create(
                     plan=plan,
                     name=template_day.nombre,
                     day_label=template_day.etiqueta_dia,
+                    day_of_week=weekdays[index % len(weekdays)],
                     order=template_day.orden,
                 )
                 for template_exercise in template_day.ejercicios.order_by('orden'):

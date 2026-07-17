@@ -44,7 +44,7 @@ WEEKDAY_ORDER = {
 def annotate_member_metrics(queryset):
     active_plans = TrainingPlan.objects.filter(
         member=OuterRef('pk'),
-        is_active=True,
+        status='active',
     ).order_by('-start_date', '-id')
     latest_attendance = Attendance.objects.filter(
         member=OuterRef('pk')
@@ -63,7 +63,7 @@ def annotate_member_metrics(queryset):
     ).exclude(status='void').order_by('-schedule__due_date', '-id')
     active_nutrition = NutritionProfile.objects.filter(
         training_plan__member=OuterRef('pk'),
-        training_plan__is_active=True,
+        training_plan__status='active',
     ).order_by('-training_plan__start_date', '-id')
 
     return queryset.annotate(
@@ -88,22 +88,22 @@ def annotate_member_metrics(queryset):
         latest_payment_due_date_cached=Subquery(latest_payment.values('schedule__due_date')[:1]),
         active_plan_workout_days_count_cached=Count(
             'plans__workout_days',
-            filter=Q(plans__is_active=True),
+            filter=Q(plans__status='active'),
             distinct=True,
         ),
         active_plan_exercises_count_cached=Count(
             'plans__workout_days__exercises',
-            filter=Q(plans__is_active=True),
+            filter=Q(plans__status='active'),
             distinct=True,
         ),
         active_plan_guides_count_cached=Count(
             'plans__nutrition_links',
-            filter=Q(plans__is_active=True),
+            filter=Q(plans__status='active'),
             distinct=True,
         ),
         active_plan_nutrition_count_cached=Count(
             'plans__nutrition_profile',
-            filter=Q(plans__is_active=True),
+            filter=Q(plans__status='active'),
             distinct=True,
         ),
         inactivity_alert_open_cached=Exists(
@@ -127,7 +127,7 @@ def get_active_plan(member):
             id=member.active_plan_id_cached
         ).first()
         return member._active_plan_cache
-    return member.plans.filter(is_active=True).first()
+    return member.plans.filter(status='active').first()
 
 
 def get_member_prescription_status(member):

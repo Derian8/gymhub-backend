@@ -33,11 +33,20 @@ Entidades principales:
 - `TrainingPlan`
 - `WorkoutDay`
 - `Exercise`
+- `PlantillaEntrenamiento`
+
+`TrainingPlan` mantiene compatibilidad con `is_active`, pero la administración nueva usa estados explícitos:
+`draft`, `active`, `scheduled`, `finished`, `archived`.
 
 Rutas principales:
 - REST `/api/plans/`
 - REST `/api/workout-days/`
 - REST `/api/exercises/`
+- `GET /api/plans/summary/`
+- `POST /api/plans/create-complete/`
+- `POST /api/plans/{id}/duplicate/`
+- `POST /api/plans/{id}/finish/`
+- `POST /api/plans/{id}/archive/`
 - `GET /api/plans/{id}/today-workout/`
 - `GET /api/plans/{id}/weekly-view/`
 
