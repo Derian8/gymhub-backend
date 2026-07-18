@@ -377,11 +377,14 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
               <div>
                 <h3 className="font-heading text-xl font-bold text-neutral-900 dark:text-white">Días y ejercicios</h3>
                 <p className="text-sm text-neutral-500">Arma la estructura que se guardará de forma atómica.</p>
+                <p className="mt-1 text-xs text-neutral-500">Las máquinas se seleccionan dentro de cada ejercicio.</p>
               </div>
               <button type="button" className="btn-secondary" onClick={addDay} data-testid="wizard-add-day"><Plus size={16} /> Agregar día</button>
             </div>
             {!days.length ? (
-              <p className="rounded-sm border border-neutral-200 p-4 text-sm text-neutral-500 dark:border-neutral-800">Todavía no hay días configurados.</p>
+              <p className="rounded-sm border border-neutral-200 p-4 text-sm text-neutral-500 dark:border-neutral-800">
+                Agrega un día para configurar ejercicios, series y máquinas.
+              </p>
             ) : (
               <div className="space-y-4">
                 {days.map((day, dayIndex) => (
@@ -472,7 +475,7 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
                       </button>
                       {!activeMachines.length && !gymMachinesQuery.isLoading ? (
                         <p className="text-xs text-neutral-500">
-                          No hay máquinas activas en el catálogo. Puedes dejar el ejercicio sin máquina específica.
+                          No hay máquinas activas en el catálogo. Puedes crear o activar máquinas desde el catálogo compartido.
                         </p>
                       ) : null}
                     </div>
