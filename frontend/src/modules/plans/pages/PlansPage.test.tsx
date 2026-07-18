@@ -49,9 +49,29 @@ vi.mock('../hooks/usePlans', () => ({
 }))
 
 vi.mock('@/modules/members/hooks/useMembers', () => ({
-  useMembersQuery: () => ({
-    data: { count: 0, results: [] },
+  useMembersQuery: (params?: Record<string, unknown>) => ({
+    data: params?.assignment === 'unassigned'
+      ? {
+          count: 1,
+          results: [
+            {
+              id: 44,
+              full_name: 'Derian Isaac',
+              email: 'derianisaac.ar@gmail.com',
+              trainer_asignado: null,
+              trainer_asignado_nombre: null,
+              tiene_plan_activo: false,
+              estado_prescripcion: 'sin_plan',
+              membresia_actual: null,
+            },
+          ],
+        }
+      : { count: 0, results: [] },
     isLoading: false,
+  }),
+  useAssignTrainerMutation: () => ({
+    mutate: vi.fn(),
+    isPending: false,
   }),
   useMemberActivePrescriptionQuery: () => ({
     data: {
@@ -146,6 +166,31 @@ describe('PlansPage', () => {
     expect(getByText('Definicion avanzada')).toBeInTheDocument()
     expect(within(getByTestId('plan-card-12')).getByText('Ver plan')).toHaveAttribute('href', '/plans/12')
     expect(within(getByTestId('plan-card-13')).getByText('Ver plan')).toHaveAttribute('href', '/plans/13')
+  })
+
+  it('shows an unassigned members notice for trainers in the general plans screen', () => {
+    useAuthStore.setState({
+      user: {
+        id: 2,
+        email: 'trainer@test.com',
+        username: 'trainer',
+        first_name: 'Carlos',
+        last_name: 'Trainer',
+        role: 'trainer',
+        is_staff: false,
+        memberprofile_id: null,
+        trainerprofile_id: 7,
+      },
+      isAuthenticated: true,
+      authResolved: true,
+      theme: 'dark',
+    })
+
+    const { getByTestId } = renderWithProviders(<PlansPage />, { route: '/plans' })
+
+    expect(getByTestId('plans-unassigned-members-notice')).toHaveTextContent('Hay 1 miembros registrados sin trainer asignado.')
+    expect(getByTestId('plans-unassigned-members-link')).toHaveAttribute('href', '/members?assignment=unassigned')
+    expect(getByTestId('plans-create-and-assign')).toBeInTheDocument()
   })
 
   it('shows member-specific header when member filter is present', () => {

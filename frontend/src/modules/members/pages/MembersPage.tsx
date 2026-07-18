@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Search, UserPlus, ChevronLeft, ChevronRight, AlertTriangle, CreditCard, Users } from 'lucide-react'
 import { useAssignTrainerMutation, useMembersQuery } from '../hooks/useMembers'
 import { Badge, PageHeader, Avatar } from '@/shared/components/UI'
@@ -43,13 +43,15 @@ function getMembershipPlanName(member: MemberProfile) {
 }
 
 export function MembersPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialAssignment = searchParams.get('assignment') === 'unassigned' ? 'unassigned' : 'mine'
   const [search, setSearch] = useState('')
   const [paymentFilter, setPaymentFilter] = useState('')
   const [inactivityFilter, setInactivityFilter] = useState('')
   const [riskFilter, setRiskFilter] = useState('')
   const [prescriptionFilter, setPrescriptionFilter] = useState('')
   const [ordering, setOrdering] = useState('riesgo_desc')
-  const [assignmentFilter, setAssignmentFilter] = useState<'mine' | 'unassigned'>('mine')
+  const [assignmentFilter, setAssignmentFilter] = useState<'mine' | 'unassigned'>(initialAssignment)
   const [page, setPage] = useState(1)
 
   const { data, isLoading } = useMembersQuery({
@@ -78,11 +80,21 @@ export function MembersPage() {
   const showUnassignedMembers = () => {
     setAssignmentFilter('unassigned')
     setPage(1)
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current)
+      next.set('assignment', 'unassigned')
+      return next
+    })
   }
 
   const showMyMembers = () => {
     setAssignmentFilter('mine')
     setPage(1)
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current)
+      next.delete('assignment')
+      return next
+    })
   }
 
   return (

@@ -171,4 +171,12 @@ describe('MembersPage', () => {
 
     expect(assignTrainerMock).toHaveBeenCalledWith(17)
   })
+
+  it('opens the unassigned tab directly from the assignment query param', () => {
+    const { getByTestId, getByText } = renderWithProviders(<MembersPage />, { route: '/members?assignment=unassigned' })
+
+    expect(membersQueryParams.at(-1)).toEqual(expect.objectContaining({ assignment: 'unassigned' }))
+    expect(getByTestId('assignment-tab-unassigned')).toHaveTextContent('Sin asignar (1)')
+    expect(getByText('Derian Isaac')).toBeInTheDocument()
+  })
 })

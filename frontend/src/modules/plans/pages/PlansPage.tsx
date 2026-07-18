@@ -2,7 +2,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useMemo, useState } from 'react'
 import { Dumbbell, ChevronRight, Calendar, NotebookTabs, Target, UserRound, Plus, Archive, Copy, CheckCircle } from 'lucide-react'
 import { useArchivePlanMutation, useDuplicatePlanMutation, useFinishPlanMutation, usePlansQuery, usePlansSummaryQuery } from '../hooks/usePlans'
-import { useMemberActivePrescriptionQuery, useMemberDashboardQuery } from '@/modules/members/hooks/useMembers'
+import { useMemberActivePrescriptionQuery, useMemberDashboardQuery, useMembersQuery } from '@/modules/members/hooks/useMembers'
 import { Badge, PageHeader, EmptyState, StatCard } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
 import { DAY_OF_WEEK_LABELS, formatDate, GOAL_LABELS } from '@/shared/lib/utils'
@@ -46,6 +46,7 @@ export function PlansPage() {
   }, [memberId, search, statusFilter])
   const { data, isLoading } = usePlansQuery(filtros)
   const { data: summary } = usePlansSummaryQuery(!isMemberView)
+  const { data: unassignedMembers } = useMembersQuery({ assignment: 'unassigned', page: 1 }, !isMemberView)
   const memberProfileId = isMemberView ? user?.memberprofile_id || 0 : 0
   const { data: activePrescription } = useMemberActivePrescriptionQuery(memberProfileId)
   const { data: dashboardSummary } = useMemberDashboardQuery(memberProfileId)
@@ -215,6 +216,28 @@ export function PlansPage() {
       {!memberId && (summary?.members_without_active_plan ?? 0) > 0 ? (
         <div className="mb-6 rounded-sm border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100">
           Hay {summary?.members_without_active_plan} miembros que todavía no tienen un plan activo.
+        </div>
+      ) : null}
+
+      {!memberId && (unassignedMembers?.count ?? 0) > 0 ? (
+        <div
+          className="mb-6 rounded-sm border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100"
+          data-testid="plans-unassigned-members-notice"
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-semibold">Hay {unassignedMembers?.count} miembros registrados sin trainer asignado.</p>
+              <p className="mt-1">Asígnalos antes de crearles una rutina para que aparezcan correctamente en tu panel.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link to="/members?assignment=unassigned" className="btn-secondary" data-testid="plans-unassigned-members-link">
+                Ver miembros sin asignar
+              </Link>
+              <button type="button" className="btn-primary" onClick={() => setWizardOpen(true)} data-testid="plans-create-and-assign">
+                Crear plan y asignar miembro
+              </button>
+            </div>
+          </div>
         </div>
       ) : null}
 

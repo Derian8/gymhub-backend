@@ -54,6 +54,7 @@ function getMembershipPlanName(member: MemberProfile) {
 export function TrainerDashboard() {
   const { data, isLoading } = useTrainerOverviewQuery()
   const { data: membersData, isLoading: isLoadingMembers } = useMembersQuery({ ordering: 'riesgo_desc' })
+  const { data: unassignedMembers, isLoading: isLoadingUnassignedMembers } = useMembersQuery({ assignment: 'unassigned', page: 1 })
   const { user } = useAuthStore()
 
   const stats = data
@@ -179,6 +180,27 @@ export function TrainerDashboard() {
         title={`Hola, ${user?.first_name || 'Trainer'}`}
         subtitle="Prioriza miembros en riesgo, cobros y adherencia del gimnasio"
       />
+
+      {(isLoadingUnassignedMembers || (unassignedMembers?.count ?? 0) > 0) ? (
+        <div
+          className="mb-6 rounded-sm border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100"
+          data-testid="dashboard-unassigned-members-notice"
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-semibold">
+                Miembros nuevos sin asignar: {isLoadingUnassignedMembers ? 'revisando...' : unassignedMembers?.count ?? 0}
+              </p>
+              <p className="mt-1">
+                Revisa los registros nuevos y asígnalos a tu cuenta antes de crear planes, membresías o seguimiento.
+              </p>
+            </div>
+            <Link to="/members?assignment=unassigned" className="btn-primary" data-testid="dashboard-unassigned-members-link">
+              Ver y asignar
+            </Link>
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 mb-8">
         {isLoading
