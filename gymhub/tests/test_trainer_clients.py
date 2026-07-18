@@ -56,6 +56,72 @@ class TestTrainerClients:
         assert member.trainer_asignado is not None
         assert response.data['trainer_asignado'] == member.trainer_asignado_id
 
+    def test_trainer_can_list_unassigned_members_separately(self, trainer_client, trainer_profile, member_profile, membership_plan):
+        from django.contrib.auth import get_user_model
+
+        free_user = get_user_model().objects.create_user(
+            username='cliente_pendiente_trainer',
+            email='cliente-pendiente-trainer@test.com',
+            password='member123!',
+            role='member',
+        )
+        free_member = free_user.memberprofile
+        free_member.membership_plan = membership_plan
+        free_member.is_active = True
+        free_member.save(update_fields=['membership_plan', 'is_active'])
+
+        response = trainer_client.get('/api/members/?assignment=unassigned')
+
+        assert response.status_code == status.HTTP_200_OK
+        results = response.data.get('results', response.data)
+        ids = {item['id'] for item in results}
+        assert free_member.id in ids
+        assert member_profile.id not in ids
+
+    def test_trainer_available_members_excludes_other_trainer_clients(self, trainer_client, trainer_profile, member_profile, membership_plan):
+        from django.contrib.auth import get_user_model
+        from users.models import TrainerProfile
+
+        other_trainer_user = get_user_model().objects.create_user(
+            username='trainer_otro_available',
+            email='trainer-otro-available@test.com',
+            password='trainer123!',
+            role='trainer',
+        )
+        other_trainer = TrainerProfile.objects.get(user=other_trainer_user)
+
+        free_user = get_user_model().objects.create_user(
+            username='cliente_available_libre',
+            email='cliente-available-libre@test.com',
+            password='member123!',
+            role='member',
+        )
+        free_member = free_user.memberprofile
+        free_member.membership_plan = membership_plan
+        free_member.is_active = True
+        free_member.save(update_fields=['membership_plan', 'is_active'])
+
+        other_user = get_user_model().objects.create_user(
+            username='cliente_available_oculto',
+            email='cliente-available-oculto@test.com',
+            password='member123!',
+            role='member',
+        )
+        other_member = other_user.memberprofile
+        other_member.trainer_asignado = other_trainer
+        other_member.membership_plan = membership_plan
+        other_member.is_active = True
+        other_member.save(update_fields=['trainer_asignado', 'membership_plan', 'is_active'])
+
+        response = trainer_client.get('/api/members/?assignment=available')
+
+        assert response.status_code == status.HTTP_200_OK
+        results = response.data.get('results', response.data)
+        ids = {item['id'] for item in results}
+        assert member_profile.id in ids
+        assert free_member.id in ids
+        assert other_member.id not in ids
+
     def test_trainer_only_sees_assigned_members_plans(self, trainer_client, member_profile, trainer_profile, membership_plan):
         from datetime import date
         from django.contrib.auth import get_user_model

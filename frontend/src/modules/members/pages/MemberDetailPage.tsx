@@ -220,6 +220,33 @@ export function MemberDetailPage() {
         }
       />
 
+      {!member.trainer_asignado && user?.role === 'trainer' ? (
+        <div
+          className="mb-6 rounded-sm border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-950/30"
+          data-testid="unassigned-member-banner"
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="font-heading text-lg font-bold text-neutral-900 dark:text-white">
+                Este miembro todavía no está asignado a ningún trainer
+              </h2>
+              <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
+                Asígnalo a tu cuenta para que aparezca en tus miembros y puedas crearle planes, membresías y seguimiento.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => assignTrainer(member.id)}
+              disabled={isAssigningTrainer}
+              className="btn-primary"
+              data-testid="banner-assign-trainer-btn"
+            >
+              {isAssigningTrainer ? 'Asignando...' : 'Asignar a mí'}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Profile card */}
         <div className="card p-6 space-y-6" data-testid="member-profile-card">

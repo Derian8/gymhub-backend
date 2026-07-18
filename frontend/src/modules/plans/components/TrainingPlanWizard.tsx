@@ -3,7 +3,7 @@ import type React from 'react'
 import { AlertTriangle, Copy, Plus, Trash2, X } from 'lucide-react'
 import { Avatar, Badge } from '@/shared/components/UI'
 import { DAY_OF_WEEK_LABELS, GOAL_LABELS, MUSCLE_LABELS, formatDate } from '@/shared/lib/utils'
-import { useMembersQuery } from '@/modules/members/hooks/useMembers'
+import { useAssignTrainerMutation, useMembersQuery } from '@/modules/members/hooks/useMembers'
 import { useCreateCompletePlanMutation, useGymMachinesQuery, useTrainingTemplatesQuery } from '../hooks/usePlans'
 import type {
   CompleteTrainingPlanPayload,
@@ -110,10 +110,11 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
     status: 'draft' as TrainingPlanStatus,
   })
   const [days, setDays] = useState<WizardDay[]>([])
-  const membersQuery = useMembersQuery({ search, ordering: 'prescripcion' }, open)
+  const membersQuery = useMembersQuery({ assignment: 'available', search, ordering: 'prescripcion' }, open)
   const gymMachinesQuery = useGymMachinesQuery(open)
   const templatesQuery = useTrainingTemplatesQuery()
   const createCompletePlan = useCreateCompletePlanMutation()
+  const assignTrainer = useAssignTrainerMutation()
 
   useEffect(() => {
     if (!open) return
@@ -129,16 +130,29 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
   }, [form.start_date, form.weeks_duration])
 
   const hasActivePlan = selectedMember?.tiene_plan_activo
+  const selectedMemberIsUnassigned = !!selectedMember && selectedMember.trainer_asignado == null
   const totalExercises = days.reduce((total, day) => total + day.exercises.length, 0)
-  const canContinueMember = !!selectedMember && (!hasActivePlan || conflictStrategy !== 'keep' || form.status !== 'active')
+  const canContinueMember = !!selectedMember && !selectedMemberIsUnassigned && (!hasActivePlan || conflictStrategy !== 'keep' || form.status !== 'active')
   const canSave = !!selectedMember && form.name.trim().length > 0 && days.every((day) => day.name.trim() && day.exercises.every((exercise) => exercise.name.trim()))
   const filteredMembers = membersQuery.data?.results ?? []
+  const assignedMembers = filteredMembers.filter((member) => member.trainer_asignado != null)
+  const unassignedMembers = filteredMembers.filter((member) => member.trainer_asignado == null)
   const activeMachines = (gymMachinesQuery.data?.results ?? []).filter((machine) => machine.is_active)
   const exercisesWithMachine = days.reduce((total, day) => total + day.exercises.filter((exercise) => !!exercise.machine).length, 0)
 
   const activeFiltersText = useMemo(() => search.trim() ? `Búsqueda activa: ${search.trim()}` : '', [search])
 
   if (!open) return null
+
+  const assignSelectedMemberAndContinue = () => {
+    if (!selectedMember) return
+    assignTrainer.mutate(selectedMember.id, {
+      onSuccess: (member) => {
+        setSelectedMember(member)
+        setStep(2)
+      },
+    })
+  }
 
   const updateExercise = (dayIndex: number, exerciseIndex: number, patch: Partial<Omit<ExercisePayload, 'workout_day'>>) => {
     setDays((current) => current.map((day, index) => {
@@ -268,34 +282,51 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
               <input className="input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Derian, correo@..." data-testid="plan-member-search" />
             </Field>
             {activeFiltersText ? <p className="text-xs text-neutral-500">{activeFiltersText}</p> : null}
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              {filteredMembers.map((member) => (
-                <button
-                  key={member.id}
-                  type="button"
-                  className={`rounded-sm border p-4 text-left transition ${selectedMember?.id === member.id ? 'border-primary bg-primary/10' : 'border-neutral-200 dark:border-neutral-800'}`}
-                  onClick={() => setSelectedMember(member)}
-                  data-testid={`select-plan-member-${member.id}`}
-                >
-                  <div className="flex items-start gap-3">
-                    <Avatar name={member.full_name} photo={member.photo} />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-neutral-900 dark:text-white">{member.full_name}</p>
-                      <p className="truncate text-sm text-neutral-500">{member.email}</p>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        <Badge variant={member.tiene_plan_activo ? 'success' : 'warning'}>
-                          {member.tiene_plan_activo ? 'Plan activo' : 'Sin plan activo'}
-                        </Badge>
-                        <Badge variant="neutral">{member.estado_prescripcion?.replace(/_/g, ' ') || 'Sin estado'}</Badge>
-                        {member.membresia_actual?.status ? <Badge variant="info">{member.membresia_actual.status}</Badge> : null}
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
+            {assignedMembers.length ? (
+              <div className="space-y-2">
+                <div>
+                  <h3 className="font-semibold text-neutral-900 dark:text-white">Tus miembros</h3>
+                  <p className="text-sm text-neutral-500">Selecciona el miembro al que vas a crearle la rutina.</p>
+                </div>
+                <MemberSelectionGrid
+                  members={assignedMembers}
+                  selectedMemberId={selectedMember?.id}
+                  onSelect={setSelectedMember}
+                />
+              </div>
+            ) : null}
+            {unassignedMembers.length ? (
+              <div className="space-y-2 rounded-sm border border-amber-200 bg-amber-50 p-3 dark:border-amber-500/30 dark:bg-amber-950/30">
+                <div>
+                  <h3 className="font-semibold text-neutral-900 dark:text-white">Miembros sin asignar encontrados</h3>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-300">
+                    Estos usuarios existen, pero todavía no pertenecen a tu lista. Asígnalos primero y luego continúa con el plan.
+                  </p>
+                </div>
+                <MemberSelectionGrid
+                  members={unassignedMembers}
+                  selectedMemberId={selectedMember?.id}
+                  onSelect={setSelectedMember}
+                />
+              </div>
+            ) : null}
             {!filteredMembers.length && !membersQuery.isLoading ? (
               <p className="text-sm text-neutral-500">No encontramos miembros con estos filtros.</p>
+            ) : null}
+            {selectedMemberIsUnassigned ? (
+              <div className="rounded-sm border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100">
+                <p className="font-semibold">Primero asigna este miembro para crearle un plan.</p>
+                <p className="mt-1">Cuando lo asignes quedará en tu lista de miembros y podrás continuar con la rutina.</p>
+                <button
+                  type="button"
+                  className="btn-primary mt-3"
+                  onClick={assignSelectedMemberAndContinue}
+                  disabled={assignTrainer.isPending}
+                  data-testid="wizard-assign-and-continue"
+                >
+                  {assignTrainer.isPending ? 'Asignando...' : 'Asignar y continuar'}
+                </button>
+              </div>
             ) : null}
           </section>
         )}
@@ -524,6 +555,46 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+function MemberSelectionGrid({
+  members,
+  selectedMemberId,
+  onSelect,
+}: {
+  members: MemberProfile[]
+  selectedMemberId?: number
+  onSelect: (member: MemberProfile) => void
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      {members.map((member) => (
+        <button
+          key={member.id}
+          type="button"
+          className={`rounded-sm border bg-white p-4 text-left transition dark:bg-neutral-950 ${selectedMemberId === member.id ? 'border-primary bg-primary/10 dark:bg-primary/10' : 'border-neutral-200 dark:border-neutral-800'}`}
+          onClick={() => onSelect(member)}
+          data-testid={`select-plan-member-${member.id}`}
+        >
+          <div className="flex items-start gap-3">
+            <Avatar name={member.full_name} photo={member.photo} />
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-neutral-900 dark:text-white">{member.full_name}</p>
+              <p className="truncate text-sm text-neutral-500">{member.email}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Badge variant={member.tiene_plan_activo ? 'success' : 'warning'}>
+                  {member.tiene_plan_activo ? 'Plan activo' : 'Sin plan activo'}
+                </Badge>
+                {member.trainer_asignado == null ? <Badge variant="warning">Sin trainer asignado</Badge> : null}
+                <Badge variant="neutral">{member.estado_prescripcion?.replace(/_/g, ' ') || 'Sin estado'}</Badge>
+                {member.membresia_actual?.status ? <Badge variant="info">{member.membresia_actual.status}</Badge> : null}
+              </div>
+            </div>
+          </div>
+        </button>
+      ))}
     </div>
   )
 }

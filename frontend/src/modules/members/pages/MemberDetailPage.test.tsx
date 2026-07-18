@@ -210,6 +210,8 @@ describe('MemberDetailPage', () => {
     expect(getByTestId('activate-member-btn')).toBeInTheDocument()
     expect(getByTestId('activation-panel')).toHaveTextContent('La membresía, el precio acordado y el primer cobro se crean después desde facturación.')
     expect(getByTestId('assign-trainer-btn')).toBeInTheDocument()
+    expect(getByTestId('unassigned-member-banner')).toHaveTextContent('Este miembro todavía no está asignado a ningún trainer')
+    expect(getByTestId('banner-assign-trainer-btn')).toHaveTextContent('Asignar a mí')
     expect(getByTestId('prescription-assign-trainer-btn')).toBeInTheDocument()
     expect(getAllByText('Sin trainer asignado').length).toBeGreaterThan(0)
     expect(getByTestId('member-program-link')).toHaveAttribute('href', '/members/15/program')

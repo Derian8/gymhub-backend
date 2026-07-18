@@ -9,6 +9,7 @@ import type {
 } from '@/shared/types'
 
 interface MembersParams {
+  assignment?: 'mine' | 'unassigned' | 'available'
   search?: string
   payment_status?: string
   inactivity?: string

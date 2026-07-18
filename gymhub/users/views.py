@@ -286,7 +286,24 @@ class MemberViewSet(viewsets.ModelViewSet):
 
         if user.role == 'trainer' and not user.is_staff:
             trainer_profile = _get_trainer_profile(user)
-            if self.action == 'assign_trainer':
+            assignment = self.request.query_params.get('assignment') or 'mine'
+            can_read_unassigned = self.action in {
+                'retrieve',
+                'assign_trainer',
+                'dashboard_summary',
+                'membership_summary',
+                'active_prescription',
+                'physical_summary',
+                'prescription_summary',
+            }
+            if self.action == 'list' and assignment == 'unassigned':
+                qs = qs.filter(trainer_asignado__isnull=True, is_active=True)
+            elif self.action == 'list' and assignment == 'available':
+                qs = qs.filter(
+                    Q(trainer_asignado=trainer_profile)
+                    | Q(trainer_asignado__isnull=True)
+                )
+            elif can_read_unassigned:
                 qs = qs.filter(
                     Q(trainer_asignado=trainer_profile)
                     | Q(trainer_asignado__isnull=True)

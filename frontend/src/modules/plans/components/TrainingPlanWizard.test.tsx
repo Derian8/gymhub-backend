@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { TrainingPlanWizard } from './TrainingPlanWizard'
 
 const createCompletePlanMutate = vi.fn()
+const assignTrainerMutate = vi.fn()
 
 vi.mock('../hooks/usePlans', () => ({
   useCreateCompletePlanMutation: () => ({
@@ -25,13 +26,26 @@ vi.mock('../hooks/usePlans', () => ({
 vi.mock('@/modules/members/hooks/useMembers', () => ({
   useMembersQuery: () => ({
     data: {
-      count: 1,
+      count: 2,
       results: [
         {
           id: 10,
           full_name: 'Derian Campos',
           email: 'derian@test.com',
           photo: null,
+          trainer_asignado: 9,
+          trainer_asignado_nombre: 'Trainer Demo',
+          tiene_plan_activo: false,
+          estado_prescripcion: 'sin_plan',
+          membresia_actual: { status: 'active' },
+        },
+        {
+          id: 11,
+          full_name: 'Derian Isaac',
+          email: 'derianisaac.ar@gmail.com',
+          photo: null,
+          trainer_asignado: null,
+          trainer_asignado_nombre: null,
           tiene_plan_activo: false,
           estado_prescripcion: 'sin_plan',
           membresia_actual: { status: 'active' },
@@ -40,11 +54,16 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
     },
     isLoading: false,
   }),
+  useAssignTrainerMutation: () => ({
+    mutate: assignTrainerMutate,
+    isPending: false,
+  }),
 }))
 
 describe('TrainingPlanWizard', () => {
   beforeEach(() => {
     createCompletePlanMutate.mockReset()
+    assignTrainerMutate.mockReset()
   })
 
   it('allows assigning a gym machine to an exercise from the general plan flow', async () => {
@@ -85,5 +104,37 @@ describe('TrainingPlanWizard', () => {
       }),
       expect.any(Object),
     )
+  })
+
+  it('requires assigning an unassigned member before continuing', async () => {
+    const user = userEvent.setup()
+
+    renderWithProviders(<TrainingPlanWizard open onClose={vi.fn()} />)
+
+    expect(screen.getByText('Miembros sin asignar encontrados')).toBeInTheDocument()
+
+    await user.click(screen.getByTestId('select-plan-member-11'))
+
+    expect(screen.getByText('Primero asigna este miembro para crearle un plan.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^continuar$/i })).toBeDisabled()
+
+    assignTrainerMutate.mockImplementationOnce((_id: number, options: { onSuccess: (member: unknown) => void }) => {
+      options.onSuccess({
+        id: 11,
+        full_name: 'Derian Isaac',
+        email: 'derianisaac.ar@gmail.com',
+        photo: null,
+        trainer_asignado: 9,
+        trainer_asignado_nombre: 'Trainer Demo',
+        tiene_plan_activo: false,
+        estado_prescripcion: 'sin_plan',
+        membresia_actual: { status: 'active' },
+      })
+    })
+
+    await user.click(screen.getByTestId('wizard-assign-and-continue'))
+
+    expect(assignTrainerMutate).toHaveBeenCalledWith(11, expect.any(Object))
+    expect(screen.getByTestId('wizard-plan-name')).toBeInTheDocument()
   })
 })

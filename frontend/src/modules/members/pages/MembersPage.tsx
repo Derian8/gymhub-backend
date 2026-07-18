@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, UserPlus, ChevronLeft, ChevronRight, AlertTriangle, CreditCard } from 'lucide-react'
-import { useMembersQuery } from '../hooks/useMembers'
+import { Search, UserPlus, ChevronLeft, ChevronRight, AlertTriangle, CreditCard, Users } from 'lucide-react'
+import { useAssignTrainerMutation, useMembersQuery } from '../hooks/useMembers'
 import { Badge, PageHeader, Avatar } from '@/shared/components/UI'
 import { TableRowSkeleton } from '@/shared/components/Skeleton'
 import { formatCurrency, formatDate, RISK_LEVEL_BADGE, RISK_LEVEL_LABELS } from '@/shared/lib/utils'
@@ -49,9 +49,11 @@ export function MembersPage() {
   const [riskFilter, setRiskFilter] = useState('')
   const [prescriptionFilter, setPrescriptionFilter] = useState('')
   const [ordering, setOrdering] = useState('riesgo_desc')
+  const [assignmentFilter, setAssignmentFilter] = useState<'mine' | 'unassigned'>('mine')
   const [page, setPage] = useState(1)
 
   const { data, isLoading } = useMembersQuery({
+    assignment: assignmentFilter,
     search: search || undefined,
     payment_status: paymentFilter || undefined,
     inactivity: inactivityFilter || undefined,
@@ -60,9 +62,26 @@ export function MembersPage() {
     ordering: ordering || undefined,
     page,
   })
+  const { data: unassignedSummary, isLoading: isLoadingUnassignedSummary } = useMembersQuery({
+    assignment: 'unassigned',
+    page: 1,
+  })
+  const unassignedCount = assignmentFilter === 'unassigned'
+    ? data?.count ?? 0
+    : unassignedSummary?.count ?? 0
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value)
+    setPage(1)
+  }
+
+  const showUnassignedMembers = () => {
+    setAssignmentFilter('unassigned')
+    setPage(1)
+  }
+
+  const showMyMembers = () => {
+    setAssignmentFilter('mine')
     setPage(1)
   }
 
@@ -70,7 +89,7 @@ export function MembersPage() {
     <div data-testid="members-page" className="page-enter">
       <PageHeader
         title="Miembros"
-        subtitle={`${data?.count || 0} miembros en total`}
+        subtitle={assignmentFilter === 'unassigned' ? 'Miembros registrados pendientes de asignación' : `${data?.count || 0} miembros asignados a tu cuenta`}
         action={
           <Link to="/members/new" className="btn-primary flex items-center gap-2" data-testid="new-member-btn">
             <UserPlus size={16} />
@@ -79,8 +98,58 @@ export function MembersPage() {
         }
       />
 
+      <div className="mb-5 rounded-sm border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-950/30">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="rounded-sm bg-white p-2 text-amber-700 shadow-sm dark:bg-amber-900/40 dark:text-amber-200">
+              <Users size={18} />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="font-heading text-lg font-bold text-neutral-900 dark:text-white">Miembros sin asignar</h2>
+                <Badge variant={unassignedCount > 0 ? 'warning' : 'neutral'}>
+                  {isLoadingUnassignedSummary ? 'Revisando...' : `${unassignedCount} pendiente(s)`}
+                </Badge>
+              </div>
+              <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
+                {unassignedCount > 0
+                  ? 'Hay miembros registrados que todavía no aparecen en tu lista. Asígnalos para crearles membresía, rutina y seguimiento.'
+                  : 'No hay miembros esperando asignación en este momento.'}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className={assignmentFilter === 'unassigned' ? 'btn-primary' : 'btn-secondary'}
+            onClick={showUnassignedMembers}
+            data-testid="view-unassigned-members"
+          >
+            Ver y asignar
+          </button>
+        </div>
+      </div>
+
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row">
+        <button
+          type="button"
+          className={`rounded-sm border px-4 py-2 text-sm font-semibold transition ${assignmentFilter === 'mine' ? 'border-primary bg-primary/10 text-primary' : 'border-neutral-200 bg-white text-neutral-600 hover:border-primary/60 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300'}`}
+          onClick={showMyMembers}
+          data-testid="assignment-tab-mine"
+        >
+          Mis miembros
+        </button>
+        <button
+          type="button"
+          className={`rounded-sm border px-4 py-2 text-sm font-semibold transition ${assignmentFilter === 'unassigned' ? 'border-primary bg-primary/10 text-primary' : 'border-neutral-200 bg-white text-neutral-600 hover:border-primary/60 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300'}`}
+          onClick={showUnassignedMembers}
+          data-testid="assignment-tab-unassigned"
+        >
+          Sin asignar {unassignedCount > 0 ? `(${unassignedCount})` : ''}
+        </button>
+      </div>
+
+      <div className="flex flex-col gap-3 mb-6 sm:flex-row">
         <div className="relative flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
           <input
@@ -173,7 +242,7 @@ export function MembersPage() {
             ) : data?.results.length === 0 ? (
               <tr>
                 <td colSpan={8} className="py-8 text-center text-neutral-400 text-sm">
-                  No se encontraron miembros
+                  {assignmentFilter === 'unassigned' ? 'No hay miembros sin asignar con estos filtros.' : 'No se encontraron miembros asignados con estos filtros.'}
                 </td>
               </tr>
             ) : (
@@ -219,6 +288,8 @@ export function MembersPage() {
 function MemberRow({ member }: { member: MemberProfile }) {
   const membership = member.membresia_actual
   const membershipBadge = getMembershipBadge(membership)
+  const { mutate: assignTrainer, isPending: isAssigning } = useAssignTrainerMutation()
+  const isUnassigned = member.trainer_asignado == null
 
   return (
     <tr className="tr-hover" data-testid={`member-row-${member.id}`}>
@@ -228,6 +299,9 @@ function MemberRow({ member }: { member: MemberProfile }) {
           <div>
             <p className="font-medium text-neutral-900 dark:text-white text-sm">{member.full_name}</p>
             <p className="text-xs text-neutral-400">{member.email}</p>
+            {isUnassigned ? (
+              <Badge variant="warning">Sin trainer asignado</Badge>
+            ) : null}
           </div>
         </div>
       </td>
@@ -311,13 +385,25 @@ function MemberRow({ member }: { member: MemberProfile }) {
       <td className="td-base">
         <div className="flex items-center gap-3">
           {member.nivel_riesgo === 'high' && <AlertTriangle size={14} className="text-red-500" />}
-          <Link
-            to={`/members/${member.id}/program`}
-            className="text-sm font-medium text-neutral-700 hover:text-primary dark:text-neutral-300"
-            data-testid={`member-program-${member.id}`}
-          >
-            Entrenamiento
-          </Link>
+          {isUnassigned ? (
+            <button
+              type="button"
+              className="text-sm font-medium text-primary hover:underline disabled:opacity-60"
+              onClick={() => assignTrainer(member.id)}
+              disabled={isAssigning}
+              data-testid={`assign-member-${member.id}`}
+            >
+              {isAssigning ? 'Asignando...' : 'Asignar a mí'}
+            </button>
+          ) : (
+            <Link
+              to={`/members/${member.id}/program`}
+              className="text-sm font-medium text-neutral-700 hover:text-primary dark:text-neutral-300"
+              data-testid={`member-program-${member.id}`}
+            >
+              Entrenamiento
+            </Link>
+          )}
           <Link
             to={`/members/${member.id}`}
             className="text-primary text-sm font-medium hover:underline"

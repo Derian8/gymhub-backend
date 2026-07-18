@@ -6,6 +6,7 @@ import { extractApiError } from '@/shared/lib/utils'
 import { progressApi } from '@/modules/progress/api/progressApi'
 
 interface MembersParams {
+  assignment?: 'mine' | 'unassigned' | 'available'
   search?: string
   payment_status?: string
   inactivity?: string
