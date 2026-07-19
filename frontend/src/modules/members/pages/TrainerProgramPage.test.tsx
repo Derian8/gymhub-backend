@@ -296,6 +296,10 @@ vi.mock('../hooks/useMembers', () => ({
     },
     isLoading: false,
   }),
+  useAssignTrainerMutation: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+  }),
 }))
 
 vi.mock('@/modules/plans/hooks/usePlans', () => ({
@@ -617,6 +621,8 @@ describe('TrainerProgramPage', () => {
     const addExerciseForm = addExerciseButton.closest('form')
     expect(addExerciseForm).not.toBeNull()
     const formScope = within(addExerciseForm as HTMLFormElement)
+    expect(getByTestId('muscle-group-options')).toHaveTextContent('Abductores')
+    expect(getByTestId('muscle-group-options')).toHaveTextContent('Aductores')
 
     fireEvent.click(within(getByTestId('muscle-group-options')).getByText('Cardio'))
 

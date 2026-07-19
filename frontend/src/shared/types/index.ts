@@ -385,7 +385,7 @@ export type ChartsOverview = MemberChartsOverview | TrainerChartsOverview
 
 // --- Plans ---
 export type GoalType = 'fat_loss' | 'muscle_gain' | 'endurance' | 'flexibility' | 'maintenance' | 'general'
-export type MuscleGroup = 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'legs' | 'glutes' | 'core' | 'full_body' | 'cardio'
+export type MuscleGroup = 'chest' | 'back' | 'lats' | 'shoulders' | 'traps' | 'biceps' | 'triceps' | 'forearms' | 'legs' | 'quadriceps' | 'hamstrings' | 'glutes' | 'calves' | 'adductors' | 'abductors' | 'hip_flexors' | 'core' | 'abs' | 'obliques' | 'lower_back' | 'full_body' | 'cardio'
 export type DayLabel = 'A' | 'B' | 'C' | 'D'
 export type DayOfWeek = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun'
 export type ExerciseType = 'strength' | 'timed'

@@ -69,6 +69,70 @@ class TestTrainingPlans:
         assert resp.status_code == status.HTTP_201_CREATED
         assert resp.data['goal'] == 'maintenance'
 
+    def test_new_muscle_groups_are_valid_for_exercises_and_templates(self, member_profile, trainer_profile):
+        from plans.models import (
+            Exercise,
+            PlantillaDiaEntrenamiento,
+            PlantillaEjercicio,
+            PlantillaEntrenamiento,
+            TrainingPlan,
+            WorkoutDay,
+        )
+
+        plan = TrainingPlan.objects.create(
+            member=member_profile,
+            trainer=trainer_profile,
+            name='Plan grupos especificos',
+            goal='muscle_gain',
+            start_date=date.today(),
+            weeks_duration=4,
+            days_per_week=3,
+            status='draft',
+        )
+        day = WorkoutDay.objects.create(
+            plan=plan,
+            name='Pierna especifica',
+            day_label='A',
+            day_of_week='mon',
+            order=0,
+        )
+        exercise = Exercise.objects.create(
+            workout_day=day,
+            name='Abduccion en maquina',
+            muscle_group='abductors',
+            exercise_type='strength',
+            sets=3,
+            reps_range='12-15',
+            rest_seconds=60,
+            order=0,
+        )
+
+        template = PlantillaEntrenamiento.objects.create(
+            trainer=trainer_profile,
+            nombre='Base abductores',
+            objetivo='muscle_gain',
+            dias_por_semana_sugeridos=3,
+        )
+        template_day = PlantillaDiaEntrenamiento.objects.create(
+            plantilla=template,
+            nombre='Pierna',
+            etiqueta_dia='A',
+            orden=0,
+        )
+        template_exercise = PlantillaEjercicio.objects.create(
+            dia=template_day,
+            nombre='Aduccion en maquina',
+            grupo_muscular='adductors',
+            tipo_ejercicio='strength',
+            series=3,
+            rango_repeticiones='12-15',
+            descanso_segundos=60,
+            orden=0,
+        )
+
+        assert exercise.muscle_group == 'abductors'
+        assert template_exercise.grupo_muscular == 'adductors'
+
     def test_trainer_can_create_complete_draft_plan_from_general_screen(self, trainer_client, member_profile):
         from plans.models import GymMachine, TrainingPlan
 

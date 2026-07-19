@@ -11,7 +11,7 @@ import {
   descripcionPublicacionPrescripcion,
   type TipoPublicacionPrescripcion,
 } from '@/shared/lib/prescriptionPublication'
-import { formatDateTime } from '@/shared/lib/utils'
+import { MUSCLE_GROUP_OPTIONS, formatDateTime } from '@/shared/lib/utils'
 import { useMemberActivePrescriptionQuery, useMemberDetailQuery, useMemberPrescriptionQuery } from '../hooks/useMembers'
 import {
   useCreateGymMachineMutation,
@@ -95,18 +95,7 @@ const dayOfWeekOptions: Array<{ value: DayOfWeek; label: string }> = [
   { value: 'sat', label: 'Sábado' },
   { value: 'sun', label: 'Domingo' },
 ]
-const muscleOptions: Array<{ value: MuscleGroup; label: string }> = [
-  { value: 'chest', label: 'Pecho' },
-  { value: 'back', label: 'Espalda' },
-  { value: 'shoulders', label: 'Hombros' },
-  { value: 'biceps', label: 'Biceps' },
-  { value: 'triceps', label: 'Triceps' },
-  { value: 'legs', label: 'Piernas' },
-  { value: 'glutes', label: 'Gluteos' },
-  { value: 'core', label: 'Core' },
-  { value: 'full_body', label: 'Cuerpo completo' },
-  { value: 'cardio', label: 'Cardio' },
-]
+const muscleOptions = MUSCLE_GROUP_OPTIONS
 
 const adherenceOptions: Array<{ value: 'low' | 'medium' | 'high'; label: string }> = [
   { value: 'low', label: 'Baja' },

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type React from 'react'
 import { AlertTriangle, Copy, Plus, Trash2, X } from 'lucide-react'
 import { Avatar, Badge } from '@/shared/components/UI'
-import { DAY_OF_WEEK_LABELS, GOAL_LABELS, MUSCLE_LABELS, formatDate } from '@/shared/lib/utils'
+import { DAY_OF_WEEK_LABELS, GOAL_LABELS, MUSCLE_GROUP_OPTIONS, formatDate } from '@/shared/lib/utils'
 import { useAssignTrainerMutation, useMembersQuery } from '@/modules/members/hooks/useMembers'
 import { useCreateCompletePlanMutation, useGymMachinesQuery, useTrainingTemplatesQuery } from '../hooks/usePlans'
 import type {
@@ -36,8 +36,6 @@ const goals: Array<{ value: GoalType; label: string }> = [
   { value: 'general', label: 'Acondicionamiento general' },
   { value: 'maintenance', label: 'Personalizado' },
 ]
-const muscles: MuscleGroup[] = ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'legs', 'glutes', 'core', 'full_body', 'cardio']
-
 type WizardDay = CompleteTrainingPlanPayload['days'][number]
 
 interface TrainingPlanWizardProps {
@@ -447,7 +445,7 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
                           </Field>
                           <Field label="Grupo">
                             <select className="input" value={exercise.muscle_group} onChange={(event) => updateExercise(dayIndex, exerciseIndex, { muscle_group: event.target.value as MuscleGroup })}>
-                              {muscles.map((muscle) => <option key={muscle} value={muscle}>{MUSCLE_LABELS[muscle]}</option>)}
+                              {MUSCLE_GROUP_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                             </select>
                           </Field>
                           <Field label="Tipo">
