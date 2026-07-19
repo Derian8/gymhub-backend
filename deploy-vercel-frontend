@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  cat <<'EOF'
+Uso: ./deploy-vercel-frontend
+
+Despliega el frontend de GymHub en Vercel production.
+Requiere .env.supabase-vercel.local con VERCEL_TOKEN, VERCEL_TEAM_ID,
+VERCEL_PROJECT_ID y VITE_API_TIMEOUT_MS.
+EOF
+  exit 0
+fi
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="${ROOT_DIR}/.env.supabase-vercel.local"
 PROJECT_FILE="${ROOT_DIR}/frontend/.vercel/project.json"
@@ -18,7 +29,26 @@ set +a
 : "${VERCEL_TEAM_ID:?Falta VERCEL_TEAM_ID}"
 : "${VERCEL_PROJECT_ID:?Falta VERCEL_PROJECT_ID}"
 : "${VITE_API_TIMEOUT_MS:?Falta VITE_API_TIMEOUT_MS}"
+VERCEL_CLI_VERSION="${VERCEL_CLI_VERSION:-56.3.2}"
 BUILD_ID="${VERCEL_GIT_COMMIT_SHA:-manual-$(date +%s)}"
+
+require_dns() {
+  local host="$1"
+  if ! getent hosts "${host}" >/dev/null 2>&1; then
+    echo "No se pudo resolver ${host}. Revisa DNS/red antes de desplegar." >&2
+    exit 2
+  fi
+}
+
+require_dns "api.vercel.com"
+require_dns "registry.npmjs.org"
+
+if ! curl -fsS --max-time 20 \
+  -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+  "https://api.vercel.com/v2/user" >/dev/null; then
+  echo "No se pudo validar VERCEL_TOKEN contra api.vercel.com." >&2
+  exit 3
+fi
 
 if [[ ! -f "${PROJECT_FILE}" ]]; then
   echo "Falta ${PROJECT_FILE}. Ejecuta vercel link dentro de frontend/." >&2
@@ -42,7 +72,7 @@ echo "Deploy frontend -> ${PROJECT_NAME_LOCAL} (${VERCEL_PROJECT_ID})"
 
 cd "${ROOT_DIR}/frontend"
 
-npx vercel@latest deploy . \
+npx "vercel@${VERCEL_CLI_VERSION}" deploy . \
   --yes \
   --token "${VERCEL_TOKEN}" \
   --scope "${VERCEL_TEAM_ID}" \
