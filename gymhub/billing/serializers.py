@@ -69,6 +69,8 @@ class MemberMembershipSerializer(serializers.ModelSerializer):
         allow_null=True,
     )
     plan_name = serializers.CharField(source='membership_name', read_only=True)
+    membership_name = serializers.CharField(required=False, allow_blank=True)
+    description = serializers.CharField(required=False, allow_blank=True)
     end_date = serializers.DateField(source='current_period_end', read_only=True)
     auto_renew = serializers.BooleanField(source='auto_generate_next', required=False)
     cancelled_at = serializers.DateField(source='cancellation_date', read_only=True)
@@ -81,8 +83,8 @@ class MemberMembershipSerializer(serializers.ModelSerializer):
     class Meta:
         model = MemberSubscription
         fields = (
-            'id', 'member', 'membership_plan', 'plan_name',
-            'start_date', 'end_date', 'agreed_price', 'status',
+            'id', 'member', 'membership_plan', 'plan_name', 'membership_name',
+            'description', 'start_date', 'end_date', 'agreed_price', 'status',
             'auto_renew', 'created_at', 'updated_at', 'cancelled_at', 'notes',
             'days_remaining', 'can_check_in', 'next_payment', 'last_payment',
             'recurrence_type', 'grace_period_days',
@@ -102,7 +104,10 @@ class MemberMembershipSerializer(serializers.ModelSerializer):
         member = attrs.get('member') or getattr(self.instance, 'member', None)
         plan = attrs.get('plan') or getattr(self.instance, 'plan', None)
         if self.instance is None and not plan:
-            raise serializers.ValidationError({'membership_plan': 'Selecciona un plan de membresía.'})
+            if not attrs.get('membership_name', '').strip():
+                raise serializers.ValidationError({'membership_name': 'Escribe el nombre de la membresía.'})
+            if attrs.get('agreed_price') in (None, ''):
+                raise serializers.ValidationError({'agreed_price': 'Escribe el precio acordado.'})
         if self.instance is None and member:
             existing = MemberSubscription.objects.filter(
                 member=member,

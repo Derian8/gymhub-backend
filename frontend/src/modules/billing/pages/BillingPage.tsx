@@ -13,11 +13,11 @@ import {
   useRenewMemberMembershipMutation,
   useSuspendMemberMembershipMutation,
 } from '../hooks/useBilling'
-import { useMembersQuery } from '@/modules/members/hooks/useMembers'
+import { useMemberActivePrescriptionQuery, useMembersQuery } from '@/modules/members/hooks/useMembers'
 import { Badge, EmptyState, PageHeader } from '@/shared/components/UI'
 import { TableRowSkeleton } from '@/shared/components/Skeleton'
-import { formatCurrency, formatDate } from '@/shared/lib/utils'
-import type { MemberMembership, MemberMembershipSummary, MemberProfile, MemberSubscription, PaymentRecord } from '@/shared/types'
+import { formatCurrency, formatDate, GOAL_LABELS } from '@/shared/lib/utils'
+import type { MemberMembership, MemberMembershipSummary, MemberProfile, MemberSubscription, PaymentRecord, TrainingPlan } from '@/shared/types'
 
 type CobroFormState = {
   payment_reference: string
@@ -25,6 +25,7 @@ type CobroFormState = {
 }
 
 type PaymentPortfolioFilter = '' | 'pending' | 'late'
+type MembershipCreationMode = 'training_plan' | 'catalog_plan'
 
 const SUBSCRIPTION_STATUS_LABELS: Record<MemberSubscription['status'], string> = {
   pending: 'Pendiente',
@@ -65,11 +66,30 @@ const RECURRENCE_SHORT_LABELS: Record<MemberSubscription['recurrence_type'], str
 function emptyMembershipForm() {
   const today = new Date().toISOString().slice(0, 10)
   return {
+    mode: 'training_plan' as MembershipCreationMode,
     membership_plan: '',
+    membership_name: '',
+    agreed_price: '',
+    recurrence_type: 'monthly' as MemberSubscription['recurrence_type'],
+    grace_period_days: 7,
     start_date: today,
     notes: '',
     auto_renew: true,
   }
+}
+
+function buildTrainingMembershipNotes(activePlan: TrainingPlan | null) {
+  if (!activePlan) {
+    return ''
+  }
+  const goal = GOAL_LABELS[activePlan.goal] || activePlan.goal
+  const endDate = activePlan.end_date ? formatDate(activePlan.end_date) : 'sin fecha final'
+  return [
+    `Membresía creada desde plan de entrenamiento #${activePlan.id}: ${activePlan.name}.`,
+    `Objetivo: ${goal}.`,
+    `Frecuencia: ${activePlan.days_per_week} días por semana.`,
+    `Vigencia del plan: ${formatDate(activePlan.start_date)} - ${endDate}.`,
+  ].join('\n')
 }
 
 function getMembershipBadge(membership?: MemberMembershipSummary | null): {
@@ -122,6 +142,7 @@ export function BillingPage() {
   const { data: plans } = useMembershipPlansQuery()
   const { data: subscriptions } = useMemberSubscriptionsQuery(filtros)
   const { data: memberships } = useMemberMembershipsQuery(filtros)
+  const { data: activePrescription } = useMemberActivePrescriptionQuery(memberIdNumber || 0)
   const createMembership = useCreateMemberMembershipMutation(memberIdNumber)
   const renewMembership = useRenewMemberMembershipMutation(memberIdNumber)
   const suspendMembership = useSuspendMemberMembershipMutation(memberIdNumber)
@@ -130,10 +151,6 @@ export function BillingPage() {
   const [paymentDrafts, setPaymentDrafts] = useState<Record<number, CobroFormState>>({})
   const [membershipForm, setMembershipForm] = useState(emptyMembershipForm)
 
-  const activeSubscription = useMemo(
-    () => subscriptions?.results.find((item) => item.is_active) ?? null,
-    [subscriptions],
-  )
   const latestSubscription = useMemo(
     () => subscriptions?.results[0] ?? null,
     [subscriptions],
@@ -148,20 +165,65 @@ export function BillingPage() {
   )
 
   useEffect(() => {
-    if (!plans?.results.length || membershipForm.membership_plan || activeMembership) {
+    if (!plans?.results.length || membershipForm.membership_plan || activeMembership || membershipForm.mode !== 'catalog_plan') {
       return
     }
     setMembershipForm((current) => ({ ...current, membership_plan: String(plans.results[0].id) }))
-  }, [activeMembership, membershipForm.membership_plan, plans?.results])
+  }, [activeMembership, membershipForm.membership_plan, membershipForm.mode, plans?.results])
+
+  const activeTrainingPlan = activePrescription?.plan_activo ?? null
+  const canSubmitMembership = membershipForm.mode === 'catalog_plan'
+    ? Boolean(plans?.results.length && membershipForm.membership_plan)
+    : Boolean(activeTrainingPlan && membershipForm.membership_name.trim() && membershipForm.agreed_price)
+
+  useEffect(() => {
+    if (!memberIdNumber || activeMembership || !activeTrainingPlan || membershipForm.mode !== 'training_plan') {
+      return
+    }
+    setMembershipForm((current) => {
+      if (current.membership_name || current.notes) {
+        return current
+      }
+      return {
+        ...current,
+        membership_name: `Membresía - ${activeTrainingPlan.name}`,
+        start_date: activeTrainingPlan.start_date || current.start_date,
+        notes: buildTrainingMembershipNotes(activeTrainingPlan),
+      }
+    })
+  }, [activeMembership, activeTrainingPlan, memberIdNumber, membershipForm.mode, membershipForm.membership_name, membershipForm.notes])
 
   const handleMembershipSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!memberIdNumber || !membershipForm.membership_plan || activeMembership) {
+    if (!memberIdNumber || activeMembership) {
+      return
+    }
+    if (membershipForm.mode === 'catalog_plan') {
+      if (!membershipForm.membership_plan) {
+        return
+      }
+      createMembership.mutate({
+        member: memberIdNumber,
+        membership_plan: Number(membershipForm.membership_plan),
+        start_date: membershipForm.start_date,
+        auto_renew: membershipForm.auto_renew,
+        notes: membershipForm.notes,
+      })
+      return
+    }
+    if (!membershipForm.membership_name.trim() || !membershipForm.agreed_price) {
       return
     }
     createMembership.mutate({
       member: memberIdNumber,
-      membership_plan: Number(membershipForm.membership_plan),
+      membership_plan: null,
+      membership_name: membershipForm.membership_name.trim(),
+      description: activeTrainingPlan
+        ? `Membresía individual basada en el plan de entrenamiento ${activeTrainingPlan.name}.`
+        : 'Membresía individual personalizada.',
+      agreed_price: membershipForm.agreed_price,
+      recurrence_type: membershipForm.recurrence_type,
+      grace_period_days: membershipForm.grace_period_days,
       start_date: membershipForm.start_date,
       auto_renew: membershipForm.auto_renew,
       notes: membershipForm.notes,
@@ -261,7 +323,7 @@ export function BillingPage() {
               ) : (
                 <div className="space-y-3">
                   <p className="text-sm text-neutral-500">Este miembro todavía no tiene una membresía creada.</p>
-                  <p className="text-sm text-neutral-500">Selecciona un plan general para asignarlo al miembro y generar el primer cobro pendiente.</p>
+                  <p className="text-sm text-neutral-500">Puedes crearla desde su plan de entrenamiento activo o usar un plan general del catálogo.</p>
                 </div>
               )}
             </div>
@@ -272,33 +334,114 @@ export function BillingPage() {
               </h4>
               {!activeMembership ? (
                 <>
-                  <label className="space-y-1">
-                    <span className="text-xs font-medium text-neutral-500">Plan de membresía</span>
-                    <select
-                      className="input"
-                      data-testid="membership-plan-select"
-                      value={membershipForm.membership_plan}
-                      onChange={(event) => setMembershipForm({ ...membershipForm, membership_plan: event.target.value })}
-                      required
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      className={membershipForm.mode === 'training_plan' ? 'btn-primary' : 'btn-secondary'}
+                      data-testid="membership-mode-training"
+                      onClick={() => setMembershipForm((current) => ({ ...current, mode: 'training_plan' }))}
                     >
-                      <option value="">Selecciona un plan</option>
-                      {(plans?.results || []).map((plan) => (
-                        <option key={plan.id} value={plan.id}>
-                          {plan.name} · {formatCurrency(plan.price)} / {RECURRENCE_SHORT_LABELS[plan.recurrence_type]}
-                        </option>
-                      ))}
-                    </select>
+                      Desde entrenamiento activo
+                    </button>
+                    <button
+                      type="button"
+                      className={membershipForm.mode === 'catalog_plan' ? 'btn-primary' : 'btn-secondary'}
+                      data-testid="membership-mode-catalog"
+                      onClick={() => setMembershipForm((current) => ({ ...current, mode: 'catalog_plan' }))}
+                    >
+                      Desde plan general
+                    </button>
+                  </div>
+
+                  {membershipForm.mode === 'training_plan' ? (
+                    <>
+                      {activeTrainingPlan ? (
+                        <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-100" data-testid="active-training-plan-card">
+                          <p className="font-semibold">{activeTrainingPlan.name}</p>
+                          <p>{GOAL_LABELS[activeTrainingPlan.goal] || activeTrainingPlan.goal} · {activeTrainingPlan.days_per_week} días/semana</p>
+                          <p>
+                            {formatDate(activeTrainingPlan.start_date)} - {activeTrainingPlan.end_date ? formatDate(activeTrainingPlan.end_date) : 'sin fecha final'}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+                          Este miembro no tiene un plan de entrenamiento activo. Primero crea la rutina en{' '}
+                          <Link className="font-semibold underline" to={`/members/${memberIdNumber}/program`}>
+                            Planes de entrenamiento
+                          </Link>
+                          .
+                        </div>
+                      )}
+                      <label className="space-y-1">
+                        <span className="text-xs font-medium text-neutral-500">Nombre de la membresía</span>
+                        <input
+                          className="input"
+                          data-testid="custom-membership-name"
+                          value={membershipForm.membership_name}
+                          onChange={(event) => setMembershipForm({ ...membershipForm, membership_name: event.target.value })}
+                          placeholder="Membresía personalizada"
+                          required
+                        />
+                      </label>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <label className="space-y-1">
+                          <span className="text-xs font-medium text-neutral-500">Precio acordado</span>
+                          <input
+                            className="input"
+                            data-testid="custom-membership-price"
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={membershipForm.agreed_price}
+                            onChange={(event) => setMembershipForm({ ...membershipForm, agreed_price: event.target.value })}
+                            placeholder="25000"
+                            required
+                          />
+                        </label>
+                        <label className="space-y-1">
+                          <span className="text-xs font-medium text-neutral-500">Recurrencia</span>
+                          <select
+                            className="input"
+                            data-testid="custom-membership-recurrence"
+                            value={membershipForm.recurrence_type}
+                            onChange={(event) => setMembershipForm({ ...membershipForm, recurrence_type: event.target.value as MemberSubscription['recurrence_type'] })}
+                          >
+                            {Object.entries(RECURRENCE_TYPE_LABELS).map(([value, label]) => (
+                              <option key={value} value={value}>{label}</option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+                    </>
+                  ) : (
+                    <label className="space-y-1">
+                      <span className="text-xs font-medium text-neutral-500">Plan de membresía</span>
+                      <select
+                        className="input"
+                        data-testid="membership-plan-select"
+                        value={membershipForm.membership_plan}
+                        onChange={(event) => setMembershipForm({ ...membershipForm, membership_plan: event.target.value })}
+                        required
+                      >
+                        <option value="">Selecciona un plan</option>
+                        {(plans?.results || []).map((plan) => (
+                          <option key={plan.id} value={plan.id}>
+                            {plan.name} · {formatCurrency(plan.price)} / {RECURRENCE_SHORT_LABELS[plan.recurrence_type]}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  <label className="space-y-1">
+                    <span className="text-xs font-medium text-neutral-500">Inicio y primer cobro</span>
+                    <input className="input" type="date" value={membershipForm.start_date} onChange={(event) => setMembershipForm({ ...membershipForm, start_date: event.target.value })} required />
                   </label>
-                <label className="space-y-1">
-                  <span className="text-xs font-medium text-neutral-500">Inicio y primer cobro</span>
-                  <input className="input" type="date" value={membershipForm.start_date} onChange={(event) => setMembershipForm({ ...membershipForm, start_date: event.target.value })} required />
-                </label>
                   <textarea className="input min-h-24" placeholder="Notas comerciales" value={membershipForm.notes} onChange={(event) => setMembershipForm({ ...membershipForm, notes: event.target.value })} />
                   <label className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
                     <input type="checkbox" checked={membershipForm.auto_renew} onChange={(event) => setMembershipForm({ ...membershipForm, auto_renew: event.target.checked })} />
                     Renovación automática habilitada
                   </label>
-                  {!plans?.results.length && (
+                  {membershipForm.mode === 'catalog_plan' && !plans?.results.length && (
                     <p className="text-sm text-amber-600">Primero crea un plan general de membresía para poder asignarlo.</p>
                   )}
                 </>
@@ -313,8 +456,8 @@ export function BillingPage() {
               )}
               {!activeMembership && (
                 <div className="flex justify-end">
-                  <button className="btn-primary" type="submit" disabled={createMembership.isPending || !plans?.results.length}>
-                    Asignar membresía y crear primer cobro
+                  <button className="btn-primary" type="submit" disabled={createMembership.isPending || !canSubmitMembership}>
+                    {membershipForm.mode === 'training_plan' ? 'Crear membresía desde entrenamiento y generar primer cobro' : 'Asignar membresía y crear primer cobro'}
                   </button>
                 </div>
               )}

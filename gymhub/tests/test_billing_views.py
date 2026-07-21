@@ -98,6 +98,45 @@ class TestBillingViews:
         assert resp.data['plan_name'] == membership_plan.name
         assert resp.data['status'] == 'pending'
 
+    def test_trainer_can_assign_custom_member_membership_without_catalog_plan(
+        self,
+        trainer_client,
+        member_profile,
+    ):
+        from billing.models import MemberSubscription, PaymentRecord, PaymentSchedule
+
+        resp = trainer_client.post(
+            '/api/member-memberships/',
+            {
+                'member': member_profile.id,
+                'membership_plan': None,
+                'membership_name': 'Membresía - Hipertrofia base',
+                'description': 'Membresía individual basada en el plan de entrenamiento Hipertrofia base.',
+                'agreed_price': '25000.00',
+                'recurrence_type': 'monthly',
+                'grace_period_days': 7,
+                'start_date': timezone.now().date().isoformat(),
+                'auto_renew': True,
+                'notes': 'Membresía creada desde plan de entrenamiento #12: Hipertrofia base.',
+            },
+            format='json',
+        )
+
+        assert resp.status_code == status.HTTP_201_CREATED
+        assert resp.data['membership_plan'] is None
+        assert resp.data['plan_name'] == 'Membresía - Hipertrofia base'
+        assert resp.data['agreed_price'] == '25000.00'
+
+        subscription = MemberSubscription.objects.get(pk=resp.data['id'])
+        schedule = PaymentSchedule.objects.get(subscription=subscription)
+        payment_record = PaymentRecord.objects.get(schedule=schedule)
+
+        assert subscription.plan_id is None
+        assert subscription.membership_name == 'Membresía - Hipertrofia base'
+        assert schedule.plan_id is None
+        assert str(payment_record.amount) == '25000.00'
+        assert payment_record.status == 'pending'
+
     def test_member_membership_prevents_two_operational_memberships(
         self,
         trainer_client,

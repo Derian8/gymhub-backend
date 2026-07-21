@@ -13,6 +13,7 @@ let subscriptionsMock: Array<Record<string, unknown>> = []
 let membershipsMock: Array<Record<string, unknown>> = []
 let membersMock: Array<Record<string, unknown>> = []
 let membersQueryParams: Array<Record<string, unknown> | undefined> = []
+let activePrescriptionMock: Record<string, unknown>
 
 vi.mock('../hooks/useBilling', () => ({
   usePaymentRecordsQuery: () => ({
@@ -76,6 +77,10 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
     },
     isLoading: false,
   }},
+  useMemberActivePrescriptionQuery: () => ({
+    data: activePrescriptionMock,
+    isLoading: false,
+  }),
 }))
 
 describe('BillingPage', () => {
@@ -90,6 +95,39 @@ describe('BillingPage', () => {
     subscriptionsMock = []
     membershipsMock = []
     membersQueryParams = []
+    activePrescriptionMock = {
+      member: 15,
+      trainer: {
+        id: 3,
+        nombre: 'Trainer Test',
+        correo: 'trainer@test.com',
+      },
+      plan_activo: {
+        id: 12,
+        member: 15,
+        trainer: 3,
+        name: 'Hipertrofia base',
+        goal: 'muscle_gain',
+        start_date: '2026-03-01',
+        end_date: '2026-04-26',
+        weeks_duration: 8,
+        days_per_week: 4,
+        is_active: true,
+        status: 'active',
+      },
+      dias: [],
+      entrenamiento_hoy: null,
+      perfil_nutricional: null,
+      guias_vinculadas: [],
+      estado_prescripcion: {
+        tiene_plan_activo: true,
+        tiene_dias: false,
+        tiene_ejercicios: false,
+        tiene_nutricion: false,
+        tiene_guias: false,
+        esta_lista_para_member: false,
+      },
+    }
     membersMock = [
       {
         id: 15,
@@ -208,12 +246,15 @@ describe('BillingPage', () => {
     expect(getByText('Cobros, recibos y estado comercial del miembro seleccionado')).toBeInTheDocument()
     expect(getByText('Membresía del miembro')).toBeInTheDocument()
     expect(queryByText(/Plan asignado:/)).not.toBeInTheDocument()
+    expect(getByTestId('active-training-plan-card')).toHaveTextContent('Hipertrofia base')
+    fireEvent.click(getByTestId('membership-mode-catalog'))
     expect(getByTestId('membership-plan-select')).toHaveValue('8')
   })
 
   it('assigns a member membership from an existing plan', () => {
-    const { getAllByRole, getAllByTestId } = renderWithProviders(<BillingPage />, { route: '/billing?member=15' })
+    const { getAllByRole, getAllByTestId, getByTestId } = renderWithProviders(<BillingPage />, { route: '/billing?member=15' })
 
+    fireEvent.click(getByTestId('membership-mode-catalog'))
     fireEvent.change(getAllByTestId('membership-plan-select')[0], { target: { value: '8' } })
     fireEvent.click(getAllByRole('button', { name: 'Asignar membresía y crear primer cobro' })[0])
 
@@ -223,6 +264,25 @@ describe('BillingPage', () => {
         membership_plan: 8,
       }),
     )
+  })
+
+  it('creates a custom membership from the active training plan', () => {
+    const { getByRole, getByTestId } = renderWithProviders(<BillingPage />, { route: '/billing?member=15' })
+
+    expect(getByTestId('active-training-plan-card')).toHaveTextContent('Hipertrofia base')
+    expect(getByTestId('custom-membership-name')).toHaveValue('Membresía - Hipertrofia base')
+
+    fireEvent.change(getByTestId('custom-membership-price'), { target: { value: '25000' } })
+    fireEvent.click(getByRole('button', { name: 'Crear membresía desde entrenamiento y generar primer cobro' }))
+
+    expect(createMembershipMock).toHaveBeenCalledWith(expect.objectContaining({
+      member: 15,
+      membership_plan: null,
+      membership_name: 'Membresía - Hipertrofia base',
+      agreed_price: '25000',
+      recurrence_type: 'monthly',
+      notes: expect.stringContaining('plan de entrenamiento #12'),
+    }))
   })
 
   it('creates a fresh membership when the member only has cancelled history', () => {
@@ -252,6 +312,7 @@ describe('BillingPage', () => {
     const { getAllByRole, getByTestId, getByText } = renderWithProviders(<BillingPage />, { route: '/billing?member=15' })
 
     expect(getByText('Último historial')).toBeInTheDocument()
+    fireEvent.click(getByTestId('membership-mode-catalog'))
     expect(getByTestId('membership-plan-select')).toHaveValue('8')
 
     fireEvent.click(getAllByRole('button', { name: 'Asignar membresía y crear primer cobro' })[0])
@@ -265,6 +326,7 @@ describe('BillingPage', () => {
 
   it('shows the configured plan recurrence when assigning memberships', () => {
     const { getByTestId } = renderWithProviders(<BillingPage />, { route: '/billing?member=15' })
+    fireEvent.click(getByTestId('membership-mode-catalog'))
     const planSelect = getByTestId('membership-plan-select') as HTMLSelectElement
     const labels = Array.from(planSelect.options).map((option) => option.text.replace(/\s+/g, ' '))
 

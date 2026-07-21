@@ -102,6 +102,8 @@ export interface MemberMembership {
   member: number
   membership_plan: number | null
   plan_name: string | null
+  membership_name?: string
+  description?: string
   start_date: string
   end_date: string | null
   agreed_price: string
