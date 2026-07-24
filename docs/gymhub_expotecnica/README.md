@@ -2,7 +2,9 @@
 
 Este directorio contiene el modelo de negocio institucional de GymHub. El
 documento sigue los lineamientos específicos de ExpoTÉCNICA 2026 y utiliza APA
-7 para las citas y referencias.
+7 para las citas y referencias. La propuesta documenta el origen estudiantil del
+proyecto en 2025, su primera participación en la feria, la encuesta aplicada y
+una proyección económica con planes y punto de equilibrio.
 
 ## Compilación
 

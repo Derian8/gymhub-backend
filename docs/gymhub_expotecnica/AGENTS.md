@@ -25,6 +25,17 @@ Estas instrucciones aplican a todo archivo dentro de `docs/gymhub_expotecnica/`.
   portada.
 - No presentar como implementadas las capacidades multiempresa, personalización
   por gimnasio o facturación automática mientras no existan en el producto.
+- GymHub es un proyecto nuevo para ExpoTÉCNICA. La idea y primera versión
+  surgieron en el segundo periodo de 2025 dentro de Fundamentos de Programación,
+  pero nunca se presentaron en una edición anterior de la feria.
+- Mantener la estructura comercial vigente: piloto de CRC 15 000 y planes de
+  CRC 30 000, CRC 45 000 y CRC 60 000. Cualquier cambio debe actualizar también
+  el punto de equilibrio.
+- Presentar los conteos detallados de pruebas en anexos; en el cuerpo principal
+  explicar los flujos comprobados y el valor que aportan.
+- La declaración de IA debe limitarse al uso confirmado: ChatGPT en menos del
+  10 % para consultas técnicas, localización de errores y revisión ortográfica.
+  No atribuirle la autoría ni la redacción del escrito.
 
 ## Encuesta Y Datos
 

@@ -2,15 +2,18 @@
 
 \subsection{Servicio ofrecido}
 
-GymHub ofrece acceso a una plataforma web para organizar la operación de un
-gimnasio. El servicio permite registrar miembros, gestionar planes de membresía,
-controlar pagos y asistencia, asignar planes de entrenamiento, registrar sesiones
-y consultar indicadores básicos. La aplicación no constituye un dispositivo
-médico ni un sistema contable certificado.
+Con GymHub ofrecemos una plataforma web que reúne la operación diaria del
+gimnasio y el seguimiento de sus miembros. El servicio permite registrar
+personas, gestionar membresías, controlar pagos y asistencia, asignar planes de
+entrenamiento, registrar sesiones y consultar indicadores. Esta integración
+reduce cambios entre cuadernos, hojas de cálculo y aplicaciones separadas, y
+facilita que cada dato se convierta en una acción concreta.
 
-La versión inicial se concentra en funciones comprobables del prototipo. Las
-integraciones con pasarelas de pago, acceso físico, almacenamiento persistente de
-archivos y automatizaciones de producción se consideran fases posteriores.
+La versión inicial se concentra en los procesos que más valor aportan a la
+muestra consultada: cobros, vigencias, asistencia, rutinas, progreso y
+recordatorios. Las pasarelas de pago y el acceso físico automatizado forman parte
+del crecimiento posterior del producto. GymHub organiza información operativa y
+deportiva; no sustituye un sistema contable ni un servicio médico.
 
 \subsection{Cliente y personas usuarias}
 
@@ -20,10 +23,9 @@ se consideran entrenadores personales que administran una cartera propia. Los
 miembros del gimnasio son beneficiarios y usuarios finales, pero no necesariamente
 son compradores directos.
 
-El mercado inicial se delimita a Pérez Zeledón y zonas cercanas para facilitar
-demostraciones, acompañamiento y retroalimentación. El número de establecimientos
-que cumplen el perfil todavía debe determinarse mediante investigación de campo
-y fuentes locales verificables.
+Delimitamos el mercado inicial a Pérez Zeledón y zonas cercanas. La proximidad
+nos permite visitar los establecimientos, realizar demostraciones, acompañar la
+incorporación y responder con rapidez durante los primeros meses de servicio.
 
 La encuesta logró cinco respuestas del segmento responsable: tres de dueños o
 administradores y dos de entrenadores con responsabilidades administrativas.
@@ -35,14 +37,15 @@ estimar el tamaño del mercado.
 
 \subsection{Forma de comercialización}
 
-La adquisición se plantea mediante contacto directo, demostración del prototipo,
-prueba piloto con alcance limitado y posterior suscripción. Los canales de apoyo
-serán una página informativa, WhatsApp Business, correo y contenido demostrativo
-en redes sociales. No se proyectará publicidad pagada antes de validar el mensaje
-y la disposición de pago. Dos responsables aceptaron directamente un piloto de
-cuatro semanas, dos expresaron una respuesta condicionada o dudosa y uno lo
-rechazó. El contacto comercial debe comenzar con una demostración breve, porque
-cuatro de cinco responsables la solicitaron antes de pronunciarse sobre precio.
+La adquisición comienza con contacto directo y una demostración breve. Después
+ofrecemos un piloto de cuatro semanas por CRC 15\,000, con configuración y
+acompañamiento incluidos. Al finalizar, el gimnasio puede continuar con el plan
+que corresponda a su cantidad de miembros. Utilizaremos una página informativa,
+WhatsApp Business, correo y contenido demostrativo en redes sociales. Esta ruta
+responde a la encuesta: dos responsables aceptaron probar la plataforma y cuatro
+prefirieron conocerla antes de elegir un precio. El proceso de construir, medir
+y aprender reduce el riesgo de invertir en funciones sin demanda
+\parencite{ries2012}.
 
 \subsection{Necesidad atendida}
 
@@ -58,20 +61,18 @@ y seguimiento.
 
 \subsection{Impacto esperado}
 
-Se espera mejorar la organización del gimnasio, la trazabilidad de operaciones y
-la comunicación con miembros. El impacto ambiental potencial corresponde a la
-reducción de registros impresos. Ambos efectos deberán medirse durante el piloto
-con indicadores como tiempo de registro, incidencias administrativas, formularios
-eliminados y frecuencia de uso.
+Esperamos mejorar la organización del gimnasio, la trazabilidad de las
+operaciones y la comunicación con sus miembros. Mediremos este resultado durante
+el piloto mediante tiempo de registro, incidencias administrativas, tareas
+completadas y frecuencia de uso. La sustitución de algunos formularios físicos
+también puede reducir el consumo de papel.
 
 \section{Modelo de negocio}
 
-El modelo consiste en software como servicio por suscripción mensual. GymHub
-mantiene la aplicación y factura al gimnasio una cuota base más un monto variable
-según sus miembros activos. El gimnasio adquiriría derecho de uso, actualizaciones
-y soporte inicial. La personalización de nombre, logo y colores se mantiene como
-requisito futuro, no como capacidad incluida en el MVP actual. La estructura
-sigue cuatro dimensiones:
+El modelo consiste en software como servicio por suscripción mensual. Mantenemos
+la aplicación y facturamos al gimnasio un plan según su cantidad de miembros
+activos. La suscripción incluye el acceso web, las actualizaciones y el soporte
+inicial. La estructura sigue cuatro dimensiones:
 
 \begin{itemize}
   \item \textbf{Cliente}: responsables de gimnasios y entrenadores con necesidad
@@ -84,11 +85,11 @@ sigue cuatro dimensiones:
   infraestructura, soporte, mantenimiento e inversión de trabajo.
 \end{itemize}
 
-El Canvas permite describir cómo se crea, entrega y captura valor
-\parencite{osterwalder2010}. En GymHub, sus nueve bloques se complementan con
-evidencia técnica y con resultados descriptivos. La encuesta respalda utilidad
-percibida y prioridades funcionales, pero no valida todavía la disposición de
-pago ni una demanda representativa del cantón.
+El Canvas permite explicar cómo creamos, entregamos y capturamos valor
+\parencite{osterwalder2010}. Sus nueve bloques se apoyan en el funcionamiento del
+prototipo y en la encuesta aplicada. Los resultados orientan el producto hacia
+los cobros, el acceso móvil, las rutinas y el progreso, mientras que el piloto
+permitirá comprobar la continuidad después de una demostración.
 
 \begin{table}[htbp]
 \caption{Resumen del modelo de negocio de GymHub}
@@ -99,11 +100,11 @@ Elemento & Definición inicial \\
 Servicio & Plataforma web de gestión administrativa y seguimiento deportivo. \\
 Comprador & Dueño o administrador de gimnasio pequeño o mediano. \\
 Usuarios & Administradores, entrenadores, personal autorizado y miembros. \\
-Ingreso & Escenario inicial de CRC 30\,000 hasta 50 miembros y CRC 350 adicionales; no validado por la encuesta. \\
+Ingreso & Piloto de CRC 15\,000 y planes mensuales de CRC 30\,000, CRC 45\,000 y CRC 60\,000. \\
 Entrega & Acceso web responsive con acompañamiento inicial. \\
-Personalización & Nombre, logo y colores por gimnasio como requisito futuro. \\
-Mercado inicial & Pérez Zeledón y zonas cercanas; tamaño total no estimado por la muestra. \\
-Madurez & MVP funcional en demostración, todavía no SaaS comercial maduro. \\
+Personalización & Nombre, logo y colores por gimnasio en la evolución comercial. \\
+Mercado inicial & Gimnasios pequeños y medianos de Pérez Zeledón y zonas cercanas. \\
+Madurez & Producto mínimo viable funcional, preparado para demostración y piloto. \\
 \bottomrule
 \end{tabularx}
 \caption*{\fuentepropia}

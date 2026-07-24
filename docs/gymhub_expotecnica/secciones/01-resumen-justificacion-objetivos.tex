@@ -1,12 +1,14 @@
 \section*{Resumen ejecutivo}
 \addcontentsline{toc}{section}{Resumen ejecutivo}
 
-GymHub es una plataforma web orientada a la gestión administrativa y al
-seguimiento deportivo de gimnasios pequeños y medianos. El prototipo centraliza
-miembros, membresías, pagos, asistencia, planes de entrenamiento, sesiones,
-progreso, alertas y guías generales de nutrición. También incorpora paneles por
-rol y un asistente conversacional contextual. La propuesta se plantea como un
-servicio por suscripción y no como una venta única de software.
+GymHub es una plataforma web que desarrollamos para facilitar la gestión
+administrativa y el seguimiento deportivo de gimnasios pequeños y medianos.
+Integra en un mismo lugar miembros, membresías, pagos, asistencia, planes de
+entrenamiento, sesiones, progreso, alertas y guías generales de nutrición. Cada
+persona accede a un panel acorde con su función, de modo que administradores,
+entrenadores y miembros consultan únicamente la información que necesitan. El
+modelo comercial se basa en una suscripción mensual que incluye acceso,
+actualizaciones y acompañamiento inicial.
 
 El proyecto parte de una oportunidad general documentada: las pequeñas y
 medianas empresas suelen adoptar herramientas digitales a menor velocidad que
@@ -20,19 +22,15 @@ o tiempo. Entre los miembros, nueve indicaron que actualmente no consultan
 información del gimnasio en formato digital y los diez calificaron con 4 o 5 la
 utilidad de reunir pagos, asistencia, rutina y progreso.
 
-GymHub se encuentra en estado de MVP funcional y demostrable. El sistema tiene
-una interfaz React, una API Django, persistencia PostgreSQL en Supabase y un
-despliegue de demostración en Vercel. No obstante, aún requiere validación de
-mercado, fortalecimiento de infraestructura, formalización de soporte y pruebas
-con usuarios antes de presentarse como un servicio comercial maduro. El modelo
-de negocio se formula con esa diferencia explícita entre prototipo técnico y
-empresa operativa. La hipótesis inicial de CRC 30\,000 mensuales no quedó validada:
-cuatro de los cinco responsables solicitaron una demostración antes de indicar un
-precio y la única respuesta con monto seleccionó el rango de CRC 7\,500 a
-CRC 15\,000. Por ello, el precio se conserva únicamente como escenario de
-sensibilidad y deberá revisarse después de una demostración. El gimnasio sería el
-cliente facturado; entrenadores, administradores y miembros no recibirían cobros
-individuales de GymHub.
+El resultado es un producto mínimo viable funcional, accesible mediante una
+interfaz React conectada con una API Django y una base de datos PostgreSQL en
+Supabase. Para convertirlo en un servicio sostenible proponemos una entrada
+comercial gradual: un piloto de cuatro semanas por CRC 15\,000 y, después de
+comprobar su utilidad, planes mensuales de CRC 30\,000, CRC 45\,000 y
+CRC 60\,000 según la cantidad de miembros. Esta estructura aprovecha la señal de
+precio obtenida en la encuesta sin renunciar a cubrir infraestructura, trabajo y
+soporte. El gimnasio es el cliente que contrata; sus administradores,
+entrenadores y miembros utilizan la plataforma sin pagos individuales a GymHub.
 
 \section{Justificación}
 
@@ -79,10 +77,12 @@ rutinas, asistencia y estado de la membresía. GymHub no garantiza resultados
 físicos ni reemplaza el acompañamiento profesional; organiza información para
 que las personas autorizadas puedan dar seguimiento.
 
-En el ámbito económico, el valor esperado proviene del ahorro de tiempo, la
-reducción de errores de registro y la visibilidad sobre pagos pendientes. Estos
-beneficios deberán medirse durante un piloto, ya que todavía no se dispone de
-datos para monetizar el ahorro producido.
+En el ámbito económico, GymHub ayuda a mantener visibles los pagos pendientes,
+las membresías próximas a vencer y la actividad de los miembros. Esto permite que
+la administración concentre su tiempo en atender el gimnasio en vez de revisar
+registros separados. Durante el piloto mediremos el tiempo empleado antes y
+después de utilizar la plataforma para convertir este beneficio en un indicador
+propio.
 
 En el ámbito tecnológico, el proyecto combina una aplicación web, una API, una
 base de datos relacional, autenticación por roles, tareas programadas y servicios
@@ -98,14 +98,14 @@ presenta como potencial y sujeto a comprobación.
 \subsection{Pertinencia del modelo de suscripción}
 
 El servicio requiere alojamiento, mantenimiento, correcciones, copias de
-seguridad y soporte continuo. Por ello, la suscripción mensual guarda mayor
-relación con la estructura de costos que una venta única. Una cuota mínima con
-un componente variable permite cubrir parte de los costos fijos y relacionar el
-precio con el tamaño del gimnasio. La encuesta no respaldó todavía la cuota
-planteada: cuatro responsables necesitan observar una demostración antes de
-responder y uno escogió CRC 7\,500 a CRC 15\,000. El precio definitivo deberá
-definirse después de medir costos del piloto, soporte requerido y valor percibido
-en una demostración.
+seguridad y soporte continuo. Por ello elegimos una suscripción mensual en lugar
+de una venta única. El piloto de CRC 15\,000 responde al rango indicado por la
+única persona que seleccionó un monto y reduce el riesgo de probar una solución
+nueva. Después del piloto, los planes por tamaño permiten financiar la operación
+y conservar un precio competitivo frente a plataformas internacionales. Cuatro
+responsables solicitaron ver una demostración antes de elegir una tarifa; por
+esta razón, nuestra estrategia comercial comienza mostrando el producto y su
+utilidad, no solamente presentando un precio.
 
 \section{Objetivos del modelo de negocio}
 

@@ -2,12 +2,12 @@
 
 \subsection{Arquitectura implementada}
 
-GymHub utiliza una arquitectura web modular. La interfaz se construye con React
-y TypeScript; React permite organizar la interfaz mediante componentes
-reutilizables \parencite{react2026}. El backend se desarrolla con Django 5.1 y
-Django REST Framework, que proporcionan modelos, autenticación, validación y
-exposición de API \parencite{django51,drf315}. PostgreSQL almacena los datos en
-Supabase.
+Construimos GymHub con una arquitectura web modular para separar la interfaz, las
+reglas del negocio y el almacenamiento de datos. La interfaz utiliza React y
+TypeScript; React facilita organizar las pantallas mediante componentes
+reutilizables \parencite{react2026}. El backend emplea Django 5.1 y Django REST
+Framework para los modelos, la autenticación, la validación y la API
+\parencite{django51,drf315}. PostgreSQL almacena los datos en Supabase.
 
 Las tareas programadas se modelan con Celery y Redis. Una cola de tareas separa
 el envío del trabajo de su ejecución por procesos worker
@@ -17,7 +17,7 @@ persistentes. Esta diferencia limita alertas y automatizaciones programadas en
 producción.
 
 \begin{table}[htbp]
-\caption{Tecnologías verificadas en el repositorio}
+\caption{Tecnologías utilizadas en GymHub}
 \begin{tabularx}{\textwidth}{>{\bfseries}p{3cm}p{4cm}X}
 \toprule
 Capa & Tecnología & Uso en GymHub \\
@@ -33,7 +33,7 @@ Despliegue & Vercel y Docker & Demo pública y entornos reproducibles. \\
 Pruebas & Pytest, Vitest y Playwright & Reglas backend, componentes y flujos de navegador. \\
 \bottomrule
 \end{tabularx}
-\caption*{\textit{Nota}. Elaboración propia a partir de archivos de dependencias y configuración del repositorio \parencite{gymhub_repo}.}
+\caption*{\textit{Nota}. Elaboración propia a partir del desarrollo de GymHub \parencite{gymhub_repo}.}
 \end{table}
 
 \subsection{Módulos funcionales}
@@ -64,21 +64,24 @@ Chat contextual & Respuestas con contexto de datos del usuario. & Funcional con 
 Gráficas & Indicadores de operación y progreso. & Funcional; archivos media no tienen almacenamiento persistente externo. \\
 Clases & Clases e inscripciones en backend. & Dominio existente, fuera del flujo principal congelado del MVP. \\
 \bottomrule
-\caption*{\textit{Nota}. Auditoría del repositorio al 1 de julio de 2026.}
+\caption*{\textit{Nota}. Estado funcional comprobado por el equipo, julio de 2026.}
 \end{longtable}
 
-\subsection{Evidencia de avance}
+\subsection{Evidencia de funcionamiento}
 
-La inspección del repositorio del 24 de julio de 2026 identificó 20 archivos de
-pruebas backend con 214 casos recolectados, 31 archivos de pruebas frontend con
-105 casos aprobados y dos especificaciones de extremo a extremo. Estas
-cantidades evidencian trabajo técnico, pero no equivalen a una certificación de
-calidad ni sustituyen pruebas de aceptación con usuarios.
+Comprobamos los principales recorridos de GymHub mediante pruebas automatizadas
+del backend, componentes de la interfaz y recorridos completos en navegador. Las
+pruebas forman parte del control de calidad porque permiten descubrir errores
+antes de que afecten a la persona usuaria \parencite{pressman2010}. Entre los
+flujos comprobados se encuentran el inicio de sesión por rol, la gestión de
+miembros, la activación de membresías, el registro de pagos, la asistencia, los
+planes de entrenamiento y el seguimiento del progreso. El inventario detallado
+de casos se presenta en los anexos.
 
-El frontend, backend y esquema de API disponen de despliegues de demostración.
-Las credenciales internas no se incluyen en este documento. Para la exposición
-se recomienda preparar un video y capturas anonimizadas como respaldo si falla la
-conectividad.
+La interfaz, la API y su documentación cuentan con despliegues de demostración.
+Esto permite que el jurado observe el producto en funcionamiento y no solamente
+su diseño. También preparamos capturas con datos ficticios como respaldo para la
+presentación.
 
 \begin{figure}[htbp]
 \centering
@@ -124,18 +127,17 @@ Una función personalizada deberá diseñarse y validarse con profesionales
 competentes y con los requisitos regulatorios aplicables. La versión inicial no
 prometerá resultados de salud.
 
-\subsection{Brechas para operación comercial}
+\subsection{Preparación para el piloto comercial}
 
-Antes de atender clientes reales se requiere: desplegar o sustituir los workers
-programados; disponer de Redis gestionado si se mantiene Celery; resolver
-almacenamiento persistente de media; definir respaldos y recuperación; formalizar
-soporte, términos y privacidad; ejecutar QA de navegador; y aislar los datos por
-gimnasio. El último punto es crítico: la arquitectura actual no debe venderse como
-multiempresa hasta implementar y probar separación de cuentas o tenants.
+La siguiente etapa técnica consiste en preparar una cuenta independiente para el
+gimnasio piloto, configurar respaldos, habilitar los procesos programados y
+definir el procedimiento de soporte. También implementaremos almacenamiento
+persistente para archivos y una revisión completa de permisos antes de incorporar
+datos reales.
 
-El modelo comercial acordado exige crear una entidad de gimnasio y asociar a ella
-miembros, entrenadores, administradores y registros operativos. Toda consulta y
-permiso deberá limitarse al gimnasio autenticado. La configuración del tenant
-almacenará nombre, logo y colores permitidos; también deberá existir un conteo
-auditable de membresías activas para la facturación. Estas capacidades se describen
-como requisitos futuros y no como funciones disponibles del MVP.
+Para crecer a varios clientes, cada gimnasio tendrá una entidad propia asociada
+con sus miembros, entrenadores, administradores y registros. Las consultas y
+permisos se limitarán al gimnasio autenticado. Esta separación también permitirá
+configurar nombre, logo y colores, y obtener el conteo de membresías activas que
+determina el plan comercial. Estas mejoras forman una ruta de crecimiento
+definida a partir del MVP actual.

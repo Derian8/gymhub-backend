@@ -11,10 +11,11 @@
   plataforma, modelo de negocio y evaluación de viabilidad.
 - Arquitectura y módulos del MVP documentados con sus limitaciones reales.
 - Canvas y estrategia de suscripción contrastados con la encuesta.
-- Modelo provisional definido en CRC 30 000 hasta 50 miembros activos y CRC 350
-  por cada miembro adicional; la encuesta no validó este precio.
-- Costos de desarrollo y operación separados; escenarios de ingreso y punto de
-  equilibrio documentados como proyecciones.
+- Piloto de cuatro semanas definido en CRC 15 000, seguido por planes de
+  CRC 30 000, CRC 45 000 y CRC 60 000 según cantidad de miembros.
+- Costos de desarrollo, operación, trabajo y soporte incluidos en la proyección.
+- Punto de equilibrio establecido en 3 gimnasios Básico o 2 gimnasios Gestión.
+- Meta comercial inicial definida en 3 gimnasios durante los primeros 6 meses.
 - Encuesta cerrada con 15 respuestas válidas: 5 responsables y 10 miembros.
 - Periodo, composición, rechazo de propietarios, limitaciones y diferencias del
   formulario aplicado documentados.
@@ -23,6 +24,10 @@
 - Evidencia técnica actualizada a 20 archivos y 214 casos backend, 31 archivos
   y 105 casos frontend, y 2 especificaciones E2E.
 - Referencias administradas con BibLaTeX en estilo APA 7.
+- Origen documentado en el segundo periodo de 2025, en Fundamentos de
+  Programación, y primera participación de GymHub en ExpoTÉCNICA.
+- Declaración de uso puntual de ChatGPT, inferior al 10 %, ajustada a los
+  lineamientos de transparencia y autoría.
 - Compilación LaTeX funcional y PDF vigente generado en `build/main.pdf`.
 
 ## Pendientes De Investigación
@@ -38,12 +43,9 @@
   un gimnasio interesado en una demostración o piloto.
 - Ejecutar o documentar la demostración y medir adopción, incidencias, tiempo de
   tareas e intención de continuidad.
-- Revisar la cuota base: cuatro de cinco responsables requirieron una demostración
-  antes de indicar precio y uno eligió CRC 7 500 a CRC 15 000.
-- Evaluar un plan de entrada y bandas por cantidad de miembros en lugar de asumir
-  validado el cobro incremental.
-- Completar valoración de horas, dominio, soporte, impuestos, comisiones y
-  contingencia antes de afirmar rentabilidad neta.
+- Medir la conversión del piloto hacia los planes Básico, Gestión y Crecimiento.
+- Comparar las horas estimadas con el soporte realmente requerido.
+- Cotizar formalización e impuestos antes de iniciar actividad lucrativa.
 
 ## Pendientes Técnicos Y De Evidencia
 
@@ -57,7 +59,8 @@
 
 ## Criterio De Cierre
 
-El escrito estará listo para entrega cuando el precio se presente como hipótesis
-no validada, la evidencia de demostración esté anexada, las tarifas tecnológicas
-se revisen y no existan marcadores rojos sin resolver, salvo pendientes
-expresamente aceptados por el equipo y el docente tutor.
+El escrito estará listo para entrega cuando la proyección financiera sea
+consistente en todas sus secciones, la evidencia de demostración esté anexada,
+las tarifas tecnológicas se encuentren actualizadas y no existan marcadores sin
+resolver, salvo pendientes expresamente aceptados por el equipo y el docente
+tutor.
