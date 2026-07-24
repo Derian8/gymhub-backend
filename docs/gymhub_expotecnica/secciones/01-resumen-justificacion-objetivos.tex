@@ -11,14 +11,14 @@ servicio por suscripción y no como una venta única de software.
 El proyecto parte de una oportunidad general documentada: las pequeñas y
 medianas empresas suelen adoptar herramientas digitales a menor velocidad que
 las organizaciones grandes, debido a restricciones de recursos, capacidades y
-financiamiento \parencite{oecd2021}. Esta referencia respalda la pertinencia de
-una solución sencilla y gradual, pero no demuestra por sí sola que todos los
-gimnasios de Pérez Zeledón presenten el mismo problema. Por ese motivo, el
-instrumento incluido en los anexos se encuentra en aplicación y todavía no se
-dispone de una tabulación final.
-
-\datoencuestapendiente{determinar la frecuencia de los problemas administrativos,
-deportivos y comerciales en los gimnasios consultados.}
+financiamiento \parencite{oecd2021}. Esta referencia se contrastó con una encuesta
+descriptiva aplicada del 8 al 24 de julio de 2026. Se obtuvieron 15 respuestas
+válidas: tres de dueños o administradores, dos de entrenadores con funciones
+administrativas y diez de miembros. Entre los cinco responsables, cuatro
+seleccionaron el cobro y los pagos pendientes como una tarea que genera dificultad
+o tiempo. Entre los miembros, nueve indicaron que actualmente no consultan
+información del gimnasio en formato digital y los diez calificaron con 4 o 5 la
+utilidad de reunir pagos, asistencia, rutina y progreso.
 
 GymHub se encuentra en estado de MVP funcional y demostrable. El sistema tiene
 una interfaz React, una API Django, persistencia PostgreSQL en Supabase y un
@@ -26,11 +26,13 @@ despliegue de demostración en Vercel. No obstante, aún requiere validación de
 mercado, fortalecimiento de infraestructura, formalización de soporte y pruebas
 con usuarios antes de presentarse como un servicio comercial maduro. El modelo
 de negocio se formula con esa diferencia explícita entre prototipo técnico y
-empresa operativa. La hipótesis comercial propone una cuota mensual por gimnasio
-de CRC 30\,000, que incluye hasta 50 miembros activos, más CRC 350 por cada
-miembro activo adicional. El gimnasio es el cliente facturado; entrenadores,
-administradores y miembros utilizan la plataforma sin recibir cobros individuales
-de GymHub.
+empresa operativa. La hipótesis inicial de CRC 30\,000 mensuales no quedó validada:
+cuatro de los cinco responsables solicitaron una demostración antes de indicar un
+precio y la única respuesta con monto seleccionó el rango de CRC 7\,500 a
+CRC 15\,000. Por ello, el precio se conserva únicamente como escenario de
+sensibilidad y deberá revisarse después de una demostración. El gimnasio sería el
+cliente facturado; entrenadores, administradores y miembros no recibirían cobros
+individuales de GymHub.
 
 \section{Justificación}
 
@@ -44,14 +46,14 @@ datos, perder trazabilidad o dedicar tiempo a buscar información. La necesidad
 que atiende GymHub consiste en disponer de una fuente centralizada que permita
 consultar el estado administrativo y deportivo de cada miembro según su rol.
 
-El documento inicial del proyecto identificó cuadernos, hojas de cálculo y
-mensajería como métodos que se desea sustituir. Esta observación constituye la
-hipótesis de problema del equipo, no un resultado estadístico. Su frecuencia y
-gravedad en el mercado local deberán medirse con responsables de gimnasios y
-miembros adultos.
-
-\datoencuestapendiente{confirmar o rechazar la hipótesis de que los registros
-separados constituyen un problema frecuente en Pérez Zeledón.}
+La consulta a responsables mostró una operación heterogénea: dos mencionaron
+cuadernos o formularios, dos Excel o Google Sheets, dos software especializado,
+dos sistemas internos y uno WhatsApp; cada persona podía seleccionar varias
+opciones. No se encontró un único método dominante, pero sí coexistencia de
+herramientas. Cuatro de cinco responsables señalaron cobros y pagos pendientes
+como una dificultad. Este resultado respalda el problema administrativo en la
+muestra consultada, sin demostrar su frecuencia en todos los gimnasios de Pérez
+Zeledón.
 
 \subsection{Oportunidad detectada}
 
@@ -66,7 +68,9 @@ por módulos.
 La oportunidad comercial se concentra primero en dueños y administradores,
 porque son quienes deciden la contratación. Entrenadores y miembros son usuarios
 del sistema y determinan que la plataforma se use de manera constante. Esta
-separación evita confundir al comprador con todos los beneficiarios.
+separación evita confundir al comprador con todos los beneficiarios. Como señal
+de utilidad, nueve de los diez miembros otorgaron la calificación máxima de 5 y
+uno calificó con 4 la integración de pagos, asistencia, rutina y progreso.
 
 \subsection{Contexto social, económico, tecnológico y ambiental}
 
@@ -97,12 +101,11 @@ El servicio requiere alojamiento, mantenimiento, correcciones, copias de
 seguridad y soporte continuo. Por ello, la suscripción mensual guarda mayor
 relación con la estructura de costos que una venta única. Una cuota mínima con
 un componente variable permite cubrir parte de los costos fijos y relacionar el
-precio con el tamaño del gimnasio. El precio definitivo dependerá de la
-disposición de pago observada en la encuesta, de los costos reales del piloto y
-del soporte requerido.
-
-\datoencuestapendiente{establecer la disposición de pago y contrastar la cuota
-base y el cobro por miembros activos.}
+precio con el tamaño del gimnasio. La encuesta no respaldó todavía la cuota
+planteada: cuatro responsables necesitan observar una demostración antes de
+responder y uno escogió CRC 7\,500 a CRC 15\,000. El precio definitivo deberá
+definirse después de medir costos del piloto, soporte requerido y valor percibido
+en una demostración.
 
 \section{Objetivos del modelo de negocio}
 
@@ -127,5 +130,6 @@ un modelo de suscripción durante 2026.
 
 Los objetivos siguen una secuencia de trabajo: investigación de necesidades,
 desarrollo tecnológico, diseño del modelo de negocio y evaluación de viabilidad.
-Las afirmaciones que requieren la tabulación final de la encuesta se identifican
-en color rojo como información pendiente y no se presentan como resultados.
+Los resultados de encuesta se presentan como evidencia descriptiva de la muestra,
+con cantidades absolutas, fecha y limitaciones. No se generalizan a todos los
+gimnasios del cantón.

@@ -1,9 +1,16 @@
 # Encuesta de validación de GymHub
 
-Instrumento actualmente en aplicación mediante Google Forms. Todavía no contiene
-resultados consolidados. La meta es recopilar 10 respuestas de responsables de
-gimnasios y 10 de miembros adultos. Las preguntas y opciones deben mantenerse sin
-cambios durante el levantamiento para conservar comparabilidad entre respuestas.
+Instrumento de referencia utilizado para construir el formulario de Google Forms.
+La aplicación cerró el 24 de julio de 2026 con 15 respuestas válidas: cinco de
+responsables de gimnasios o entrenadores con funciones administrativas y diez de
+miembros adultos. La exportación original se conserva en
+`resultado_encuesta.csv`.
+
+La versión aplicada presentó diferencias frente a este diseño: no incluyó la
+pregunta B7 de privacidad y una pregunta de funciones para miembros combinó
+redacción y respuestas abiertas de forma inconsistente. Estas diferencias se
+documentan como limitaciones y esos campos no se usan para inferir información
+que no fue recolectada.
 
 ## Configuración recomendada
 
@@ -13,8 +20,7 @@ cambios durante el levantamiento para conservar comparabilidad entre respuestas.
 - Restringir la participación a personas de 18 años o más.
 - Activar una sección distinta según el rol seleccionado.
 - Consultar previamente al CTR si corresponden ExpoTEC-5 y ExpoTEC-6.
-- Mantener abierto el formulario hasta alcanzar las dos cuotas, sin presentar la
-  muestra como representativa de todo Pérez Zeledón.
+- No presentar la muestra como representativa de todo Pérez Zeledón.
 
 ## Texto de presentación y consentimiento
 

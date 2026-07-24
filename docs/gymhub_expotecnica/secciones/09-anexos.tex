@@ -41,14 +41,12 @@ el negocio y la tecnología.
 \subsection{Instrumento de validación}
 
 El instrumento completo se entrega en el archivo
-\texttt{encuesta\_validacion.md}. Está diseñado como un formulario con rutas para
-responsables y miembros adultos. La meta es obtener 10 respuestas válidas por
-ruta. El instrumento se encuentra en aplicación y los resultados y gráficos se
-incorporarán después del cierre y la depuración de las respuestas.
-
-\datoencuestapendiente{incorporar la ficha técnica, las tablas de frecuencia, los
-gráficos y una interpretación vinculada con los objetivos primero, tercero y
-cuarto.}
+\texttt{encuesta\_validacion.md}. La exportación original se conserva en
+\texttt{resultado\_encuesta.csv} y los gráficos se reproducen con
+\texttt{generar\_graficos\_encuesta.py}. La encuesta cerró con 15 respuestas
+válidas: cinco de responsables y diez de miembros. Las diferencias entre el
+instrumento previsto y el formulario aplicado se informan en la sección de
+limitaciones.
 
 \subsection{Evidencia técnica disponible}
 
@@ -59,16 +57,16 @@ cuarto.}
 Evidencia & Descripción & Estado \\
 \midrule
 Repositorio & Código frontend, backend, infraestructura y documentación. & Disponible \\
-Pruebas backend & 18 archivos y 148 casos identificados. & Disponible \\
-Pruebas frontend & 26 archivos de pruebas unitarias o de componentes. & Disponible \\
+Pruebas backend & 20 archivos y 214 casos recolectados. & Disponible \\
+Pruebas frontend & 31 archivos y 105 casos aprobados. & Disponible \\
 Pruebas E2E & Dos especificaciones Playwright. & Disponible \\
 Frontend público & Despliegue demostrativo en Vercel. & Disponible \\
 Backend y API & Despliegue y documentación OpenAPI. & Disponible \\
-Capturas anonimizadas & Pantallas seleccionadas para el escrito o cartel. & Pendiente \\
+Capturas anonimizadas & Paneles de entrenador y miembro con datos ficticios. & Disponible \\
 Video offline & Recorrido de respaldo para la exposición. & Pendiente \\
 \bottomrule
 \end{tabularx}
-\caption*{\textit{Nota}. Elaboración propia a partir del repositorio al 1 de julio de 2026 \parencite{gymhub_repo}.}
+\caption*{\textit{Nota}. Elaboración propia a partir del repositorio al 24 de julio de 2026 \parencite{gymhub_repo}.}
 \end{table}
 
 \subsection{Estado de avance del escrito}
@@ -81,12 +79,12 @@ Componente & Evidencia actual & Estado \\
 \midrule
 Portada y formato & Datos institucionales, logos y tamaños reglamentarios. & Completo \\
 Objetivos & Objetivo general y cuatro objetivos específicos aprobados. & Completo \\
-Investigación de necesidades & Instrumento en aplicación con rutas para responsables y miembros adultos. & \textcolor{red}{Resultados pendientes} \\
+Investigación de necesidades & 15 respuestas analizadas con ficha técnica, gráficos y limitaciones. & Completo con muestra limitada \\
 Desarrollo tecnológico & Arquitectura, módulos, pruebas y limitaciones documentadas. & Documentado \\
-Modelo de negocio & Canvas, suscripción mensual y personalización básica propuestas. & Provisional \\
-Viabilidad económica & Costos, ingresos proyectados y punto de equilibrio inicial. & Provisional \\
+Modelo de negocio & Canvas contrastado; personalización identificada como requisito futuro. & Provisional \\
+Viabilidad económica & Costos e ingresos proyectados; precio inicial no validado por encuesta. & Provisional \\
 Piloto o demostración & Diseño, indicadores y condiciones de privacidad definidos. & Pendiente \\
-Evidencia de exposición & Repositorio y despliegues disponibles; capturas y video por incorporar. & Parcial \\
+Evidencia de exposición & Repositorio, despliegues y capturas disponibles; video por incorporar. & Parcial \\
 \bottomrule
 \end{tabularx}
 \caption*{\textit{Nota}. El detalle operativo se mantiene en el archivo \texttt{AVANCE\_PENDIENTES.md}.}
@@ -96,9 +94,10 @@ Evidencia de exposición & Repositorio y despliegues disponibles; capturas y vid
 
 \begin{itemize}
   \item Consultar al CTR la aplicación de ExpoTEC-5 y ExpoTEC-6.
-  \item Finalizar la encuesta y documentar fecha, muestra, resultados y limitaciones.
+  \item Habilitar un contacto voluntario y seleccionar un gimnasio para la demostración.
+  \item Revisar el precio después de la demostración; la cuota inicial no fue validada.
   \item Obtener una cotización de dominio y completar la valoración de horas.
-  \item Incorporar capturas anonimizadas y video offline.
+  \item Preparar un video offline.
   \item Actualizar tarifas tecnológicas antes de entregar o vender.
 \end{itemize}
 

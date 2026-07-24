@@ -22,7 +22,9 @@ El PDF se genera en `build/main.pdf`. Para eliminar los artefactos:
 - `main.tex`: configuración, portada y orden del documento.
 - `secciones/`: contenido del modelo de negocio.
 - `referencias.bib`: fuentes citadas en formato BibLaTeX.
-- `encuesta_validacion.md`: instrumento actualmente en aplicación mediante Google Forms.
+- `encuesta_validacion.md`: instrumento de referencia y diferencias de la versión aplicada.
+- `resultado_encuesta.csv`: exportación original de las 15 respuestas válidas.
+- `generar_graficos_encuesta.py`: generación reproducible de gráficos anonimizados.
 - `plantilla_resultados_encuesta.csv`: estructura para registrar las respuestas.
 - `imagenes/canvas_gymhub.png`: Canvas recuperado del documento inicial.
 - `AVANCE_PENDIENTES.md`: estado verificable del escrito y trabajo restante.

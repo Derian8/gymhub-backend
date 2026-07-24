@@ -26,15 +26,18 @@ Estas instrucciones aplican a todo archivo dentro de `docs/gymhub_expotecnica/`.
 - No presentar como implementadas las capacidades multiempresa, personalización
   por gimnasio o facturación automática mientras no existan en el producto.
 
-## Encuesta Y Datos Pendientes
+## Encuesta Y Datos
 
-- La encuesta está en aplicación. No inventar porcentajes, muestras, resultados,
-  clientes, ingresos ni conclusiones de mercado.
-- Toda afirmación que dependa de resultados aún no consolidados debe utilizar
+- La encuesta cerró el 24 de julio de 2026 con 15 respuestas válidas. La
+  exportación original es `resultado_encuesta.csv` y no debe modificarse.
+- La muestra es no probabilística: 5 responsables y 10 miembros. No generalizar
+  sus resultados a todos los gimnasios de Pérez Zeledón.
+- Mantener documentados el rechazo de varios propietarios, la ausencia de una
+  tasa de respuesta y las diferencias entre el instrumento previsto y el aplicado.
+- Toda afirmación nueva que dependa de evidencia todavía inexistente debe utilizar
   `\datoencuestapendiente{...}` para aparecer en rojo en el PDF.
-- Al recibir los resultados, conservar los datos originales, documentar fecha,
-  muestra, método, limitaciones y reemplazar solamente los marcadores respaldados
-  por evidencia.
+- Los gráficos se regeneran con `generar_graficos_encuesta.py`; no alterar
+  manualmente sus valores.
 
 ## Registro De Avance
 
