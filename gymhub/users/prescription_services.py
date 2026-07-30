@@ -48,7 +48,7 @@ def get_member_prescription_summary(member):
         except ObjectDoesNotExist:
             nutrition_profile = None
 
-    suggested_goal = dashboard['nutrition_goal'] or (active_plan.goal if active_plan else 'general')
+    suggested_goal = active_plan.goal if active_plan else 'general'
     suggested_days_per_week = _recommended_days_per_week(
         risk['nivel_riesgo'],
         risk['days_since_last_checkin'],
@@ -70,8 +70,6 @@ def get_member_prescription_summary(member):
         advertencias.append('Tiene pagos en mora; conviene confirmar continuidad antes de aumentar complejidad.')
     if risk['days_since_last_progress'] is None or risk['days_since_last_progress'] >= 21:
         advertencias.append('Falta progreso reciente; registra mediciones antes de subir carga o calorías.')
-    if nutrition_profile is None:
-        recomendaciones.append('Asocia una base nutricional para acompañar el objetivo del plan.')
     if risk['days_since_last_checkin'] is None or risk['days_since_last_checkin'] >= 10:
         recomendaciones.append('Prioriza reactivar hábito de asistencia antes de volumen alto de entrenamiento.')
 

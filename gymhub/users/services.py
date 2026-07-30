@@ -137,7 +137,10 @@ def get_member_prescription_status(member):
         has_exercises = getattr(member, 'active_plan_exercises_count_cached', 0) > 0
         has_nutrition = getattr(member, 'active_plan_nutrition_count_cached', 0) > 0
         has_guides = getattr(member, 'active_plan_guides_count_cached', 0) > 0
-        is_ready = has_days and has_exercises and has_nutrition and has_guides
+        # La publicacion deportiva depende unicamente de la estructura de
+        # entrenamiento. Nutricion y guias se conservan como datos opcionales
+        # para mantener compatibilidad con clientes existentes.
+        is_ready = has_days and has_exercises
         return {
             'tiene_plan_activo': True,
             'tiene_dias': has_days,
@@ -168,7 +171,7 @@ def get_member_prescription_status(member):
     workout_days = list(active_plan.workout_days.order_by('order'))
     has_exercises = any(day.exercises.exists() for day in workout_days)
     linked_guides = list(active_plan.nutrition_links.order_by('priority_order', 'id'))
-    is_ready = bool(workout_days) and has_exercises and nutrition_profile is not None and bool(linked_guides)
+    is_ready = bool(workout_days) and has_exercises
 
     return {
         'tiene_plan_activo': True,
@@ -636,7 +639,7 @@ def get_trainer_overview(user, trainer_profile):
                 'riesgo_adherencia': risk['riesgo_adherencia'],
                 'nivel_riesgo': risk['nivel_riesgo'],
                 'motivos_riesgo': risk['motivos_riesgo'],
-                'next_action': 'Completa días, ejercicios o nutrición para publicarla al member.',
+                'next_action': 'Completa los días y ejercicios para publicar el entrenamiento.',
                 'estado_prescripcion': prescription_status['estado'],
             })
 

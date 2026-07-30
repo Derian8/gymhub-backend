@@ -88,25 +88,11 @@ export function TrainerDashboard() {
           testId: 'stat-inactive',
         },
         {
-          label: 'Alertas pendientes',
-          value: data.pending_alerts,
-          icon: <AlertTriangle size={20} />,
-          variant: data.pending_alerts > 0 ? 'warning' as const : 'success' as const,
-          testId: 'stat-alerts',
-        },
-        {
           label: 'Pagos por vencer',
           value: data.payments_due_soon,
           icon: <Siren size={20} />,
           variant: data.payments_due_soon > 0 ? 'warning' as const : 'default' as const,
           testId: 'stat-due-soon',
-        },
-        {
-          label: 'Sin progreso reciente',
-          value: data.members_without_progress_recently,
-          icon: <TrendingDown size={20} />,
-          variant: data.members_without_progress_recently > 0 ? 'warning' as const : 'default' as const,
-          testId: 'stat-progress-risk',
         },
         {
           label: 'Sin entrenamiento publicado',
@@ -304,12 +290,12 @@ export function TrainerDashboard() {
 
         <section className="space-y-4">
           <QuickAction
-            title="Resolver alertas"
-            description={`${data?.pending_alerts || 0} alertas pendientes de resolución`}
-            to="/alerts"
-            icon={<AlertTriangle size={20} />}
-            variant={data && data.pending_alerts > 0 ? 'warning' : 'default'}
-            testId="quick-alerts"
+            title="Revisar asistencia"
+            description={`${data?.checked_in_today || 0} check-ins hoy y ${data?.members_inactive_30d || 0} miembros inactivos`}
+            to="/attendance"
+            icon={<CheckSquare size={20} />}
+            variant={data && data.members_inactive_30d > 0 ? 'warning' : 'default'}
+            testId="quick-attendance"
           />
           <QuickAction
             title="Cobros urgentes"
@@ -349,7 +335,7 @@ export function TrainerDashboard() {
         />
         <PrescriptionQueue
           title="Prescripciones incompletas"
-          subtitle={`${data?.incomplete_prescriptions || 0} member(s) necesitan completar entrenamiento o nutrición`}
+          subtitle={`${data?.incomplete_prescriptions || 0} miembro(s) necesitan completar días o ejercicios`}
           items={data?.miembros_con_prescripcion_incompleta || []}
           emptyTitle="No hay prescripciones incompletas"
           emptyDescription="La publicación hacia los members está al día por ahora."

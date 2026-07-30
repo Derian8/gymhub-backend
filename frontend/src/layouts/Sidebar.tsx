@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Users, Dumbbell,
-  CreditCard, Utensils, Bell, Bot, User,
+  CreditCard, User,
   LogOut, ChevronLeft, ChevronRight, Activity,
   CheckSquare, ClipboardList, NotebookTabs,
 } from 'lucide-react'
@@ -23,11 +23,7 @@ const trainerNav: NavItem[] = [
   { label: 'Miembros', icon: <Users size={18} />, to: '/members' },
   { label: 'Planes', icon: <Dumbbell size={18} />, to: '/plans' },
   { label: 'Asistencia', icon: <CheckSquare size={18} />, to: '/attendance' },
-  { label: 'Alertas', icon: <Bell size={18} />, to: '/alerts' },
   { label: 'Facturación', icon: <CreditCard size={18} />, to: '/billing' },
-  { label: 'Nutrición', icon: <Utensils size={18} />, to: '/nutrition' },
-  { label: 'Gráficas', icon: <Activity size={18} />, to: '/charts' },
-  { label: 'Chat IA', icon: <Bot size={18} />, to: '/ai-chat' },
 ]
 
 const memberNav: NavItem[] = [

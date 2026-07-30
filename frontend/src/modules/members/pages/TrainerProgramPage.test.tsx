@@ -13,7 +13,6 @@ const updateExerciseMutate = vi.fn()
 const updateTrainingTemplateMutate = vi.fn()
 const deleteTrainingTemplateMutate = vi.fn()
 const refreshTrainingTemplateMutate = vi.fn()
-const deleteNutritionTemplateMutate = vi.fn()
 const createGymMachineMutate = vi.fn()
 const updateGymMachineMutate = vi.fn()
 const deleteGymMachineMutate = vi.fn()
@@ -57,13 +56,12 @@ const prescriptionSummary = {
   },
   recomendaciones: [
     'Usa progresion moderada y manten el plan facil de seguir semana a semana.',
-    'Asocia una base nutricional para acompanar el objetivo del plan.',
   ],
   advertencias: [
     'Falta progreso reciente; registra mediciones antes de subir carga o calorias.',
   ],
   active_plan_id: 101,
-  active_nutrition_profile_id: 501,
+  active_nutrition_profile_id: null,
 }
 
 const plansResponse = {
@@ -145,54 +143,6 @@ const gymMachinesResponse = {
   ],
 }
 
-const nutritionProfilesResponse = {
-  results: [
-    {
-      id: 501,
-      training_plan: 101,
-      goal_type: 'fat_loss',
-      calorie_range_min: 1800,
-      calorie_range_max: 2100,
-      protein_focus: '140g diarios',
-      carb_strategy: 'Moderado',
-      hydration_recommendation: '3 litros',
-    },
-  ],
-}
-
-const nutritionGuidelinesResponse = {
-  results: [
-    {
-      id: 601,
-      title: 'Proteina en cada comida',
-      goal_type: 'fat_loss',
-      description: 'Incluye una fuente magra de proteina en cada plato.',
-      recommended_foods: 'Pollo, huevos',
-      foods_to_limit: 'Azucar',
-      timing_suggestions: 'Post entreno',
-    },
-  ],
-}
-
-const planLinksResponse = {
-  results: [
-    {
-      id: 701,
-      plan: 101,
-      priority_order: 1,
-      guideline: {
-        id: 601,
-        title: 'Proteina en cada comida',
-        goal_type: 'fat_loss',
-        description: 'Incluye una fuente magra de proteina en cada plato.',
-        recommended_foods: 'Pollo, huevos',
-        foods_to_limit: 'Azucar',
-        timing_suggestions: 'Post entreno',
-      },
-    },
-  ],
-}
-
 const trainingTemplatesResponse = {
   results: [
     {
@@ -235,27 +185,6 @@ const trainingTemplatesResponse = {
   ],
 }
 
-const nutritionTemplatesResponse = {
-  results: [
-    {
-      id: 901,
-      trainer: 9,
-      trainer_nombre: 'Trainer Demo',
-      nombre: 'Base nutricional deficit',
-      descripcion: 'Perfil simple para perdida de grasa.',
-      goal_type: 'fat_loss',
-      nivel_adherencia_recomendado: 'medium',
-      calorie_range_min: 1700,
-      calorie_range_max: 2100,
-      protein_focus: '140g diarios',
-      carb_strategy: 'Moderado',
-      hydration_recommendation: '3 litros',
-      esta_activa: true,
-      creada_en: '2026-03-20T12:00:00Z',
-    },
-  ],
-}
-
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom')
 
@@ -289,8 +218,8 @@ vi.mock('../hooks/useMembers', () => ({
         tiene_plan_activo: true,
         tiene_dias: true,
         tiene_ejercicios: true,
-        tiene_nutricion: true,
-        tiene_guias: true,
+        tiene_nutricion: false,
+        tiene_guias: false,
         esta_lista_para_member: true,
       },
     },
@@ -340,27 +269,6 @@ vi.mock('@/modules/plans/hooks/usePlans', () => ({
   useArchivePlanMutation: () => ({ mutate: vi.fn(), isPending: false }),
 }))
 
-vi.mock('@/modules/nutrition/hooks/useNutrition', () => ({
-  useNutritionProfilesQuery: () => ({
-    data: nutritionProfilesResponse,
-  }),
-  useNutritionGuidelinesQuery: () => ({
-    data: nutritionGuidelinesResponse,
-  }),
-  usePlanNutritionLinksQuery: () => ({
-    data: planLinksResponse,
-  }),
-  useNutritionTemplatesQuery: () => ({
-    data: nutritionTemplatesResponse,
-  }),
-  useCreateNutritionProfileMutation: () => ({ mutate: vi.fn(), isPending: false, isSuccess: false }),
-  useUpdateNutritionProfileMutation: () => ({ mutate: vi.fn(), isPending: false, isSuccess: false }),
-  useCreatePlanNutritionLinkMutation: () => ({ mutate: vi.fn(), isPending: false, isSuccess: false }),
-  useSaveNutritionTemplateMutation: () => ({ mutate: vi.fn(), isPending: false }),
-  useApplyNutritionTemplateMutation: () => ({ mutate: vi.fn(), isPending: false, isSuccess: false }),
-  useDeleteNutritionTemplateMutation: () => ({ mutate: deleteNutritionTemplateMutate, isPending: false, isSuccess: false }),
-}))
-
 describe('TrainerProgramPage', () => {
   beforeEach(() => {
     deletePlanMutate.mockReset()
@@ -373,7 +281,6 @@ describe('TrainerProgramPage', () => {
     updateTrainingTemplateMutate.mockReset()
     deleteTrainingTemplateMutate.mockReset()
     refreshTrainingTemplateMutate.mockReset()
-    deleteNutritionTemplateMutate.mockReset()
     createGymMachineMutate.mockReset()
     updateGymMachineMutate.mockReset()
     deleteGymMachineMutate.mockReset()
@@ -401,7 +308,7 @@ describe('TrainerProgramPage', () => {
   })
 
   it('renders prescription summary, templates and program details', () => {
-    const { getAllByText, getByDisplayValue, getByTestId, getByText } = renderWithProviders(<TrainerProgramPage />, {
+    const { getAllByText, getByDisplayValue, getByTestId, getByText, queryByText } = renderWithProviders(<TrainerProgramPage />, {
       route: '/members/15/program',
       path: '/members/:id/program',
     })
@@ -416,18 +323,14 @@ describe('TrainerProgramPage', () => {
     expect(getByText('Asignacion para Maria Perez')).toBeInTheDocument()
     expect(getByText('Resumen prescriptivo')).toBeInTheDocument()
     expect(getByTestId('training-template-preview')).toBeInTheDocument()
-    expect(getByTestId('nutrition-template-preview')).toBeInTheDocument()
     expect(getByTestId('training-template-preview')).toHaveTextContent('Base adherencia media')
-    expect(getByTestId('nutrition-template-preview')).toHaveTextContent('Base nutricional deficit')
     expect(getByText('1 dia y 1 ejercicios base')).toBeInTheDocument()
     expect(getByText('Sin progreso reciente')).toBeInTheDocument()
     expect(getByDisplayValue('Plan recomposicion')).toBeInTheDocument()
     expect(getByText(/Sentadilla · 4x8-10 · descanso 90s/)).toBeInTheDocument()
     expect(getAllByText('Prensa 45').length).toBeGreaterThan(0)
     expect(getByText(/Peso muerto rumano · 3x10-12 · descanso 75s/)).toBeInTheDocument()
-    expect(getByDisplayValue('140g diarios')).toBeInTheDocument()
-    expect(getByTestId('guideline-link-701')).toBeInTheDocument()
-    expect(getAllByText('Proteina en cada comida')).toHaveLength(2)
+    expect(queryByText(/nutric/i)).not.toBeInTheDocument()
   })
 
   it('opens a strong confirmation modal before deleting the active plan', () => {
@@ -502,25 +405,6 @@ describe('TrainerProgramPage', () => {
         templateId: 801,
         payload: { plan_id: 101 },
       },
-      expect.objectContaining({ onSuccess: expect.any(Function) }),
-    )
-  })
-
-  it('lets the trainer delete the selected nutrition template', () => {
-    const { getByTestId, getByText } = renderWithProviders(<TrainerProgramPage />, {
-      route: '/members/15/program',
-      path: '/members/:id/program',
-    })
-
-    fireEvent.click(getByTestId('delete-nutrition-template-button'))
-
-    expect(getByTestId('delete-confirm-dialog')).toBeInTheDocument()
-    expect(getByText(/no modifica la nutricion ya publicada al member/i)).toBeInTheDocument()
-
-    fireEvent.click(getByText('Borrar plantilla'))
-
-    expect(deleteNutritionTemplateMutate).toHaveBeenCalledWith(
-      { templateId: 901 },
       expect.objectContaining({ onSuccess: expect.any(Function) }),
     )
   })

@@ -91,4 +91,25 @@ describe('Sidebar', () => {
     expect(queryByText('Chat IA')).not.toBeInTheDocument()
     expect(queryByText('Pagos')).not.toBeInTheDocument()
   })
+
+  it('shows only the trainer operational core', () => {
+    useAuthStore.setState((state) => ({
+      ...state,
+      user: state.user ? { ...state.user, role: 'trainer', trainerprofile_id: 7, memberprofile_id: null } : null,
+    }))
+
+    const { getByRole, queryByText } = renderWithProviders(
+      <Sidebar collapsed={false} mobileOpen={true} onToggle={vi.fn()} onCloseMobile={closeMobileMock} />,
+    )
+
+    expect(getByRole('link', { name: /Dashboard/ })).toHaveAttribute('href', '/dashboard/trainer')
+    expect(getByRole('link', { name: /Miembros/ })).toHaveAttribute('href', '/members')
+    expect(getByRole('link', { name: /Planes/ })).toHaveAttribute('href', '/plans')
+    expect(getByRole('link', { name: /Asistencia/ })).toHaveAttribute('href', '/attendance')
+    expect(getByRole('link', { name: /Facturación/ })).toHaveAttribute('href', '/billing')
+    expect(queryByText('Alertas')).not.toBeInTheDocument()
+    expect(queryByText('Nutrición')).not.toBeInTheDocument()
+    expect(queryByText('Gráficas')).not.toBeInTheDocument()
+    expect(queryByText('Chat IA')).not.toBeInTheDocument()
+  })
 })

@@ -41,6 +41,41 @@ class TestPrescriptionTemplates:
         assert len(response.data['guias_vinculadas']) == 1
         assert response.data['estado_prescripcion']['esta_lista_para_member'] is True
 
+    def test_training_plan_is_ready_without_nutrition(self, member_client, training_plan):
+        response = member_client.get(f'/api/members/{training_plan.member_id}/active-prescription/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['perfil_nutricional'] is None
+        assert response.data['guias_vinculadas'] == []
+        assert response.data['estado_prescripcion']['tiene_dias'] is True
+        assert response.data['estado_prescripcion']['tiene_ejercicios'] is True
+        assert response.data['estado_prescripcion']['esta_lista_para_member'] is True
+        assert response.data['estado_prescripcion']['estado'] == 'lista'
+
+    def test_training_plan_requires_days_and_exercises(self, training_plan):
+        from users.services import get_member_prescription_status
+
+        member = training_plan.member
+        for day in training_plan.workout_days.all():
+            day.exercises.all().delete()
+
+        status_without_exercises = get_member_prescription_status(member)
+        assert status_without_exercises['tiene_dias'] is True
+        assert status_without_exercises['tiene_ejercicios'] is False
+        assert status_without_exercises['esta_lista_para_member'] is False
+
+        training_plan.workout_days.all().delete()
+        status_without_days = get_member_prescription_status(member)
+        assert status_without_days['tiene_dias'] is False
+        assert status_without_days['esta_lista_para_member'] is False
+
+    def test_missing_nutrition_does_not_increase_member_risk(self, training_plan):
+        from users.services import get_member_risk_snapshot
+
+        risk = get_member_risk_snapshot(training_plan.member)
+
+        assert 'Su prescripción activa está incompleta' not in risk['motivos_riesgo']
+
     def test_trainer_can_save_training_plan_as_template(self, trainer_client, training_plan):
         response = trainer_client.post(
             f'/api/plans/{training_plan.id}/save-as-template/',

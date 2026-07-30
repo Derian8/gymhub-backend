@@ -183,7 +183,7 @@ describe('MemberDetailPage', () => {
   })
 
   it('renders inactive member detail with activation and quick links', async () => {
-    const { getAllByText, getByTestId } = renderWithProviders(<MemberDetailPage />, {
+    const { getAllByText, getByTestId, queryByTestId, queryByText } = renderWithProviders(<MemberDetailPage />, {
       route: '/members/15',
       path: '/members/:id',
     })
@@ -201,7 +201,7 @@ describe('MemberDetailPage', () => {
     expect(getByTestId('member-membership-panel')).toHaveTextContent('8 vencido')
     expect(getByTestId('member-membership-billing-link')).toHaveAttribute('href', '/billing?member=15')
     expect(getByTestId('member-prescription-panel')).toBeInTheDocument()
-    expect(getByTestId('member-last-publication')).toHaveTextContent('Ultima publicacion: Nutrición')
+    expect(queryByTestId('member-last-publication')).not.toBeInTheDocument()
     expect(getByTestId('member-risk-panel')).toBeInTheDocument()
     expect(getByTestId('member-physical-panel')).toBeInTheDocument()
     expect(getByTestId('member-physical-weight-change')).toHaveTextContent('-1.2 kg')
@@ -216,9 +216,10 @@ describe('MemberDetailPage', () => {
     expect(getAllByText('Sin trainer asignado').length).toBeGreaterThan(0)
     expect(getByTestId('member-program-link')).toHaveAttribute('href', '/members/15/program')
     expect(getByTestId('member-billing-link')).toHaveAttribute('href', '/billing?member=15')
-    expect(getByTestId('member-alerts-link')).toHaveAttribute('href', '/alerts')
     expect(getByTestId('member-attendance-link')).toHaveAttribute('href', '/attendance?member=15')
-    expect(getByTestId('member-nutrition-link')).toHaveAttribute('href', '/nutrition?member=15')
+    expect(queryByText('Nutrición')).not.toBeInTheDocument()
+    expect(queryByText('Alertas')).not.toBeInTheDocument()
+    expect(queryByTestId('open-ai-copilot-btn')).not.toBeInTheDocument()
     expect(getAllByText(/Tiene pagos en mora/i).length).toBeGreaterThan(0)
   })
 })

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { AlertTriangle, Apple, ArrowLeft, Dumbbell, PlusCircle, Sparkles } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Dumbbell, PlusCircle, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge, ConfirmDialog, EmptyState, PageHeader } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
@@ -37,18 +37,6 @@ import {
   useWorkoutDaysByPlanQuery,
 } from '@/modules/plans/hooks/usePlans'
 import { TrainingPlanWizard } from '@/modules/plans/components/TrainingPlanWizard'
-import {
-  useApplyNutritionTemplateMutation,
-  useCreateNutritionProfileMutation,
-  useCreatePlanNutritionLinkMutation,
-  useDeleteNutritionTemplateMutation,
-  useNutritionGuidelinesQuery,
-  useNutritionProfilesQuery,
-  useNutritionTemplatesQuery,
-  usePlanNutritionLinksQuery,
-  useSaveNutritionTemplateMutation,
-  useUpdateNutritionProfileMutation,
-} from '@/modules/nutrition/hooks/useNutrition'
 import type {
   DayOfWeek,
   DayLabel,
@@ -57,7 +45,6 @@ import type {
   GoalType,
   GymMachine,
   MuscleGroup,
-  NutritionProfilePayload,
   TrainingPlanPayload,
   TrainingTemplateUpdatePayload,
 } from '@/shared/types'
@@ -188,7 +175,6 @@ type DeleteTarget =
   | { type: 'exercise'; id: number; name: string; workoutDayId: number }
   | { type: 'machine'; id: number; name: string }
   | { type: 'training_template'; id: number; name: string }
-  | { type: 'nutrition_template'; id: number; name: string }
 
 export function TrainerProgramPage() {
   const { id } = useParams<{ id: string }>()
@@ -200,7 +186,6 @@ export function TrainerProgramPage() {
   const { data: activePrescription } = useMemberActivePrescriptionQuery(memberId)
   const { data: plansData, isLoading: plansLoading } = usePlansQuery({ member: String(memberId) })
   const { data: trainingTemplatesData } = useTrainingTemplatesQuery()
-  const { data: nutritionTemplatesData } = useNutritionTemplatesQuery()
 
   const activePlan = useMemo(
     () => plansData?.results.find((plan) => plan.is_active) ?? plansData?.results[0] ?? null,
@@ -209,34 +194,15 @@ export function TrainerProgramPage() {
 
   const { data: daysData, isLoading: daysLoading } = useWorkoutDaysByPlanQuery(activePlan?.id ?? 0)
   const { data: gymMachinesData } = useGymMachinesQuery()
-  const { data: nutritionData } = useNutritionProfilesQuery({ member: String(memberId) })
-  const { data: guidelinesData } = useNutritionGuidelinesQuery()
-  const { data: planLinksData } = usePlanNutritionLinksQuery(activePlan ? { plan: String(activePlan.id) } : undefined)
-
-  const nutritionProfile = useMemo(
-    () => nutritionData?.results.find((profile) => profile.training_plan === activePlan?.id) ?? null,
-    [nutritionData, activePlan],
-  )
-  const linkedGuidelineIds = useMemo(
-    () => new Set(planLinksData?.results.map((link) => link.guideline.id) ?? []),
-    [planLinksData],
-  )
   const trainingTemplates = useMemo(
     () => trainingTemplatesData?.results ?? [],
     [trainingTemplatesData],
-  )
-  const nutritionTemplates = useMemo(
-    () => nutritionTemplatesData?.results ?? [],
-    [nutritionTemplatesData],
   )
 
   const [selectedWorkoutDayId, setSelectedWorkoutDayId] = useState<number>(0)
   const [trainingTemplateGoalFilter, setTrainingTemplateGoalFilter] = useState<'all' | string>('all')
   const [trainingTemplateRiskFilter, setTrainingTemplateRiskFilter] = useState<'all' | 'low' | 'medium' | 'high'>('all')
-  const [nutritionTemplateGoalFilter, setNutritionTemplateGoalFilter] = useState<'all' | string>('all')
-  const [nutritionTemplateRiskFilter, setNutritionTemplateRiskFilter] = useState<'all' | 'low' | 'medium' | 'high'>('all')
   const [selectedTrainingTemplateId, setSelectedTrainingTemplateId] = useState<number | null>(null)
-  const [selectedNutritionTemplateId, setSelectedNutritionTemplateId] = useState<number | null>(null)
   const [planForm, setPlanForm] = useState<TrainingPlanPayload>({
     member: memberId,
     name: '',
@@ -259,11 +225,6 @@ export function TrainerProgramPage() {
     nivel_adherencia_recomendado: 'medium',
     dias_por_semana_sugeridos: 3,
     esta_activa: true,
-  })
-  const [templateNutritionForm, setTemplateNutritionForm] = useState({
-    nombre: '',
-    descripcion: '',
-    nivel_adherencia_recomendado: 'medium',
   })
   const [dayForm, setDayForm] = useState({
     name: '',
@@ -320,19 +281,6 @@ export function TrainerProgramPage() {
     notes: '',
     is_active: true,
   })
-  const [nutritionForm, setNutritionForm] = useState<NutritionProfilePayload>({
-    training_plan: 0,
-    goal_type: 'general',
-    calorie_range_min: 1800,
-    calorie_range_max: 2200,
-    protein_focus: '',
-    carb_strategy: '',
-    hydration_recommendation: '',
-  })
-  const [guidelineForm, setGuidelineForm] = useState({
-    guideline_id: 0,
-    priority_order: 0,
-  })
   const [publicationBanner, setPublicationBanner] = useState<string | null>(null)
   const [lastPublication, setLastPublication] = useState(() => leerPublicacionPrescripcion(memberId))
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
@@ -356,12 +304,6 @@ export function TrainerProgramPage() {
   const updateTrainingTemplate = useUpdateTrainingTemplateMutation()
   const deleteTrainingTemplate = useDeleteTrainingTemplateMutation()
   const refreshTrainingTemplate = useRefreshTrainingTemplateMutation()
-  const createNutrition = useCreateNutritionProfileMutation(memberId)
-  const updateNutrition = useUpdateNutritionProfileMutation(memberId)
-  const createPlanLink = useCreatePlanNutritionLinkMutation(memberId)
-  const saveNutritionTemplate = useSaveNutritionTemplateMutation(memberId)
-  const applyNutritionTemplate = useApplyNutritionTemplateMutation(memberId)
-  const deleteNutritionTemplate = useDeleteNutritionTemplateMutation(memberId)
   const publicationSignatureRef = useRef<string>('')
 
   const filteredTrainingTemplates = useMemo(() => {
@@ -373,23 +315,11 @@ export function TrainerProgramPage() {
     })
   }, [trainingTemplates, trainingTemplateGoalFilter, trainingTemplateRiskFilter])
 
-  const filteredNutritionTemplates = useMemo(() => {
-    return nutritionTemplates.filter((template) => {
-      const matchesGoal = nutritionTemplateGoalFilter === 'all' || template.goal_type === nutritionTemplateGoalFilter
-      const matchesRisk =
-        nutritionTemplateRiskFilter === 'all' || template.nivel_adherencia_recomendado === nutritionTemplateRiskFilter
-      return matchesGoal && matchesRisk
-    })
-  }, [nutritionTemplates, nutritionTemplateGoalFilter, nutritionTemplateRiskFilter])
   const gymMachines = gymMachinesData?.results ?? []
 
   const selectedTrainingTemplate = useMemo(
     () => filteredTrainingTemplates.find((template) => template.id === selectedTrainingTemplateId) ?? filteredTrainingTemplates[0] ?? null,
     [filteredTrainingTemplates, selectedTrainingTemplateId],
-  )
-  const selectedNutritionTemplate = useMemo(
-    () => filteredNutritionTemplates.find((template) => template.id === selectedNutritionTemplateId) ?? filteredNutritionTemplates[0] ?? null,
-    [filteredNutritionTemplates, selectedNutritionTemplateId],
   )
 
   useEffect(() => {
@@ -445,25 +375,6 @@ export function TrainerProgramPage() {
   }, [selectedWorkoutDayId])
 
   useEffect(() => {
-    setNutritionForm({
-      training_plan: activePlan?.id ?? 0,
-      goal_type: nutritionProfile?.goal_type ?? activePlan?.goal ?? prescription?.recommended_goal ?? 'general',
-      calorie_range_min: nutritionProfile?.calorie_range_min ?? prescription?.recommended_calories.min ?? 1800,
-      calorie_range_max: nutritionProfile?.calorie_range_max ?? prescription?.recommended_calories.max ?? 2200,
-      protein_focus: nutritionProfile?.protein_focus ?? '',
-      carb_strategy: nutritionProfile?.carb_strategy ?? '',
-      hydration_recommendation: nutritionProfile?.hydration_recommendation ?? '',
-    })
-  }, [nutritionProfile, activePlan, prescription])
-
-  useEffect(() => {
-    setGuidelineForm((current) => ({
-      guideline_id: current.guideline_id || guidelinesData?.results[0]?.id || 0,
-      priority_order: planLinksData?.results.length ?? 0,
-    }))
-  }, [guidelinesData, planLinksData])
-
-  useEffect(() => {
     if (!activePlan) {
       return
     }
@@ -472,16 +383,6 @@ export function TrainerProgramPage() {
       nombre: current.nombre || `Base ${activePlan.name}`,
     }))
   }, [activePlan])
-
-  useEffect(() => {
-    if (!nutritionProfile || templateNutritionForm.nombre) {
-      return
-    }
-    setTemplateNutritionForm((current) => ({
-      ...current,
-      nombre: `Base nutricional ${member?.full_name ?? 'miembro'}`,
-    }))
-  }, [nutritionProfile, member, templateNutritionForm.nombre])
 
   useEffect(() => {
     if (!filteredTrainingTemplates.length) {
@@ -519,19 +420,6 @@ export function TrainerProgramPage() {
   }, [selectedTrainingTemplate])
 
   useEffect(() => {
-    if (!filteredNutritionTemplates.length) {
-      setSelectedNutritionTemplateId(null)
-      return
-    }
-    setSelectedNutritionTemplateId((current) => {
-      if (current && filteredNutritionTemplates.some((template) => template.id === current)) {
-        return current
-      }
-      return filteredNutritionTemplates[0].id
-    })
-  }, [filteredNutritionTemplates])
-
-  useEffect(() => {
     const transitions: Array<[boolean, string, TipoPublicacionPrescripcion]> = [
       [createPlan.isSuccess, 'Plan activo publicado para este member.', 'plan'],
       [updatePlan.isSuccess, 'Cambios del plan publicados para este member.', 'plan'],
@@ -540,10 +428,6 @@ export function TrainerProgramPage() {
       [createExercise.isSuccess, 'La rutina del member ya incluye el nuevo ejercicio.', 'ejercicio'],
       [updateExercise.isSuccess, 'Los cambios del ejercicio ya quedaron publicados para este member.', 'ejercicio'],
       [applyTrainingTemplate.isSuccess, 'La base de entrenamiento quedó publicada para este member.', 'entrenamiento'],
-      [createNutrition.isSuccess, 'La nutrición quedó publicada para este member.', 'nutricion'],
-      [updateNutrition.isSuccess, 'Los cambios de nutrición ya están publicados para este member.', 'nutricion'],
-      [createPlanLink.isSuccess, 'La guía nutricional ya quedó vinculada al plan del member.', 'guia'],
-      [applyNutritionTemplate.isSuccess, 'La base nutricional quedó publicada para este member.', 'nutricion'],
     ]
 
     const match = transitions.find(([isSuccess]) => isSuccess)
@@ -561,15 +445,11 @@ export function TrainerProgramPage() {
     setLastPublication(leerPublicacionPrescripcion(memberId))
     setPublicationBanner(message)
   }, [
-    applyNutritionTemplate.isSuccess,
     applyTrainingTemplate.isSuccess,
     createExercise.isSuccess,
-    createNutrition.isSuccess,
     createPlan.isSuccess,
-    createPlanLink.isSuccess,
     createWorkoutDay.isSuccess,
     memberId,
-    updateNutrition.isSuccess,
     updateExercise.isSuccess,
     updateWorkoutDay.isSuccess,
     updatePlan.isSuccess,
@@ -842,39 +722,6 @@ export function TrainerProgramPage() {
     )
   }
 
-  const handleNutritionSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!activePlan) {
-      return
-    }
-    const payload = {
-      ...nutritionForm,
-      training_plan: activePlan.id,
-      goal_type: nutritionForm.goal_type === 'general' ? 'maintenance' : nutritionForm.goal_type,
-    }
-    if (nutritionProfile) {
-      updateNutrition.mutate({ id: nutritionProfile.id, payload })
-      return
-    }
-    createNutrition.mutate(payload)
-  }
-
-  const handleGuidelineSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!activePlan || !guidelineForm.guideline_id) {
-      return
-    }
-    createPlanLink.mutate({
-      plan: activePlan.id,
-      guideline_id: guidelineForm.guideline_id,
-      priority_order: guidelineForm.priority_order,
-    })
-    setGuidelineForm((current) => ({
-      ...current,
-      priority_order: current.priority_order + 1,
-    }))
-  }
-
   const handleSaveTrainingTemplate = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!activePlan) {
@@ -883,17 +730,6 @@ export function TrainerProgramPage() {
     savePlanAsTemplate.mutate({
       planId: activePlan.id,
       payload: templatePlanForm,
-    })
-  }
-
-  const handleSaveNutritionTemplate = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!nutritionProfile) {
-      return
-    }
-    saveNutritionTemplate.mutate({
-      profileId: nutritionProfile.id,
-      payload: templateNutritionForm,
     })
   }
 
@@ -926,22 +762,6 @@ export function TrainerProgramPage() {
       return
     }
 
-    if (deleteTarget.type === 'nutrition_template') {
-      deleteNutritionTemplate.mutate(
-        { templateId: deleteTarget.id },
-        {
-          onSuccess: () => {
-            if (selectedNutritionTemplate?.id === deleteTarget.id) {
-              const remainingTemplates = filteredNutritionTemplates.filter((template) => template.id !== deleteTarget.id)
-              setSelectedNutritionTemplateId(remainingTemplates[0]?.id ?? null)
-            }
-            setDeleteTarget(null)
-          },
-        },
-      )
-      return
-    }
-
     if (deleteTarget.type === 'machine') {
       deleteGymMachine.mutate(
         { id: deleteTarget.id },
@@ -965,17 +785,14 @@ export function TrainerProgramPage() {
           ? `Se eliminara el ejercicio "${deleteTarget.name}" de la rutina del member.`
           : deleteTarget.type === 'machine'
             ? `Se eliminara la máquina "${deleteTarget.name}" del catálogo compartido del gym.`
-          : deleteTarget.type === 'training_template'
-            ? `Se eliminara la plantilla "${deleteTarget.name}". Esta accion solo borra la base reutilizable del trainer y no modifica el plan activo del member.`
-            : `Se eliminara la plantilla nutricional "${deleteTarget.name}". Esta accion solo borra la base reutilizable del trainer y no modifica la nutricion ya publicada al member.`
+          : `Se eliminara la plantilla "${deleteTarget.name}". Esta accion solo borra la base reutilizable del trainer y no modifica el plan activo del member.`
     : ''
   const isDeleting =
     deletePlan.isPending ||
     deleteWorkoutDay.isPending ||
     deleteExercise.isPending ||
     deleteGymMachine.isPending ||
-    deleteTrainingTemplate.isPending ||
-    deleteNutritionTemplate.isPending
+    deleteTrainingTemplate.isPending
 
   const handleTrainingTemplateUpdate = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -1029,9 +846,9 @@ export function TrainerProgramPage() {
           Volver al cliente
         </Link>
         <EmptyState
-          icon={<Apple size={40} />}
+          icon={<Dumbbell size={40} />}
           title="Primero asigna este cliente"
-          description="El trainer solo puede crear entrenos y nutricion para clientes que tiene asignados."
+          description="El trainer solo puede crear entrenamientos para clientes que tiene asignados."
         />
       </div>
     )
@@ -1046,7 +863,7 @@ export function TrainerProgramPage() {
 
       <PageHeader
         title={`Asignacion para ${member.full_name}`}
-        subtitle="Aqui defines y publicas el entrenamiento y la nutricion especifica que el member vera como su prescripcion activa."
+        subtitle="Aqui defines y publicas el entrenamiento que el miembro vera como su programa activo."
         action={
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant={activePrescription?.estado_prescripcion.esta_lista_para_member ? 'success' : 'warning'}>
@@ -1065,7 +882,7 @@ export function TrainerProgramPage() {
             <p className="label-base">Flujo de asignacion</p>
             <h2 className="font-heading font-bold text-xl text-neutral-900 dark:text-white">Publica una prescripcion clara para este member</h2>
             <p className="text-sm text-neutral-500 mt-1">
-              Primero define la base del entrenamiento, luego completa dias y ejercicios, y finalmente publica la nutricion ligada al plan activo.
+              Primero define la base del entrenamiento y luego completa sus dias y ejercicios.
             </p>
           </div>
           <div className="rounded-sm border border-neutral-200 p-4 text-sm dark:border-neutral-800">
@@ -1075,10 +892,9 @@ export function TrainerProgramPage() {
             </p>
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <SummaryStat label="Paso 1" value="Elegir base de entrenamiento" />
           <SummaryStat label="Paso 2" value="Cargar dias y ejercicios" />
-          <SummaryStat label="Paso 3" value="Publicar nutricion asociada" />
         </div>
         {lastPublication && (
           <div
@@ -1132,13 +948,9 @@ export function TrainerProgramPage() {
             </Badge>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <SummaryStat label="Objetivo sugerido" value={goalLabels[prescription.recommended_goal] ?? prescription.recommended_goal} />
             <SummaryStat label="Frecuencia sugerida" value={`${prescription.recommended_days_per_week} dias/semana`} />
-            <SummaryStat
-              label="Base calorica sugerida"
-              value={`${prescription.recommended_calories.min}-${prescription.recommended_calories.max} kcal`}
-            />
           </div>
 
           {!!prescription.motivos_riesgo.length && (
@@ -1173,19 +985,17 @@ export function TrainerProgramPage() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="font-heading font-bold text-xl text-neutral-900 dark:text-white">Estado de prescripcion</h2>
-            <p className="text-sm text-neutral-500">Confirma que el member realmente recibira la rutina y nutricion que estas asignando.</p>
+            <p className="text-sm text-neutral-500">Confirma que el miembro recibira una rutina completa con dias y ejercicios.</p>
           </div>
           <Badge variant={activePrescription?.estado_prescripcion.esta_lista_para_member ? 'success' : 'warning'}>
             {activePrescription?.estado_prescripcion.esta_lista_para_member ? 'Lista para member' : 'Incompleta'}
           </Badge>
         </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <StatusFlag label="Trainer asignado" isReady={member.trainer_asignado != null} />
           <StatusFlag label="Plan activo" isReady={!!activePrescription?.estado_prescripcion.tiene_plan_activo} />
           <StatusFlag label="Dias configurados" isReady={!!activePrescription?.estado_prescripcion.tiene_dias} />
           <StatusFlag label="Ejercicios cargados" isReady={!!activePrescription?.estado_prescripcion.tiene_ejercicios} />
-          <StatusFlag label="Nutricion asociada" isReady={!!activePrescription?.estado_prescripcion.tiene_nutricion} />
-          <StatusFlag label="Guias vinculadas" isReady={!!activePrescription?.estado_prescripcion.tiene_guias} />
         </div>
       </section>
 
@@ -1458,167 +1268,6 @@ export function TrainerProgramPage() {
           </form>
         </div>
 
-        <div className="card p-6 space-y-4" data-testid="nutrition-templates-card">
-            <div className="flex items-center gap-2">
-              <Apple size={18} className="text-primary" />
-            <h2 className="font-heading font-bold text-xl text-neutral-900 dark:text-white">3. Elegir base nutricional</h2>
-          </div>
-          <p className="text-sm text-neutral-500">
-            Publica una nutricion coherente con el plan activo y guarda perfiles reutilizables del trainer.
-          </p>
-
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <Field label="Filtrar por objetivo">
-              <OptionGroup
-                value={nutritionTemplateGoalFilter}
-                onChange={(value) => setNutritionTemplateGoalFilter(value)}
-                options={[{ value: 'all', label: 'Todos' }, ...Object.entries(goalLabels).map(([key, label]) => ({ value: key, label }))]}
-                data-testid="nutrition-template-goal-filter"
-              />
-            </Field>
-            <Field label="Filtrar por adherencia">
-              <OptionGroup
-                value={nutritionTemplateRiskFilter}
-                onChange={(value) => setNutritionTemplateRiskFilter(value as 'all' | 'low' | 'medium' | 'high')}
-                options={[{ value: 'all', label: 'Todas' }, ...adherenceOptions]}
-                data-testid="nutrition-template-risk-filter"
-              />
-            </Field>
-          </div>
-
-          {!nutritionTemplates.length ? (
-            <p className="text-sm text-neutral-500">Todavia no hay plantillas nutricionales guardadas.</p>
-          ) : !filteredNutritionTemplates.length ? (
-            <p className="text-sm text-neutral-500">No hay plantillas nutricionales que coincidan con los filtros activos.</p>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
-              <div className="space-y-3">
-                <p className="text-sm text-neutral-500">
-                  {formatTemplateCount(filteredNutritionTemplates.length, 'plantilla')} visible para esta seleccion.
-                </p>
-                {filteredNutritionTemplates.map((template) => (
-                  <button
-                    key={template.id}
-                    type="button"
-                    className={`w-full rounded-sm border p-4 text-left transition-all ${
-                      selectedNutritionTemplate?.id === template.id
-                        ? 'border-primary bg-primary/10 shadow-sm'
-                        : 'border-neutral-200 dark:border-neutral-800'
-                    }`}
-                    onClick={() => setSelectedNutritionTemplateId(template.id)}
-                  >
-                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                      <div className="space-y-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-semibold text-neutral-900 dark:text-white">{template.nombre}</p>
-                          {selectedNutritionTemplate?.id === template.id && (
-                            <Badge variant="info">Seleccionada</Badge>
-                          )}
-                          {prescription && template.goal_type === prescription.recommended_goal && (
-                            <Badge variant="success">Alineada al objetivo sugerido</Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-neutral-500">{template.descripcion || 'Sin descripcion adicional.'}</p>
-                        <div className="flex flex-wrap gap-2">
-                          <Badge variant="info">{goalLabels[template.goal_type] ?? template.goal_type}</Badge>
-                          <Badge variant={riskVariant(template.nivel_adherencia_recomendado)}>
-                            {riskLabels[template.nivel_adherencia_recomendado]}
-                          </Badge>
-                          <Badge variant="neutral">
-                            {template.calorie_range_min}-{template.calorie_range_max} kcal
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-              {selectedNutritionTemplate && (
-                <div className="rounded-sm border border-neutral-200 p-4 dark:border-neutral-800" data-testid="nutrition-template-preview">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                    <div className="space-y-1">
-                      <p className="text-xs uppercase tracking-wide text-neutral-500">Previsualizacion</p>
-                      <p className="font-semibold text-neutral-900 dark:text-white">{selectedNutritionTemplate.nombre}</p>
-                      <p className="text-sm text-neutral-500">{selectedNutritionTemplate.descripcion || 'Sin descripcion adicional.'}</p>
-                      <div className="flex flex-wrap gap-2">
-                        <Badge variant="info">{goalLabels[selectedNutritionTemplate.goal_type] ?? selectedNutritionTemplate.goal_type}</Badge>
-                        <Badge variant={riskVariant(selectedNutritionTemplate.nivel_adherencia_recomendado)}>
-                          {riskLabels[selectedNutritionTemplate.nivel_adherencia_recomendado]}
-                        </Badge>
-                        <Badge variant="neutral">
-                          {selectedNutritionTemplate.calorie_range_min}-{selectedNutritionTemplate.calorie_range_max} kcal
-                        </Badge>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      onClick={() => activePlan && applyNutritionTemplate.mutate({ templateId: selectedNutritionTemplate.id, payload: { training_plan_id: activePlan.id } })}
-                      disabled={!activePlan || applyNutritionTemplate.isPending}
-                      data-testid="apply-nutrition-template-button"
-                    >
-                      Publicar nutricion al plan activo
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-danger"
-                      onClick={() => setDeleteTarget({
-                        type: 'nutrition_template',
-                        id: selectedNutritionTemplate.id,
-                        name: selectedNutritionTemplate.nombre,
-                      })}
-                      disabled={deleteNutritionTemplate.isPending}
-                      data-testid="delete-nutrition-template-button"
-                    >
-                      Eliminar plantilla
-                    </button>
-                  </div>
-                  <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <SummaryStat label="Proteina" value={selectedNutritionTemplate.protein_focus || 'Sin foco definido'} />
-                    <SummaryStat label="Carbohidratos" value={selectedNutritionTemplate.carb_strategy || 'Sin estrategia definida'} />
-                    <div className="md:col-span-2">
-                      <SummaryStat label="Hidratacion" value={selectedNutritionTemplate.hydration_recommendation || 'Sin recomendacion definida'} />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          <form className="grid grid-cols-1 gap-3 border-t border-neutral-200 pt-4 dark:border-neutral-800" onSubmit={handleSaveNutritionTemplate}>
-            <p className="text-sm font-semibold text-neutral-900 dark:text-white">Guardar nutricion actual como plantilla</p>
-            <Field label="Nombre de la plantilla">
-              <input
-                className="input"
-                value={templateNutritionForm.nombre}
-                onChange={(e) => setTemplateNutritionForm({ ...templateNutritionForm, nombre: e.target.value })}
-                disabled={!nutritionProfile}
-                required
-              />
-            </Field>
-            <Field label="Descripcion">
-              <textarea
-                className="input min-h-24"
-                value={templateNutritionForm.descripcion}
-                onChange={(e) => setTemplateNutritionForm({ ...templateNutritionForm, descripcion: e.target.value })}
-                disabled={!nutritionProfile}
-              />
-            </Field>
-            <Field label="Adherencia recomendada">
-              <OptionGroup
-                value={templateNutritionForm.nivel_adherencia_recomendado}
-                onChange={(value) => setTemplateNutritionForm({ ...templateNutritionForm, nivel_adherencia_recomendado: value })}
-                options={adherenceOptions}
-                disabled={!nutritionProfile}
-              />
-            </Field>
-            <div className="flex justify-end">
-              <button className="btn-primary" type="submit" disabled={!nutritionProfile || saveNutritionTemplate.isPending}>
-                Guardar plantilla nutricional
-              </button>
-            </div>
-          </form>
-        </div>
       </section>
 
       <section className="card p-6">
@@ -2149,108 +1798,6 @@ export function TrainerProgramPage() {
         )}
       </section>
 
-      <section className="card p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Apple size={18} className="text-primary" />
-          <h2 className="font-heading font-bold text-xl text-neutral-900 dark:text-white">3. Publicar nutricion del member</h2>
-        </div>
-        {!activePlan ? (
-          <p className="text-sm text-neutral-500">Primero crea el plan activo para guardar la nutricion asociada.</p>
-        ) : (
-          <form className="grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={handleNutritionSubmit}>
-            <Field label="Objetivo nutricional">
-              <OptionGroup
-                value={nutritionForm.goal_type}
-                onChange={(value) => setNutritionForm({ ...nutritionForm, goal_type: value })}
-                options={[...goalOptions, { value: 'maintenance', label: 'Mantenimiento' }]}
-                data-testid="nutrition-goal-group"
-              />
-            </Field>
-            <Field label="Calorias minimas">
-              <input className="input" type="number" min={0} value={nutritionForm.calorie_range_min ?? ''} onChange={(e) => setNutritionForm({ ...nutritionForm, calorie_range_min: e.target.value ? Number(e.target.value) : null })} />
-            </Field>
-            <Field label="Calorias maximas">
-              <input className="input" type="number" min={0} value={nutritionForm.calorie_range_max ?? ''} onChange={(e) => setNutritionForm({ ...nutritionForm, calorie_range_max: e.target.value ? Number(e.target.value) : null })} />
-            </Field>
-            <Field label="Enfoque de proteina">
-              <input className="input" value={nutritionForm.protein_focus} onChange={(e) => setNutritionForm({ ...nutritionForm, protein_focus: e.target.value })} />
-            </Field>
-            <Field label="Estrategia de carbohidratos">
-              <input className="input" value={nutritionForm.carb_strategy} onChange={(e) => setNutritionForm({ ...nutritionForm, carb_strategy: e.target.value })} />
-            </Field>
-            <Field label="Hidratacion recomendada">
-              <input className="input" value={nutritionForm.hydration_recommendation} onChange={(e) => setNutritionForm({ ...nutritionForm, hydration_recommendation: e.target.value })} />
-            </Field>
-            <div className="md:col-span-2 flex justify-end">
-              <button className="btn-primary" type="submit" disabled={createNutrition.isPending || updateNutrition.isPending}>
-                {nutritionProfile ? 'Publicar cambios de nutricion' : 'Guardar y publicar nutricion'}
-              </button>
-            </div>
-          </form>
-        )}
-      </section>
-
-      <section className="card p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Apple size={18} className="text-primary" />
-          <h2 className="font-heading font-bold text-xl text-neutral-900 dark:text-white">3. Vincular guias nutricionales</h2>
-        </div>
-        {!activePlan ? (
-          <p className="text-sm text-neutral-500">Primero crea el plan activo para asociar guias.</p>
-        ) : (
-          <div className="space-y-5">
-            <form className="grid grid-cols-1 gap-3 md:grid-cols-3" onSubmit={handleGuidelineSubmit}>
-              <Field label="Guia">
-                <select
-                  className="input"
-                  value={guidelineForm.guideline_id}
-                  onChange={(e) => setGuidelineForm({ ...guidelineForm, guideline_id: Number(e.target.value) })}
-                >
-                  {guidelinesData?.results.map((guideline) => (
-                    <option
-                      key={guideline.id}
-                      value={guideline.id}
-                      disabled={linkedGuidelineIds.has(guideline.id)}
-                    >
-                      {guideline.title}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Prioridad">
-                <input
-                  className="input"
-                  type="number"
-                  min={0}
-                  value={guidelineForm.priority_order}
-                  onChange={(e) => setGuidelineForm({ ...guidelineForm, priority_order: Number(e.target.value) })}
-                />
-              </Field>
-              <div className="flex items-end justify-end md:col-span-1">
-                <button className="btn-secondary w-full md:w-auto" type="submit" disabled={createPlanLink.isPending}>Vincular guia</button>
-              </div>
-            </form>
-
-            {!planLinksData?.results.length ? (
-              <p className="text-sm text-neutral-500">Todavia no hay guias vinculadas.</p>
-            ) : (
-              <div className="space-y-3">
-                {planLinksData.results.map((link) => (
-                  <div key={link.id} data-testid={`guideline-link-${link.id}`} className="rounded-sm border border-neutral-200 p-4 dark:border-neutral-800">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="font-semibold text-neutral-900 dark:text-white">{link.guideline.title}</p>
-                        <p className="text-sm text-neutral-500">{link.guideline.description}</p>
-                      </div>
-                      <Badge variant="neutral">Prioridad {link.priority_order}</Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </section>
 
       <ConfirmDialog
         open={refreshTemplateId !== null}
@@ -2270,11 +1817,9 @@ export function TrainerProgramPage() {
             ? 'Borrar plan completo'
             : deleteTarget?.type === 'day'
               ? 'Borrar dia del plan'
-              : deleteTarget?.type === 'training_template'
-                ? 'Borrar plantilla de entrenamiento'
-                : deleteTarget?.type === 'nutrition_template'
-                  ? 'Borrar plantilla nutricional'
-                  : 'Borrar ejercicio'
+            : deleteTarget?.type === 'training_template'
+              ? 'Borrar plantilla de entrenamiento'
+              : 'Borrar ejercicio'
         }
         description={deleteDialogDescription}
         confirmLabel={
@@ -2282,7 +1827,7 @@ export function TrainerProgramPage() {
             ? 'Borrar plan'
             : deleteTarget?.type === 'day'
               ? 'Borrar dia'
-              : deleteTarget?.type === 'training_template' || deleteTarget?.type === 'nutrition_template'
+            : deleteTarget?.type === 'training_template'
                 ? 'Borrar plantilla'
                 : 'Borrar ejercicio'
         }

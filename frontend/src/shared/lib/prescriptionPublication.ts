@@ -45,6 +45,9 @@ export function leerPublicacionPrescripcion(memberId: number): PublicacionPrescr
     if (!parsed?.fechaIso || !parsed?.tipo) {
       return null
     }
+    if (parsed.tipo === 'nutricion' || parsed.tipo === 'guia') {
+      return null
+    }
     return parsed
   } catch {
     return null
@@ -61,10 +64,6 @@ export function descripcionPublicacionPrescripcion(tipo: TipoPublicacionPrescrip
       return 'Ejercicio'
     case 'entrenamiento':
       return 'Base de entrenamiento'
-    case 'nutricion':
-      return 'Nutrición'
-    case 'guia':
-      return 'Guía nutricional'
     default:
       return 'Prescripción'
   }

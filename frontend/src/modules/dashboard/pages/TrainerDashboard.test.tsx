@@ -123,7 +123,7 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
           riesgo_adherencia: 66,
           nivel_riesgo: 'medium',
           motivos_riesgo: ['Su prescripción activa está incompleta'],
-          next_action: 'Completa días, ejercicios o nutrición para publicarla al member.',
+          next_action: 'Completa los días y ejercicios para publicar el entrenamiento.',
           estado_prescripcion: 'incompleta',
         },
       ],
@@ -178,7 +178,6 @@ describe('TrainerDashboard', () => {
     expect(getByTestId('trainer-dashboard')).toBeInTheDocument()
     expect(getByText('Hola, Carlos')).toBeInTheDocument()
     expect(getByTestId('stat-total-members')).toHaveTextContent('42')
-    expect(getByTestId('stat-alerts')).toHaveTextContent('4')
     expect(getByTestId('stat-due-soon')).toHaveTextContent('2')
     expect(getByTestId('stat-without-plan')).toHaveTextContent('4')
     expect(getByTestId('stat-without-plan')).toHaveTextContent('Sin entrenamiento publicado')
@@ -210,7 +209,7 @@ describe('TrainerDashboard', () => {
     expect(getByTestId('queue-incomplete-prescriptions-cta-12')).toHaveAttribute('href', '/members/12/program')
     expect(getByTestId('quick-members')).toBeInTheDocument()
     expect(getByTestId('quick-prescriptions')).toBeInTheDocument()
-    expect(getByTestId('quick-alerts')).toBeInTheDocument()
+    expect(getByTestId('quick-attendance')).toHaveAttribute('href', '/attendance')
     expect(getByTestId('quick-billing')).toBeInTheDocument()
   })
 })

@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Phone, Calendar, Mail, Dumbbell, CreditCard, CheckSquare, Apple, AlertTriangle, Activity, Ruler, Scale, PencilLine } from 'lucide-react'
+import { ArrowLeft, Phone, Calendar, Mail, Dumbbell, CreditCard, CheckSquare, AlertTriangle, Activity, Ruler, Scale, PencilLine } from 'lucide-react'
 import { useMemberActivePrescriptionQuery, useMemberDetailQuery, useActivateMemberMutation, useAssignTrainerMutation, useMemberDashboardQuery, useMemberPhysicalSummaryQuery } from '../hooks/useMembers'
 import { Badge, PageHeader, Avatar, EmptyState } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
@@ -187,15 +187,6 @@ export function MemberDetailPage() {
                 {activePrescription?.estado_prescripcion.tiene_plan_activo ? 'Editar prescripción' : 'Asignar entrenamiento al miembro'}
               </Link>
             )}
-            {member.trainer_asignado && (
-              <Link
-                to={`/ai-chat?member=${member.id}`}
-                className="btn-secondary"
-                data-testid="open-ai-copilot-btn"
-              >
-                Abrir copiloto IA
-              </Link>
-            )}
             {!member.is_active && (
               <button
                 onClick={() => activate({ id: member.id })}
@@ -363,14 +354,10 @@ export function MemberDetailPage() {
               </Badge>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
               <PrescriptionTile
                 label="Plan de entrenamiento"
                 value={activePrescription?.estado_prescripcion.tiene_plan_activo ? 'Publicado' : 'Pendiente'}
-              />
-              <PrescriptionTile
-                label="Nutrición"
-                value={activePrescription?.estado_prescripcion.tiene_nutricion ? 'Asignada' : 'Pendiente'}
               />
               <PrescriptionTile
                 label="Visible para member"
@@ -721,22 +708,10 @@ export function MemberDetailPage() {
               testId="member-billing-link"
             />
             <QuickLink
-              icon={<AlertTriangle size={20} />}
-              label="Alertas"
-              to="/alerts"
-              testId="member-alerts-link"
-            />
-            <QuickLink
               icon={<CheckSquare size={20} />}
               label="Asistencia"
               to={`/attendance?member=${member.id}`}
               testId="member-attendance-link"
-            />
-            <QuickLink
-              icon={<Apple size={20} />}
-              label="Nutrición"
-              to={`/nutrition?member=${member.id}`}
-              testId="member-nutrition-link"
             />
           </div>
         </div>

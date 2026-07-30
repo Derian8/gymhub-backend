@@ -8,12 +8,6 @@ afterEach(() => {
   cleanup()
 })
 
-vi.mock('@/modules/alerts/hooks/useAlerts', () => ({
-  useNotificationsQuery: () => ({
-    data: { results: [] },
-  }),
-}))
-
 describe('Topbar', () => {
   beforeEach(() => {
     useAuthStore.setState({
@@ -50,5 +44,6 @@ describe('Topbar', () => {
 
     expect(collapsedView.getByTestId('topbar')).toHaveClass('left-0')
     expect(collapsedView.getByTestId('topbar')).toHaveClass('lg:left-16')
+    expect(collapsedView.queryByTestId('notifications-bell')).not.toBeInTheDocument()
   })
 })

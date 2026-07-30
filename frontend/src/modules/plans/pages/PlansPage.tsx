@@ -65,7 +65,7 @@ export function PlansPage() {
           <EmptyState
             icon={<Dumbbell size={48} />}
             title="Tu programa aún no está publicado"
-            description="Cuando tu trainer termine de publicar tu plan activo, su estructura, nutrición y guías aparecerán aquí."
+            description="Cuando tu trainer publique tu plan activo, su estructura semanal y sus ejercicios aparecerán aquí."
           />
         ) : (
           <div className="space-y-6">
@@ -125,8 +125,6 @@ export function PlansPage() {
                 <div className="space-y-2 text-sm">
                   <StatusRow label="Estructura semanal cargada" ready={!!activePrescription?.estado_prescripcion.tiene_dias} />
                   <StatusRow label="Ejercicios listos para ejecutar" ready={!!activePrescription?.estado_prescripcion.tiene_ejercicios} />
-                  <StatusRow label="Nutrición asociada" ready={!!activePrescription?.estado_prescripcion.tiene_nutricion} />
-                  <StatusRow label="Guías vinculadas" ready={!!activePrescription?.estado_prescripcion.tiene_guias} />
                 </div>
                 <div className="mt-4 rounded-2xl border border-neutral-200 bg-neutral-50/70 p-4 dark:border-neutral-800 dark:bg-neutral-900/60">
                   <p className="text-xs uppercase tracking-[0.2em] text-neutral-500 dark:text-neutral-400">Siguiente acción</p>
@@ -348,8 +346,8 @@ function ProgramSidebar({
       <div className="card p-6" data-testid="program-support-card">
         <h3 className="font-heading text-lg font-bold text-neutral-900 dark:text-white">Apoyo del programa</h3>
         <div className="mt-3 space-y-3 text-sm text-neutral-600 dark:text-neutral-300">
-          <p>Nutrición asociada: <span className="font-semibold text-neutral-900 dark:text-white">{activePrescription?.perfil_nutricional ? 'Sí' : 'Pendiente'}</span></p>
-          <p>Guías del trainer: <span className="font-semibold text-neutral-900 dark:text-white">{activePrescription?.guias_vinculadas.length || 0}</span></p>
+          <p>Días configurados: <span className="font-semibold text-neutral-900 dark:text-white">{activePrescription?.dias.length || 0}</span></p>
+          <p>Plan listo: <span className="font-semibold text-neutral-900 dark:text-white">{activePrescription?.estado_prescripcion.esta_lista_para_member ? 'Sí' : 'Pendiente'}</span></p>
           <p>Estado operativo: <span className="font-semibold text-neutral-900 dark:text-white">{dashboardSummary?.payment_status ? 'Activo en seguimiento' : 'Sin registros de pago todavía'}</span></p>
         </div>
       </div>
