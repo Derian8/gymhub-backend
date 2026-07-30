@@ -176,9 +176,15 @@ type DeleteTarget =
   | { type: 'machine'; id: number; name: string }
   | { type: 'training_template'; id: number; name: string }
 
-export function TrainerProgramPage() {
+type TrainerProgramPageProps = {
+  memberIdOverride?: number
+  planIdOverride?: number
+  plansContext?: boolean
+}
+
+export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansContext = false }: TrainerProgramPageProps = {}) {
   const { id } = useParams<{ id: string }>()
-  const memberId = Number(id || '0')
+  const memberId = memberIdOverride ?? Number(id || '0')
   const { user } = useAuthStore()
 
   const { data: member, isLoading: memberLoading } = useMemberDetailQuery(memberId)
@@ -188,8 +194,11 @@ export function TrainerProgramPage() {
   const { data: trainingTemplatesData } = useTrainingTemplatesQuery()
 
   const activePlan = useMemo(
-    () => plansData?.results.find((plan) => plan.is_active) ?? plansData?.results[0] ?? null,
-    [plansData],
+    () => plansData?.results.find((plan) => plan.id === planIdOverride)
+      ?? plansData?.results.find((plan) => plan.is_active)
+      ?? plansData?.results[0]
+      ?? null,
+    [planIdOverride, plansData],
   )
 
   const { data: daysData, isLoading: daysLoading } = useWorkoutDaysByPlanQuery(activePlan?.id ?? 0)
@@ -841,9 +850,9 @@ export function TrainerProgramPage() {
   if (!canEditProgram) {
     return (
       <div className="page-enter space-y-4">
-        <Link to={`/members/${member.id}`} className="flex items-center gap-2 text-sm text-neutral-500 hover:text-primary">
+        <Link to={plansContext ? '/plans' : `/members/${member.id}`} className="flex items-center gap-2 text-sm text-neutral-500 hover:text-primary">
           <ArrowLeft size={16} />
-          Volver al cliente
+          {plansContext ? 'Volver a planes' : 'Volver al cliente'}
         </Link>
         <EmptyState
           icon={<Dumbbell size={40} />}
@@ -856,22 +865,26 @@ export function TrainerProgramPage() {
 
   return (
     <div className="page-enter space-y-6" data-testid="trainer-program-page">
-      <Link to={`/members/${member.id}`} className="flex items-center gap-2 text-sm text-neutral-500 hover:text-primary">
+      <Link to={plansContext ? '/plans' : `/members/${member.id}`} className="flex items-center gap-2 text-sm text-neutral-500 hover:text-primary">
         <ArrowLeft size={16} />
-        Volver al cliente
+        {plansContext ? 'Volver a planes' : 'Volver al cliente'}
       </Link>
 
       <PageHeader
-        title={`Asignacion para ${member.full_name}`}
-        subtitle="Aqui defines y publicas el entrenamiento que el miembro vera como su programa activo."
+        title={plansContext && activePlan ? `Configurar ${activePlan.name}` : `Asignacion para ${member.full_name}`}
+        subtitle={plansContext
+          ? `Edita la rutina asignada a ${member.full_name} desde el módulo de Planes.`
+          : 'Aqui defines y publicas el entrenamiento que el miembro vera como su programa activo.'}
         action={
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant={activePrescription?.estado_prescripcion.esta_lista_para_member ? 'success' : 'warning'}>
               {activePrescription?.estado_prescripcion.esta_lista_para_member ? 'Lista para member' : activePlan ? 'Prescripcion incompleta' : 'Sin plan de entrenamiento'}
             </Badge>
-            <button type="button" className="btn-primary" onClick={() => setCreatePlanWizardOpen(true)} data-testid="open-member-create-plan-wizard">
-              Crear plan
-            </button>
+            {!plansContext && (
+              <button type="button" className="btn-primary" onClick={() => setCreatePlanWizardOpen(true)} data-testid="open-member-create-plan-wizard">
+                Crear plan
+              </button>
+            )}
           </div>
         }
       />

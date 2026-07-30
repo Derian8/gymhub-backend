@@ -4,8 +4,8 @@ from django.db import transaction
 
 class Command(BaseCommand):
     help = (
-        'Quita las membresías asignadas a clientes para reasignarlas desde cero. '
-        'Elimina también el catálogo de planes configurables.'
+        'Quita las membresías asignadas a clientes para reasignarlas desde cero, '
+        'sin eliminar el catálogo comercial.'
     )
 
     def add_arguments(self, parser):
@@ -16,7 +16,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        from billing.models import MemberSubscription, MembershipPlan, PaymentRecord, PaymentSchedule
+        from billing.models import MemberSubscription, PaymentMethod, PaymentRecord, PaymentSchedule
         from users.models import MemberProfile
 
         member_ids = list(
@@ -36,14 +36,15 @@ class Command(BaseCommand):
         )
         all_schedule_ids = schedule_ids + orphan_schedule_ids
         record_count = PaymentRecord.objects.filter(schedule_id__in=all_schedule_ids).count()
-        plan_count = MembershipPlan.objects.count()
+        method_count = PaymentMethod.objects.count()
 
         self.stdout.write('Resumen de limpieza de membresías:')
         self.stdout.write(f'  Clientes con plan asignado: {len(member_ids)}')
         self.stdout.write(f'  Suscripciones a eliminar: {len(subscription_ids)}')
         self.stdout.write(f'  Cobros programados a eliminar: {len(all_schedule_ids)}')
         self.stdout.write(f'  Registros de pago a eliminar: {record_count}')
-        self.stdout.write(f'  Planes configurables a eliminar: {plan_count}')
+        self.stdout.write(f'  Métodos de pago a eliminar: {method_count}')
+        self.stdout.write('  Catálogo comercial: se conserva')
 
         if not options['confirm']:
             self.stdout.write(self.style.WARNING('Dry-run: ejecuta con --confirm para aplicar cambios.'))
@@ -53,7 +54,7 @@ class Command(BaseCommand):
             PaymentRecord.objects.filter(schedule_id__in=all_schedule_ids).delete()
             PaymentSchedule.objects.filter(id__in=all_schedule_ids).delete()
             MemberSubscription.objects.filter(id__in=subscription_ids).delete()
+            PaymentMethod.objects.all().delete()
             MemberProfile.objects.filter(membership_plan__isnull=False).update(membership_plan=None)
-            MembershipPlan.objects.all().delete()
 
-        self.stdout.write(self.style.SUCCESS('Membresías y planes configurables eliminados. Clientes listos para asignación desde cero.'))
+        self.stdout.write(self.style.SUCCESS('Membresías eliminadas. El catálogo comercial se conservó.'))

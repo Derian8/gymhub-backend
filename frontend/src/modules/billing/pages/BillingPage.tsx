@@ -13,11 +13,11 @@ import {
   useRenewMemberMembershipMutation,
   useSuspendMemberMembershipMutation,
 } from '../hooks/useBilling'
-import { useMemberActivePrescriptionQuery, useMembersQuery } from '@/modules/members/hooks/useMembers'
+import { useMembersQuery } from '@/modules/members/hooks/useMembers'
 import { Badge, EmptyState, PageHeader } from '@/shared/components/UI'
 import { TableRowSkeleton } from '@/shared/components/Skeleton'
-import { formatCurrency, formatDate, GOAL_LABELS } from '@/shared/lib/utils'
-import type { MemberMembership, MemberMembershipSummary, MemberProfile, MemberSubscription, PaymentRecord, TrainingPlan } from '@/shared/types'
+import { formatCurrency, formatDate } from '@/shared/lib/utils'
+import type { MemberMembership, MemberMembershipSummary, MemberProfile, MemberSubscription, PaymentRecord } from '@/shared/types'
 
 type CobroFormState = {
   payment_reference: string
@@ -25,7 +25,7 @@ type CobroFormState = {
 }
 
 type PaymentPortfolioFilter = '' | 'pending' | 'late'
-type MembershipCreationMode = 'training_plan' | 'catalog_plan'
+type MembershipCreationMode = 'custom' | 'catalog_plan'
 
 const SUBSCRIPTION_STATUS_LABELS: Record<MemberSubscription['status'], string> = {
   pending: 'Pendiente',
@@ -66,7 +66,7 @@ const RECURRENCE_SHORT_LABELS: Record<MemberSubscription['recurrence_type'], str
 function emptyMembershipForm() {
   const today = new Date().toISOString().slice(0, 10)
   return {
-    mode: 'training_plan' as MembershipCreationMode,
+    mode: 'catalog_plan' as MembershipCreationMode,
     membership_plan: '',
     membership_name: '',
     agreed_price: '',
@@ -76,20 +76,6 @@ function emptyMembershipForm() {
     notes: '',
     auto_renew: true,
   }
-}
-
-function buildTrainingMembershipNotes(activePlan: TrainingPlan | null) {
-  if (!activePlan) {
-    return ''
-  }
-  const goal = GOAL_LABELS[activePlan.goal] || activePlan.goal
-  const endDate = activePlan.end_date ? formatDate(activePlan.end_date) : 'sin fecha final'
-  return [
-    `Membresía creada desde plan de entrenamiento #${activePlan.id}: ${activePlan.name}.`,
-    `Objetivo: ${goal}.`,
-    `Frecuencia: ${activePlan.days_per_week} días por semana.`,
-    `Vigencia del plan: ${formatDate(activePlan.start_date)} - ${endDate}.`,
-  ].join('\n')
 }
 
 function getMembershipBadge(membership?: MemberMembershipSummary | null): {
@@ -142,7 +128,6 @@ export function BillingPage() {
   const { data: plans } = useMembershipPlansQuery()
   const { data: subscriptions } = useMemberSubscriptionsQuery(filtros)
   const { data: memberships } = useMemberMembershipsQuery(filtros)
-  const { data: activePrescription } = useMemberActivePrescriptionQuery(memberIdNumber || 0)
   const createMembership = useCreateMemberMembershipMutation(memberIdNumber)
   const renewMembership = useRenewMemberMembershipMutation(memberIdNumber)
   const suspendMembership = useSuspendMemberMembershipMutation(memberIdNumber)
@@ -171,27 +156,9 @@ export function BillingPage() {
     setMembershipForm((current) => ({ ...current, membership_plan: String(plans.results[0].id) }))
   }, [activeMembership, membershipForm.membership_plan, membershipForm.mode, plans?.results])
 
-  const activeTrainingPlan = activePrescription?.plan_activo ?? null
   const canSubmitMembership = membershipForm.mode === 'catalog_plan'
     ? Boolean(plans?.results.length && membershipForm.membership_plan)
-    : Boolean(activeTrainingPlan && membershipForm.membership_name.trim() && membershipForm.agreed_price)
-
-  useEffect(() => {
-    if (!memberIdNumber || activeMembership || !activeTrainingPlan || membershipForm.mode !== 'training_plan') {
-      return
-    }
-    setMembershipForm((current) => {
-      if (current.membership_name || current.notes) {
-        return current
-      }
-      return {
-        ...current,
-        membership_name: `Membresía - ${activeTrainingPlan.name}`,
-        start_date: activeTrainingPlan.start_date || current.start_date,
-        notes: buildTrainingMembershipNotes(activeTrainingPlan),
-      }
-    })
-  }, [activeMembership, activeTrainingPlan, memberIdNumber, membershipForm.mode, membershipForm.membership_name, membershipForm.notes])
+    : Boolean(membershipForm.membership_name.trim() && membershipForm.agreed_price)
 
   const handleMembershipSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -218,9 +185,7 @@ export function BillingPage() {
       member: memberIdNumber,
       membership_plan: null,
       membership_name: membershipForm.membership_name.trim(),
-      description: activeTrainingPlan
-        ? `Membresía individual basada en el plan de entrenamiento ${activeTrainingPlan.name}.`
-        : 'Membresía individual personalizada.',
+      description: 'Membresía comercial personalizada.',
       agreed_price: membershipForm.agreed_price,
       recurrence_type: membershipForm.recurrence_type,
       grace_period_days: membershipForm.grace_period_days,
@@ -274,7 +239,7 @@ export function BillingPage() {
               {activeMembership ? (
                 <div className="space-y-3">
                   <p className="text-sm text-neutral-600 dark:text-neutral-300">
-                    Plan: <span className="font-semibold text-neutral-900 dark:text-white">{activeMembership.plan_name || 'Sin nombre'}</span>
+                    Membresía: <span className="font-semibold text-neutral-900 dark:text-white">{activeMembership.plan_name || 'Sin nombre'}</span>
                   </p>
                   <p className="text-sm text-neutral-600 dark:text-neutral-300">
                     Precio acordado: <span className="font-semibold text-neutral-900 dark:text-white">{formatCurrency(activeMembership.agreed_price)}</span>
@@ -323,7 +288,7 @@ export function BillingPage() {
               ) : (
                 <div className="space-y-3">
                   <p className="text-sm text-neutral-500">Este miembro todavía no tiene una membresía creada.</p>
-                  <p className="text-sm text-neutral-500">Puedes crearla desde su plan de entrenamiento activo o usar un plan general del catálogo.</p>
+                  <p className="text-sm text-neutral-500">Puedes asignarla desde el catálogo comercial o definir condiciones personalizadas.</p>
                 </div>
               )}
             </div>
@@ -337,41 +302,27 @@ export function BillingPage() {
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <button
                       type="button"
-                      className={membershipForm.mode === 'training_plan' ? 'btn-primary' : 'btn-secondary'}
-                      data-testid="membership-mode-training"
-                      onClick={() => setMembershipForm((current) => ({ ...current, mode: 'training_plan' }))}
-                    >
-                      Desde entrenamiento activo
-                    </button>
-                    <button
-                      type="button"
                       className={membershipForm.mode === 'catalog_plan' ? 'btn-primary' : 'btn-secondary'}
                       data-testid="membership-mode-catalog"
                       onClick={() => setMembershipForm((current) => ({ ...current, mode: 'catalog_plan' }))}
                     >
-                      Desde plan general
+                      Membresía del catálogo
+                    </button>
+                    <button
+                      type="button"
+                      className={membershipForm.mode === 'custom' ? 'btn-primary' : 'btn-secondary'}
+                      data-testid="membership-mode-custom"
+                      onClick={() => setMembershipForm((current) => ({ ...current, mode: 'custom' }))}
+                    >
+                      Membresía personalizada
                     </button>
                   </div>
 
-                  {membershipForm.mode === 'training_plan' ? (
+                  {membershipForm.mode === 'custom' ? (
                     <>
-                      {activeTrainingPlan ? (
-                        <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-100" data-testid="active-training-plan-card">
-                          <p className="font-semibold">{activeTrainingPlan.name}</p>
-                          <p>{GOAL_LABELS[activeTrainingPlan.goal] || activeTrainingPlan.goal} · {activeTrainingPlan.days_per_week} días/semana</p>
-                          <p>
-                            {formatDate(activeTrainingPlan.start_date)} - {activeTrainingPlan.end_date ? formatDate(activeTrainingPlan.end_date) : 'sin fecha final'}
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
-                          Este miembro no tiene un plan de entrenamiento activo. Primero crea la rutina en{' '}
-                          <Link className="font-semibold underline" to={`/members/${memberIdNumber}/program`}>
-                            Planes de entrenamiento
-                          </Link>
-                          .
-                        </div>
-                      )}
+                      <p className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-100">
+                        Define aquí las condiciones comerciales acordadas con este miembro. Esta membresía no modifica su rutina de entrenamiento.
+                      </p>
                       <label className="space-y-1">
                         <span className="text-xs font-medium text-neutral-500">Nombre de la membresía</span>
                         <input
@@ -442,7 +393,7 @@ export function BillingPage() {
                     Renovación automática habilitada
                   </label>
                   {membershipForm.mode === 'catalog_plan' && !plans?.results.length && (
-                    <p className="text-sm text-amber-600">Primero crea un plan general de membresía para poder asignarlo.</p>
+                    <p className="text-sm text-amber-600">Primero crea una membresía en el catálogo comercial para poder asignarla.</p>
                   )}
                 </>
               ) : (
@@ -457,7 +408,7 @@ export function BillingPage() {
               {!activeMembership && (
                 <div className="flex justify-end">
                   <button className="btn-primary" type="submit" disabled={createMembership.isPending || !canSubmitMembership}>
-                    {membershipForm.mode === 'training_plan' ? 'Crear membresía desde entrenamiento y generar primer cobro' : 'Asignar membresía y crear primer cobro'}
+                    Asignar membresía y crear primer cobro
                   </button>
                 </div>
               )}
@@ -763,7 +714,7 @@ function PaymentRow({
       <td className="td-base font-mono text-xs text-neutral-400">#{record.id}</td>
       <td className="td-base font-semibold text-neutral-900 dark:text-white">
         <div>{formatCurrency(record.amount)}</div>
-        <div className="text-xs text-neutral-400">{record.plan_name || 'Sin plan de membresía'}</div>
+        <div className="text-xs text-neutral-400">{record.plan_name || 'Sin membresía'}</div>
       </td>
       <td className="td-base">
         <div className="flex flex-col gap-2">

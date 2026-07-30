@@ -166,6 +166,8 @@ describe('PlansPage', () => {
     expect(getByText('Definicion avanzada')).toBeInTheDocument()
     expect(within(getByTestId('plan-card-12')).getByText('Ver plan')).toHaveAttribute('href', '/plans/12')
     expect(within(getByTestId('plan-card-13')).getByText('Ver plan')).toHaveAttribute('href', '/plans/13')
+    expect(getByTestId('configure-plan-12')).toHaveAttribute('href', '/plans/12/edit')
+    expect(getByTestId('configure-plan-13')).toHaveAttribute('href', '/plans/13/edit')
   })
 
   it('shows an unassigned members notice for trainers in the general plans screen', () => {

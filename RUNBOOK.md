@@ -55,11 +55,16 @@ Antes de desplegar un staging accesible por internet:
 
 ## Reset Operativo
 ```bash
-./gym-stop
-docker compose up -d redis
-docker compose exec backend python manage.py migrate
-docker compose exec backend python manage.py seed_data
+# Siempre simula primero.
+python gymhub/manage.py reset_member_operational_data
+
+# Después de validar el respaldo y las cantidades:
+python gymhub/manage.py reset_member_operational_data --confirm
 ```
+
+Este reinicio elimina planes asignados, actividad, asistencia y facturación de los
+miembros. Conserva usuarios, contraseñas, perfiles, asignaciones trainer-miembro,
+auditoría, máquinas, plantillas y catálogos comerciales.
 
 ## Backup De Base De Datos
 ```bash

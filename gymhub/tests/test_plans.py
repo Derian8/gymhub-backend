@@ -9,6 +9,29 @@ from rest_framework import status
 
 @pytest.mark.django_db
 class TestTrainingPlans:
+    def test_trainer_can_create_plan_without_membership(
+        self, trainer_client, member_profile
+    ):
+        from billing.models import MemberSubscription
+
+        member_profile.membership_plan = None
+        member_profile.save(update_fields=['membership_plan'])
+        assert not MemberSubscription.objects.filter(member=member_profile).exists()
+
+        resp = trainer_client.post('/api/plans/', {
+            'member': member_profile.id,
+            'name': 'Rutina independiente',
+            'goal': 'general',
+            'start_date': date.today().isoformat(),
+            'weeks_duration': 4,
+            'days_per_week': 3,
+            'is_active': True,
+        }, format='json')
+
+        assert resp.status_code == status.HTTP_201_CREATED
+        assert resp.data['member'] == member_profile.id
+        assert not MemberSubscription.objects.filter(member=member_profile).exists()
+
     def test_trainer_can_create_plan_without_sending_trainer_field(
         self, trainer_client, member_profile, trainer_profile
     ):

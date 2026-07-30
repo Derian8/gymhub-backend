@@ -1,5 +1,5 @@
 import { Link, useSearchParams } from 'react-router-dom'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Dumbbell, ChevronRight, Calendar, NotebookTabs, Target, UserRound, Plus, Archive, Copy, CheckCircle } from 'lucide-react'
 import { useArchivePlanMutation, useDuplicatePlanMutation, useFinishPlanMutation, usePlansQuery, usePlansSummaryQuery } from '../hooks/usePlans'
 import { useMemberActivePrescriptionQuery, useMemberDashboardQuery, useMembersQuery } from '@/modules/members/hooks/useMembers'
@@ -50,6 +50,12 @@ export function PlansPage() {
   const memberProfileId = isMemberView ? user?.memberprofile_id || 0 : 0
   const { data: activePrescription } = useMemberActivePrescriptionQuery(memberProfileId)
   const { data: dashboardSummary } = useMemberDashboardQuery(memberProfileId)
+
+  useEffect(() => {
+    if (!isMemberView && searchParams.get('create') === '1') {
+      setWizardOpen(true)
+    }
+  }, [isMemberView, searchParams])
 
   if (isMemberView) {
     const activePlan = activePrescription?.plan_activo
@@ -388,6 +394,9 @@ function PlanCard({ plan }: { plan: TrainingPlan }) {
           Ver plan <ChevronRight size={14} />
         </Link>
         <div className="flex flex-wrap gap-2">
+          <Link to={`/plans/${plan.id}/edit`} className="btn-primary text-sm" data-testid={`configure-plan-${plan.id}`}>
+            Configurar
+          </Link>
           <button type="button" className="btn-secondary text-sm" onClick={() => duplicatePlan.mutate({ id: plan.id })} disabled={duplicatePlan.isPending}>
             <Copy size={14} /> Duplicar
           </button>

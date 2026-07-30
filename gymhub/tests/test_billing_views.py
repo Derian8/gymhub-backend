@@ -104,27 +104,30 @@ class TestBillingViews:
         member_profile,
     ):
         from billing.models import MemberSubscription, PaymentRecord, PaymentSchedule
+        from plans.models import TrainingPlan
+
+        assert TrainingPlan.objects.filter(member=member_profile).count() == 0
 
         resp = trainer_client.post(
             '/api/member-memberships/',
             {
                 'member': member_profile.id,
                 'membership_plan': None,
-                'membership_name': 'Membresía - Hipertrofia base',
-                'description': 'Membresía individual basada en el plan de entrenamiento Hipertrofia base.',
+                'membership_name': 'Convenio corporativo',
+                'description': 'Membresía comercial personalizada.',
                 'agreed_price': '25000.00',
                 'recurrence_type': 'monthly',
                 'grace_period_days': 7,
                 'start_date': timezone.now().date().isoformat(),
                 'auto_renew': True,
-                'notes': 'Membresía creada desde plan de entrenamiento #12: Hipertrofia base.',
+                'notes': 'Precio acordado directamente con el miembro.',
             },
             format='json',
         )
 
         assert resp.status_code == status.HTTP_201_CREATED
         assert resp.data['membership_plan'] is None
-        assert resp.data['plan_name'] == 'Membresía - Hipertrofia base'
+        assert resp.data['plan_name'] == 'Convenio corporativo'
         assert resp.data['agreed_price'] == '25000.00'
 
         subscription = MemberSubscription.objects.get(pk=resp.data['id'])
@@ -132,7 +135,7 @@ class TestBillingViews:
         payment_record = PaymentRecord.objects.get(schedule=schedule)
 
         assert subscription.plan_id is None
-        assert subscription.membership_name == 'Membresía - Hipertrofia base'
+        assert subscription.membership_name == 'Convenio corporativo'
         assert schedule.plan_id is None
         assert str(payment_record.amount) == '25000.00'
         assert payment_record.status == 'pending'

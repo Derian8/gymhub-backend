@@ -19,13 +19,13 @@ import { MemberDashboard } from '@/modules/dashboard/pages/MemberDashboard'
 // Members
 import { MembersPage } from '@/modules/members/pages/MembersPage'
 import { MemberDetailPage } from '@/modules/members/pages/MemberDetailPage'
-import { TrainerProgramPage } from '@/modules/members/pages/TrainerProgramPage'
 
 // Plans
 import { PlansPage } from '@/modules/plans/pages/PlansPage'
 import { PlanDetailPage } from '@/modules/plans/pages/PlanDetailPage'
 import { TodayWorkoutPage } from '@/modules/plans/pages/TodayWorkoutPage'
 import { WorkoutDayDetailPage } from '@/modules/plans/pages/WorkoutDayDetailPage'
+import { MemberProgramRedirectPage, PlanEditorPage } from '@/modules/plans/pages/PlanEditorPage'
 
 // Attendance
 import { CheckInPage } from '@/modules/attendance/pages/CheckInPage'
@@ -156,7 +156,7 @@ function App() {
         {/* Members (trainer/staff only) */}
         <Route path="/members" element={<ProtectedRoute requiredRole="trainer"><MembersPage /></ProtectedRoute>} />
         <Route path="/members/:id" element={<ProtectedRoute requiredRole="trainer"><MemberDetailPage /></ProtectedRoute>} />
-        <Route path="/members/:id/program" element={<ProtectedRoute requiredRole="trainer"><TrainerProgramPage /></ProtectedRoute>} />
+        <Route path="/members/:id/program" element={<ProtectedRoute requiredRole="trainer"><MemberProgramRedirectPage /></ProtectedRoute>} />
         <Route path="/members/new" element={<ProtectedRoute requiredRole="trainer"><MemberDetailPage /></ProtectedRoute>} />
 
         {/* Plans */}
@@ -171,6 +171,7 @@ function App() {
         <Route path="/plans" element={<PlansPage />} />
         <Route path="/plans/my" element={<PlansPage />} />
         <Route path="/plans/:planId/days/:dayId" element={<WorkoutDayDetailPage />} />
+        <Route path="/plans/:id/edit" element={<ProtectedRoute requiredRole="trainer"><PlanEditorPage /></ProtectedRoute>} />
         <Route path="/plans/:id" element={<PlanDetailPage />} />
         <Route path="/plans/:id/today" element={<TodayWorkoutPage />} />
 
