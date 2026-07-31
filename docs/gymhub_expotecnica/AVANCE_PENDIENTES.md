@@ -1,6 +1,6 @@
 # Avance Y Pendientes Del Escrito
 
-Última actualización: 24 de julio de 2026.
+Última actualización: 31 de julio de 2026.
 
 ## Avance Confirmado
 
@@ -11,6 +11,14 @@
   plataforma, modelo de negocio y evaluación de viabilidad.
 - Arquitectura y módulos del MVP documentados con sus limitaciones reales.
 - Canvas y estrategia de suscripción contrastados con la encuesta.
+- Canvas visual actualizado con los planes, costos, segmentos, alianzas y
+  capacidades vigentes.
+- Comparación competitiva ampliada con alternativas manuales y plataformas de
+  referencia.
+- Estrategia de mercadeo integrada con producto, precio, distribución,
+  promoción, posicionamiento e indicadores iniciales.
+- Seguimiento de calidad definido para incorporación, operación, continuidad y
+  cierre del piloto.
 - Piloto de cuatro semanas definido en CRC 15 000, seguido por planes de
   CRC 30 000, CRC 45 000 y CRC 60 000 según cantidad de miembros.
 - Costos de desarrollo, operación, trabajo y soporte incluidos en la proyección.
@@ -24,6 +32,10 @@
 - Evidencia técnica actualizada a 20 archivos y 214 casos backend, 31 archivos
   y 105 casos frontend, y 2 especificaciones E2E.
 - Referencias administradas con BibLaTeX en estilo APA 7.
+- Orden del informe y redacción impersonal ajustados a los lineamientos del
+  documento escrito y a la rúbrica ExpoTEC-11.
+- Objetivos alineados explícitamente con viabilidad, escalabilidad y
+  sostenibilidad.
 - Origen documentado en el segundo periodo de 2025, en Fundamentos de
   Programación, y primera participación de GymHub en ExpoTÉCNICA.
 - Declaración de uso puntual de ChatGPT, inferior al 10 %, ajustada a los
@@ -54,7 +66,6 @@
   responsables, antes de venderla como capacidad disponible.
 - Resolver workers persistentes, Redis, almacenamiento de archivos, respaldos y
   recuperación para operación comercial.
-- Preparar un video offline de demostración.
 - Confirmar con el CTR el uso de ExpoTEC-5 y ExpoTEC-6.
 
 ## Criterio De Cierre

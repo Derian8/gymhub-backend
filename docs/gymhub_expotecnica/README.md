@@ -28,7 +28,8 @@ El PDF se genera en `build/main.pdf`. Para eliminar los artefactos:
 - `resultado_encuesta.csv`: exportación original de las 15 respuestas válidas.
 - `generar_graficos_encuesta.py`: generación reproducible de gráficos anonimizados.
 - `plantilla_resultados_encuesta.csv`: estructura para registrar las respuestas.
-- `imagenes/canvas_gymhub.png`: Canvas recuperado del documento inicial.
+- `secciones/04-modelo-canvas.tex`: desarrollo y representación visual vigente
+  de los nueve módulos del Canvas.
 - `AVANCE_PENDIENTES.md`: estado verificable del escrito y trabajo restante.
 - `AGENTS.md`: reglas obligatorias para futuras modificaciones del escrito.
 
