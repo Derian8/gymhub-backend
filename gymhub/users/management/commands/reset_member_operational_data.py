@@ -5,7 +5,7 @@ from django.db import transaction
 class Command(BaseCommand):
     help = (
         'Elimina la actividad operativa de todos los miembros sin borrar cuentas, '
-        'perfiles, asignaciones, auditoría ni catálogos reutilizables.'
+        'perfiles, asignaciones ni catálogos reutilizables.'
     )
 
     def add_arguments(self, parser):
@@ -13,6 +13,10 @@ class Command(BaseCommand):
             '--confirm',
             action='store_true',
             help='Ejecuta el reinicio. Sin este flag solamente muestra el alcance.',
+        )
+        parser.add_argument(
+            '--confirmar',
+            help='Confirmación explícita: REINICIAR-DATOS.',
         )
 
     def handle(self, *args, **options):
@@ -52,6 +56,7 @@ class Command(BaseCommand):
             ('suscripciones', MemberSubscription.objects.all()),
             ('métodos de pago', PaymentMethod.objects.all()),
             ('planes asignados', TrainingPlan.objects.all()),
+            ('auditoría operativa', AuditLog.objects.all()),
         ]
         cantidades = [(nombre, queryset.count()) for nombre, queryset in operaciones]
         perfiles_con_plan = MemberProfile.objects.exclude(membership_plan=None).count()
@@ -64,11 +69,11 @@ class Command(BaseCommand):
         self.stdout.write(f'  cuentas: {User.objects.count()}')
         self.stdout.write(f'  perfiles de miembro: {MemberProfile.objects.count()}')
         self.stdout.write(f'  perfiles de trainer: {TrainerProfile.objects.count()}')
-        self.stdout.write(f'  registros de auditoría: {AuditLog.objects.count()}')
 
-        if not options['confirm']:
+        confirmed = options['confirm'] or options.get('confirmar') == 'REINICIAR-DATOS'
+        if not confirmed:
             self.stdout.write(self.style.WARNING(
-                'Dry-run: no se modificó ningún dato. Usa --confirm para ejecutar.'
+                'Dry-run: no se modificó ningún dato. Usa --confirmar REINICIAR-DATOS para ejecutar.'
             ))
             return
 
@@ -79,5 +84,5 @@ class Command(BaseCommand):
             GymClass.objects.exclude(current_enrolled=0).update(current_enrolled=0)
 
         self.stdout.write(self.style.SUCCESS(
-            'Reinicio completado. Las cuentas, perfiles, asignaciones, auditoría y catálogos se conservaron.'
+            'Reinicio completado. Las cuentas, perfiles, asignaciones y catálogos se conservaron.'
         ))

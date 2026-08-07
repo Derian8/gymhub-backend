@@ -15,6 +15,24 @@ la administración con asistencia, entrenamiento y seguimiento. La referencia
 internacional se usa como contexto y no como sustituto del estudio de gimnasios
 de Pérez Zeledón.
 
+\subsection{Situación del mercado y la industria}
+
+La Encuesta Nacional de Microempresas de los Hogares 2024 estimó 435\,779
+microempresas en Costa Rica y registró un crecimiento de 10,5\% frente a 2023
+\parencite{inec_enameh2024}. Ese universo nacional no equivale al número de
+gimnasios ni permite calcular la demanda de GymHub, pero confirma que los
+negocios pequeños constituyen una parte relevante del entorno productivo. El
+Plan Nacional de Desarrollo e Inversión Pública 2023--2026 incluye entre sus
+acciones promover la digitalización de las pymes mediante plataformas de
+comercialización y herramientas de trabajo \parencite{meic_pndip2023_2026}.
+
+En el ámbito específico del proyecto no se encontró un registro público que
+permita contar gimnasios activos en Pérez Zeledón. Por ello, la oportunidad se
+fundamenta en dos niveles separados: la tendencia nacional hacia la
+digitalización de negocios pequeños y la evidencia descriptiva de cinco
+responsables locales. Esta separación evita convertir un dato nacional en una
+estimación comercial sin respaldo.
+
 \subsection{Origen de la propuesta}
 
 El equipo está integrado por dos estudiantes de quinto año de la especialidad
@@ -26,8 +44,8 @@ finalizar ese periodo ya se contaba con la propuesta, los requisitos principales
 y una primera versión del sistema.
 
 Durante 2026, aquella primera versión se amplió hasta convertirla en una
-plataforma web con módulos de usuarios, planes, asistencia, progreso,
-facturación, alertas, nutrición, gráficas y chat contextual
+plataforma web con módulos de miembros, planes de entrenamiento, asistencia,
+progreso y facturación
 \parencite{gymhub_repo}. Esta es la primera participación de GymHub en
 ExpoTÉCNICA; por lo tanto, es un proyecto nuevo para la feria y no un proyecto de
 continuación.
@@ -69,15 +87,16 @@ utiliza para precisar los elementos que pueden influir en la decisión de compra
 del mercado meta.
 
 \begin{table}[htbp]
-\caption{Comparación de posicionamiento con plataformas de referencia}
+\caption{Comparación funcional y comercial con alternativas de referencia}
 \label{tab:competencia-directa}
 \begin{tabularx}{\textwidth}{>{\bfseries\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
 \toprule
 Alternativa & Referencia observable & Oportunidad para GymHub & Límite de GymHub \\
 \midrule
-Gymdesk & Tarifas desde USD 75 mensuales hasta 50 miembros. & Cobro en colones, acompañamiento local y piloto de bajo riesgo. & Menor madurez comercial y operativa. \\
-PushPress & Ofrece una aplicación con marca como complemento de pago. & Interfaz web responsive y personalización gradual según la demanda local. & La personalización por gimnasio aún no está implementada. \\
-Métodos manuales & Bajo costo y herramientas conocidas por el encargado. & Integración de pagos, membresías, asistencia, rutina y progreso. & Requiere capacitación, conexión y cambio de hábitos. \\
+Gymdesk & Desde USD 75 hasta 50 miembros; incluye membresías, facturación, asistencia, reservas, reportes, sitio web y funciones de acceso. & Cobro en colones, piloto de CRC 15\,000 y acompañamiento local directo. & GymHub no ofrece cobro automático, reservas, sitio por gimnasio ni control físico de acceso. \\
+PushPress & Plan gratuito con comisiones y planes desde USD 159; integra cobros, asistencia, reservas, aplicaciones y programación deportiva. & Menor cuota mensual propuesta y recorrido centrado en la relación entrenador--miembro. & GymHub no procesa pagos, no administra clases y tiene menor madurez de soporte e integraciones. \\
+Métodos manuales & Bajo costo inmediato, flexibilidad y herramientas conocidas por el encargado. & Una sola fuente para membresía, pago, asistencia, plan deportivo y progreso. & GymHub requiere conexión, capacitación, migración de datos y cambio de hábitos. \\
+GymHub & Piloto y tres suscripciones en colones; MVP web con miembros, membresías, pagos registrados, asistencia, planes y progreso. & Cercanía local, precio previsible en colones y configuración guiada. & Precios, operación multiempresa y continuidad comercial pendientes de validación. \\
 \bottomrule
 \end{tabularx}
 \caption*{\textit{Nota}. Comparación elaborada con tarifas y características publicadas por los proveedores \parencite{gymdesk_pricing,pushpress_pricing}.}

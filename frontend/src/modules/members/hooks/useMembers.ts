@@ -24,6 +24,15 @@ export function useMembersQuery(params?: MembersParams, enabled = true) {
   })
 }
 
+export function useCreateMemberMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: membersApi.create,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERS }),
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
 export function useMemberDetailQuery(id: number) {
   return useQuery({
     queryKey: QUERY_KEYS.MEMBER_DETAIL(id),

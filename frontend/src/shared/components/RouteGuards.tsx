@@ -1,5 +1,5 @@
 import React from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { useAuthStore } from '@/shared/store/authStore'
 
@@ -10,6 +10,7 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, requiredRole = 'any' }: ProtectedRouteProps) {
   const { isAuthenticated, authResolved, user } = useAuthStore()
+  const location = useLocation()
 
   if (!authResolved) {
     return <AuthLoadingScreen />
@@ -17,6 +18,10 @@ export function ProtectedRoute({ children, requiredRole = 'any' }: ProtectedRout
 
   if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />
+  }
+
+  if (user.requiere_cambio_contrasena && location.pathname !== '/change-password') {
+    return <Navigate to="/change-password" replace />
   }
 
   if (requiredRole === 'trainer' && user.role !== 'trainer' && !user.is_staff) {

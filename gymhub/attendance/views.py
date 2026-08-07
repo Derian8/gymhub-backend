@@ -101,24 +101,19 @@ class CheckInView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         gym_class_id = serializer.validated_data.get('gym_class_id')
-        trainer_override = serializer.validated_data.get('trainer_override', False)
+        requested_override = serializer.validated_data.get('trainer_override', False)
+        override_reason = serializer.validated_data.get('override_reason', '').strip()
         notes = serializer.validated_data.get('notes', '').strip()
 
-        # Validar que el usuario sea miembro (o trainer haciendo override)
-        if trainer_override:
+        is_trainer = IsTrainer().has_permission(request, self)
+        if is_trainer:
             perm = IsTrainer()
             if not perm.has_permission(request, self):
                 return Response(
                     {'error': 'Solo un trainer puede usar trainer_override.'},
                     status=status.HTTP_403_FORBIDDEN
                 )
-            if not notes:
-                return Response(
-                    {'error': 'Se requiere un motivo en notes para la excepción manual.'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            # El trainer hace check-in por un miembro; member_id en payload
-            member_id = request.data.get('member_id')
+            member_id = serializer.validated_data.get('member_id')
             if member_id:
                 try:
                     member_queryset = MemberProfile.objects.all()
@@ -132,7 +127,7 @@ class CheckInView(APIView):
                     logger.warning('Trainer override fuera de alcance o inexistente: %s', member_id)
                     return Response({'error': 'Miembro no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
             else:
-                return Response({'error': 'Se requiere member_id para trainer_override.'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': 'Se requiere member_id para registrar la asistencia.'}, status=status.HTTP_400_BAD_REQUEST)
         else:
             if request.user.role != 'member':
                 logger.warning('Check-in sin override rechazado para user_id=%s role=%s', request.user.id, request.user.role)
@@ -145,7 +140,10 @@ class CheckInView(APIView):
 
         from billing.services import membership_access
         access = membership_access(member)
-        if not trainer_override and not access['allowed']:
+        trainer_override = bool(is_trainer and not access['allowed'])
+        if requested_override and not is_trainer:
+            return Response({'error': 'Solo un trainer puede autorizar excepciones.'}, status=status.HTTP_403_FORBIDDEN)
+        if not access['allowed'] and not is_trainer:
             return Response(
                 {
                     'blocked': True,
@@ -153,6 +151,11 @@ class CheckInView(APIView):
                     'days_overdue': access['days_overdue'],
                 },
                 status=status.HTTP_403_FORBIDDEN,
+            )
+        if trainer_override and not override_reason:
+            return Response(
+                {'error': 'Indica el motivo de la excepción comercial.'},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         today = timezone.localdate()
@@ -183,7 +186,7 @@ class CheckInView(APIView):
                     {'error': 'La clase no está activa.'},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            if trainer_override and not request.user.is_staff:
+            if is_trainer and not request.user.is_staff:
                 if gym_class.trainer.user_id != request.user.id:
                     raise PermissionDenied('Solo puedes registrar asistencia en tus clases.')
             enrollment = ClassEnrollment.objects.filter(
@@ -200,7 +203,9 @@ class CheckInView(APIView):
             member=member,
             gym_class=gym_class,
             checked_in_by=request.user,
-            is_manual_override=is_manual,
+            is_manual_override=is_trainer,
+            es_excepcion_comercial=trainer_override,
+            motivo_excepcion=override_reason if trainer_override else '',
             attendance_date=today,
             notes=notes,
         )
@@ -219,7 +224,7 @@ class CheckInView(APIView):
                 ip_address=request.META.get('REMOTE_ADDR'),
                 details={
                     'member_id': member.id,
-                    'reason': notes,
+                    'reason': override_reason,
                     'access_reason': access['reason'],
                     'days_overdue': access['days_overdue'],
                 },

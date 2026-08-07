@@ -19,6 +19,10 @@ export function useLoginMutation() {
       setAuthResolved(true)
       queryClient.setQueryData(QUERY_KEYS.ME, data.user)
       toast.success('¡Bienvenido de vuelta!')
+      if (data.user.requiere_cambio_contrasena) {
+        navigate('/change-password', { replace: true })
+        return
+      }
       const role = data.user.role
       if (role === 'trainer' || data.user.is_staff) {
         navigate('/dashboard/trainer')
@@ -29,6 +33,22 @@ export function useLoginMutation() {
     onError: (error) => {
       toast.error(extractApiError(error))
     },
+  })
+}
+
+export function useChangePasswordMutation() {
+  const navigate = useNavigate()
+  const setUser = useAuthStore((s) => s.setUser)
+  const user = useAuthStore((s) => s.user)
+
+  return useMutation({
+    mutationFn: authApi.changePassword,
+    onSuccess: () => {
+      if (user) setUser({ ...user, requiere_cambio_contrasena: false })
+      toast.success('Contraseña actualizada')
+      navigate(user?.role === 'trainer' || user?.is_staff ? '/dashboard/trainer' : '/membership', { replace: true })
+    },
+    onError: (error) => toast.error(extractApiError(error)),
   })
 }
 

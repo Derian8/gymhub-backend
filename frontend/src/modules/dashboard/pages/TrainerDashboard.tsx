@@ -188,6 +188,16 @@ export function TrainerDashboard() {
         </div>
       ) : null}
 
+      <section className="card mb-8 p-6" data-testid="today-actions">
+        <p className="label-base">Trabajo de hoy</p>
+        <h2 className="font-heading text-2xl font-bold">Acciones prioritarias</h2>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <Link className="rounded-sm border border-neutral-200 p-4 hover:border-primary dark:border-neutral-800" to="/members/new"><strong>Registrar miembro</strong><p className="mt-1 text-sm text-neutral-500">Crea la cuenta y entrega una contraseña temporal.</p></Link>
+          <Link className="rounded-sm border border-neutral-200 p-4 hover:border-primary dark:border-neutral-800" to="/plans"><strong>{data?.members_without_active_plan ?? 0} sin plan publicado</strong><p className="mt-1 text-sm text-neutral-500">Completa borradores o crea revisiones.</p></Link>
+          <Link className="rounded-sm border border-neutral-200 p-4 hover:border-primary dark:border-neutral-800" to="/billing"><strong>{data?.members_in_mora ?? 0} cobros en mora</strong><p className="mt-1 text-sm text-neutral-500">Registra pagos y recupera accesos.</p></Link>
+        </div>
+      </section>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 mb-8">
         {isLoading
           ? Array.from({ length: 12 }).map((_, i) => <StatCardSkeleton key={i} />)

@@ -26,6 +26,7 @@ import {
   useDeleteWorkoutDayMutation,
   useGymMachinesQuery,
   usePlansQuery,
+  usePublishPlanMutation,
   useRefreshTrainingTemplateMutation,
   useSavePlanAsTemplateMutation,
   useTrainingTemplatesQuery,
@@ -192,6 +193,7 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
   const { data: activePrescription } = useMemberActivePrescriptionQuery(memberId)
   const { data: plansData, isLoading: plansLoading } = usePlansQuery({ member: String(memberId) })
   const { data: trainingTemplatesData } = useTrainingTemplatesQuery()
+  const publishPlan = usePublishPlanMutation()
 
   const activePlan = useMemo(
     () => plansData?.results.find((plan) => plan.id === planIdOverride)
@@ -877,9 +879,10 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
           : 'Aqui defines y publicas el entrenamiento que el miembro vera como su programa activo.'}
         action={
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant={activePrescription?.estado_prescripcion.esta_lista_para_member ? 'success' : 'warning'}>
-              {activePrescription?.estado_prescripcion.esta_lista_para_member ? 'Lista para member' : activePlan ? 'Prescripcion incompleta' : 'Sin plan de entrenamiento'}
+            <Badge variant={activePlan?.status === 'active' ? 'success' : 'warning'}>
+              {activePlan?.status === 'active' ? `Publicado · versión ${activePlan.numero_version ?? 1}` : activePlan ? 'Borrador no visible' : 'Sin plan de entrenamiento'}
             </Badge>
+            {activePlan?.status === 'draft' ? <button type="button" className="btn-primary" disabled={publishPlan.isPending} onClick={() => publishPlan.mutate(activePlan.id)}>Publicar para el miembro</button> : null}
             {!plansContext && (
               <button type="button" className="btn-primary" onClick={() => setCreatePlanWizardOpen(true)} data-testid="open-member-create-plan-wizard">
                 Crear plan
@@ -1326,7 +1329,7 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
           </Field>
           <div className="md:col-span-2 flex justify-end">
             <button className="btn-primary" type="submit" disabled={createPlan.isPending || updatePlan.isPending}>
-              {activePlan ? 'Publicar cambios del plan' : 'Crear y publicar plan activo'}
+              {activePlan ? 'Guardar borrador' : 'Crear borrador'}
             </button>
           </div>
         </form>

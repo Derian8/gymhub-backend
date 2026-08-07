@@ -223,7 +223,7 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
     setStep(3)
   }
 
-  const submit = (status: TrainingPlanStatus) => {
+  const submit = (_status: TrainingPlanStatus) => {
     if (!selectedMember || !canSave) return
     createCompletePlan.mutate({
       member: selectedMember.id,
@@ -233,10 +233,10 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
       end_date: form.end_date,
       weeks_duration: form.weeks_duration,
       days_per_week: form.days_per_week,
-      status,
+      status: 'draft',
       level: form.level,
       notes: form.notes,
-      conflict_strategy: status === 'active' ? conflictStrategy : 'keep',
+      conflict_strategy: 'keep',
       days,
     }, {
       onSuccess: (plan) => {

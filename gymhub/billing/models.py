@@ -20,8 +20,10 @@ SUBSCRIPTION_STATUS_CHOICES = [
 
 PAYMENT_METHOD_TYPE_CHOICES = [
     ('cash', 'Cash'),
+    ('sinpe', 'SINPE Móvil'),
     ('transfer', 'Transfer'),
     ('card', 'Card'),
+    ('other', 'Other'),
 ]
 
 RECURRENCE_TYPE_CHOICES = [
@@ -106,6 +108,7 @@ class MemberSubscription(models.Model):
     cancellation_date = models.DateField(null=True, blank=True)
     cancellation_reason = models.CharField(max_length=255, blank=True)
     commercial_notes = models.TextField(blank=True)
+    motivo_ajuste_precio = models.CharField(max_length=255, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -253,6 +256,18 @@ class PaymentRecord(models.Model):
     )
     payment_reference = models.CharField(max_length=120, blank=True)
     receipt_issued_at = models.DateTimeField(null=True, blank=True)
+    metodo_registrado = models.CharField(
+        max_length=20,
+        choices=PAYMENT_METHOD_TYPE_CHOICES,
+        blank=True,
+    )
+    registrado_por = models.ForeignKey(
+        'users.User',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='pagos_registrados',
+    )
     notes = models.TextField(blank=True)
 
     class Meta:

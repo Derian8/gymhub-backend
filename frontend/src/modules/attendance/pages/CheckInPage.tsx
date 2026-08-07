@@ -11,6 +11,7 @@ import { formatDate, formatDateTime, formatRelative } from '@/shared/lib/utils'
 import { useAuthStore } from '@/shared/store/authStore'
 import { progressApi } from '@/modules/progress/api/progressApi'
 import { QUERY_KEYS } from '@/shared/constants/queryKeys'
+import { useMembersQuery } from '@/modules/members/hooks/useMembers'
 import type { Attendance, CheckInBlockedResponse } from '@/shared/types'
 
 export function CheckInPage() {
@@ -31,10 +32,13 @@ export function CheckInPage() {
       }
     : undefined
   const [notes, setNotes] = useState('')
+  const [assistedMemberId, setAssistedMemberId] = useState(memberId || '')
+  const [overrideReason, setOverrideReason] = useState('')
   const [blockedState, setBlockedState] = useState<CheckInBlockedResponse | null>(null)
   const { mutate: checkIn, isPending } = useCheckInMutation()
   const { mutate: checkOut, isPending: isCheckingOut } = useCheckOutMutation()
   const { data: attendance, isLoading } = useAttendanceQuery(filtros)
+  const { data: members } = useMembersQuery({ assignment: 'mine' }, esEntrenador)
   const { data: sessions, isLoading: sessionsLoading } = useQuery({
     queryKey: QUERY_KEYS.WORKOUT_SESSIONS,
     queryFn: progressApi.sessions,
@@ -46,7 +50,7 @@ export function CheckInPage() {
   const todayAttendanceCount = attendance?.results.filter((item) => item.attendance_date === todayCostaRica).length ?? 0
 
   const handleCheckIn = () => {
-    checkIn(notes, {
+    checkIn({ notes }, {
       onSuccess: () => {
         setBlockedState(null)
         setNotes('')
@@ -205,7 +209,7 @@ export function CheckInPage() {
       ) : null}
 
       {esEntrenador ? (
-        <section className="mt-6 rounded-[1.5rem] border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
+        <><section className="rounded-[1.5rem] border border-primary/20 bg-primary/5 p-5"><p className="label-base">Registro asistido</p><h2 className="font-heading text-xl font-bold">Marcar llegada de un miembro</h2><p className="mt-1 text-sm text-neutral-500">Si la membresía está bloqueada, el motivo de excepción será obligatorio y quedará auditado.</p><div className="mt-4 grid gap-3 md:grid-cols-3"><select className="input" value={assistedMemberId} onChange={(event) => setAssistedMemberId(event.target.value)}><option value="">Selecciona miembro</option>{members?.results.map((member) => <option key={member.id} value={member.id}>{member.full_name}</option>)}</select><input className="input" placeholder="Nota operativa (opcional)" value={notes} onChange={(event) => setNotes(event.target.value)} /><input className="input" placeholder="Motivo si requiere excepción" value={overrideReason} onChange={(event) => setOverrideReason(event.target.value)} /></div><button className="btn-primary mt-3" disabled={!assistedMemberId || isPending} onClick={() => checkIn({ member_id: Number(assistedMemberId), notes, override_reason: overrideReason }, { onSuccess: () => { setNotes(''); setOverrideReason('') } })}>Registrar llegada</button></section><section className="mt-6 rounded-[1.5rem] border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="flex items-start gap-4">
               <SymbolFrame size="lg" tone="success">
@@ -250,7 +254,7 @@ export function CheckInPage() {
               </label>
             </div>
           </div>
-        </section>
+        </section></>
       ) : null}
 
       <section className="mt-6">

@@ -10,6 +10,7 @@ class User(AbstractUser):
     ]
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='member')
+    requiere_cambio_contrasena = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
@@ -37,7 +38,7 @@ class MemberProfile(models.Model):
     phone = models.CharField(max_length=20, blank=True)
     birth_date = models.DateField(null=True, blank=True)
     emergency_contact = models.CharField(max_length=200, blank=True)
-    join_date = models.DateField(default=timezone.now)
+    join_date = models.DateField(default=timezone.localdate)
     is_active = models.BooleanField(default=True)
     photo = models.ImageField(upload_to='member_photos/', null=True, blank=True)
 
@@ -62,6 +63,27 @@ class TrainerProfile(models.Model):
 
     def __str__(self):
         return f"Trainer: {self.user.get_full_name() or self.user.email}"
+
+
+class PerfilGimnasio(models.Model):
+    entrenador = models.OneToOneField(
+        TrainerProfile,
+        on_delete=models.CASCADE,
+        related_name='perfil_gimnasio',
+    )
+    nombre = models.CharField(max_length=200, default='Mi gimnasio')
+    logo = models.ImageField(upload_to='logos_gimnasios/', null=True, blank=True)
+    telefono = models.CharField(max_length=30, blank=True)
+    correo = models.EmailField(blank=True)
+    direccion = models.TextField(blank=True)
+    moneda = models.CharField(max_length=3, default='CRC', editable=False)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'perfiles_gimnasio'
+
+    def __str__(self):
+        return self.nombre
 
 
 class AuditLog(models.Model):

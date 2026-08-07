@@ -40,6 +40,22 @@ class JWTCookieAuthentication(JWTAuthentication):
         except (AuthenticationFailed, InvalidToken, TokenError):
             return None
 
+        allowed_password_paths = {
+            '/auth/me/',
+            '/auth/change-password/',
+            '/auth/logout/',
+            '/auth/token/refresh/',
+            '/auth/csrf/',
+        }
+        if (
+            getattr(user, 'requiere_cambio_contrasena', False)
+            and request.path not in allowed_password_paths
+        ):
+            raise AuthenticationFailed(
+                'Debes cambiar la contraseña temporal antes de continuar.',
+                code='password_change_required',
+            )
+
         if authenticated_with_cookie:
             SessionAuthentication().enforce_csrf(request)
 

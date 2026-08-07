@@ -24,6 +24,10 @@ export function PlanEditorPage() {
     )
   }
 
+  if (plan.status !== 'draft') {
+    return <Navigate to={`/plans?member=${plan.member}`} replace />
+  }
+
   return <TrainerProgramPage memberIdOverride={plan.member} planIdOverride={plan.id} plansContext />
 }
 
@@ -36,10 +40,10 @@ export function MemberProgramRedirectPage() {
     return <CardSkeleton lines={4} />
   }
 
-  const targetPlan = data?.results.find((plan) => plan.is_active) ?? data?.results[0]
+  const targetPlan = data?.results.find((plan) => plan.status === 'draft')
   if (targetPlan) {
     return <Navigate to={`/plans/${targetPlan.id}/edit`} replace />
   }
 
-  return <Navigate to={`/plans?member=${memberId}&create=1`} replace />
+  return <Navigate to={`/plans?member=${memberId}`} replace />
 }

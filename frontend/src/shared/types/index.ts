@@ -13,6 +13,7 @@ export interface User {
   is_staff: boolean
   memberprofile_id: number | null
   trainerprofile_id: number | null
+  requiere_cambio_contrasena?: boolean
 }
 
 export interface LoginCredentials {
@@ -74,6 +75,7 @@ export interface MemberSubscription {
   cancellation_date: string | null
   cancellation_reason: string
   commercial_notes: string
+  motivo_ajuste_precio: string
 }
 
 export interface MemberMembershipSummary {
@@ -133,6 +135,7 @@ export interface MemberMembership {
   } | null
   recurrence_type: MemberSubscription['recurrence_type']
   grace_period_days: number
+  motivo_ajuste_precio?: string
 }
 
 export interface MemberProfile {
@@ -458,6 +461,10 @@ export interface TrainingPlan {
   notes?: string
   archived_at?: string | null
   finished_at?: string | null
+  numero_version?: number
+  publicado_en?: string | null
+  publicado_por?: number | null
+  plan_origen?: number | null
   workout_days?: WorkoutDay[]
 }
 
@@ -653,6 +660,8 @@ export interface Attendance {
   checked_in_by_name?: string | null
   is_manual_override?: boolean
   notes: string
+  es_excepcion_comercial: boolean
+  motivo_excepcion: string
 }
 
 export interface CheckInBlockedResponse {
@@ -762,6 +771,8 @@ export interface PaymentRecord {
   payment_reference: string
   receipt_issued_at: string | null
   receipt_number: string | null
+  metodo_registrado: 'cash' | 'sinpe' | 'transfer' | 'other' | ''
+  registrado_por: number | null
   notes: string
   days_overdue: number
   plan_name?: string | null
@@ -770,7 +781,7 @@ export interface PaymentRecord {
 export interface PaymentMethod {
   id: number
   member: number
-  type: 'cash' | 'transfer' | 'card'
+  type: 'cash' | 'sinpe' | 'transfer' | 'card' | 'other'
   details: string
   is_default: boolean
   is_active: boolean

@@ -104,6 +104,22 @@ class TrainingPlan(models.Model):
     notes = models.TextField(blank=True)
     archived_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
+    numero_version = models.PositiveIntegerField(default=1)
+    publicado_en = models.DateTimeField(null=True, blank=True)
+    publicado_por = models.ForeignKey(
+        'users.User',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='planes_publicados',
+    )
+    plan_origen = models.ForeignKey(
+        'self',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='revisiones',
+    )
 
     class Meta:
         ordering = ['-start_date']

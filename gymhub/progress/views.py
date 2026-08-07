@@ -17,6 +17,19 @@ from .serializers import (
 )
 
 
+def assert_workout_access(member, attendance=None):
+    from billing.services import membership_access
+
+    access = membership_access(member)
+    if access['allowed'] or (attendance and attendance.es_excepcion_comercial):
+        return
+    raise PermissionDenied({
+        'error': 'La ejecución del entrenamiento requiere una membresía al día.',
+        'reason': access['reason'],
+        'days_overdue': access['days_overdue'],
+    })
+
+
 class ProgressLogViewSet(viewsets.ModelViewSet):
     serializer_class = ProgressLogSerializer
     permission_classes = [IsAuthenticated]
@@ -178,8 +191,11 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
 
         if workout_day.plan.member_id != member.id:
             raise PermissionDenied('El día de entrenamiento no pertenece al miembro.')
+        if workout_day.plan.status != 'active':
+            raise ValidationError({'workout_day_id': 'Solo se ejecutan planes publicados.'})
         if attendance and attendance.member_id != member.id:
             raise ValidationError({'attendance_id': 'La asistencia no corresponde al miembro.'})
+        assert_workout_access(member, attendance)
 
         existing_session = WorkoutSession.objects.filter(
             member=member,
@@ -214,6 +230,7 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
     def complete(self, request, pk=None):
         """PATCH /api/workout-sessions/{id}/complete/"""
         session = self.get_object()
+        assert_workout_access(session.member, session.attendance)
         if session.is_completed:
             return Response({'error': 'La sesión ya fue completada.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -269,6 +286,7 @@ class BulkExerciseLogView(APIView):
             return Response({'error': 'No tienes permiso para esta sesión.'}, status=status.HTTP_403_FORBIDDEN)
         if (user.role != 'member' or user.is_staff) and not user_can_manage_member_progress(user, session.member):
             raise PermissionDenied('La sesión no pertenece a un cliente asignado.')
+        assert_workout_access(session.member, session.attendance)
 
         from plans.models import Exercise
 

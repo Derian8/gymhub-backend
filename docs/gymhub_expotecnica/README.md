@@ -5,6 +5,9 @@ documento sigue los lineamientos específicos de ExpoTÉCNICA 2026 y utiliza APA
 7 para las citas y referencias. La propuesta documenta el origen estudiantil del
 proyecto en 2025, su primera participación en la feria, la encuesta aplicada y
 una proyección económica con planes y punto de equilibrio.
+El alcance demostrable se concentra en la relación entrenador--miembro, los
+planes de entrenamiento, la facturación y la asistencia. El escrito distingue
+el piloto diseñado de cualquier resultado comercial todavía no obtenido.
 
 ## Compilación
 
@@ -30,6 +33,8 @@ El PDF se genera en `build/main.pdf`. Para eliminar los artefactos:
 - `plantilla_resultados_encuesta.csv`: estructura para registrar las respuestas.
 - `secciones/04-modelo-canvas.tex`: desarrollo y representación visual vigente
   de los nueve módulos del Canvas.
+- `AUDITORIA_EXPOTEC11.md`: trazabilidad interna de los 24 indicadores de la
+  rúbrica al contenido verificable del escrito.
 - `AVANCE_PENDIENTES.md`: estado verificable del escrito y trabajo restante.
 - `AGENTS.md`: reglas obligatorias para futuras modificaciones del escrito.
 

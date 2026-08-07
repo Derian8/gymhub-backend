@@ -7,8 +7,8 @@ export const attendanceApi = {
     return data
   },
 
-  checkIn: async (notes?: string): Promise<Attendance> => {
-    const { data } = await apiClient.post('/api/attendance/check-in/', { notes })
+  checkIn: async (payload?: { notes?: string; member_id?: number; override_reason?: string }): Promise<Attendance> => {
+    const { data } = await apiClient.post('/api/attendance/check-in/', payload ?? {})
     return data
   },
 

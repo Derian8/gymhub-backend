@@ -42,6 +42,7 @@ class MemberSubscriptionSerializer(serializers.ModelSerializer):
             'auto_generate_next', 'is_active', 'status',
             'renewal_date', 'cancellation_date',
             'cancellation_reason', 'commercial_notes',
+            'motivo_ajuste_precio',
             'current_period_start', 'current_period_end',
             'access_allowed', 'days_overdue',
         )
@@ -86,6 +87,7 @@ class MemberMembershipSerializer(serializers.ModelSerializer):
             'id', 'member', 'membership_plan', 'plan_name', 'membership_name',
             'description', 'start_date', 'end_date', 'agreed_price', 'status',
             'auto_renew', 'created_at', 'updated_at', 'cancelled_at', 'notes',
+            'motivo_ajuste_precio',
             'days_remaining', 'can_check_in', 'next_payment', 'last_payment',
             'recurrence_type', 'grace_period_days',
         )
@@ -108,6 +110,15 @@ class MemberMembershipSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({'membership_name': 'Escribe el nombre de la membresía.'})
             if attrs.get('agreed_price') in (None, ''):
                 raise serializers.ValidationError({'agreed_price': 'Escribe el precio acordado.'})
+        agreed_price = attrs.get('agreed_price', getattr(self.instance, 'agreed_price', None))
+        adjustment_reason = attrs.get(
+            'motivo_ajuste_precio',
+            getattr(self.instance, 'motivo_ajuste_precio', ''),
+        ).strip()
+        if plan and agreed_price is not None and agreed_price != plan.price and not adjustment_reason:
+            raise serializers.ValidationError({
+                'motivo_ajuste_precio': 'Explica por qué el precio difiere del catálogo.',
+            })
         if self.instance is None and member:
             existing = MemberSubscription.objects.filter(
                 member=member,
@@ -183,8 +194,12 @@ class PaymentRecordSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'schedule', 'subscription_id', 'due_date', 'amount', 'paid_at',
             'status', 'method_used', 'payment_reference',
+            'metodo_registrado', 'registrado_por',
             'receipt_issued_at', 'receipt_number', 'notes',
             'days_overdue', 'plan_name'
+        )
+        read_only_fields = (
+            'paid_at', 'receipt_issued_at', 'metodo_registrado', 'registrado_por',
         )
 
     def get_days_overdue(self, obj):

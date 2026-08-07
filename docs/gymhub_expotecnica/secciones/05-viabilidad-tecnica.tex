@@ -9,12 +9,12 @@ reutilizables \parencite{react2026}. El backend emplea Django 5.1 y Django REST
 Framework para los modelos, la autenticación, la validación y la API
 \parencite{django51,drf315}. PostgreSQL almacena los datos en Supabase.
 
-Las tareas programadas se modelan con Celery y Redis. Una cola de tareas separa
+Las tareas asíncronas futuras se modelan con Celery y Redis. Una cola de tareas separa
 el envío del trabajo de su ejecución por procesos worker
 \parencite{celery2026}. En el entorno local esos procesos se orquestan con Docker
 Compose; en la demostración publicada en Vercel no están desplegados como procesos
-persistentes. Esta diferencia limita alertas y automatizaciones programadas en
-producción.
+persistentes. Estos componentes no forman parte del recorrido comercial que se
+demuestra en la versión publicada.
 
 \begin{table}[htbp]
 \caption{Tecnologías utilizadas en GymHub}
@@ -28,7 +28,7 @@ Estado y datos & TanStack Query, Zustand, Axios & Caché de servidor, sesión y 
 Backend & Django 5.1, DRF 3.15 & Reglas de negocio, permisos y API REST. \\
 Autenticación & JWT y cookies HTTP-only & Inicio, renovación y cierre de sesión por rol. \\
 Datos & PostgreSQL en Supabase & Persistencia relacional y migraciones. \\
-Procesos & Celery, Celery Beat y Redis & Tareas asíncronas, alertas y programación local. \\
+Procesos & Celery, Celery Beat y Redis & Base técnica local para tareas asíncronas futuras. \\
 Despliegue & Vercel y Docker & Demo pública y entornos reproducibles. \\
 Pruebas & Pytest, Vitest y Playwright & Reglas backend, componentes y flujos de navegador. \\
 \bottomrule
@@ -38,9 +38,19 @@ Pruebas & Pytest, Vitest y Playwright & Reglas backend, componentes y flujos de 
 
 \subsection{Módulos funcionales}
 
-El MVP define tres capacidades de acceso: miembro, entrenador y personal
-administrativo. El flujo demostrable abarca inicio de sesión, panel por rol,
-miembros, planes, asistencia, progreso, pagos, alertas, nutrición, chat y perfil.
+El MVP define dos roles de acceso: entrenador y miembro. El entrenador concentra
+la operación del gimnasio en los recorridos de miembros, planes de entrenamiento,
+asistencia y facturación. El miembro consulta su membresía, ejecuta el programa
+publicado por su entrenador y registra asistencia y progreso. No existe un tercer
+rol administrativo independiente en la versión actual.
+
+Los planes de entrenamiento y la facturación se mantienen como procesos
+separados. En la pestaña Planes, el entrenador crea la rutina, selecciona al
+miembro, configura días y ejercicios, resuelve conflictos con un plan activo y
+publica el programa. En Facturación se crea o renueva la membresía comercial, se
+define precio y recurrencia, se registra el pago y se controla la vigencia o la
+mora. Una membresía habilita el acceso comercial, pero no sustituye ni crea la
+prescripción deportiva.
 
 \begin{longtable}{>{\bfseries}p{3.1cm}p{7.3cm}p{3.8cm}}
 \caption{Estado de los módulos del MVP}\label{tab:modulos}\\
@@ -53,16 +63,12 @@ Módulo & Capacidad observable & Estado y límite \\
 \midrule
 \endhead
 Autenticación & Inicio, cierre, renovación y acceso por rol. & Funcional; requiere operación segura de secretos y cookies. \\
-Miembros & Lista, detalle, activación y asignación. & Funcional en MVP. \\
-Planes & Planes, días, ejercicios y entrenamiento del día. & Funcional; requiere mayor ciclo editorial comercial. \\
-Asistencia & Check-in e historial con reglas de mora. & Funcional; ingreso físico automatizado es futuro. \\
-Progreso & Sesiones, registros de ejercicios y métricas. & Funcional en nivel básico. \\
-Facturación & Planes, pagos, vencimientos y mora. & Funcional como registro; no es contabilidad ni pasarela bancaria. \\
-Alertas & Inactividad y notificaciones. & Código funcional; programación persistente no desplegada en Vercel. \\
-Nutrición & Perfil y guías generales. & Funcional como orientación informativa, no clínica. \\
-Chat contextual & Respuestas con contexto de datos del usuario. & Funcional con reglas; proveedor LLM es opcional. \\
-Gráficas & Indicadores de operación y progreso. & Funcional; archivos media no tienen almacenamiento persistente externo. \\
-Clases & Clases e inscripciones en backend. & Dominio existente, fuera del flujo principal congelado del MVP. \\
+Miembros & Registro, consulta, activación y relación con un entrenador. & Funcional en el MVP; los datos pertenecen a cuentas individuales. \\
+Planes de entrenamiento & Creación y asignación desde Planes; días, ejercicios, estados y entrenamiento del día. & Funcional; separado de la membresía comercial. \\
+Asistencia & Check-in e historial condicionado por el estado de la membresía. & Funcional; el ingreso físico automatizado es futuro. \\
+Progreso & Sesiones, registros de ejercicios y métricas básicas. & Funcional en el nivel del MVP. \\
+Facturación & Catálogo de membresías, altas, renovaciones, pagos, vencimientos y mora. & Funcional como control operativo; no es contabilidad ni pasarela bancaria. \\
+Perfil & Consulta y actualización de los datos permitidos de la cuenta. & Funcional según el rol autenticado. \\
 \bottomrule
 \caption*{\textit{Nota}. Estado funcional comprobado por el equipo, julio de 2026.}
 \end{longtable}
@@ -76,24 +82,50 @@ antes de que afecten a la persona usuaria. Entre los
 flujos comprobados se encuentran el inicio de sesión por rol, la gestión de
 miembros, la activación de membresías, el registro de pagos, la asistencia, los
 planes de entrenamiento y el seguimiento del progreso. El inventario detallado
-de casos se presenta en los anexos.
+de casos se presenta en los apéndices.
 
 La interfaz, la API y su documentación cuentan con despliegues de demostración.
-Durante la exposición se mostrará al jurado el funcionamiento de la plataforma
-mediante estos despliegues y se complementará con capturas preparadas con datos
-ficticios.
+Durante la exposición se mostrará al jurado, con datos ficticios, el recorrido
+del entrenador desde el registro de un miembro hasta la creación de su plan, la
+activación de su membresía, el pago y la asistencia. La evidencia visual incluida
+se limita a pantallas que coinciden con el alcance vigente.
 
-\begin{figure}[htbp]
+\begin{figure}[p]
 \centering
-\includegraphics[width=\textwidth]{imagenes/captura_panel_entrenador.png}
-\caption{Panel de control para entrenador}
-\label{fig:panel-entrenador}
-\caption*{\textit{Nota}. Captura propia del MVP con una cuenta y datos ficticios, 24 de julio de 2026.}
+\includegraphics[width=\textwidth]{imagenes/captura_planes_entrenador.png}
+\caption{Gestión de planes de entrenamiento por el entrenador}
+\label{fig:planes-entrenador}
+\caption*{\textit{Nota}. Captura propia del MVP con cuentas y datos ficticios, 31 de julio de 2026.}
 \end{figure}
 
-La Figura~\ref{fig:panel-entrenador} muestra indicadores administrativos y
-deportivos, accesos a miembros, asistencia, facturación, nutrición y alertas.
-La información visible corresponde exclusivamente al conjunto de demostración.
+La Figura~\ref{fig:planes-entrenador} evidencia que la rutina se crea, asigna,
+configura, finaliza o archiva desde Planes. La existencia de un plan deportivo
+no implica que el miembro tenga una membresía comercial vigente.
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=\textwidth]{imagenes/captura_facturacion_entrenador.png}
+\caption{Cartera de membresías y pagos en Facturación}
+\label{fig:facturacion-entrenador}
+\caption*{\textit{Nota}. Captura propia del MVP con cuentas y datos ficticios, 31 de julio de 2026.}
+\end{figure}
+
+La Figura~\ref{fig:facturacion-entrenador} muestra el recorrido comercial
+separado: membresía por miembro, suscripción, precio, vencimiento, estado de pago
+y registro de cobros. La pantalla no se presenta como contabilidad ni como
+procesamiento bancario automático.
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=\textwidth]{imagenes/captura_asistencia_entrenador.png}
+\caption{Consulta de asistencia desde el rol entrenador}
+\label{fig:asistencia-entrenador}
+\caption*{\textit{Nota}. Captura propia del MVP con cuentas y datos ficticios, 31 de julio de 2026.}
+\end{figure}
+
+La Figura~\ref{fig:asistencia-entrenador} muestra la consulta por fecha y miembro.
+El MVP registra check-in e historial; no controla por sí solo una puerta o torno
+físico.
 
 \begin{figure}[htbp]
 \centering
@@ -120,24 +152,16 @@ aplica a bases de datos privadas y protege el control de las personas sobre su
 información \parencite{ley8968}. Toda demostración utilizará datos ficticios o
 anonimizados.
 
-\subsection{Alcance de salud y nutrición}
-
-Las funciones de alimentación se limitan a organización y orientación general.
-No realizan diagnóstico, tratamiento, prescripción clínica ni evaluación médica.
-Una función personalizada deberá diseñarse y validarse con profesionales
-competentes y con los requisitos regulatorios aplicables. La versión inicial no
-prometerá resultados de salud.
-
 \subsection{Preparación para el piloto comercial}
 
 La siguiente etapa técnica consiste en preparar una cuenta independiente para el
-gimnasio piloto, configurar respaldos, habilitar los procesos programados y
+gimnasio piloto, configurar respaldos y
 definir el procedimiento de soporte. También se implementará almacenamiento
 persistente para archivos y una revisión completa de permisos antes de incorporar
 datos reales.
 
 Para crecer a varios clientes, cada gimnasio tendrá una entidad propia asociada
-con sus miembros, entrenadores, administradores y registros. Las consultas y
+con sus miembros, entrenadores y registros. Las consultas y
 permisos se limitarán al gimnasio autenticado. Esta separación también permitirá
 configurar nombre, logo y colores, y obtener el conteo de membresías activas que
 determina el plan comercial. Estas mejoras forman una ruta de crecimiento

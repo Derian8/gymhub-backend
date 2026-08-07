@@ -86,6 +86,16 @@ export const plansApi = {
     return data
   },
 
+  createRevision: async (id: number): Promise<TrainingPlan> => {
+    const { data } = await apiClient.post(`/api/plans/${id}/create-revision/`)
+    return data
+  },
+
+  publishPlan: async (id: number): Promise<TrainingPlan> => {
+    const { data } = await apiClient.post(`/api/plans/${id}/publish/`)
+    return data
+  },
+
   deletePlan: async (id: number): Promise<void> => {
     await apiClient.delete(`/api/plans/${id}/`)
   },

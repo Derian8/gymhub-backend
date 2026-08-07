@@ -7,6 +7,20 @@ export const billingApi = {
     return data
   },
 
+  createMembershipPlan: async (payload: Partial<MembershipPlan>): Promise<MembershipPlan> => {
+    const { data } = await apiClient.post('/api/membership-plans/', payload)
+    return data
+  },
+
+  updateMembershipPlan: async (id: number, payload: Partial<MembershipPlan>): Promise<MembershipPlan> => {
+    const { data } = await apiClient.patch(`/api/membership-plans/${id}/`, payload)
+    return data
+  },
+
+  archiveMembershipPlan: async (id: number): Promise<void> => {
+    await apiClient.delete(`/api/membership-plans/${id}/`)
+  },
+
   paymentSchedules: async (params?: Record<string, string>): Promise<PaginatedResponse<PaymentSchedule>> => {
     const { data } = await apiClient.get('/api/payment-schedules/', { params })
     return data
@@ -29,7 +43,7 @@ export const billingApi = {
 
   markPaymentAsPaid: async (
     id: number,
-    payload: Pick<PaymentRecord, 'payment_reference' | 'notes'>,
+    payload: Pick<PaymentRecord, 'payment_reference' | 'notes'> & { method: 'cash' | 'sinpe' | 'transfer' | 'other' },
   ): Promise<PaymentRecord> => {
     const { data } = await apiClient.post(`/api/payment-records/${id}/mark-paid/`, payload)
     return data
@@ -72,6 +86,11 @@ export const billingApi = {
 
   cancelMemberMembership: async (id: number, reason = ''): Promise<MemberMembership> => {
     const { data } = await apiClient.post(`/api/member-memberships/${id}/cancel/`, { reason })
+    return data
+  },
+
+  resumeMemberMembership: async (id: number): Promise<MemberMembership> => {
+    const { data } = await apiClient.post(`/api/member-memberships/${id}/resume/`)
     return data
   },
 }

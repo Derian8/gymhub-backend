@@ -24,6 +24,8 @@ class Attendance(models.Model):
     attendance_date = models.DateField(default=timezone.localdate)
     check_out_time = models.DateTimeField(null=True, blank=True)
     is_manual_override = models.BooleanField(default=False)
+    es_excepcion_comercial = models.BooleanField(default=False)
+    motivo_excepcion = models.CharField(max_length=500, blank=True)
     notes = models.TextField(blank=True)
 
     class Meta:

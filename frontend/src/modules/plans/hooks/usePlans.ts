@@ -125,6 +125,32 @@ export function useUpdatePlanMutation() {
   })
 }
 
+export function useCreatePlanRevisionMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: plansApi.createRevision,
+    onSuccess: (plan) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLANS })
+      toast.success('Revisión creada como borrador')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function usePublishPlanMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: plansApi.publishPlan,
+    onSuccess: (plan) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLANS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_DETAIL(plan.id) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_ACTIVE_PRESCRIPTION(plan.member) })
+      toast.success(`Versión ${plan.numero_version ?? 1} publicada para el miembro`)
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
 export function useDeletePlanMutation() {
   const queryClient = useQueryClient()
 

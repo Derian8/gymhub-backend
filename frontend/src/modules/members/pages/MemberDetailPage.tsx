@@ -12,6 +12,7 @@ import { QUERY_KEYS } from '@/shared/constants/queryKeys'
 import { progressApi } from '@/modules/progress/api/progressApi'
 import { toast } from 'sonner'
 import type { MemberSubscription, ProgressLog } from '@/shared/types'
+import { membersApi } from '../api/membersApi'
 
 const MEMBERSHIP_PERIOD_LABELS: Record<MemberSubscription['recurrence_type'], string> = {
   daily: 'día',
@@ -62,6 +63,14 @@ export function MemberDetailPage() {
   const { mutate: assignTrainer, isPending: isAssigningTrainer } = useAssignTrainerMutation()
   const { user } = useAuthStore()
   const [isMeasurementFormOpen, setIsMeasurementFormOpen] = useState(false)
+  const [temporaryPassword, setTemporaryPassword] = useState('')
+  const accountAction = useMutation({ mutationFn: async (action: 'password' | 'deactivate' | 'reactivate') => {
+    if (action === 'password') return membersApi.temporaryPassword(memberId)
+    if (action === 'reactivate') return membersApi.reactivate(memberId)
+    const reason = window.prompt('Motivo de la baja')
+    if (!reason?.trim()) throw new Error('Debes indicar un motivo')
+    return membersApi.deactivate(memberId, reason.trim())
+  }, onSuccess: (data, action) => { if (action === 'password' && 'contrasena_temporal' in data) setTemporaryPassword(data.contrasena_temporal); queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_DETAIL(memberId) }); toast.success(action === 'password' ? 'Contraseña temporal generada' : 'Estado actualizado') }, onError: (error) => toast.error(extractApiError(error)) })
   const [editingMeasurementId, setEditingMeasurementId] = useState<number | null>(null)
   const [measurementForm, setMeasurementForm] = useState({
     recorded_at: '',
@@ -197,6 +206,8 @@ export function MemberDetailPage() {
                 {isActivating ? 'Activando...' : 'Activar miembro'}
               </button>
             )}
+            <button className="btn-secondary" type="button" onClick={() => accountAction.mutate('password')}>Nueva contraseña temporal</button>
+            {member.is_active ? <button className="btn-secondary" type="button" onClick={() => accountAction.mutate('deactivate')}>Dar de baja</button> : null}
             {!member.trainer_asignado && user?.role === 'trainer' && (
               <button
                 onClick={() => assignTrainer(member.id)}
@@ -210,6 +221,7 @@ export function MemberDetailPage() {
           </div>
         }
       />
+      {temporaryPassword ? <div className="mb-6 rounded-sm border border-amber-300 bg-amber-50 p-4 text-amber-900"><p className="font-semibold">Contraseña temporal (se muestra una sola vez)</p><div className="mt-2 flex items-center gap-3"><code className="text-lg font-bold">{temporaryPassword}</code><button className="btn-secondary" onClick={() => navigator.clipboard.writeText(temporaryPassword)}>Copiar</button></div></div> : null}
 
       {!member.trainer_asignado && user?.role === 'trainer' ? (
         <div

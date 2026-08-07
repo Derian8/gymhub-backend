@@ -192,7 +192,7 @@ def membership_summary(member):
 
 
 @transaction.atomic
-def mark_payment_paid(record, reference='', notes=''):
+def mark_payment_paid(record, reference='', notes='', method='cash', recorded_by=None):
     record = PaymentRecord.objects.select_for_update().get(pk=record.pk)
     record = PaymentRecord.objects.select_related(
         'schedule__subscription', 'schedule__member', 'schedule__plan'
@@ -201,11 +201,18 @@ def mark_payment_paid(record, reference='', notes=''):
         return record, None
     if record.status == 'void':
         raise ValueError('Este cobro fue anulado y no debe registrarse como pagado.')
+    valid_methods = {'cash', 'sinpe', 'transfer', 'other'}
+    if method not in valid_methods:
+        raise ValueError('Selecciona un método de pago válido.')
+    if method != 'cash' and not reference.strip():
+        raise ValueError('La referencia es obligatoria para pagos que no sean en efectivo.')
 
     now = timezone.now()
     record.status = 'paid'
     record.paid_at = now
     record.payment_reference = reference
+    record.metodo_registrado = method
+    record.registrado_por = recorded_by
     record.receipt_issued_at = now
     if notes:
         record.notes = notes
@@ -292,6 +299,33 @@ def suspend_membership(subscription, reason=''):
         if reason:
             subscription.cancellation_reason = reason
         subscription.save(update_fields=['status', 'is_active', 'cancellation_reason'])
+    return subscription
+
+
+@transaction.atomic
+def resume_membership(subscription):
+    subscription = MemberSubscription.objects.select_for_update().get(pk=subscription.pk)
+    if subscription.status != 'suspended':
+        raise ValueError('Solo puedes reanudar una membresía suspendida.')
+    subscription.is_active = True
+    subscription.cancellation_reason = ''
+    today = timezone.localdate()
+    if not subscription.current_period_end:
+        subscription.status = 'pending'
+    elif subscription.current_period_end < today:
+        subscription.status = 'expired'
+    elif (subscription.current_period_end - today).days <= settings.MEMBERSHIP_EXPIRING_DAYS:
+        subscription.status = 'expiring'
+    else:
+        subscription.status = 'active'
+    subscription.save(update_fields=['is_active', 'status', 'cancellation_reason'])
+    if not PaymentRecord.objects.filter(
+        schedule__subscription=subscription,
+        status__in=['pending', 'late'],
+    ).exists() and subscription.status in {'pending', 'expired'}:
+        subscription.status = 'pending'
+        subscription.save(update_fields=['status'])
+        create_pending_charge(subscription, subscription.next_billing_date or timezone.localdate())
     return subscription
 
 

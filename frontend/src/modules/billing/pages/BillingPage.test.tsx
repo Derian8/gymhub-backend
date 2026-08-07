@@ -61,6 +61,10 @@ vi.mock('../hooks/useBilling', () => ({
   useRenewMemberMembershipMutation: () => ({ mutate: renewMembershipMock, isPending: false }),
   useSuspendMemberMembershipMutation: () => ({ mutate: suspendMembershipMock, isPending: false }),
   useCancelMemberMembershipMutation: () => ({ mutate: cancelMembershipMock, isPending: false }),
+  useResumeMemberMembershipMutation: () => ({ mutate: vi.fn(), isPending: false }),
+  useCreateMembershipPlanMutation: () => ({ mutate: vi.fn(), isPending: false }),
+  useArchiveMembershipPlanMutation: () => ({ mutate: vi.fn(), isPending: false }),
+  useUpdateMembershipPlanMutation: () => ({ mutate: vi.fn(), isPending: false }),
   useMarkPaymentAsPaidMutation: () => ({ mutate: markPaymentAsPaidMock, isPending: false }),
 }))
 
@@ -306,6 +310,7 @@ describe('BillingPage', () => {
     expect(markPaymentAsPaidMock).toHaveBeenCalledWith({
       id: 2,
       payload: {
+        method: 'cash',
         payment_reference: 'REF-200',
         notes: 'Transferencia verificada',
       },

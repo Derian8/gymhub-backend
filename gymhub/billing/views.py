@@ -1,7 +1,9 @@
+import io
 import logging
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
+from django.http import HttpResponse
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -17,7 +19,8 @@ from .serializers import (
 )
 from .services import (
     cancel_membership, initialize_subscription, mark_payment_paid, membership_summary,
-    period_end, renew_membership, suspend_membership, void_non_collectable_charges
+    period_end, renew_membership, resume_membership, suspend_membership,
+    void_non_collectable_charges
 )
 from users.permissions import IsStaffOrTrainer
 from users.audit import registrar_auditoria
@@ -314,6 +317,8 @@ class MemberMembershipViewSet(MemberSubscriptionViewSet):
     @action(detail=True, methods=['post'], url_path='suspend')
     def suspend(self, request, pk=None):
         reason = request.data.get('reason', '').strip()
+        if not reason:
+            raise ValidationError({'reason': 'Indica el motivo de la suspensión.'})
         subscription = suspend_membership(self.get_object(), reason=reason)
         registrar_auditoria(
             request.user,
@@ -328,6 +333,8 @@ class MemberMembershipViewSet(MemberSubscriptionViewSet):
     @action(detail=True, methods=['post'], url_path='cancel')
     def cancel(self, request, pk=None):
         reason = request.data.get('reason', '').strip()
+        if not reason:
+            raise ValidationError({'reason': 'Indica el motivo de la cancelación.'})
         subscription = cancel_membership(self.get_object(), reason=reason)
         registrar_auditoria(
             request.user,
@@ -336,6 +343,18 @@ class MemberMembershipViewSet(MemberSubscriptionViewSet):
             subscription.id,
             request=request,
             details={'reason': reason},
+        )
+        return Response(self.get_serializer(subscription).data)
+
+    @action(detail=True, methods=['post'], url_path='resume')
+    def resume(self, request, pk=None):
+        try:
+            subscription = resume_membership(self.get_object())
+        except ValueError as exc:
+            raise ValidationError({'membership': str(exc)}) from exc
+        registrar_auditoria(
+            request.user, 'membership_resumed', 'MemberSubscription', subscription.id,
+            request=request,
         )
         return Response(self.get_serializer(subscription).data)
 
@@ -461,9 +480,16 @@ class PaymentRecordViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         reference = request.data.get('payment_reference', '').strip()
+        method = request.data.get('method', 'cash').strip().lower()
         notes = request.data.get('notes', '').strip()
         try:
-            record, _ = mark_payment_paid(record, reference=reference, notes=notes)
+            record, _ = mark_payment_paid(
+                record,
+                reference=reference,
+                notes=notes,
+                method=method,
+                recorded_by=request.user,
+            )
         except ValueError as exc:
             return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         registrar_auditoria(
@@ -477,10 +503,54 @@ class PaymentRecordViewSet(viewsets.ModelViewSet):
                 'subscription_id': record.schedule.subscription_id,
                 'amount': str(record.amount),
                 'payment_reference': record.payment_reference,
+                'method': record.metodo_registrado,
                 'receipt_number': PaymentRecordSerializer(record).data.get('receipt_number'),
             },
         )
         return Response(PaymentRecordSerializer(record).data)
+
+    @action(detail=True, methods=['get'], url_path='receipt')
+    def receipt(self, request, pk=None):
+        record = self.get_object()
+        if record.status != 'paid':
+            raise ValidationError({'payment': 'El comprobante se genera después de registrar el pago.'})
+        try:
+            from reportlab.pdfgen import canvas
+        except ImportError as exc:
+            raise ValidationError({'receipt': 'El generador de PDF no está disponible.'}) from exc
+
+        gym_profile = None
+        trainer = record.schedule.member.trainer_asignado
+        if trainer:
+            gym_profile = getattr(trainer, 'perfil_gimnasio', None)
+        buffer = io.BytesIO()
+        pdf = canvas.Canvas(buffer)
+        y = 800
+        rows = [
+            ((gym_profile.nombre if gym_profile else 'GymHub'), 16),
+            ('Comprobante interno de pago', 14),
+            (f'Comprobante: REC-{record.receipt_issued_at:%Y%m%d}-{record.id}', 10),
+            (f'Miembro: {record.schedule.member.user.get_full_name() or record.schedule.member.user.email}', 10),
+            (f'Concepto: {record.schedule.resolved_membership_name or "Membresía"}', 10),
+            (f'Monto: ₡{record.amount}', 10),
+            (f'Método: {record.get_metodo_registrado_display() or "No indicado"}', 10),
+            (f'Referencia: {record.payment_reference or "No aplica"}', 10),
+            (f'Fecha: {record.paid_at:%d/%m/%Y %H:%M}', 10),
+            ('Este comprobante es de control interno y no constituye factura electrónica.', 9),
+        ]
+        for value, size in rows:
+            pdf.setFont('Helvetica-Bold' if size >= 14 else 'Helvetica', size)
+            pdf.drawString(55, y, value)
+            y -= 32 if size >= 14 else 22
+        if gym_profile:
+            contact = ' · '.join(filter(None, [gym_profile.telefono, gym_profile.correo, gym_profile.direccion]))
+            if contact:
+                pdf.drawString(55, y - 10, contact[:100])
+        pdf.showPage()
+        pdf.save()
+        response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="comprobante-{record.id}.pdf"'
+        return response
 
 
 class PaymentMethodViewSet(viewsets.ModelViewSet):

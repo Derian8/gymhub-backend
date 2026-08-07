@@ -27,6 +27,7 @@ vi.mock('../hooks/usePlans', () => ({
           start_date: '2026-03-10',
           end_date: null,
           is_active: false,
+          status: 'draft',
         },
       ],
     },
@@ -46,6 +47,8 @@ vi.mock('../hooks/usePlans', () => ({
   useDuplicatePlanMutation: () => ({ mutate: vi.fn(), isPending: false }),
   useFinishPlanMutation: () => ({ mutate: vi.fn(), isPending: false }),
   useArchivePlanMutation: () => ({ mutate: vi.fn(), isPending: false }),
+  useCreatePlanRevisionMutation: () => ({ mutate: vi.fn(), isPending: false }),
+  usePublishPlanMutation: () => ({ mutate: vi.fn(), isPending: false }),
 }))
 
 vi.mock('@/modules/members/hooks/useMembers', () => ({
@@ -166,7 +169,7 @@ describe('PlansPage', () => {
     expect(getByText('Definicion avanzada')).toBeInTheDocument()
     expect(within(getByTestId('plan-card-12')).getByText('Ver plan')).toHaveAttribute('href', '/plans/12')
     expect(within(getByTestId('plan-card-13')).getByText('Ver plan')).toHaveAttribute('href', '/plans/13')
-    expect(getByTestId('configure-plan-12')).toHaveAttribute('href', '/plans/12/edit')
+    expect(within(getByTestId('plan-card-12')).getByText('Crear revisión')).toBeInTheDocument()
     expect(getByTestId('configure-plan-13')).toHaveAttribute('href', '/plans/13/edit')
   })
 

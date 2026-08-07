@@ -15,7 +15,7 @@ export function useCheckInMutation() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (notes?: string) => attendanceApi.checkIn(notes),
+    mutationFn: (payload?: { notes?: string; member_id?: number; override_reason?: string }) => attendanceApi.checkIn(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ATTENDANCE })
       toast.success('Check-in registrado exitosamente')

@@ -20,6 +20,32 @@ interface MembersParams {
 }
 
 export const membersApi = {
+  create: async (payload: {
+    nombres: string
+    apellidos: string
+    correo_electronico: string
+    telefono: string
+    fecha_nacimiento?: string
+    contacto_emergencia?: string
+  }): Promise<{ member: MemberProfile; contrasena_temporal: string; message: string }> => {
+    const { data } = await apiClient.post('/api/members/', payload)
+    return data
+  },
+
+  temporaryPassword: async (id: number): Promise<{ contrasena_temporal: string; message: string }> => {
+    const { data } = await apiClient.post(`/api/members/${id}/temporary-password/`)
+    return data
+  },
+
+  deactivate: async (id: number, reason: string): Promise<MemberProfile> => {
+    const { data } = await apiClient.post(`/api/members/${id}/deactivate/`, { reason })
+    return data
+  },
+
+  reactivate: async (id: number): Promise<MemberProfile> => {
+    const { data } = await apiClient.post(`/api/members/${id}/reactivate/`)
+    return data
+  },
   list: async (params?: MembersParams): Promise<PaginatedResponse<MemberProfile>> => {
     const { data } = await apiClient.get('/api/members/', { params })
     return data

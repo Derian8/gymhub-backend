@@ -23,6 +23,12 @@ inicia con cuotas financieras ni intereses. Las computadoras y teléfonos ya
 disponibles se consideran aportes en especie; la inversión adicional se concentra
 en servicios digitales y tiempo de trabajo.
 
+El capital operativo mínimo para sostener el primer mes comercial sin clientes
+es CRC 71\,986. Si se atiende un gimnasio piloto, asciende a CRC 74\,986 por la
+hora de soporte asociada. Este monto no representa la compra de computadoras ni
+otros activos ya disponibles; corresponde al efectivo y trabajo valorado que el
+escenario necesita para operar durante un mes.
+
 \begin{table}[htbp]
 \caption{Recursos aportados para el desarrollo}
 \begin{tabularx}{\textwidth}{>{\bfseries\raggedright\arraybackslash}p{3.5cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
@@ -57,8 +63,11 @@ promoción.
 \subsection{Costo mensual de operación}
 
 Para pasar de demostración educativa a servicio comercial se presupuestan Vercel
-Pro, Supabase Pro y Railway. Sus tarifas iniciales son USD 20, USD 25 y USD 5,
-respectivamente \parencite{vercel_pricing,supabase_pricing,railway_pricing}.
+Pro, Supabase Pro y Railway. Sus tarifas iniciales de referencia son USD 20,
+USD 25 y una base de USD 5, respectivamente
+\parencite{vercel_pricing,supabase_pricing,railway_pricing}. Estos montos no son
+un techo garantizado: el consumo de cómputo, almacenamiento y transferencia puede
+aumentar el pago al proveedor.
 Upstash permite iniciar Redis en un nivel gratuito limitado y crecer por consumo
 \parencite{upstash_pricing}. Esta selección aprovecha servicios administrados y
 evita comprar servidores propios.
@@ -87,6 +96,26 @@ depende de trabajo no remunerado. La reserva de CRC 10\,000 absorbe pequeñas
 variaciones sin aumentar de inmediato la tarifa. Los impuestos y gastos de
 constitución se calcularán al formalizar la empresa; por ello, las cifras
 siguientes representan utilidad operativa antes de impuestos.
+
+También se reconocen rubros que todavía no tienen cotización suficiente para
+incorporarlos al punto de equilibrio. No se ocultan dentro de la utilidad: se
+mantienen como condiciones que deben resolverse antes de vender el servicio.
+
+\begin{table}[htbp]
+\caption{Costos pendientes de cotización o activación}
+\begin{tabularx}{\textwidth}{>{\bfseries}p{4cm}X X}
+\toprule
+Rubro & Tratamiento actual & Condición para incorporarlo \\
+\midrule
+Impuestos y formalización & Excluidos de la utilidad operativa. & Cotizar con acompañamiento adulto y profesional antes de iniciar actividad lucrativa. \\
+Cobro electrónico & No existe pasarela bancaria en el MVP. & Agregar comisión solo si se contrata un procesador de pagos. \\
+Correo, monitoreo y respaldos & Parte de la preparación comercial pendiente. & Cotizar según volumen y política de recuperación. \\
+Consumo adicional de nube & No incluido por encima de las bases contratadas. & Revisar mensualmente uso, límites y transferencia. \\
+Adquisición de clientes & Promoción básica cubierta por la reserva. & Registrar el costo real de visitas, materiales y campañas. \\
+\bottomrule
+\end{tabularx}
+\caption*{\textit{Nota}. Ninguno de estos rubros se presenta como costo cero definitivo.}
+\end{table}
 
 \subsection{Precios e ingresos}
 
@@ -133,13 +162,13 @@ CRC 3\,000 de soporte mensual.
 \label{tab:equilibrio}
 \begin{tabularx}{\textwidth}{>{\bfseries\raggedright\arraybackslash}p{3.7cm}r r r>{\raggedright\arraybackslash}X}
 \toprule
-Escenario & Ingreso & Costo & Utilidad & Resultado \\
+Escenario & Ingreso & Costo & Utilidad & Margen y lectura \\
 \midrule
-Dos planes Básico & 60\,000 & 77\,986 & $-17\,986$ & Aún no cubre el costo económico. \\
-Tres planes Básico & 90\,000 & 80\,986 & 9\,014 & Primer nivel rentable conservador. \\
-Dos planes Gestión & 90\,000 & 77\,986 & 12\,014 & Equilibrio con dos gimnasios medianos. \\
-Tres planes mixtos & 135\,000 & 80\,986 & 54\,014 & Un plan de cada nivel. \\
-Cartera según encuesta & 150\,000 & 80\,986 & 69\,014 & Dos Gestión y un Crecimiento. \\
+Bajo: dos Básico & 60\,000 & 77\,986 & $-17\,986$ & $-30,0\%$; no cubre el costo. \\
+Conservador: tres Básico & 90\,000 & 80\,986 & 9\,014 & 10,0\%; primer nivel rentable. \\
+Base: dos Gestión & 90\,000 & 77\,986 & 12\,014 & 13,3\%; dos gimnasios medianos. \\
+Crecimiento: tres mixtos & 135\,000 & 80\,986 & 54\,014 & 40,0\%; uno de cada nivel. \\
+Alto: cartera observada & 150\,000 & 80\,986 & 69\,014 & 46,0\%; dos Gestión y un Crecimiento. \\
 \bottomrule
 \end{tabularx}
 \caption*{\textit{Nota}. Utilidad operativa antes de impuestos. No representa clientes ya contratados.}
@@ -159,6 +188,45 @@ CRC 828\,168 antes de impuestos. No se asume que las personas encuestadas ya sea
 clientes; sus tamaños se utilizan únicamente para comprobar cómo funcionaría la
 estructura comercial.
 
+\subsection{Flujo de caja exploratorio de seis meses}
+
+El punto de equilibrio mensual no implica recuperar de inmediato las pérdidas de
+los meses de adopción. Para mostrar esa diferencia se plantea una ruta comercial
+exploratoria, no una venta confirmada. Se supone una demostración inicial, un
+piloto en el segundo mes y conversión gradual hasta tres clientes en el sexto.
+
+\begin{table}[htbp]
+\caption{Escenario exploratorio de flujo de caja durante seis meses}
+\begin{tabularx}{\textwidth}{c X r r r}
+\toprule
+Mes & Cartera supuesta & Ingreso & Costo & Resultado \\
+\midrule
+1 & Demostración; sin cliente de pago & 0 & 71\,986 & $-71\,986$ \\
+2 & Un piloto & 15\,000 & 74\,986 & $-59\,986$ \\
+3 & Un plan Básico & 30\,000 & 74\,986 & $-44\,986$ \\
+4 & Un Básico y un Gestión & 75\,000 & 77\,986 & $-2\,986$ \\
+5 & Un Básico y un Gestión & 75\,000 & 77\,986 & $-2\,986$ \\
+6 & Dos Básico y un Gestión & 105\,000 & 80\,986 & 24\,014 \\
+\midrule
+Total & Escenario acumulado & 300\,000 & 458\,916 & $-158\,916$ \\
+\bottomrule
+\end{tabularx}
+\caption*{\textit{Nota}. Escenario antes de impuestos y de los costos pendientes de cotización. No representa contratos ni resultados obtenidos.}
+\end{table}
+
+El escenario alcanza rentabilidad mensual en el sexto mes, pero conserva una
+pérdida acumulada de CRC 158\,916. Por tanto, la meta de tres clientes prueba la
+capacidad de cubrir la operación mensual, no la recuperación total de la etapa
+inicial. El flujo deberá sustituirse por datos reales cuando se conozcan las
+conversiones, permanencia, consumo de nube y horas de soporte.
+
+Si desde el séptimo mes se mantuvieran dos planes Básico y uno Gestión, sin
+cancelaciones ni aumentos de costo, la utilidad mensual de CRC 24\,014 recuperaría
+la pérdida acumulada después de aproximadamente 6,6 meses adicionales. En ese
+escenario la recuperación ocurriría alrededor del mes 13. Se trata de un periodo
+de recuperación condicionado, no de una promesa, porque depende de conservar la
+cartera y los supuestos de soporte e infraestructura.
+
 \subsection{Sostenibilidad y crecimiento}
 
 El piloto no se plantea como fuente principal de ganancia, sino como inversión en
@@ -173,3 +241,25 @@ rápido que el costo. Si el consumo exige ampliar infraestructura, se actualizar
 el punto de equilibrio antes de aceptar nuevos clientes. Esta disciplina permite
 crecer sin depender de deuda y sostiene una relación realista entre ventas,
 capacidad técnica y calidad del servicio.
+
+\subsection{Riesgos y medidas de respuesta}
+
+\begin{longtable}{>{\bfseries}p{2.8cm}p{3.1cm}p{3cm}p{5cm}}
+\caption{Riesgos principales del modelo de negocio}\label{tab:riesgos}\\
+\toprule
+Riesgo & Probabilidad e impacto & Señal de control & Respuesta prevista \\
+\midrule
+\endfirsthead
+\toprule
+Riesgo & Probabilidad e impacto & Señal de control & Respuesta prevista \\
+\midrule
+\endhead
+Adopción comercial & Alta; impacto alto. & Rechazos, demostraciones sin continuidad y objeciones de precio. & Mantener piloto de entrada, registrar cada contacto y ajustar precios solo con evidencia. \\
+Aislamiento de gimnasios & Alta antes de implementarlo; impacto alto. & Pruebas de acceso cruzado y revisión de permisos. & No incorporar varios gimnasios con datos reales hasta completar y probar la separación multiempresa. \\
+Consumo de nube & Media; impacto medio. & Uso, almacenamiento, transferencia y costo mensual. & Definir límites, alertas de gasto y actualizar el punto de equilibrio cuando cambie el consumo. \\
+Soporte insuficiente & Media; impacto medio. & Incidencias, tiempo de respuesta y horas por cliente. & Incorporación guiada, documentación y revisión mensual de la hora presupuestada. \\
+Privacidad o seguridad & Media; impacto alto. & Incidentes, accesos fallidos, respaldos y permisos. & Datos ficticios en demostración, mínimos privilegios, rotación de secretos, respaldo y procedimiento de respuesta. \\
+Formalización legal & Alta mientras los integrantes sean menores; impacto alto. & Ausencia de acompañamiento adulto, inscripción o cotizaciones. & Mantener carácter educativo y no iniciar actividad lucrativa sin orientación institucional, tributaria y legal. \\
+\bottomrule
+\caption*{\textit{Nota}. La probabilidad es cualitativa y deberá actualizarse con la primera experiencia comercial.}
+\end{longtable}

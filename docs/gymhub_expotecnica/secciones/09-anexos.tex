@@ -1,41 +1,69 @@
 \appendix
-\section{Anexos}
+\section{Apéndices}
 
-\subsection{Control de requisitos ExpoTÉCNICA}
+\subsection{Modelo Canvas}
 
-Este control se incluye como anexo para conservar la trazabilidad institucional
-sin interrumpir el desarrollo del modelo de negocio \parencite{mep2026}. En la
-Tabla~\ref{tab:formularios} se registran los controles aplicables y las acciones
-que se confirmarán con el Comité Técnico de Revisión (CTR).
+La Figura~\ref{fig:canvas} sintetiza los nueve bloques desarrollados en el cuerpo
+del informe. Sus precios, capacidades y límites corresponden al modelo vigente.
 
-\begin{longtable}{>{\bfseries}p{2.4cm}p{6cm}p{5.6cm}}
-\caption{Control de formularios ExpoTEC}\label{tab:formularios}\\
-\toprule
-Formulario & Uso & Aplicación en GymHub \\
-\midrule
-\endfirsthead
-\toprule
-Formulario & Uso & Aplicación en GymHub \\
-\midrule
-\endhead
-ExpoTEC-1 & Inscripción del proyecto. & Se completa en cada etapa. \\
-ExpoTEC-2 & Consentimiento para fotografías o imágenes. & Se aplica si se incorporan imágenes identificables. \\
-ExpoTEC-5 & Experimentos sociales con seres humanos. & Su aplicación se confirmará con el CTR por la encuesta y las pruebas. \\
-ExpoTEC-6 & Consentimiento informado. & Su aplicación se confirmará con el CTR antes de nuevas pruebas de uso. \\
-ExpoTEC-8 & Evaluación de exposición del modelo. & Se utiliza para preparar la defensa institucional. \\
-ExpoTEC-11 & Evaluación del escrito del modelo. & Se utiliza en la revisión final del documento. \\
-ExpoTEC-9 y 12 & Evaluación regional/nacional. & Se reservan para las etapas regional y nacional. \\
-\bottomrule
-\caption*{\textit{Nota}. Síntesis elaborada a partir de los lineamientos ExpoTÉCNICA 2026 \parencite{mep2026}.}
-\end{longtable}
+\begin{figure}[p]
+\centering
+\setlength{\fboxsep}{3pt}
+\begin{minipage}[t]{0.19\textwidth}
+\fbox{\parbox[t][8.2cm][t]{0.90\linewidth}{\scriptsize\raggedright
+\textbf{Alianzas clave}\par\smallskip
+Gimnasio piloto por confirmar.\par\smallskip
+Docente tutor.\par\smallskip
+Participantes de encuesta como colaboración.\par\smallskip
+Proveedores de nube.}}
+\end{minipage}
+\begin{minipage}[t]{0.19\textwidth}
+\fbox{\parbox[t][3.8cm][t]{0.90\linewidth}{\scriptsize\raggedright
+\textbf{Actividades clave}\par\smallskip
+Investigar.\par Desarrollar y probar.\par Demostrar e incorporar.\par Dar soporte.}}\par\smallskip
+\fbox{\parbox[t][3.8cm][t]{0.90\linewidth}{\scriptsize\raggedright
+\textbf{Recursos clave}\par\smallskip
+Equipo humano.\par Código y datos.\par Infraestructura web.\par Conocimiento técnico.}}
+\end{minipage}
+\begin{minipage}[t]{0.19\textwidth}
+\fbox{\parbox[t][8.2cm][t]{0.90\linewidth}{\scriptsize\raggedright
+\textbf{Propuesta de valor}\par\smallskip
+Centraliza pagos, membresías y asistencia.\par\smallskip
+Relaciona rutinas y progreso.\par\smallskip
+Acceso responsive por rol.\par\smallskip Precio en colones.\par\smallskip Acompañamiento local.}}
+\end{minipage}
+\begin{minipage}[t]{0.19\textwidth}
+\fbox{\parbox[t][3.8cm][t]{0.90\linewidth}{\scriptsize\raggedright
+\textbf{Relaciones}\par\smallskip
+Incorporación asistida.\par Soporte por WhatsApp y correo.\par Revisión periódica.}}\par\smallskip
+\fbox{\parbox[t][3.8cm][t]{0.90\linewidth}{\scriptsize\raggedright
+\textbf{Canales}\par\smallskip
+Contacto directo.\par Demostración y piloto.\par Web responsive.\par Recomendaciones.}}
+\end{minipage}
+\begin{minipage}[t]{0.19\textwidth}
+\fbox{\parbox[t][8.2cm][t]{0.90\linewidth}{\scriptsize\raggedright
+\textbf{Segmentos}\par\smallskip
+Dueños y administradores de gimnasios pequeños y medianos.\par\smallskip
+Entrenadores personales.\par\smallskip Miembros adultos como usuarios beneficiarios.\par\smallskip
+Mercado inicial: Pérez Zeledón.}}
+\end{minipage}
 
-\subsection{Preparación de la exposición}
-
-Durante la defensa se explicarán el problema, la solución, el cliente, el Canvas,
-la tecnología, los costos, la evidencia y las limitaciones en 15 minutos. La
-cartulina y una demostración con datos ficticios servirán para presentar de forma
-clara los elementos principales del proyecto. Ambos estudiantes participarán en
-la explicación del modelo de negocio y de la tecnología utilizada.
+\vspace{0.5em}
+\begin{minipage}[t]{0.49\textwidth}
+\fbox{\parbox[t][3.2cm][t]{0.94\linewidth}{\scriptsize\raggedright
+\textbf{Estructura de costos}\par\smallskip
+Infraestructura, herramienta de desarrollo, mantenimiento, soporte, promoción y reserva.
+Costo fijo: CRC 71\,986 más CRC 3\,000 por gimnasio.}}
+\end{minipage}
+\begin{minipage}[t]{0.49\textwidth}
+\fbox{\parbox[t][3.2cm][t]{0.94\linewidth}{\scriptsize\raggedright
+\textbf{Fuentes de ingresos}\par\smallskip
+Piloto: CRC 15\,000.\par Básico: CRC 30\,000.\par Gestión: CRC 45\,000.\par Crecimiento: CRC 60\,000.}}
+\end{minipage}
+\caption{Modelo Canvas vigente de GymHub}
+\label{fig:canvas}
+\caption*{\textit{Nota}. Elaboración propia, 2026.}
+\end{figure}
 
 \subsection{Instrumento de validación}
 
@@ -44,8 +72,43 @@ El instrumento completo se incluye en el archivo
 \texttt{resultado\_encuesta.csv} y los gráficos se reproducen con
 \texttt{generar\_graficos\_encuesta.py}. La encuesta cerró con 15 respuestas
 válidas: cinco de responsables y diez de miembros. En la sección de limitaciones
-metodológicas de este anexo se explican las diferencias entre el instrumento
+metodológicas de este apéndice se explican las diferencias entre el instrumento
 previsto y el formulario aplicado.
+
+\begin{longtable}{>{\bfseries}p{1.5cm}p{8cm}p{4.5cm}}
+\caption{Transcripción normalizada del instrumento aplicado}\label{tab:instrumento-resumen}\\
+\toprule
+Código & Pregunta & Tipo u opciones \\
+\midrule
+\endfirsthead
+\toprule
+Código & Pregunta & Tipo u opciones \\
+\midrule
+\endhead
+C1 & ¿Tiene 18 años o más y acepta participar voluntariamente? & Opción única: sí o no; una negativa finaliza la participación. \\
+C2 & ¿Desde cuál rol responde? & Dueño o administrador; entrenador con responsabilidades administrativas; entrenador independiente; miembro. \\
+C3 & ¿Dónde se ubica principalmente el gimnasio con el que se relaciona? & Pérez Zeledón; otro cantón de San José; otra provincia. \\
+A1 & ¿Cuántos miembros activos administra aproximadamente? & 1--25; 26--75; 76--150; más de 150; no sabe o no aplica. \\
+A2 & ¿Qué herramientas utiliza actualmente para administrar el gimnasio o sus clientes? & Selección múltiple: papel, hoja de cálculo, WhatsApp, software, sistema interno u otra. \\
+A3 & ¿Cuáles tareas le generan mayor dificultad o tiempo? & Selección múltiple de tareas administrativas y deportivas. \\
+A4 & ¿Con qué frecuencia ocurren errores, atrasos o confusiones por la gestión actual? & Escala de 1, nunca, a 5, muy frecuentemente. \\
+A5 & ¿Qué funciones serían más valiosas en una plataforma? & Selección múltiple; se analizaron únicamente las categorías que la exportación permitió distinguir. \\
+A6 & ¿Desde qué dispositivo esperaría administrar principalmente el sistema? & Celular, computadora, tableta o combinación. \\
+A7 & ¿Estaría dispuesto a probar durante cuatro semanas una plataforma con datos de demostración y acompañamiento? & Sí, según condiciones, tal vez o no. \\
+A8 & Si la plataforma resolviera las funciones seleccionadas, ¿qué rango mensual consideraría razonable? & Rangos desde menos de CRC 7\,500 hasta CRC 40\,000 o más; no pagaría; requiere demostración. \\
+A9 & ¿Qué apoyo sería más importante para adoptar la plataforma? & Selección múltiple de configuración, capacitación, soporte, tutoriales, respaldo y personalización. \\
+A10 & ¿Qué tan importante considera controlar quién accede a datos de miembros, pagos y progreso? & Muy importante, importante, poco importante o no sabe. \\
+A11 & ¿Qué condición tendría que cumplir GymHub para ser útil en su trabajo? & Respuesta abierta opcional. \\
+B1 & ¿Con qué frecuencia asiste normalmente al gimnasio? & Menos de una vez; 1--2; 3--4; o 5 o más veces por semana. \\
+B2 & ¿Qué información puede consultar actualmente de forma digital? & Selección múltiple sobre membresía, pagos, asistencia, rutina, progreso, mensajes, ninguna u otra. \\
+B3 & ¿Qué situaciones le generan mayor dificultad? & Selección múltiple sobre vencimientos, pagos, rutina, sesiones, progreso, comunicación u otra. \\
+B4 & ¿Desde qué dispositivo utilizaría GymHub? & Celular, computadora, tableta o no la usaría. \\
+B5 & ¿Qué tan útil sería reunir pagos, asistencia, rutina y progreso en un solo lugar? & Escala de 1, nada útil, a 5, muy útil. \\
+B6 & ¿Qué función haría que utilizara una aplicación de un gimnasio? & En la versión aplicada quedó configurada como respuesta abierta y no como categorías comparables. \\
+B7 & ¿Qué haría que utilizara o dejara de utilizar una aplicación de gimnasio? & Respuesta abierta opcional. \\
+\bottomrule
+\caption*{\textit{Nota}. Se corrigieron tildes y errores mecanográficos para facilitar la lectura, sin modificar los datos. La versión aplicada no incluyó la pregunta de privacidad para miembros. La exportación original permanece en \texttt{resultado\_encuesta.csv}.}
+\end{longtable}
 
 \subsection{Limitaciones metodológicas de la encuesta}
 
@@ -72,47 +135,16 @@ producen mediante un script reproducible.
 Evidencia & Descripción & Estado \\
 \midrule
 Repositorio & Código frontend, backend, infraestructura y documentación. & Disponible \\
-Pruebas backend & 20 archivos y 214 casos recolectados. & Disponible \\
-Pruebas frontend & 31 archivos y 105 casos aprobados. & Disponible \\
+Pruebas backend & 21 archivos con 214 funciones; una selección de 104 pruebas de planes, facturación, membresías y asistencia fue aprobada. & Disponible \\
+Pruebas frontend & 32 archivos con 106 casos aprobados. & Disponible \\
 Pruebas E2E & Dos especificaciones Playwright. & Disponible \\
 Frontend público & Despliegue demostrativo en Vercel. & Disponible \\
 Backend y API & Despliegue y documentación OpenAPI. & Disponible \\
-Capturas anonimizadas & Paneles de entrenador y miembro con datos ficticios. & Disponible \\
+Capturas anonimizadas & Planes, facturación y asistencia del entrenador, además del panel de miembro, con datos ficticios y alcance vigente. & Disponible \\
 \bottomrule
 \end{tabularx}
-\caption*{\textit{Nota}. Elaboración propia a partir del repositorio al 24 de julio de 2026 \parencite{gymhub_repo}.}
+\caption*{\textit{Nota}. Elaboración propia a partir del repositorio al 31 de julio de 2026 \parencite{gymhub_repo}.}
 \end{table}
-
-\subsection{Estado de avance del escrito}
-
-\begin{table}[htbp]
-\caption{Avance por componente del proyecto escrito}
-\begin{tabularx}{\textwidth}{>{\bfseries}p{4.2cm}X p{3cm}}
-\toprule
-Componente & Evidencia actual & Estado \\
-\midrule
-Portada y formato & Datos institucionales, logos y tamaños reglamentarios. & Completo \\
-Objetivos & Objetivo general y cuatro objetivos específicos aprobados. & Completo \\
-Investigación de necesidades & 15 respuestas analizadas con ficha técnica, gráficos y limitaciones. & Completo con muestra limitada \\
-Desarrollo tecnológico & Arquitectura, módulos, pruebas y limitaciones documentadas. & Documentado \\
-Modelo de negocio & Canvas, segmentos, canales, planes y propuesta de valor definidos. & Documentado \\
-Viabilidad económica & Costos, ingresos, utilidad y punto de equilibrio por cantidad de gimnasios. & Documentado \\
-Piloto o demostración & Precio, duración, indicadores y condiciones de privacidad definidos. & Diseñado \\
-Evidencia de exposición & Repositorio, despliegues, capturas y demostración con datos ficticios. & Disponible \\
-\bottomrule
-\end{tabularx}
-\caption*{\textit{Nota}. El detalle operativo se mantiene en el archivo \texttt{AVANCE\_PENDIENTES.md}.}
-\end{table}
-
-\subsection{Pendientes controlados}
-
-\begin{itemize}
-  \item Consultar al CTR la aplicación de ExpoTEC-5 y ExpoTEC-6.
-  \item Habilitar un contacto voluntario y seleccionar un gimnasio para la demostración.
-  \item Medir la aceptación de los planes después de la demostración y el piloto.
-  \item Obtener una cotización de dominio y verificar las horas reales de soporte.
-  \item Actualizar tarifas tecnológicas antes de entregar o vender.
-\end{itemize}
 
 \subsection{Referencias de despliegue demostrativo}
 

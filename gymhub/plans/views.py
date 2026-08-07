@@ -32,6 +32,13 @@ def get_today_workout_day(plan):
     return plan.workout_days.filter(day_of_week=weekday).order_by('order', 'id').first()
 
 
+def assert_plan_editable(plan):
+    if plan.status != 'draft':
+        raise ValidationError({
+            'plan': 'Solo se editan borradores. Crea una revisión del plan publicado.',
+        })
+
+
 class TrainingPlanViewSet(viewsets.ModelViewSet):
     serializer_class = TrainingPlanSerializer
     lookup_value_regex = r'\d+'
@@ -43,7 +50,7 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
         goal_filter = self.request.query_params.get('goal')
         search = (self.request.query_params.get('search') or '').strip()
         if user.role == 'member' and not user.is_staff:
-            return TrainingPlan.objects.filter(member__user=user)
+            return TrainingPlan.objects.filter(member__user=user, status='active')
         queryset = TrainingPlan.objects.select_related('member__user', 'trainer__user').prefetch_related('workout_days').all()
         if user.role == 'trainer' and not user.is_staff:
             trainer_profile = _get_trainer_profile(user)
@@ -93,13 +100,7 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
         trainer_profile = _get_trainer_profile(user)
         if not user.is_staff and member.trainer_asignado_id != trainer_profile.id:
             raise PermissionDenied('Solo puedes crear planes para clientes asignados.')
-        plan = serializer.save(trainer=trainer_profile)
-        if plan.is_active:
-            TrainingPlan.objects.filter(member=member, status='active').exclude(id=plan.id).update(
-                is_active=False,
-                status='finished',
-                finished_at=timezone.now(),
-            )
+        serializer.save(trainer=trainer_profile, status='draft', is_active=False)
 
     def perform_update(self, serializer):
         user = self.request.user
@@ -107,16 +108,15 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
         member = serializer.instance.member
         if not user.is_staff and member.trainer_asignado_id != trainer_profile.id:
             raise PermissionDenied('Solo puedes editar planes de clientes asignados.')
-        plan = serializer.save()
-        if plan.is_active:
-            TrainingPlan.objects.filter(member=member, status='active').exclude(id=plan.id).update(
-                is_active=False,
-                status='finished',
-                finished_at=timezone.now(),
-            )
+        assert_plan_editable(serializer.instance)
+        serializer.save(member=member, status='draft', is_active=False)
+
+    def perform_destroy(self, instance):
+        assert_plan_editable(instance)
+        instance.delete()
 
     def get_permissions(self):
-        if self.action in ('create', 'update', 'partial_update', 'destroy', 'create_complete', 'duplicate', 'finish', 'archive', 'summary'):
+        if self.action in ('create', 'update', 'partial_update', 'destroy', 'create_complete', 'duplicate', 'finish', 'archive', 'summary', 'create_revision', 'publish'):
             return [IsAuthenticated(), IsTrainer()]
         return [IsAuthenticated()]
 
@@ -255,22 +255,8 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
             raise ValidationError({'member': 'Miembro no encontrado.'}) from exc
 
         trainer_profile = self._assert_member_allowed(member)
-        active_plan = TrainingPlan.objects.filter(member=member, status='active').order_by('-start_date', '-id').first()
-        conflict_strategy = data.get('conflict_strategy', 'keep')
-        requested_status = data['status']
-
-        if active_plan and requested_status == 'active' and conflict_strategy == 'keep':
-            raise ValidationError({
-                'member': 'Este miembro ya tiene un plan activo. Elige reemplazarlo o programar el nuevo plan.',
-            })
-
         start_date = data['start_date']
         end_date = data['end_date']
-        status_value = requested_status
-        if active_plan and requested_status == 'active' and conflict_strategy == 'schedule_after_active':
-            start_date = (active_plan.end_date or active_plan.start_date) + timedelta(days=1)
-            end_date = start_date + timedelta(weeks=data['weeks_duration'])
-            status_value = 'scheduled'
 
         with transaction.atomic():
             plan = TrainingPlan.objects.create(
@@ -282,13 +268,10 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                 end_date=end_date,
                 weeks_duration=data['weeks_duration'],
                 days_per_week=data['days_per_week'],
-                status=status_value,
+                status='draft',
                 level=data.get('level', 'intermediate'),
                 notes=data.get('notes', ''),
             )
-            if plan.status == 'active' and conflict_strategy == 'replace_active':
-                self._deactivate_other_plans(member, plan)
-
             for day_data in data.get('days', []):
                 exercises = day_data.pop('exercises', [])
                 day = WorkoutDay.objects.create(plan=plan, **day_data)
@@ -298,11 +281,94 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
 
         return Response(TrainingPlanSerializer(plan).data, status=status.HTTP_201_CREATED)
 
+    @action(detail=True, methods=['post'], url_path='create-revision')
+    def create_revision(self, request, pk=None):
+        source = self.get_object()
+        if source.status != 'active':
+            raise ValidationError({'plan': 'Solo un plan publicado puede originar una revisión.'})
+        existing = TrainingPlan.objects.filter(
+            member=source.member,
+            status='draft',
+            plan_origen=source,
+        ).order_by('-id').first()
+        if existing:
+            return Response(TrainingPlanSerializer(existing).data)
+        with transaction.atomic():
+            draft = TrainingPlan.objects.create(
+                member=source.member,
+                trainer=source.trainer,
+                name=source.name,
+                goal=source.goal,
+                start_date=timezone.localdate(),
+                weeks_duration=source.weeks_duration,
+                days_per_week=source.days_per_week,
+                status='draft',
+                level=source.level,
+                notes=source.notes,
+                numero_version=source.numero_version + 1,
+                plan_origen=source,
+            )
+            for source_day in source.workout_days.order_by('order'):
+                day = WorkoutDay.objects.create(
+                    plan=draft,
+                    name=source_day.name,
+                    day_label=source_day.day_label,
+                    day_of_week=source_day.day_of_week,
+                    order=source_day.order,
+                )
+                for exercise in source_day.exercises.order_by('order'):
+                    Exercise.objects.create(
+                        workout_day=day,
+                        name=exercise.name,
+                        muscle_group=exercise.muscle_group,
+                        exercise_type=exercise.exercise_type,
+                        sets=exercise.sets,
+                        reps_range=exercise.reps_range,
+                        target_minutes=exercise.target_minutes,
+                        machine=exercise.machine,
+                        weight_suggestion_kg=exercise.weight_suggestion_kg,
+                        rest_seconds=exercise.rest_seconds,
+                        technique_notes=exercise.technique_notes,
+                        order=exercise.order,
+                    )
+        return Response(TrainingPlanSerializer(draft).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], url_path='publish')
+    def publish(self, request, pk=None):
+        plan = self.get_object()
+        assert_plan_editable(plan)
+        days = plan.workout_days.prefetch_related('exercises').all()
+        if not days:
+            raise ValidationError({'days': 'Agrega al menos un día antes de publicar.'})
+        if any(not day.exercises.exists() for day in days):
+            raise ValidationError({'days': 'Cada día debe tener al menos un ejercicio.'})
+        with transaction.atomic():
+            plan = TrainingPlan.objects.select_for_update().get(pk=plan.pk)
+            current = TrainingPlan.objects.select_for_update().filter(
+                member=plan.member,
+                status='active',
+            ).exclude(pk=plan.pk).order_by('-numero_version', '-id').first()
+            if current:
+                current.status = 'finished'
+                current.is_active = False
+                current.finished_at = timezone.now()
+                current.save(update_fields=['status', 'is_active', 'finished_at'])
+                plan.numero_version = max(plan.numero_version, current.numero_version + 1)
+                plan.plan_origen = plan.plan_origen or current
+            plan.status = 'active'
+            plan.is_active = True
+            plan.publicado_en = timezone.now()
+            plan.publicado_por = request.user
+            plan.save(update_fields=[
+                'status', 'is_active', 'publicado_en', 'publicado_por',
+                'numero_version', 'plan_origen', 'end_date',
+            ])
+        return Response(TrainingPlanSerializer(plan).data)
+
     @action(detail=True, methods=['post'], url_path='duplicate')
     def duplicate(self, request, pk=None):
         source = self.get_object()
         name = request.data.get('name') or f'{source.name} (copia)'
-        status_value = request.data.get('status') or 'draft'
         start_date = request.data.get('start_date')
         if start_date:
             try:
@@ -321,12 +387,12 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                 start_date=start_date,
                 weeks_duration=source.weeks_duration,
                 days_per_week=source.days_per_week,
-                status=status_value,
+                status='draft',
                 level=source.level,
                 notes=source.notes,
+                numero_version=source.numero_version + 1,
+                plan_origen=source,
             )
-            if plan.status == 'active':
-                self._deactivate_other_plans(source.member, plan)
             for source_day in source.workout_days.order_by('order'):
                 day = WorkoutDay.objects.create(
                     plan=plan,
@@ -379,7 +445,7 @@ class WorkoutDayViewSet(viewsets.ModelViewSet):
         user = self.request.user
         plan_id = self.request.query_params.get('plan')
         if user.role == 'member' and not user.is_staff:
-            queryset = WorkoutDay.objects.filter(plan__member__user=user)
+            queryset = WorkoutDay.objects.filter(plan__member__user=user, plan__status='active')
             if plan_id:
                 queryset = queryset.filter(plan_id=plan_id)
             return queryset
@@ -393,11 +459,20 @@ class WorkoutDayViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         plan = serializer.validated_data['plan']
+        assert_plan_editable(plan)
         user = self.request.user
         trainer_profile = _get_trainer_profile(user)
         if not user.is_staff and plan.member.trainer_asignado_id != trainer_profile.id:
             raise PermissionDenied('Solo puedes editar días de clientes asignados.')
         serializer.save()
+
+    def perform_update(self, serializer):
+        assert_plan_editable(serializer.instance.plan)
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        assert_plan_editable(instance.plan)
+        instance.delete()
 
     def get_permissions(self):
         if self.action in ('create', 'update', 'partial_update', 'destroy'):
@@ -441,7 +516,10 @@ class ExerciseViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.role == 'member' and not user.is_staff:
-            return Exercise.objects.filter(workout_day__plan__member__user=user)
+            return Exercise.objects.filter(
+                workout_day__plan__member__user=user,
+                workout_day__plan__status='active',
+            )
         queryset = Exercise.objects.select_related('workout_day__plan__member__trainer_asignado').all()
         if user.role == 'trainer' and not user.is_staff:
             trainer_profile = _get_trainer_profile(user)
@@ -450,11 +528,20 @@ class ExerciseViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         workout_day = serializer.validated_data['workout_day']
+        assert_plan_editable(workout_day.plan)
         user = self.request.user
         trainer_profile = _get_trainer_profile(user)
         if not user.is_staff and workout_day.plan.member.trainer_asignado_id != trainer_profile.id:
             raise PermissionDenied('Solo puedes editar ejercicios de clientes asignados.')
         serializer.save()
+
+    def perform_update(self, serializer):
+        assert_plan_editable(serializer.instance.workout_day.plan)
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        assert_plan_editable(instance.workout_day.plan)
+        instance.delete()
 
     def get_permissions(self):
         if self.action in ('create', 'update', 'partial_update', 'destroy'):
@@ -561,12 +648,8 @@ class PlantillaEntrenamientoViewSet(viewsets.ModelViewSet):
                 start_date=start_date_parsed,
                 weeks_duration=8,
                 days_per_week=plantilla.dias_por_semana_sugeridos,
-                status='active',
-            )
-            TrainingPlan.objects.filter(member=member, status='active').exclude(id=plan.id).update(
+                status='draft',
                 is_active=False,
-                status='finished',
-                finished_at=timezone.now(),
             )
 
             weekdays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']

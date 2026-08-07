@@ -156,8 +156,12 @@ class TrainingPlanSerializer(serializers.ModelSerializer):
             'days_per_week', 'is_active', 'status', 'level', 'notes',
             'archived_at', 'finished_at', 'workout_days',
             'member_name', 'member_email', 'member_photo',
+            'numero_version', 'publicado_en', 'publicado_por', 'plan_origen',
         )
-        read_only_fields = ('trainer', 'archived_at', 'finished_at')
+        read_only_fields = (
+            'trainer', 'archived_at', 'finished_at', 'numero_version',
+            'publicado_en', 'publicado_por', 'plan_origen',
+        )
 
     def get_member_name(self, obj):
         return obj.member.user.get_full_name() or obj.member.user.email

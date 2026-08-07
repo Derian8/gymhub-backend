@@ -31,6 +31,21 @@ export function useMembershipPlansQuery() {
   })
 }
 
+export function useCreateMembershipPlanMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({ mutationFn: billingApi.createMembershipPlan, onSuccess: () => { queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERSHIP_PLANS }); toast.success('Plan comercial creado') }, onError: (error) => toast.error(extractApiError(error)) })
+}
+
+export function useUpdateMembershipPlanMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({ mutationFn: ({ id, payload }: { id: number; payload: Record<string, unknown> }) => billingApi.updateMembershipPlan(id, payload), onSuccess: () => { queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERSHIP_PLANS }); toast.success('Plan comercial actualizado') }, onError: (error) => toast.error(extractApiError(error)) })
+}
+
+export function useArchiveMembershipPlanMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({ mutationFn: billingApi.archiveMembershipPlan, onSuccess: () => { queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERSHIP_PLANS }); toast.success('Plan comercial archivado') }, onError: (error) => toast.error(extractApiError(error)) })
+}
+
 export function usePaymentSchedulesQuery(params?: Record<string, string>) {
   return useQuery({
     queryKey: QUERY_KEYS.PAYMENT_SCHEDULES(params),
@@ -117,6 +132,11 @@ export function useCancelMemberMembershipMutation(memberId?: number) {
   })
 }
 
+export function useResumeMemberMembershipMutation(memberId?: number) {
+  const queryClient = useQueryClient()
+  return useMutation({ mutationFn: billingApi.resumeMemberMembership, onSuccess: () => { invalidateMembershipViews(queryClient, memberId); toast.success('Membresía reanudada') }, onError: (error) => toast.error(extractApiError(error)) })
+}
+
 export function useUpdateMemberSubscriptionMutation(memberId?: number) {
   const queryClient = useQueryClient()
 
@@ -134,8 +154,8 @@ export function useMarkPaymentAsPaidMutation(memberId?: number) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: { payment_reference: string; notes: string } }) =>
-      billingApi.markPaymentAsPaid(id, payload),
+    mutationFn: ({ id, payload }: { id: number; payload: { payment_reference: string; notes: string; method?: 'cash' | 'sinpe' | 'transfer' | 'other' } }) =>
+      billingApi.markPaymentAsPaid(id, { ...payload, method: payload.method ?? 'cash' }),
     onSuccess: () => {
       invalidateMembershipViews(queryClient, memberId)
       toast.success('Pago registrado y recibo emitido')

@@ -29,6 +29,10 @@ export const authApi = {
     return data
   },
 
+  changePassword: async (payload: { contrasena_actual: string; contrasena_nueva: string }): Promise<void> => {
+    await apiClient.post('/auth/change-password/', payload)
+  },
+
   refreshToken: async (): Promise<void> => {
     await apiClient.post('/auth/token/refresh/')
   },

@@ -1,4 +1,7 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import apiClient from '@/shared/api/client'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -19,6 +22,10 @@ type ProfileForm = z.infer<typeof profileSchema>
 export function ProfilePage() {
   const { user } = useAuthStore()
   const { mutate: updateMe, isPending } = useUpdateMeMutation()
+  const gymQuery = useQuery({ queryKey: ['gym-profile'], queryFn: async () => (await apiClient.get('/api/trainer/gym-profile/')).data as { nombre: string; telefono: string; correo: string; direccion: string; logo?: string | null }, enabled: user?.role === 'trainer' })
+  const [gym, setGym] = useState({ nombre: '', telefono: '', correo: '', direccion: '' })
+  const [gymLogo, setGymLogo] = useState<File | null>(null)
+  const saveGym = useMutation({ mutationFn: async () => { const payload = new FormData(); Object.entries(gym).forEach(([key, value]) => payload.append(key, value)); if (gymLogo) payload.append('logo', gymLogo); return (await apiClient.patch('/api/trainer/gym-profile/', payload)).data }, onSuccess: () => { toast.success('Datos del gimnasio actualizados'); gymQuery.refetch() } })
 
   const {
     register,
@@ -44,6 +51,8 @@ export function ProfilePage() {
       last_name: user.last_name,
     })
   }, [reset, user])
+
+  useEffect(() => { if (gymQuery.data) setGym({ nombre: gymQuery.data.nombre, telefono: gymQuery.data.telefono, correo: gymQuery.data.correo, direccion: gymQuery.data.direccion }) }, [gymQuery.data])
 
   if (!user) return null
 
@@ -184,6 +193,7 @@ export function ProfilePage() {
           </form>
         </section>
       </div>
+      {user.role === 'trainer' ? <section className="card mt-6 p-6"><h3 className="font-heading text-lg font-bold">Identidad del gimnasio</h3><p className="mt-1 text-sm text-neutral-500">Estos datos aparecen en comprobantes internos y pantallas administrativas.</p><div className="mt-5 grid gap-4 sm:grid-cols-2">{Object.entries(gym).map(([key, value]) => <label key={key} className={key === 'direccion' ? 'sm:col-span-2' : ''}><span className="label-base">{{ nombre: 'Nombre', telefono: 'Teléfono', correo: 'Correo', direccion: 'Dirección' }[key as keyof typeof gym]}</span><input className="input-base mt-2 w-full" value={value} onChange={(event) => setGym((current) => ({ ...current, [key]: event.target.value }))} /></label>)}<label className="sm:col-span-2"><span className="label-base">Logo del gimnasio</span><input className="input-base mt-2 w-full" type="file" accept="image/*" onChange={(event) => setGymLogo(event.target.files?.[0] ?? null)} /></label></div><div className="mt-5 flex justify-end"><button className="btn-primary" onClick={() => saveGym.mutate()} disabled={saveGym.isPending}>Guardar gimnasio</button></div></section> : null}
     </div>
   )
 }

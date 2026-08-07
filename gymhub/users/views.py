@@ -1,9 +1,13 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
+from django.db import transaction
 from django.middleware.csrf import get_token
 from django.db.models import Q, Case, When, IntegerField, Prefetch
 from django.utils import timezone
+from django.utils.text import slugify
+import secrets
+import string
 from rest_framework import status, viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -17,12 +21,13 @@ from rest_framework_simplejwt.exceptions import TokenError
 
 from progress.services import build_member_physical_summary
 from billing.models import MemberSubscription
-from .models import MemberProfile, TrainerProfile
+from .models import MemberProfile, TrainerProfile, PerfilGimnasio
 from .audit import registrar_auditoria
 from .permissions import IsStaffOrTrainer, IsTrainer, IsMember
 from .serializers import (
     UserSerializer, RegisterSerializer, LoginSerializer, MeUpdateSerializer,
-    MemberProfileSerializer, TrainerProfileSerializer, AuditLogSerializer
+    MemberProfileSerializer, TrainerProfileSerializer, PerfilGimnasioSerializer,
+    AltaMiembroSerializer, CambioContrasenaSerializer, AuditLogSerializer,
 )
 from .prescription_services import get_member_prescription_summary
 from .services import (
@@ -112,6 +117,17 @@ class RegisterView(APIView):
     def post(self, request):
         _enforce_csrf(request)
         role = request.data.get('role', 'member')
+
+        if not request.user or not request.user.is_authenticated:
+            return Response(
+                {'error': 'El alta de cuentas se realiza desde el panel del entrenador.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        if not request.user.is_staff and request.user.role != 'trainer':
+            return Response(
+                {'error': 'Solo el entrenador administra cuentas.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         # Proteger asignación de role='trainer' con IsStaffOrTrainer
         if role == 'trainer':
@@ -260,6 +276,48 @@ class MeView(APIView):
         return Response(UserSerializer(user).data)
 
 
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = CambioContrasenaSerializer(
+            data=request.data,
+            context={'request': request},
+        )
+        serializer.is_valid(raise_exception=True)
+        user = request.user
+        user.set_password(serializer.validated_data['contrasena_nueva'])
+        user.requiere_cambio_contrasena = False
+        user.save(update_fields=['password', 'requiere_cambio_contrasena'])
+        registrar_auditoria(
+            user,
+            'password_changed',
+            'User',
+            user.id,
+            request=request,
+        )
+        return Response({'message': 'Contraseña actualizada correctamente.'})
+
+
+def _temporary_password():
+    alphabet = string.ascii_letters + string.digits + '!@#$%&*'
+    while True:
+        value = ''.join(secrets.choice(alphabet) for _ in range(16))
+        if any(c.islower() for c in value) and any(c.isupper() for c in value) and any(c.isdigit() for c in value):
+            return value
+
+
+def _unique_username(email):
+    base = slugify(email.split('@', 1)[0])[:140] or 'miembro'
+    candidate = base
+    suffix = 1
+    while User.objects.filter(username=candidate).exists():
+        text = f'-{suffix}'
+        candidate = f'{base[:150-len(text)]}{text}'
+        suffix += 1
+    return candidate
+
+
 class MemberViewSet(viewsets.ModelViewSet):
     """
     /api/members/ — CRUD de perfiles de miembros.
@@ -268,6 +326,46 @@ class MemberViewSet(viewsets.ModelViewSet):
     serializer_class = MemberProfileSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ['user__email', 'user__first_name', 'user__last_name', 'phone']
+
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        serializer = AltaMiembroSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        trainer = _get_trainer_profile(request.user)
+        password = _temporary_password()
+        user = User.objects.create_user(
+            email=data['correo_electronico'],
+            username=_unique_username(data['correo_electronico']),
+            first_name=data['nombres'].strip(),
+            last_name=data['apellidos'].strip(),
+            role='member',
+            password=password,
+            requiere_cambio_contrasena=True,
+        )
+        member = user.memberprofile
+        member.trainer_asignado = trainer
+        member.phone = data['telefono'].strip()
+        member.birth_date = data.get('fecha_nacimiento')
+        member.emergency_contact = data.get('contacto_emergencia', '').strip()
+        member.is_active = True
+        member.save(update_fields=[
+            'trainer_asignado', 'phone', 'birth_date',
+            'emergency_contact', 'is_active',
+        ])
+        registrar_auditoria(
+            request.user,
+            'member_onboarded',
+            'MemberProfile',
+            member.id,
+            request=request,
+            details={'member_id': member.id, 'email': user.email},
+        )
+        return Response({
+            'member': MemberProfileSerializer(member, context={'request': request}).data,
+            'contrasena_temporal': password,
+            'message': 'Miembro creado y asignado. La contraseña solo se muestra una vez.',
+        }, status=status.HTTP_201_CREATED)
 
     def get_queryset(self):
         user = self.request.user
@@ -446,7 +544,9 @@ class MemberViewSet(viewsets.ModelViewSet):
         member = self.get_object()
 
         member.is_active = True
+        member.user.is_active = True
         member.save(update_fields=['is_active'])
+        member.user.save(update_fields=['is_active'])
 
         registrar_auditoria(
             request.user,
@@ -463,6 +563,59 @@ class MemberViewSet(viewsets.ModelViewSet):
             'message': 'Miembro activado.',
             'member': MemberProfileSerializer(member).data
         })
+
+    @action(detail=True, methods=['post'], url_path='temporary-password')
+    def temporary_password(self, request, pk=None):
+        member = self.get_object()
+        password = _temporary_password()
+        member.user.set_password(password)
+        member.user.requiere_cambio_contrasena = True
+        member.user.is_active = True
+        member.user.save(update_fields=['password', 'requiere_cambio_contrasena', 'is_active'])
+        registrar_auditoria(
+            request.user,
+            'temporary_password_generated',
+            'User',
+            member.user_id,
+            request=request,
+            details={'member_id': member.id},
+        )
+        return Response({
+            'contrasena_temporal': password,
+            'message': 'Contraseña temporal generada. Solo se muestra una vez.',
+        })
+
+    @action(detail=True, methods=['post'], url_path='deactivate')
+    @transaction.atomic
+    def deactivate_member(self, request, pk=None):
+        member = self.get_object()
+        reason = (request.data.get('reason') or '').strip()
+        if not reason:
+            raise ValidationError({'reason': 'Indica el motivo de la baja.'})
+        from billing.services import cancel_membership, current_member_membership
+        from plans.models import TrainingPlan
+        subscription = current_member_membership(member)
+        if subscription:
+            cancel_membership(subscription, reason=reason)
+        TrainingPlan.objects.filter(member=member, status='active').update(
+            status='finished', is_active=False, finished_at=timezone.now(),
+        )
+        member.is_active = False
+        member.user.is_active = False
+        member.save(update_fields=['is_active'])
+        member.user.save(update_fields=['is_active'])
+        registrar_auditoria(request.user, 'member_deactivated', 'MemberProfile', member.id, request=request, details={'reason': reason})
+        return Response(MemberProfileSerializer(member, context={'request': request}).data)
+
+    @action(detail=True, methods=['post'], url_path='reactivate')
+    def reactivate_member(self, request, pk=None):
+        member = self.get_object()
+        member.is_active = True
+        member.user.is_active = True
+        member.save(update_fields=['is_active'])
+        member.user.save(update_fields=['is_active'])
+        registrar_auditoria(request.user, 'member_reactivated', 'MemberProfile', member.id, request=request)
+        return Response(MemberProfileSerializer(member, context={'request': request}).data)
 
     @action(detail=True, methods=['get'], url_path=r'progress-by-exercise/(?P<exercise_id>\d+)')
     def progress_by_exercise(self, request, pk=None, exercise_id=None):
@@ -507,3 +660,29 @@ class TrainerOverviewView(APIView):
     def get(self, request):
         trainer_profile = _get_trainer_profile(request.user)
         return Response(get_trainer_overview(request.user, trainer_profile))
+
+
+class PerfilGimnasioView(APIView):
+    permission_classes = [IsAuthenticated, IsTrainer]
+
+    def get_object(self, user):
+        trainer = _get_trainer_profile(user)
+        profile, _ = PerfilGimnasio.objects.get_or_create(
+            entrenador=trainer,
+            defaults={
+                'nombre': trainer.user.get_full_name() or 'Mi gimnasio',
+                'correo': trainer.user.email,
+            },
+        )
+        return profile
+
+    def get(self, request):
+        return Response(PerfilGimnasioSerializer(self.get_object(request.user)).data)
+
+    def patch(self, request):
+        profile = self.get_object(request.user)
+        serializer = PerfilGimnasioSerializer(profile, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        registrar_auditoria(request.user, 'gym_profile_updated', 'PerfilGimnasio', profile.id, request=request)
+        return Response(serializer.data)

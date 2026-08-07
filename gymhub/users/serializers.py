@@ -2,7 +2,9 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.utils.text import slugify
-from .models import MemberProfile, TrainerProfile, AuditLog
+from django.contrib.auth.password_validation import validate_password
+
+from .models import MemberProfile, TrainerProfile, PerfilGimnasio, AuditLog
 from .services import get_member_prescription_status, get_member_risk_snapshot
 from billing.services import current_member_membership, refresh_membership_status
 
@@ -17,9 +19,13 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             'id', 'email', 'username', 'first_name', 'last_name',
-            'role', 'is_staff', 'memberprofile_id', 'trainerprofile_id'
+            'role', 'is_staff', 'memberprofile_id', 'trainerprofile_id',
+            'requiere_cambio_contrasena',
         )
-        read_only_fields = ('id', 'is_staff', 'memberprofile_id', 'trainerprofile_id')
+        read_only_fields = (
+            'id', 'is_staff', 'memberprofile_id', 'trainerprofile_id',
+            'requiere_cambio_contrasena',
+        )
 
     def get_memberprofile_id(self, obj):
         profile = getattr(obj, 'memberprofile', None)
@@ -299,6 +305,49 @@ class TrainerProfileSerializer(serializers.ModelSerializer):
         model = TrainerProfile
         fields = ('id', 'user', 'specialization', 'bio', 'certification')
         read_only_fields = ('id', 'user')
+
+
+class PerfilGimnasioSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PerfilGimnasio
+        fields = (
+            'id', 'entrenador', 'nombre', 'logo', 'telefono', 'correo',
+            'direccion', 'moneda', 'actualizado_en',
+        )
+        read_only_fields = ('id', 'entrenador', 'moneda', 'actualizado_en')
+
+
+class AltaMiembroSerializer(serializers.Serializer):
+    nombres = serializers.CharField(max_length=150)
+    apellidos = serializers.CharField(max_length=150)
+    correo_electronico = serializers.EmailField()
+    telefono = serializers.CharField(max_length=20)
+    fecha_nacimiento = serializers.DateField(required=False, allow_null=True)
+    contacto_emergencia = serializers.CharField(
+        max_length=200,
+        required=False,
+        allow_blank=True,
+    )
+
+    def validate_correo_electronico(self, value):
+        value = value.strip().lower()
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError('Ya existe una cuenta con este correo.')
+        return value
+
+
+class CambioContrasenaSerializer(serializers.Serializer):
+    contrasena_actual = serializers.CharField(write_only=True)
+    contrasena_nueva = serializers.CharField(write_only=True, min_length=8)
+
+    def validate(self, attrs):
+        user = self.context['request'].user
+        if not user.check_password(attrs['contrasena_actual']):
+            raise serializers.ValidationError({
+                'contrasena_actual': 'La contraseña actual no es correcta.',
+            })
+        validate_password(attrs['contrasena_nueva'], user=user)
+        return attrs
 
 
 class AuditLogSerializer(serializers.ModelSerializer):

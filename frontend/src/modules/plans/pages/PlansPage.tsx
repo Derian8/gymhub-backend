@@ -1,7 +1,7 @@
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import { Dumbbell, ChevronRight, Calendar, NotebookTabs, Target, UserRound, Plus, Archive, Copy, CheckCircle } from 'lucide-react'
-import { useArchivePlanMutation, useDuplicatePlanMutation, useFinishPlanMutation, usePlansQuery, usePlansSummaryQuery } from '../hooks/usePlans'
+import { useArchivePlanMutation, useCreatePlanRevisionMutation, useDuplicatePlanMutation, useFinishPlanMutation, usePlansQuery, usePlansSummaryQuery, usePublishPlanMutation } from '../hooks/usePlans'
 import { useMemberActivePrescriptionQuery, useMemberDashboardQuery, useMembersQuery } from '@/modules/members/hooks/useMembers'
 import { Badge, PageHeader, EmptyState, StatCard } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
@@ -362,7 +362,10 @@ function ProgramSidebar({
 }
 
 function PlanCard({ plan }: { plan: TrainingPlan }) {
+  const navigate = useNavigate()
   const duplicatePlan = useDuplicatePlanMutation()
+  const createRevision = useCreatePlanRevisionMutation()
+  const publishPlan = usePublishPlanMutation()
   const finishPlan = useFinishPlanMutation()
   const archivePlan = useArchivePlanMutation()
   const status = (plan.status || (plan.is_active ? 'active' : 'finished')) as TrainingPlanStatus
@@ -394,9 +397,9 @@ function PlanCard({ plan }: { plan: TrainingPlan }) {
           Ver plan <ChevronRight size={14} />
         </Link>
         <div className="flex flex-wrap gap-2">
-          <Link to={`/plans/${plan.id}/edit`} className="btn-primary text-sm" data-testid={`configure-plan-${plan.id}`}>
-            Configurar
-          </Link>
+          {status === 'draft' ? <Link to={`/plans/${plan.id}/edit`} className="btn-primary text-sm" data-testid={`configure-plan-${plan.id}`}>Configurar</Link> : null}
+          {status === 'active' ? <button className="btn-primary text-sm" type="button" disabled={createRevision.isPending} onClick={() => createRevision.mutate(plan.id, { onSuccess: (draft) => navigate(`/plans/${draft.id}/edit`) })}>Crear revisión</button> : null}
+          {status === 'draft' ? <button className="btn-secondary text-sm" type="button" disabled={publishPlan.isPending} onClick={() => publishPlan.mutate(plan.id)}><CheckCircle size={14} /> Publicar</button> : null}
           <button type="button" className="btn-secondary text-sm" onClick={() => duplicatePlan.mutate({ id: plan.id })} disabled={duplicatePlan.isPending}>
             <Copy size={14} /> Duplicar
           </button>

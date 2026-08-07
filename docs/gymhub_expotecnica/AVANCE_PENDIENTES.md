@@ -9,10 +9,15 @@
 - Objetivo general y cuatro objetivos específicos aprobados por el equipo.
 - Documento organizado según la secuencia: investigación, desarrollo de la
   plataforma, modelo de negocio y evaluación de viabilidad.
-- Arquitectura y módulos del MVP documentados con sus limitaciones reales.
+- Arquitectura y módulos del MVP documentados con sus limitaciones reales y con
+  los dos roles implementados: entrenador y miembro.
 - Canvas y estrategia de suscripción contrastados con la encuesta.
 - Canvas visual actualizado con los planes, costos, segmentos, alianzas y
-  capacidades vigentes.
+  capacidades vigentes, e incorporado en los apéndices según la guía.
+- Resumen ejecutivo reducido al máximo reglamentario de 150 palabras.
+- Contexto de mercado reforzado con datos oficiales de INEC y el marco de
+  digitalización de pymes del MEIC, sin convertirlos en estimaciones de la
+  cantidad de gimnasios locales.
 - Comparación competitiva ampliada con alternativas manuales y plataformas de
   referencia.
 - Estrategia de mercadeo integrada con producto, precio, distribución,
@@ -28,12 +33,28 @@
 - Periodo, composición, rechazo de propietarios, limitaciones y diferencias del
   formulario aplicado documentados.
 - Resultados tabulados por rol y cuatro gráficos generados de forma reproducible.
-- Capturas de los paneles de entrenador y miembro incorporadas con datos ficticios.
-- Evidencia técnica actualizada a 20 archivos y 214 casos backend, 31 archivos
-  y 105 casos frontend, y 2 especificaciones E2E.
+- Capturas vigentes de planes, facturación y asistencia del entrenador, junto
+  con el panel de miembro, incorporadas con datos ficticios y sin credenciales.
+- Evidencia técnica actualizada a 21 archivos con 214 funciones de prueba
+  backend, 32 archivos con 106 casos frontend y 2 especificaciones E2E. Se
+  aprobaron los 106 casos frontend y una selección de 104 pruebas backend de los
+  recorridos priorizados.
+- Planes de entrenamiento y facturación documentados como recorridos separados:
+  la rutina se configura y asigna desde Planes; la membresía y el pago se operan
+  desde Facturación.
+- Flujo de caja exploratorio de seis meses incorporado, con pérdida acumulada,
+  capital operativo inicial, márgenes por escenario y recuperación condicionada
+  de la inversión.
+- Matriz de riesgos comerciales, técnicos, financieros, legales y de privacidad
+  incorporada con controles y respuestas.
+- Instrumento aplicado transcrito en los apéndices, con tipos de respuesta,
+  opciones y diferencias metodológicas declaradas.
 - Referencias administradas con BibLaTeX en estilo APA 7.
 - Orden del informe y redacción impersonal ajustados a los lineamientos del
   documento escrito y a la rúbrica ExpoTEC-11.
+- Matriz privada de trazabilidad de los 24 indicadores ExpoTEC-11 disponible en
+  `AUDITORIA_EXPOTEC11.md`; los controles internos no forman parte del PDF que
+  recibe el jurado.
 - Objetivos alineados explícitamente con viabilidad, escalabilidad y
   sostenibilidad.
 - Origen documentado en el segundo periodo de 2025, en Fundamentos de
@@ -55,6 +76,8 @@
   un gimnasio interesado en una demostración o piloto.
 - Ejecutar o documentar la demostración y medir adopción, incidencias, tiempo de
   tareas e intención de continuidad.
+- Sustituir la hipótesis de precios regulares por evidencia de aceptación o
+  rechazo obtenida después de las demostraciones.
 - Medir la conversión del piloto hacia los planes Básico, Gestión y Crecimiento.
 - Comparar las horas estimadas con el soporte realmente requerido.
 - Cotizar formalización e impuestos antes de iniciar actividad lucrativa.

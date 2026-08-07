@@ -249,6 +249,7 @@ vi.mock('@/modules/plans/hooks/usePlans', () => ({
   useCreateCompletePlanMutation: () => ({ mutate: vi.fn(), isPending: false, isSuccess: false }),
   useCreatePlanMutation: () => ({ mutate: vi.fn(), isPending: false, isSuccess: false }),
   useUpdatePlanMutation: () => ({ mutate: vi.fn(), isPending: false, isSuccess: true }),
+  usePublishPlanMutation: () => ({ mutate: vi.fn(), isPending: false, isSuccess: false }),
   useDeletePlanMutation: () => ({ mutate: deletePlanMutate, isPending: false, isSuccess: false }),
   useCreateWorkoutDayMutation: () => ({ mutate: createDayMutate, isPending: false, isSuccess: false }),
   useUpdateWorkoutDayMutation: () => ({ mutate: updateDayMutate, isPending: false, isSuccess: false }),

@@ -10,7 +10,7 @@ import { getProductionRedirectUrl, shouldRedirectPreviewToProduction, syncClient
 
 // Auth
 import { LoginPage } from '@/modules/auth/pages/LoginPage'
-import { RegisterPage } from '@/modules/auth/pages/RegisterPage'
+import { ChangePasswordPage } from '@/modules/auth/pages/ChangePasswordPage'
 
 // Dashboards
 import { TrainerDashboard } from '@/modules/dashboard/pages/TrainerDashboard'
@@ -19,6 +19,7 @@ import { MemberDashboard } from '@/modules/dashboard/pages/MemberDashboard'
 // Members
 import { MembersPage } from '@/modules/members/pages/MembersPage'
 import { MemberDetailPage } from '@/modules/members/pages/MemberDetailPage'
+import { NewMemberPage } from '@/modules/members/pages/NewMemberPage'
 
 // Plans
 import { PlansPage } from '@/modules/plans/pages/PlansPage'
@@ -40,7 +41,7 @@ import { MemberMembershipPage } from '@/modules/billing/pages/MemberMembershipPa
 // Profile
 import { ProfilePage } from '@/modules/profile/pages/ProfilePage'
 
-const PUBLIC_PATHS = new Set(['/login', '/register', '/'])
+const PUBLIC_PATHS = new Set(['/login', '/'])
 
 function PreviewRedirectGuard({ pathname, search, hash }: { pathname: string; search: string; hash: string }) {
   useEffect(() => {
@@ -124,7 +125,6 @@ function App() {
         }
       >
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
       </Route>
 
       {/* Protected routes */}
@@ -157,7 +157,7 @@ function App() {
         <Route path="/members" element={<ProtectedRoute requiredRole="trainer"><MembersPage /></ProtectedRoute>} />
         <Route path="/members/:id" element={<ProtectedRoute requiredRole="trainer"><MemberDetailPage /></ProtectedRoute>} />
         <Route path="/members/:id/program" element={<ProtectedRoute requiredRole="trainer"><MemberProgramRedirectPage /></ProtectedRoute>} />
-        <Route path="/members/new" element={<ProtectedRoute requiredRole="trainer"><MemberDetailPage /></ProtectedRoute>} />
+        <Route path="/members/new" element={<ProtectedRoute requiredRole="trainer"><NewMemberPage /></ProtectedRoute>} />
 
         {/* Plans */}
         <Route
@@ -211,6 +211,7 @@ function App() {
 
         {/* Profile */}
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/change-password" element={<ChangePasswordPage />} />
 
       </Route>
 

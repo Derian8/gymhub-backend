@@ -1,8 +1,11 @@
 import { Link, useSearchParams } from 'react-router-dom'
+import { BASE_URL } from '@/shared/api/client'
 import { CreditCard, Calendar, DollarSign, ReceiptText, TrendingUp, Users } from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import {
   useCancelMemberMembershipMutation,
+  useArchiveMembershipPlanMutation,
+  useCreateMembershipPlanMutation,
   useCreateMemberMembershipMutation,
   useMarkPaymentAsPaidMutation,
   useMemberMembershipsQuery,
@@ -11,6 +14,7 @@ import {
   usePaymentRecordsQuery,
   usePaymentSchedulesQuery,
   useRenewMemberMembershipMutation,
+  useResumeMemberMembershipMutation,
   useSuspendMemberMembershipMutation,
 } from '../hooks/useBilling'
 import { useMembersQuery } from '@/modules/members/hooks/useMembers'
@@ -22,6 +26,7 @@ import type { MemberMembership, MemberMembershipSummary, MemberProfile, MemberSu
 type CobroFormState = {
   payment_reference: string
   notes: string
+  method: 'cash' | 'sinpe' | 'transfer' | 'other'
 }
 
 type PaymentPortfolioFilter = '' | 'pending' | 'late'
@@ -70,6 +75,7 @@ function emptyMembershipForm() {
     membership_plan: '',
     membership_name: '',
     agreed_price: '',
+    motivo_ajuste_precio: '',
     recurrence_type: 'monthly' as MemberSubscription['recurrence_type'],
     grace_period_days: 7,
     start_date: today,
@@ -132,6 +138,7 @@ export function BillingPage() {
   const renewMembership = useRenewMemberMembershipMutation(memberIdNumber)
   const suspendMembership = useSuspendMemberMembershipMutation(memberIdNumber)
   const cancelMembership = useCancelMemberMembershipMutation(memberIdNumber)
+  const resumeMembership = useResumeMemberMembershipMutation(memberIdNumber)
   const markPaymentAsPaid = useMarkPaymentAsPaidMutation(memberIdNumber)
   const [paymentDrafts, setPaymentDrafts] = useState<Record<number, CobroFormState>>({})
   const [membershipForm, setMembershipForm] = useState(emptyMembershipForm)
@@ -172,6 +179,8 @@ export function BillingPage() {
       createMembership.mutate({
         member: memberIdNumber,
         membership_plan: Number(membershipForm.membership_plan),
+        agreed_price: membershipForm.agreed_price || undefined,
+        motivo_ajuste_precio: membershipForm.motivo_ajuste_precio,
         start_date: membershipForm.start_date,
         auto_renew: membershipForm.auto_renew,
         notes: membershipForm.notes,
@@ -217,7 +226,7 @@ export function BillingPage() {
       </div>
 
       {!memberId && (
-        <MembershipPortfolio
+        <><MembershipCatalog plans={plans?.results || []} /><MembershipPortfolio
           members={membersPortfolio?.results || []}
           totalCount={membersPortfolio?.count || 0}
           isLoading={isLoadingMembersPortfolio}
@@ -225,7 +234,7 @@ export function BillingPage() {
           paymentFilter={portfolioPaymentFilter}
           onSearchChange={setPortfolioSearch}
           onPaymentFilterChange={setPortfolioPaymentFilter}
-        />
+        /></>
       )}
 
       {memberId && (
@@ -365,7 +374,7 @@ export function BillingPage() {
                       </div>
                     </>
                   ) : (
-                    <label className="space-y-1">
+                    <div className="space-y-3"><label className="space-y-1 block">
                       <span className="text-xs font-medium text-neutral-500">Plan de membresía</span>
                       <select
                         className="input"
@@ -381,7 +390,7 @@ export function BillingPage() {
                           </option>
                         ))}
                       </select>
-                    </label>
+                    </label><div className="grid gap-3 sm:grid-cols-2"><label><span className="text-xs font-medium text-neutral-500">Precio acordado (opcional)</span><input className="input mt-1" type="number" value={membershipForm.agreed_price} onChange={(event) => setMembershipForm({ ...membershipForm, agreed_price: event.target.value })} placeholder="Usa el precio del catálogo" /></label><label><span className="text-xs font-medium text-neutral-500">Motivo si cambia el precio</span><input className="input mt-1" value={membershipForm.motivo_ajuste_precio} onChange={(event) => setMembershipForm({ ...membershipForm, motivo_ajuste_precio: event.target.value })} /></label></div></div>
                   )}
                   <label className="space-y-1">
                     <span className="text-xs font-medium text-neutral-500">Inicio y primer cobro</span>
@@ -400,9 +409,10 @@ export function BillingPage() {
                 <MembershipActions
                   membership={activeMembership}
                   onRenew={() => renewMembership.mutate(activeMembership.id)}
-                  onSuspend={() => suspendMembership.mutate({ id: activeMembership.id, reason: 'Suspensión manual desde facturación' })}
-                  onCancel={() => cancelMembership.mutate({ id: activeMembership.id, reason: 'Cancelación manual desde facturación' })}
-                  isSubmitting={renewMembership.isPending || suspendMembership.isPending || cancelMembership.isPending}
+                  onResume={() => resumeMembership.mutate(activeMembership.id)}
+                  onSuspend={() => { const reason = window.prompt('Motivo de la suspensión'); if (reason?.trim()) suspendMembership.mutate({ id: activeMembership.id, reason: reason.trim() }) }}
+                  onCancel={() => { const reason = window.prompt('Motivo de la cancelación'); if (reason?.trim()) cancelMembership.mutate({ id: activeMembership.id, reason: reason.trim() }) }}
+                  isSubmitting={renewMembership.isPending || resumeMembership.isPending || suspendMembership.isPending || cancelMembership.isPending}
                 />
               )}
               {!activeMembership && (
@@ -451,7 +461,7 @@ export function BillingPage() {
                 <PaymentRow
                   key={record.id}
                   record={record}
-                  draft={paymentDrafts[record.id] || { payment_reference: '', notes: '' }}
+                  draft={paymentDrafts[record.id] || { payment_reference: '', notes: '', method: 'cash' }}
                   onDraftChange={(nextDraft) => setPaymentDrafts((current) => ({ ...current, [record.id]: nextDraft }))}
                   onMarkPaid={(payload) => markPaymentAsPaid.mutate({ id: record.id, payload })}
                   isSubmitting={markPaymentAsPaid.isPending}
@@ -468,12 +478,14 @@ export function BillingPage() {
 function MembershipActions({
   membership,
   onRenew,
+  onResume,
   onSuspend,
   onCancel,
   isSubmitting,
 }: {
   membership: MemberMembership
   onRenew: () => void
+  onResume: () => void
   onSuspend: () => void
   onCancel: () => void
   isSubmitting: boolean
@@ -492,6 +504,7 @@ function MembershipActions({
         </p>
       </div>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        {membership.status === 'suspended' ? <button className="btn-primary" type="button" onClick={onResume} disabled={isSubmitting}>Reanudar</button> : null}
         <button className="btn-secondary" type="button" onClick={onRenew} disabled={isSubmitting}>
           Renovar
         </button>
@@ -531,6 +544,14 @@ function SummaryCard({
       <span className={`text-3xl font-heading font-black ${valueClassName}`}>{value}</span>
     </div>
   )
+}
+
+function MembershipCatalog({ plans }: { plans: Array<{ id: number; name: string; price: string; recurrence_type: MemberSubscription['recurrence_type']; is_active?: boolean }> }) {
+  const createPlan = useCreateMembershipPlanMutation()
+  const archivePlan = useArchiveMembershipPlanMutation()
+  const [name, setName] = useState('')
+  const [price, setPrice] = useState('')
+  return <section className="card mb-8 p-6"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="label-base">Configuración comercial</p><h2 className="font-heading text-2xl font-black">Catálogo de membresías</h2><p className="text-sm text-neutral-500">Define productos comerciales una vez; luego asígnalos a cada miembro.</p></div><form className="flex flex-wrap gap-2" onSubmit={(event) => { event.preventDefault(); if (!name.trim() || !price) return; createPlan.mutate({ name: name.trim(), price, recurrence_type: 'monthly', grace_period_days: 7, description: '', features: '', is_active: true }, { onSuccess: () => { setName(''); setPrice('') } }) }}><input className="input" placeholder="Nombre" value={name} onChange={(event) => setName(event.target.value)} /><input className="input w-36" type="number" min="0" placeholder="Precio" value={price} onChange={(event) => setPrice(event.target.value)} /><button className="btn-primary">Crear</button></form></div><div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{plans.map((plan) => <div key={plan.id} className="rounded-sm border border-neutral-200 p-4 dark:border-neutral-800"><div className="flex justify-between gap-3"><div><p className="font-semibold">{plan.name}</p><p className="text-sm text-neutral-500">{formatCurrency(plan.price)} / {RECURRENCE_SHORT_LABELS[plan.recurrence_type]}</p></div><button className="text-xs text-red-500" type="button" onClick={() => archivePlan.mutate(plan.id)}>Archivar</button></div></div>)}</div></section>
 }
 
 function MembershipPortfolio({
@@ -732,6 +753,7 @@ function PaymentRow({
           <div className="space-y-1">
             <div className="font-medium text-neutral-700 dark:text-neutral-200">{record.receipt_number}</div>
             <div className="text-neutral-400">{record.receipt_issued_at ? formatDate(record.receipt_issued_at) : '—'}</div>
+            <a className="text-primary hover:underline" href={`${BASE_URL}/api/payment-records/${record.id}/receipt/`} target="_blank" rel="noreferrer">Descargar PDF</a>
           </div>
         ) : '—'}
       </td>
@@ -748,9 +770,10 @@ function PaymentRow({
           </div>
         ) : (
           <div className="space-y-2 min-w-44">
+            <select className="input" value={draft.method} onChange={(event) => onDraftChange({ ...draft, method: event.target.value as CobroFormState['method'] })}><option value="cash">Efectivo</option><option value="sinpe">SINPE Móvil</option><option value="transfer">Transferencia</option><option value="other">Otro</option></select>
             <input
               className="input"
-              placeholder="Referencia de pago"
+              placeholder={draft.method === 'cash' ? 'Referencia (opcional)' : 'Referencia obligatoria'}
               value={draft.payment_reference}
               onChange={(event) => onDraftChange({ ...draft, payment_reference: event.target.value })}
             />
@@ -764,7 +787,7 @@ function PaymentRow({
               type="button"
               className="btn-primary w-full"
               onClick={() => onMarkPaid(draft)}
-              disabled={isSubmitting}
+              disabled={isSubmitting || (draft.method !== 'cash' && !draft.payment_reference.trim())}
               data-testid={`mark-paid-${record.id}`}
             >
               Registrar cobro

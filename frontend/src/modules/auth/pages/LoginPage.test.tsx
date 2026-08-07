@@ -47,10 +47,11 @@ describe('LoginPage', () => {
     )
   })
 
-  it('links to public registration', () => {
-    const { getByRole } = renderWithProviders(<LoginPage />)
+  it('explains that accounts are created by the trainer', () => {
+    const { getByText, queryByRole } = renderWithProviders(<LoginPage />)
 
-    expect(getByRole('link', { name: 'Regístrate' })).toHaveAttribute('href', '/register')
+    expect(getByText('Las cuentas de miembros son creadas por el entrenador.')).toBeInTheDocument()
+    expect(queryByRole('link', { name: 'Regístrate' })).not.toBeInTheDocument()
   })
 
   it('shows backend preparation while login is pending', () => {
