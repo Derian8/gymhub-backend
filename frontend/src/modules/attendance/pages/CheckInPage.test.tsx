@@ -28,6 +28,10 @@ vi.mock('@/modules/progress/api/progressApi', () => ({
   },
 }))
 
+vi.mock('@/modules/members/hooks/useMembers', () => ({
+  useMembersQuery: () => ({ data: { results: [] }, isLoading: false }),
+}))
+
 describe('CheckInPage', () => {
   beforeEach(() => {
     cleanup()
@@ -79,14 +83,14 @@ describe('CheckInPage', () => {
 
     const { getByTestId, getByText } = renderWithProviders(<CheckInPage />)
 
-    expect(getByTestId('checkin-submit')).toBeInTheDocument()
-    expect(getByText('Registrar asistencia')).toBeInTheDocument()
+    expect(getByTestId('open-routine-link')).toHaveAttribute('href', '/today')
+    expect(getByText('Entrada desde tu rutina')).toBeInTheDocument()
     expect(getByText('Orden del día')).toBeInTheDocument()
     expect(getByText('Check-in confirmado')).toBeInTheDocument()
     expect(getByTestId('member-workout-records')).toBeInTheDocument()
   })
 
-  it('shows blocked state when backend rejects check-in by mora', async () => {
+  it('allows the member to register checkout for today', async () => {
     useAuthStore.setState({
       user: {
         id: 1,
@@ -103,31 +107,32 @@ describe('CheckInPage', () => {
       authResolved: true,
       theme: 'dark',
     })
-    useAttendanceQuery.mockReturnValue({ data: { results: [] }, isLoading: false })
-    registrarCheckIn.mockImplementation((_notes, options) => {
-      options?.onError?.({
-        response: {
-          data: {
-            blocked: true,
-            reason: 'payment_overdue',
-            days_overdue: 18,
-          },
-        },
-      })
+    const today = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Costa_Rica', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(new Date())
+    useAttendanceQuery.mockReturnValue({ data: { results: [{
+      id: 22,
+      member: 10,
+      attendance_date: today,
+      check_in_time: `${today}T08:00:00-06:00`,
+      check_out_time: null,
+      notes: '',
+    }] }, isLoading: false })
+    registrarCheckOut.mockImplementation((_id, options) => {
+      options?.onSuccess?.()
     })
 
     const user = userEvent.setup()
-    const { getByTestId, getByText } = renderWithProviders(<CheckInPage />)
+    const { getByTestId } = renderWithProviders(<CheckInPage />)
 
-    await user.click(getByTestId('checkin-submit'))
+    await user.click(getByTestId('checkout-submit'))
 
     await waitFor(() => {
-      expect(getByText('Check-in bloqueado')).toBeInTheDocument()
-      expect(getByText(/18 días/)).toBeInTheDocument()
+      expect(registrarCheckOut).toHaveBeenCalledWith(22)
     })
   })
 
-  it('hides member check-in action card for trainer and shows attendance overview copy', () => {
+  it('hides member action card for administrator and shows attendance overview copy', () => {
     useAuthStore.setState({
       user: {
         id: 2,
@@ -136,7 +141,7 @@ describe('CheckInPage', () => {
         first_name: 'Trainer',
         last_name: 'User',
         role: 'trainer',
-        is_staff: false,
+        is_staff: true,
         memberprofile_id: null,
         trainerprofile_id: 4,
       },
@@ -175,7 +180,7 @@ describe('CheckInPage', () => {
     expect(getByTestId('attendance-date-filter')).toBeInTheDocument()
   })
 
-  it('sends trainer search and date filters to attendance query', async () => {
+  it('sends administrator search and date filters to attendance query', async () => {
     useAuthStore.setState({
       user: {
         id: 2,
@@ -184,7 +189,7 @@ describe('CheckInPage', () => {
         first_name: 'Trainer',
         last_name: 'User',
         role: 'trainer',
-        is_staff: false,
+        is_staff: true,
         memberprofile_id: null,
         trainerprofile_id: 4,
       },

@@ -170,6 +170,10 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
 
 describe('TodayWorkoutPage', () => {
   beforeEach(() => {
+    const today = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Costa_Rica', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(new Date())
+    window.sessionStorage.setItem(`gymhub-routine-entry:${today}`, 'granted')
     mockTodayWorkoutData = mockTodayWorkout
     mockTodayWorkoutLoading = false
     mockPrescriptionError = false
@@ -194,6 +198,14 @@ describe('TodayWorkoutPage', () => {
       authResolved: true,
       theme: 'dark',
     })
+  })
+
+  it('requires Ver rutina before exposing training details on a new day', () => {
+    window.sessionStorage.clear()
+    const { getByText, queryByTestId } = renderWithProviders(<TodayWorkoutPage />)
+
+    expect(getByText('Ver rutina y registrar entrada')).toBeInTheDocument()
+    expect(queryByTestId('today-workout-page')).not.toBeInTheDocument()
   })
 
   it('starts and completes a workout session', async () => {

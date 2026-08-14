@@ -14,6 +14,7 @@ Rutas principales:
 - `POST /auth/token/refresh/`
 - `GET /auth/me/`
 - REST `/api/members/`
+- `POST /api/members/registro-con-pago/` (alta atómica de cliente, membresía y primer pago)
 - `GET /api/members/{id}/dashboard-summary/`
 - `POST /api/members/{id}/activate/`
 - `GET /api/members/{id}/progress-by-exercise/{exercise_id}/`
@@ -68,7 +69,26 @@ Rutas principales:
 - REST `/api/progress-logs/`
 - REST `/api/workout-sessions/`
 - `PATCH /api/workout-sessions/{id}/complete/`
+- `POST /api/workout-sessions/{id}/progreso-ejercicio/`
 - `POST /api/exercise-logs/bulk/`
+
+### Ejecución guiada de rutina para clientes
+
+Después de validar la membresía con **Ver rutina**, el cliente ve la descripción
+general del bloque y pulsa **Iniciar rutina**. La pantalla muestra un único
+ejercicio a la vez, con su prescripción, descanso, equipo e instrucciones.
+
+- **Realizado** registra el ejercicio con el estado `realizado`.
+- **Omitir** registra el ejercicio con el estado `omitido`.
+- Cada decisión se persiste de inmediato en `ExerciseLog`, por lo que una
+  recarga conserva el avance y muestra el siguiente ejercicio pendiente.
+- Al resolver el último ejercicio, la sesión se completa automáticamente.
+- **Finalizar rutina** solicita confirmación y cierra la sesión; los ejercicios
+  pendientes se registran como `omitido`.
+
+`POST /api/workout-sessions/{id}/progreso-ejercicio/` recibe
+`exercise_id` y `estado` (`realizado` u `omitido`). Esta interacción simple es
+para el cliente; el instructor conserva el registro técnico detallado y masivo.
 
 ## Alertas
 Entidades principales:
@@ -118,12 +138,14 @@ Rutas principales:
 - `GET /api/member-memberships/expired/`
 - REST `/api/member-subscriptions/` (compatibilidad)
 - REST `/api/payment-schedules/`
-- REST `/api/payment-records/`
+- `GET /api/payment-records/` y `GET /api/payment-records/{id}/` (pagos inmutables)
 - `POST /api/payment-records/{id}/mark-paid/`
 - REST `/api/payment-methods/`
 - REST `/api/payment-instructions/`
 - `GET /api/my-membership/`
 - `GET /api/members/{id}/membership-summary/`
+
+El alta comercial principal se realiza en una sola transacción: crea el cliente, asigna una membresía de catálogo o personalizada, confirma el primer pago, activa el acceso y devuelve el comprobante interno. Si falla cualquier paso, no persiste un alta parcial.
 
 Estados de membresía:
 - `pending`: creada, esperando primer pago.

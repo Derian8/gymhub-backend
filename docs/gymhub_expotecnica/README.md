@@ -35,8 +35,22 @@ El PDF se genera en `build/main.pdf`. Para eliminar los artefactos:
   de los nueve módulos del Canvas.
 - `AUDITORIA_EXPOTEC11.md`: trazabilidad interna de los 24 indicadores de la
   rúbrica al contenido verificable del escrito.
+- `AUDITORIA_INSTITUCIONAL.md`: control de cobertura documental y de exposición
+  de las rúbricas ExpoTEC-11 y ExpoTEC-8, con pendientes explícitos.
+- `PLAN_CUMPLIMIENTO_EXPOTEC12.md`: matriz y ruta de trabajo para convertir el
+  modelo institucional en un plan de negocios verificable con los 28 indicadores
+  de ExpoTEC-12 (84 puntos).
+- `CONTROL_FUENTES.md`: verificación de idioma, uso y respaldo de cada fuente.
+- `datos_financieros.csv` y `generar_grafico_financiero.py`: fuente y generador
+  reproducible de la gráfica de escenarios de viabilidad.
 - `AVANCE_PENDIENTES.md`: estado verificable del escrito y trabajo restante.
 - `AGENTS.md`: reglas obligatorias para futuras modificaciones del escrito.
+
+Para regenerar la gráfica de viabilidad con el entorno del proyecto:
+
+```bash
+MPLCONFIGDIR=/tmp/matplotlib ../../.venv/bin/python generar_grafico_financiero.py
+```
 
 ## Pendientes antes de entregar
 

@@ -18,6 +18,8 @@
 \usepackage{enumitem}
 \usepackage{caption}
 \usepackage{titlesec}
+\usepackage{needspace}
+\usepackage[most]{tcolorbox}
 \usepackage{fancyhdr}
 \usepackage[hidelinks,pdfpagelabels]{hyperref}
 \usepackage{csquotes}
@@ -38,6 +40,8 @@
 \setlist{itemsep=0pt,parsep=0pt,topsep=0.25\baselineskip}
 \titlespacing*{\section}{0pt}{1.5\baselineskip}{0.5\baselineskip}
 \titlespacing*{\subsection}{0pt}{1.0\baselineskip}{0.25\baselineskip}
+\pretocmd{\section}{\Needspace{7\baselineskip}}{}{}
+\pretocmd{\subsection}{\Needspace{5\baselineskip}}{}{}
 \AtBeginEnvironment{table}{\singlespacing\small}
 \AtBeginEnvironment{longtable}{\singlespacing\small}
 \AtBeginEnvironment{figure}{\singlespacing}
@@ -48,6 +52,15 @@
   justification=raggedright,
   singlelinecheck=false
 }
+% Da prioridad a las figuras junto con su explicación y reserva las páginas
+% exclusivas para composiciones que realmente lo requieran.
+\setcounter{topnumber}{2}
+\setcounter{bottomnumber}{1}
+\setcounter{totalnumber}{3}
+\renewcommand{\topfraction}{0.88}
+\renewcommand{\bottomfraction}{0.70}
+\renewcommand{\textfraction}{0.10}
+\renewcommand{\floatpagefraction}{0.80}
 
 \pagestyle{fancy}
 \fancyhf{}
@@ -65,7 +78,7 @@
 
 \begin{titlepage}
   \begin{singlespace}
-  \thispagestyle{fancy}
+  \thispagestyle{empty}
   \centering
   \noindent
   \begin{minipage}[c]{0.20\textwidth}
@@ -81,7 +94,7 @@
     \includegraphics[height=2cm]{imagenes/logo_ctp_platanares.jpg}
   \end{minipage}
   \par\vspace{0.75cm}
-  {\fontsize{24}{28}\selectfont GymHub: plataforma digital para la gestión de gimnasios locales en Pérez Zeledón, 2026\par}
+  {\fontsize{24}{28}\selectfont GymHub: sistema en línea para la gestión de gimnasios, 2026\par}
   \vspace{0.65cm}
   {\fontsize{20}{24}\selectfont Modelo de negocio\par}
   \vspace{0.5cm}
@@ -117,24 +130,18 @@
 \pagenumbering{arabic}
 
 \input{secciones/01-resumen-justificacion-objetivos}
-\clearpage
 \seccionnueva{secciones/02-idea-modelo-negocio}
-\clearpage
 \seccionnueva{secciones/03-antecedentes}
-\clearpage
 \seccionnueva{secciones/04-modelo-canvas}
-\clearpage
 \seccionnueva{secciones/05-viabilidad-tecnica}
-\clearpage
 \seccionnueva{secciones/06-costos-ingresos}
-\clearpage
 \seccionnueva{secciones/07-validacion-cumplimiento}
-\clearpage
 \seccionnueva{secciones/08-conclusiones}
 
 \clearpage
 \printbibliography[title={Referencias}]
 
+\clearpage
 \seccionnueva{secciones/09-anexos}
 
 \end{document}

@@ -242,6 +242,12 @@ def mark_payment_paid(record, reference='', notes='', method='cash', recorded_by
         if subscription.auto_generate_next:
             next_schedule, _ = create_pending_charge(subscription, next_start)
 
+    from billing.models import SeguimientoCobro
+    SeguimientoCobro.objects.filter(
+        cliente=schedule.member,
+        estado__in=['nuevo', 'en_seguimiento'],
+    ).update(estado='resuelto', administrador=recorded_by)
+
     return record, next_schedule
 
 
@@ -257,12 +263,6 @@ def membership_access(member, on_date=None):
         return {'allowed': False, 'reason': 'payment_required', 'days_overdue': 0}
     if subscription.status in {'pending', 'suspended', 'cancelled'}:
         return {'allowed': False, 'reason': 'payment_required', 'days_overdue': 0}
-    if subscription.status == 'expired':
-        return {
-            'allowed': False,
-            'reason': 'payment_overdue',
-            'days_overdue': max(0, (today - subscription.current_period_end).days),
-        }
     if today <= subscription.current_period_end:
         return {'allowed': True, 'reason': None, 'days_overdue': 0}
     days_overdue = (today - subscription.current_period_end).days

@@ -51,7 +51,8 @@ Frontend SPA completo para el sistema de gestión de gimnasio GymHub. Construido
 
 ## Pantallas Implementadas (20)
 1. Login
-2. Dashboard Trainer (resumen general del gimnasio)
+2. Dashboard Administrador (ingresos, accesos y cartera)
+3. Dashboard Entrenador (rutinas y progreso técnico)
 3. Dashboard Miembro (progreso, plan, pagos)
 4. Lista de Miembros (filtros, búsqueda, paginación)
 5. Detalle de Miembro (info + activación)
@@ -69,12 +70,13 @@ Frontend SPA completo para el sistema de gestión de gimnasio GymHub. Construido
 17. Nutrición (perfiles + guías)
 18. Chat IA (con historial + límite diario)
 19. Perfil de Usuario
-20. 404 Not Found
+20. Reportes administrativos (pantalla, PDF y CSV)
+21. 404 Not Found
 
 ## Seguridad
 - JWT httpOnly cookies (backend-managed)
 - Auto-refresh de token con interceptor Axios
-- ProtectedRoute por rol (trainer/member)
+- ProtectedRoute por capacidad (admin/trainer/member/operator)
 - PublicRoute con redirect para usuarios autenticados
 - CSRF token en headers de requests
 
@@ -82,13 +84,19 @@ Frontend SPA completo para el sistema de gestión de gimnasio GymHub. Construido
 - Testing completado al 95%: Login, routing, validación, dark mode, responsive
 
 ## Backlog / Próximas Fases
-- P0: Conectar al backend Django real y verificar todos los flujos
-- P1: Registro de nuevos miembros (formulario completo)
+- P0 completado: Recorrido transaccional de API contra Supabase para registro, pago, comprobante, acceso y reportes
+- P0 completado: Registro comercial de clientes con membresía, primer pago obligatorio, acceso y comprobante
+- P0 completado: Separación administrador/entrenador y aislamiento financiero
+- P0 completado: Acceso a rutina con validación de membresía y registro de entrada
+- P0 completado: Reportes comerciales y de accesos en pantalla, PDF y CSV
+- P0 pendiente: Validar cron de vencimientos y mora en el deployment final
+- P1 pendiente: Agregar reversión auditable de pagos sin editar el registro original
+- P1 pendiente: Conciliación bancaria y reversión contable formal
+- P0 pendiente: Ejecutar el E2E visual en el dominio final con administrador, entrenador y cliente
+- P1 pendiente: Confirmar e implementar hasta dos planes de entrenamiento simultáneos por cliente, principal y secundario
 - P1: Vista de clases (GymClass)
 - P1: Calendario de clases
 - P2: Filtros avanzados en gráficas
-- P2: Dashboard de Admin con más métricas
 - P2: Edición de perfil de usuario
-- P2: Exportar reportes (CSV/PDF)
 - P3: OAuth wearables (campo source en ProgressLog)
 - P3: Notificaciones push en tiempo real

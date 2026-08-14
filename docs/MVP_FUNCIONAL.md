@@ -4,12 +4,12 @@
 Congelar una versión funcional y demostrable de GymHub sin abrir nuevas features fuera del flujo principal. Este documento define qué sí forma parte del MVP operativo actual y cómo debe comportarse por rol.
 
 ## Flujo Principal Obligatorio
-`login -> dashboard por rol -> miembros -> planes -> asistencia -> facturación -> perfil`
+`administrador registra y cobra -> asigna entrenador -> entrenador publica rutina -> cliente pulsa Ver rutina -> sistema valida y registra entrada -> administrador controla ingresos y accesos`
 
 ## Roles Del MVP
 - `member`: usa su membresía, entrenamiento, plan, registros, progreso y perfil.
-- `trainer`: usa dashboard global, miembros, planes, asistencia, facturación y perfil.
-- `staff/superuser`: se trata como capacidad administrativa equivalente a `trainer` dentro del frontend.
+- `trainer`: consulta únicamente clientes asignados, crea rutinas y registra progreso. Solo ve el estado comercial sanitizado.
+- `staff/superuser`: es Administrador; controla clientes, pagos, accesos, alertas, bajas y reportes.
 
 ## Rutas Del MVP
 - Públicas:
@@ -26,13 +26,18 @@ Congelar una versión funcional y demostrable de GymHub sin abrir nuevas feature
   - `/sessions`
   - `/profile`
 - Trainer o staff:
-  - `/dashboard/trainer`
   - `/members`
   - `/members/:id`
+- Trainer:
+  - `/dashboard/trainer`
   - `/plans`
   - `/plans/:id`
+- Administrador:
+  - `/dashboard/admin`
+  - `/members/new`
   - `/attendance`
   - `/billing`
+  - `/reports`
   - `/profile`
 
 ## Fuera Del MVP
@@ -45,4 +50,6 @@ Congelar una versión funcional y demostrable de GymHub sin abrir nuevas feature
 - Ninguna ruta del MVP expone vistas inconsistentes con el rol.
 - El frontend usa contratos reales del backend y estados claros de carga, vacío y error.
 - Un plan activo se considera listo cuando contiene al menos un día y un ejercicio; nutrición y guías son opcionales.
+- El cliente solo obtiene la rutina después de validar membresía y registrar la entrada mediante `Ver rutina`.
+- El entrenador no recibe montos, referencias, comprobantes ni historial financiero.
 - La demo puede recorrerse sin pasos manuales fuera de `seed_data` y login.

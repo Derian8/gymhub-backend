@@ -154,7 +154,7 @@ def test_access_uses_subscription_grace(member_profile, membership_plan, trainer
         current_period_end=date.today() - timedelta(days=1),
     )
 
-    assert membership_access(member_profile)['allowed'] is False
+    assert membership_access(member_profile)['allowed'] is True
     subscription.current_period_end = date.today() - timedelta(days=2)
     subscription.save(update_fields=['current_period_end'])
     assert membership_access(member_profile)['allowed'] is False

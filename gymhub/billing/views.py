@@ -3,6 +3,7 @@ import logging
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
+from django.db.models import Q
 from django.http import HttpResponse
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -11,18 +12,23 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import MembershipPlan, MemberSubscription, PaymentSchedule, PaymentRecord, PaymentMethod, PaymentInstruction
+from .models import MembershipPlan, MemberSubscription, PaymentSchedule, PaymentRecord, PaymentMethod, PaymentInstruction, SeguimientoCobro
 from .serializers import (
     MembershipPlanSerializer, PaymentScheduleSerializer,
     PaymentRecordSerializer, PaymentMethodSerializer, PaymentInstructionSerializer,
-    MemberSubscriptionSerializer, MemberMembershipSerializer
+    MemberSubscriptionSerializer, MemberMembershipSerializer,
+    SeguimientoCobroSerializer,
 )
 from .services import (
     cancel_membership, initialize_subscription, mark_payment_paid, membership_summary,
     period_end, renew_membership, resume_membership, suspend_membership,
     void_non_collectable_charges
 )
-from users.permissions import IsStaffOrTrainer
+from users.permissions import (
+    IsAdministrator,
+    tiene_perfil_entrenador,
+    usa_contexto_cliente,
+)
 from users.audit import registrar_auditoria
 from users.views import _get_trainer_profile
 
@@ -34,40 +40,34 @@ class MembershipPlanViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         queryset = MembershipPlan.objects.select_related('trainer__user').all()
-        if user.role == 'member' and not user.is_staff:
+        if usa_contexto_cliente(self.request):
             try:
                 trainer_profile = user.memberprofile.trainer_asignado
             except ObjectDoesNotExist:
                 return MembershipPlan.objects.none()
             if trainer_profile:
-                return queryset.filter(trainer=trainer_profile, is_active=True)
+                return queryset.filter(
+                    Q(trainer=trainer_profile) | Q(trainer__isnull=True),
+                    is_active=True,
+                )
             return MembershipPlan.objects.none()
-        if user.role == 'trainer' and not user.is_staff:
-            trainer_profile = _get_trainer_profile(user)
-            queryset = queryset.filter(trainer=trainer_profile)
+        if not user.is_staff and tiene_perfil_entrenador(user):
+            return MembershipPlan.objects.none()
         return queryset
 
     def get_permissions(self):
         if self.action in ('create', 'update', 'partial_update', 'destroy'):
-            return [IsAuthenticated(), IsStaffOrTrainer()]
+            return [IsAuthenticated(), IsAdministrator()]
         return [IsAuthenticated()]
 
     @transaction.atomic
     def perform_create(self, serializer):
-        user = self.request.user
-        if user.is_staff and serializer.validated_data.get('trainer'):
-            serializer.save()
-            return
-        serializer.save(trainer=_get_trainer_profile(user))
+        serializer.save(trainer=serializer.validated_data.get('trainer'))
 
     @transaction.atomic
     def perform_update(self, serializer):
         plan = self.get_object()
-        user = self.request.user
-        if not user.is_staff and plan.trainer_id != _get_trainer_profile(user).id:
-            raise PermissionDenied('Solo puedes editar tus propios planes.')
-        trainer = serializer.validated_data.get('trainer') if user.is_staff else _get_trainer_profile(user)
-        serializer.save(trainer=trainer)
+        serializer.save(trainer=serializer.validated_data.get('trainer', plan.trainer))
 
     def perform_destroy(self, instance):
         instance.is_active = False
@@ -80,7 +80,7 @@ class MemberSubscriptionViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ('create', 'update', 'partial_update', 'destroy'):
-            return [IsAuthenticated(), IsStaffOrTrainer()]
+            return [IsAuthenticated(), IsAdministrator()]
         return [IsAuthenticated()]
 
     def get_queryset(self):
@@ -89,11 +89,12 @@ class MemberSubscriptionViewSet(viewsets.ModelViewSet):
         queryset = MemberSubscription.objects.select_related(
             'member__user', 'plan', 'trainer__user'
         ).all()
-        if user.role == 'member' and not user.is_staff:
+        if usa_contexto_cliente(self.request):
             queryset = queryset.filter(member__user=user)
-        elif user.role == 'trainer' and not user.is_staff:
-            trainer_profile = _get_trainer_profile(user)
-            queryset = queryset.filter(trainer=trainer_profile)
+        elif not user.is_staff and tiene_perfil_entrenador(user):
+            return MemberSubscription.objects.none()
+        elif not user.is_staff:
+            return MemberSubscription.objects.none()
         if member_id:
             queryset = queryset.filter(member_id=member_id)
         return queryset
@@ -102,14 +103,7 @@ class MemberSubscriptionViewSet(viewsets.ModelViewSet):
         plan = serializer.validated_data.get('plan')
         member = serializer.validated_data['member']
         user = self.request.user
-        if user.is_staff:
-            return plan, member, (serializer.validated_data.get('trainer') or member.trainer_asignado)
-        trainer_profile = _get_trainer_profile(user)
-        if member.trainer_asignado_id != trainer_profile.id:
-            raise PermissionDenied('Solo puedes suscribir clientes asignados.')
-        if plan and plan.trainer_id != trainer_profile.id:
-            raise PermissionDenied('Solo puedes usar tus propios planes configurables.')
-        return plan, member, trainer_profile
+        return plan, member, (serializer.validated_data.get('trainer') or member.trainer_asignado)
 
     @transaction.atomic
     def perform_create(self, serializer):
@@ -166,8 +160,6 @@ class MemberSubscriptionViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         subscription = self.get_object()
         user = self.request.user
-        if not user.is_staff and subscription.trainer_id != _get_trainer_profile(user).id:
-            raise PermissionDenied('Solo puedes editar suscripciones de tus clientes.')
         previous_values = {
             'agreed_price': str(subscription.agreed_price),
             'status': subscription.status,
@@ -379,7 +371,7 @@ class MyMembershipView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        if request.user.role != 'member' or request.user.is_staff:
+        if not usa_contexto_cliente(request):
             return Response({'error': 'Solo miembros pueden consultar esta vista.'}, status=status.HTTP_403_FORBIDDEN)
         try:
             member = request.user.memberprofile
@@ -394,18 +386,19 @@ class PaymentScheduleViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ('create', 'update', 'partial_update', 'destroy'):
-            return [IsAuthenticated(), IsStaffOrTrainer()]
+            return [IsAuthenticated(), IsAdministrator()]
         return [IsAuthenticated()]
 
     def get_queryset(self):
         user = self.request.user
         member_id = self.request.query_params.get('member')
-        if user.role == 'member' and not user.is_staff:
+        if usa_contexto_cliente(self.request):
             return PaymentSchedule.objects.filter(member__user=user)
         queryset = PaymentSchedule.objects.select_related('member__user', 'plan', 'subscription__plan').all()
-        if user.role == 'trainer' and not user.is_staff:
-            trainer_profile = _get_trainer_profile(user)
-            queryset = queryset.filter(member__trainer_asignado=trainer_profile)
+        if not user.is_staff and tiene_perfil_entrenador(user):
+            return PaymentSchedule.objects.none()
+        if not user.is_staff:
+            return PaymentSchedule.objects.none()
         if member_id:
             queryset = queryset.filter(member_id=member_id)
         return queryset
@@ -415,28 +408,20 @@ class PaymentScheduleViewSet(viewsets.ModelViewSet):
         plan = serializer.validated_data.get('plan')
         member = serializer.validated_data['member']
         user = self.request.user
-        if user.role == 'trainer' and not user.is_staff:
-            trainer_profile = _get_trainer_profile(user)
-            if member.trainer_asignado_id != trainer_profile.id:
-                raise PermissionDenied('Solo puedes crear cobros para clientes asignados.')
         if subscription:
             if subscription.member_id != member.id:
                 raise ValidationError({'subscription': 'La suscripción no corresponde al miembro.'})
-            if user.role == 'trainer' and not user.is_staff and subscription.trainer_id != trainer_profile.id:
-                raise PermissionDenied('Solo puedes usar suscripciones de tus clientes.')
             plan = subscription.plan
-        elif user.role == 'trainer' and not user.is_staff and plan and plan.trainer_id != trainer_profile.id:
-            raise PermissionDenied('Solo puedes usar tus propios planes configurables.')
         serializer.save(plan=plan)
 
 
-class PaymentRecordViewSet(viewsets.ModelViewSet):
+class PaymentRecordViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PaymentRecordSerializer
     permission_classes = [IsAuthenticated]
 
     def get_permissions(self):
-        if self.action in ('create', 'update', 'partial_update', 'destroy', 'mark_paid'):
-            return [IsAuthenticated(), IsStaffOrTrainer()]
+        if self.action == 'mark_paid':
+            return [IsAuthenticated(), IsAdministrator()]
         return [IsAuthenticated()]
 
     def get_queryset(self):
@@ -446,7 +431,7 @@ class PaymentRecordViewSet(viewsets.ModelViewSet):
             self.request.query_params.get('include_void') == 'true'
             or self.action == 'mark_paid'
         )
-        if user.role == 'member' and not user.is_staff:
+        if usa_contexto_cliente(self.request):
             queryset = PaymentRecord.objects.filter(schedule__member__user=user)
             if not include_void:
                 queryset = queryset.exclude(status='void')
@@ -454,9 +439,10 @@ class PaymentRecordViewSet(viewsets.ModelViewSet):
         queryset = PaymentRecord.objects.select_related(
             'schedule__member__user', 'schedule__plan', 'schedule__subscription'
         ).all()
-        if user.role == 'trainer' and not user.is_staff:
-            trainer_profile = _get_trainer_profile(user)
-            queryset = queryset.filter(schedule__member__trainer_asignado=trainer_profile)
+        if not user.is_staff and tiene_perfil_entrenador(user):
+            return PaymentRecord.objects.none()
+        if not user.is_staff:
+            return PaymentRecord.objects.none()
         if member_id:
             queryset = queryset.filter(schedule__member_id=member_id)
         if not include_void:
@@ -559,38 +545,40 @@ class PaymentMethodViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role == 'member' and not user.is_staff:
+        if usa_contexto_cliente(self.request):
             return PaymentMethod.objects.filter(member__user=user)
         queryset = PaymentMethod.objects.select_related(
             'member__trainer_asignado'
         )
         if user.is_staff:
             return queryset
-        return queryset.filter(member__trainer_asignado=user.trainerprofile)
+        if tiene_perfil_entrenador(user):
+            return PaymentMethod.objects.none()
+        return queryset.none()
 
     def perform_create(self, serializer):
         user = self.request.user
-        if user.role == 'member' and not user.is_staff:
+        if usa_contexto_cliente(self.request):
             try:
                 serializer.save(member=user.memberprofile)
             except ObjectDoesNotExist:
                 logger.warning('Creación de payment method sin memberprofile para user_id=%s', user.id)
                 from rest_framework.exceptions import ValidationError
                 raise ValidationError({'member': 'Perfil de miembro no encontrado.'})
-        else:
+        elif user.is_staff:
             member = serializer.validated_data['member']
-            if not user.is_staff and member.trainer_asignado_id != user.trainerprofile.id:
-                raise PermissionDenied('El miembro no está asignado a este trainer.')
             serializer.save(member=member)
+        else:
+            raise PermissionDenied('Solo el administrador gestiona métodos de pago ajenos.')
 
     def perform_update(self, serializer):
         instance = serializer.instance
         user = self.request.user
         if not user.is_staff:
-            if user.role == 'member' and not user.is_staff and instance.member.user_id != user.id:
+            if usa_contexto_cliente(self.request) and instance.member.user_id != user.id:
                 raise PermissionDenied('No puedes modificar este método de pago.')
-            if user.role == 'trainer' and instance.member.trainer_asignado_id != user.trainerprofile.id:
-                raise PermissionDenied('El miembro no está asignado a este trainer.')
+            if tiene_perfil_entrenador(user):
+                raise PermissionDenied('El entrenador no puede gestionar pagos.')
         serializer.save(member=instance.member)
 
 
@@ -598,3 +586,42 @@ class PaymentInstructionViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = PaymentInstruction.objects.select_related('plan').all()
     serializer_class = PaymentInstructionSerializer
     permission_classes = [IsAuthenticated]
+
+
+class SeguimientoCobroViewSet(viewsets.ModelViewSet):
+    serializer_class = SeguimientoCobroSerializer
+    permission_classes = [IsAuthenticated, IsAdministrator]
+
+    def get_queryset(self):
+        queryset = SeguimientoCobro.objects.select_related(
+            'cliente__user', 'administrador'
+        ).all()
+        cliente_id = self.request.query_params.get('cliente')
+        estado = self.request.query_params.get('estado')
+        if cliente_id:
+            queryset = queryset.filter(cliente_id=cliente_id)
+        if estado:
+            queryset = queryset.filter(estado=estado)
+        return queryset
+
+    def perform_create(self, serializer):
+        seguimiento = serializer.save(administrador=self.request.user)
+        registrar_auditoria(
+            self.request.user,
+            'collection_follow_up_created',
+            'SeguimientoCobro',
+            seguimiento.id,
+            request=self.request,
+            details={'member_id': seguimiento.cliente_id, 'estado': seguimiento.estado},
+        )
+
+    def perform_update(self, serializer):
+        seguimiento = serializer.save(administrador=self.request.user)
+        registrar_auditoria(
+            self.request.user,
+            'collection_follow_up_updated',
+            'SeguimientoCobro',
+            seguimiento.id,
+            request=self.request,
+            details={'member_id': seguimiento.cliente_id, 'estado': seguimiento.estado},
+        )

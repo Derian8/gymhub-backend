@@ -61,12 +61,12 @@ describe('RouteGuards', () => {
             </ProtectedRoute>
           )}
         />
-        <Route path="/today" element={<div>Entrenamiento de hoy</div>} />
+        <Route path="/dashboard/member" element={<div>Dashboard de cliente</div>} />
       </Routes>,
       { route: '/trainer' },
     )
 
-    expect(getByText('Entrenamiento de hoy')).toBeInTheDocument()
+    expect(getByText('Dashboard de cliente')).toBeInTheDocument()
   })
 
   it('redirects authenticated trainer away from public route', () => {

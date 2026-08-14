@@ -13,8 +13,8 @@ User = get_user_model()
 
 @pytest.mark.django_db
 class TestRegister:
-    def test_register_member_ok(self, api_client):
-        resp = api_client.post('/auth/register/', {
+    def test_register_member_ok(self, admin_client):
+        resp = admin_client.post('/auth/register/', {
             'email': 'newmember@test.com',
             'username': 'newmember',
             'first_name': 'New',
@@ -26,8 +26,8 @@ class TestRegister:
         assert resp.status_code == status.HTTP_201_CREATED
         assert resp.data['user']['role'] == 'member'
 
-    def test_register_member_without_username_generates_one_and_creates_profile(self, api_client):
-        resp = api_client.post('/auth/register/', {
+    def test_register_member_without_username_generates_one_and_creates_profile(self, admin_client):
+        resp = admin_client.post('/auth/register/', {
             'email': '  New.Member@Test.COM  ',
             'first_name': 'New',
             'last_name': 'Member',
@@ -40,17 +40,17 @@ class TestRegister:
         assert resp.data['user']['username'] == 'new-member'
         assert resp.data['user']['role'] == 'member'
         assert resp.data['user']['memberprofile_id'] is not None
-        assert settings.ACCESS_TOKEN_COOKIE_NAME in resp.cookies
-        assert settings.REFRESH_TOKEN_COOKIE_NAME in resp.cookies
+        assert settings.ACCESS_TOKEN_COOKIE_NAME not in resp.cookies
+        assert settings.REFRESH_TOKEN_COOKIE_NAME not in resp.cookies
 
-    def test_register_member_rejects_duplicate_email_case_insensitive(self, api_client):
+    def test_register_member_rejects_duplicate_email_case_insensitive(self, admin_client):
         User.objects.create_user(
             email='member.case@test.com',
             username='member-case',
             password='member123!',
         )
 
-        resp = api_client.post('/auth/register/', {
+        resp = admin_client.post('/auth/register/', {
             'email': 'MEMBER.CASE@test.com',
             'password': 'pass123!ABC',
             'password2': 'pass123!ABC',
@@ -59,14 +59,14 @@ class TestRegister:
         assert resp.status_code == status.HTTP_400_BAD_REQUEST
         assert 'email' in resp.data
 
-    def test_register_member_generates_unique_username_from_email(self, api_client):
+    def test_register_member_generates_unique_username_from_email(self, admin_client):
         User.objects.create_user(
             email='existing@test.com',
             username='new-member',
             password='member123!',
         )
 
-        resp = api_client.post('/auth/register/', {
+        resp = admin_client.post('/auth/register/', {
             'email': 'new.member@test.com',
             'password': 'pass123!ABC',
             'password2': 'pass123!ABC',
@@ -76,7 +76,7 @@ class TestRegister:
         assert resp.data['user']['username'] == 'new-member-1'
 
     def test_register_trainer_requires_auth(self, api_client):
-        """Registrar trainer sin autenticación → 401."""
+        """Registrar trainer sin autenticación está prohibido."""
         resp = api_client.post('/auth/register/', {
             'email': 'newtrainer@test.com',
             'username': 'newtrainer',
@@ -84,7 +84,7 @@ class TestRegister:
             'password': 'pass123!ABC',
             'password2': 'pass123!ABC',
         })
-        assert resp.status_code == status.HTTP_401_UNAUTHORIZED
+        assert resp.status_code == status.HTTP_403_FORBIDDEN
 
     def test_register_trainer_by_member_forbidden(self, member_client):
         """Miembro intentando registrar trainer → 403 (IsStaffOrTrainer)."""
@@ -97,8 +97,8 @@ class TestRegister:
         })
         assert resp.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_register_trainer_by_trainer_ok(self, trainer_client):
-        """Trainer puede registrar otro trainer."""
+    def test_register_trainer_by_trainer_forbidden(self, trainer_client):
+        """El entrenador técnico no administra cuentas."""
         resp = trainer_client.post('/auth/register/', {
             'email': 'newtrainer3@test.com',
             'username': 'newtrainer3',
@@ -108,10 +108,25 @@ class TestRegister:
             'password': 'pass123!ABC',
             'password2': 'pass123!ABC',
         })
-        assert resp.status_code == status.HTTP_201_CREATED
+        assert resp.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_register_password_mismatch(self, api_client):
-        resp = api_client.post('/auth/register/', {
+    def test_register_does_not_replace_admin_session(self, admin_client):
+        resp = admin_client.post('/auth/register/', {
+            'email': 'newtrainer-session@test.com',
+            'username': 'newtrainer-session',
+            'first_name': 'New',
+            'last_name': 'Trainer',
+            'role': 'trainer',
+            'password': 'pass123!ABC',
+            'password2': 'pass123!ABC',
+        })
+
+        assert resp.status_code == status.HTTP_201_CREATED
+        assert settings.ACCESS_TOKEN_COOKIE_NAME not in resp.cookies
+        assert settings.REFRESH_TOKEN_COOKIE_NAME not in resp.cookies
+
+    def test_register_password_mismatch(self, admin_client):
+        resp = admin_client.post('/auth/register/', {
             'email': 'bad@test.com',
             'username': 'bad',
             'role': 'member',

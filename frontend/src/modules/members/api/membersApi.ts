@@ -4,7 +4,10 @@ import type {
   MemberProfile,
   MemberDashboardSummary,
   PrescriptionSummary,
+  RegistroClientePagoPayload,
+  RegistroClientePagoResponse,
   TrainerOverview,
+  TrainerProfile,
   PaginatedResponse,
 } from '@/shared/types'
 
@@ -12,6 +15,7 @@ interface MembersParams {
   assignment?: 'mine' | 'unassigned' | 'available'
   search?: string
   payment_status?: string
+  commercial_status?: string
   inactivity?: string
   risk_level?: string
   prescription_status?: string
@@ -20,6 +24,10 @@ interface MembersParams {
 }
 
 export const membersApi = {
+  trainers: async (): Promise<TrainerProfile[]> => {
+    const { data } = await apiClient.get('/api/trainers/')
+    return data
+  },
   create: async (payload: {
     nombres: string
     apellidos: string
@@ -29,6 +37,13 @@ export const membersApi = {
     contacto_emergencia?: string
   }): Promise<{ member: MemberProfile; contrasena_temporal: string; message: string }> => {
     const { data } = await apiClient.post('/api/members/', payload)
+    return data
+  },
+
+  registerWithPayment: async (
+    payload: RegistroClientePagoPayload,
+  ): Promise<RegistroClientePagoResponse> => {
+    const { data } = await apiClient.post('/api/members/registro-con-pago/', payload)
     return data
   },
 

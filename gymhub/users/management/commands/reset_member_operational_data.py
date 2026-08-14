@@ -33,6 +33,7 @@ class Command(BaseCommand):
             PaymentMethod,
             PaymentRecord,
             PaymentSchedule,
+            SeguimientoCobro,
         )
         from classes.models import ClassEnrollment, GymClass
         from plans.models import TrainingPlan
@@ -52,6 +53,7 @@ class Command(BaseCommand):
             ('registros de progreso', ProgressLog.objects.all()),
             ('asistencias', Attendance.objects.all()),
             ('registros de pago', PaymentRecord.objects.all()),
+            ('seguimientos de cobro', SeguimientoCobro.objects.all()),
             ('cobros programados', PaymentSchedule.objects.all()),
             ('suscripciones', MemberSubscription.objects.all()),
             ('métodos de pago', PaymentMethod.objects.all()),

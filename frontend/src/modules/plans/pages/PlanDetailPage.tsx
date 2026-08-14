@@ -6,7 +6,7 @@ import { Badge, ConfirmDialog, PageHeader, EmptyState } from '@/shared/component
 import { CardSkeleton } from '@/shared/components/Skeleton'
 import { DAY_OF_WEEK_LABELS, GOAL_LABELS, MUSCLE_LABELS } from '@/shared/lib/utils'
 import type { WorkoutDay, Exercise } from '@/shared/types'
-import { useAuthStore } from '@/shared/store/authStore'
+import { getResolvedContext, useAuthStore } from '@/shared/store/authStore'
 import { useMemberActivePrescriptionQuery, useMemberDashboardQuery } from '@/modules/members/hooks/useMembers'
 import { SymbolFrame } from '@/shared/components/Brand'
 
@@ -23,15 +23,16 @@ export function PlanDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const planId = parseInt(id || '0')
-  const { user } = useAuthStore()
-  const isMember = user?.role === 'member'
+  const { user, activeContext } = useAuthStore()
+  const currentContext = getResolvedContext(user, activeContext)
+  const isMember = currentContext === 'cliente'
   const { data: plan, isLoading } = usePlanDetailQuery(planId)
   const { data: todayWorkout } = useTodayWorkoutQuery(planId)
   const { data: activePrescription } = useMemberActivePrescriptionQuery(isMember ? user?.memberprofile_id || 0 : 0)
   const { data: dashboardSummary } = useMemberDashboardQuery(isMember ? user?.memberprofile_id || 0 : 0)
   const deletePlan = useDeletePlanMutation()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const canDelete = !!user && (user.role === 'trainer' || user.is_staff)
+  const canDelete = !!user && (currentContext === 'instructor' || user.is_staff)
 
   useEffect(() => {
     if (deletePlan.isSuccess) {

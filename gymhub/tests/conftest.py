@@ -35,6 +35,26 @@ def api_client():
     return client
 
 
+@pytest.fixture
+@pytest.mark.django_db
+def admin_user(db):
+    return User.objects.create_user(
+        username='admin_test',
+        email='admin@test.com',
+        password='admin123!',
+        role='trainer',
+        is_staff=True,
+        first_name='Admin',
+        last_name='Gym',
+    )
+
+
+@pytest.fixture
+@pytest.mark.django_db
+def admin_client(db, admin_user):
+    return auth_client(admin_user)
+
+
 @pytest.fixture(autouse=True)
 def limpiar_cache():
     """Aísla resultados cacheados entre pruebas."""

@@ -10,7 +10,7 @@ import { BASE_URL } from '@/shared/api/client'
 import type { AxiosError } from 'axios'
 
 export function useAuth(enabled = true) {
-  const { user, isAuthenticated, authResolved, setUser, setAuthResolved, logout } = useAuthStore()
+  const { user, isAuthenticated, authResolved, activeContext, setUser, setAuthResolved, logout } = useAuthStore()
   const setBackendIssue = useBackendStatusStore((s) => s.setIssue)
   const clearBackendIssue = useBackendStatusStore((s) => s.clearIssue)
 
@@ -90,8 +90,9 @@ export function useAuth(enabled = true) {
     isAuthenticated: !!currentUser || isAuthenticated,
     isLoading: (enabled && isLoading) || !authResolved,
     authResolved,
-    isTrainer: currentUser?.role === 'trainer' || !!currentUser?.is_staff,
-    isMember: currentUser?.role === 'member',
+    activeContext,
+    isTrainer: Boolean(currentUser?.trainerprofile_id || currentUser?.role === 'trainer' || currentUser?.is_staff),
+    isMember: Boolean(currentUser?.memberprofile_id || currentUser?.role === 'member'),
     isStaff: !!currentUser?.is_staff,
   }
 }

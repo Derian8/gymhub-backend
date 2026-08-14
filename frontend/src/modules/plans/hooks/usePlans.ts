@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 import { plansApi } from '../api/plansApi'
 import { QUERY_KEYS } from '@/shared/constants/queryKeys'
 import { extractApiError } from '@/shared/lib/utils'
-import type { CompleteTrainingPlanPayload, CompleteWorkoutSessionPayload } from '@/shared/types'
+import type { CompleteTrainingPlanPayload, CompleteWorkoutSessionPayload, ExerciseProgressPayload, QuickRoutineAssignmentPayload } from '@/shared/types'
 import type { ExercisePayload, TrainingPlanPayload, TrainingTemplateUpdatePayload, WorkoutDayPayload } from '@/shared/types'
 
 export function usePlansQuery(params?: Record<string, string>) {
@@ -21,19 +21,19 @@ export function usePlanDetailQuery(id: number) {
   })
 }
 
-export function useTodayWorkoutQuery(planId: number) {
+export function useTodayWorkoutQuery(planId: number, enabled = true) {
   return useQuery({
     queryKey: QUERY_KEYS.PLAN_TODAY(planId),
     queryFn: () => plansApi.todayWorkout(planId),
-    enabled: !!planId,
+    enabled: !!planId && enabled,
   })
 }
 
-export function useWeeklyPlanQuery(planId: number) {
+export function useWeeklyPlanQuery(planId: number, enabled = true) {
   return useQuery({
     queryKey: QUERY_KEYS.PLAN_WEEKLY(planId),
     queryFn: () => plansApi.weeklyView(planId),
-    enabled: !!planId,
+    enabled: !!planId && enabled,
   })
 }
 
@@ -69,10 +69,19 @@ export function useGymMachinesQuery(enabled = true) {
   })
 }
 
-export function useTrainingTemplatesQuery() {
+export function useCatalogExercisesQuery(params?: Record<string, string>, enabled = true) {
+  return useQuery({
+    queryKey: QUERY_KEYS.CATALOGO_EJERCICIOS(params),
+    queryFn: () => plansApi.catalogExercises(params),
+    enabled,
+  })
+}
+
+export function useTrainingTemplatesQuery(enabled = true) {
   return useQuery({
     queryKey: QUERY_KEYS.PLAN_TEMPLATES,
     queryFn: plansApi.trainingTemplates,
+    enabled,
   })
 }
 
@@ -104,6 +113,23 @@ export function useCreateCompletePlanMutation() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_ACTIVE_PRESCRIPTION(plan.member) })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TRAINER_OVERVIEW })
       toast.success(plan.status === 'draft' ? 'Plan guardado como borrador' : 'Plan creado correctamente')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useQuickRoutineAssignmentMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: QuickRoutineAssignmentPayload) => plansApi.assignTemplateQuickly(payload),
+    onSuccess: (plan) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN_DASHBOARD })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLANS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLANS_SUMMARY })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_DETAIL(plan.member) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_ACTIVE_PRESCRIPTION(plan.member) })
+      toast.success(plan.status === 'scheduled' ? 'Rutina programada correctamente' : 'Rutina publicada correctamente')
     },
     onError: (error) => toast.error(extractApiError(error)),
   })
@@ -514,6 +540,20 @@ export function useBulkExerciseLogsMutation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WORKOUT_SESSIONS })
       toast.success('Ejercicios registrados correctamente')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useRegisterExerciseProgressMutation(planId?: number) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ sessionId, payload }: { sessionId: number; payload: ExerciseProgressPayload }) =>
+      plansApi.registerExerciseProgress(sessionId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WORKOUT_SESSIONS })
+      if (planId) queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_TODAY(planId) })
     },
     onError: (error) => toast.error(extractApiError(error)),
   })

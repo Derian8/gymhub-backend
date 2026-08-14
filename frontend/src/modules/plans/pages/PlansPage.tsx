@@ -6,7 +6,7 @@ import { useMemberActivePrescriptionQuery, useMemberDashboardQuery, useMembersQu
 import { Badge, PageHeader, EmptyState, StatCard } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
 import { DAY_OF_WEEK_LABELS, formatDate, GOAL_LABELS } from '@/shared/lib/utils'
-import { useAuthStore } from '@/shared/store/authStore'
+import { getResolvedContext, useAuthStore } from '@/shared/store/authStore'
 import { SymbolFrame } from '@/shared/components/Brand'
 import { TrainingPlanWizard } from '../components/TrainingPlanWizard'
 import type { ActivePrescription, MemberDashboardSummary, TrainingPlan, TrainingPlanStatus } from '@/shared/types'
@@ -32,11 +32,12 @@ const PLAN_STATUS_VARIANT: Record<string, 'success' | 'warning' | 'info' | 'neut
 export function PlansPage() {
   const [searchParams] = useSearchParams()
   const memberId = searchParams.get('member')
-  const { user } = useAuthStore()
+  const { user, activeContext } = useAuthStore()
+  const currentContext = getResolvedContext(user, activeContext)
   const [wizardOpen, setWizardOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState<TrainingPlanStatus | 'all'>('all')
   const [search, setSearch] = useState('')
-  const isMemberView = user?.role === 'member' && !memberId
+  const isMemberView = currentContext === 'cliente' && !memberId
   const filtros = useMemo(() => {
     const params: Record<string, string> = {}
     if (memberId) params.member = memberId
@@ -201,7 +202,7 @@ export function PlansPage() {
       <PageHeader
         title={memberId ? 'Planes del miembro' : 'Planes de entrenamiento'}
         subtitle={memberId ? `Mostrando ${data?.count || 0} plan(es) del miembro seleccionado` : 'Crea, asigna y administra las rutinas de tus miembros desde un solo lugar.'}
-        action={user?.role === 'trainer' || user?.is_staff ? (
+        action={currentContext === 'instructor' || user?.is_staff ? (
           <button type="button" className="btn-primary" onClick={() => setWizardOpen(true)} data-testid="open-create-plan-wizard">
             <Plus size={16} /> Crear plan
           </button>
@@ -271,7 +272,7 @@ export function PlansPage() {
           icon={<Dumbbell size={48} />}
           title={search || statusFilter !== 'all' ? 'No encontramos planes con estos filtros.' : 'No hay planes de entrenamiento todavía.'}
           description={search || statusFilter !== 'all' ? 'Ajusta la búsqueda o cambia el filtro de estado.' : 'Crea el primer plan para asignar una rutina clara a un miembro.'}
-          action={user?.role === 'trainer' || user?.is_staff ? (
+          action={currentContext === 'instructor' || user?.is_staff ? (
             <button type="button" className="btn-primary" onClick={() => setWizardOpen(true)}>Crear primer plan</button>
           ) : null}
         />
@@ -283,7 +284,7 @@ export function PlansPage() {
         </div>
       )}
 
-      <TrainingPlanWizard open={wizardOpen} onClose={() => setWizardOpen(false)} />
+      {wizardOpen ? <TrainingPlanWizard open onClose={() => setWizardOpen(false)} /> : null}
     </div>
   )
 }

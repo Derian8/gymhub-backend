@@ -1,0 +1,1233 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.2 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{nyt/apasortcite//global/global}
+    \entry{gymhub_repo}{software}{}
+      \name{author}{2}{}{%
+        {{un=0,uniquepart=base,hash=ad57243a6891429b520eca2d0ab0ef2c}{%
+           family={Acuña},
+           familyi={A\bibinitperiod},
+           given={Derian},
+           giveni={D\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=911fa3ac29ec55f8f584edae2b44f02e}{%
+           family={Masis},
+           familyi={M\bibinitperiod},
+           given={Ignacio},
+           giveni={I\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{b7423d5e5e0c60f92ce44487c08649b9}
+      \strng{fullhash}{b7423d5e5e0c60f92ce44487c08649b9}
+      \strng{bibnamehash}{b7423d5e5e0c60f92ce44487c08649b9}
+      \strng{authorbibnamehash}{b7423d5e5e0c60f92ce44487c08649b9}
+      \strng{authornamehash}{b7423d5e5e0c60f92ce44487c08649b9}
+      \strng{authorfullhash}{b7423d5e5e0c60f92ce44487c08649b9}
+      \field{sortinit}{A}
+      \field{sortinithash}{2f401846e2029bad6b3ecc16d50031e2}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{GymHub: repositorio del prototipo}
+      \field{urlday}{1}
+      \field{urlmonth}{7}
+      \field{urlyear}{2026}
+      \field{version}{MVP funcional}
+      \field{year}{2026}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://github.com/Derian8/gymhub-backend
+      \endverb
+      \verb{url}
+      \verb https://github.com/Derian8/gymhub-backend
+      \endverb
+    \endentry
+    \entry{encuesta_gymhub_2026}{report}{}
+      \name{author}{2}{}{%
+        {{un=0,uniquepart=base,hash=4e62518742b7235734a90775ad404c84}{%
+           family={Acuña\bibnamedelima Rojas},
+           familyi={A\bibinitperiod\bibinitdelim R\bibinitperiod},
+           given={Derian},
+           giveni={D\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=83ec838d59d7f8311f72db67d1700def}{%
+           family={Masis\bibnamedelima Cascante},
+           familyi={M\bibinitperiod\bibinitdelim C\bibinitperiod},
+           given={Ignacio},
+           giveni={I\bibinitperiod},
+           givenun=0}}%
+      }
+      \list{institution}{1}{%
+        {Colegio Técnico Profesional de Platanares}%
+      }
+      \list{location}{1}{%
+        {Pérez Zeledón, Costa Rica}%
+      }
+      \strng{namehash}{1d6583cfa3aca92d9a7af479d80efb24}
+      \strng{fullhash}{1d6583cfa3aca92d9a7af479d80efb24}
+      \strng{bibnamehash}{1d6583cfa3aca92d9a7af479d80efb24}
+      \strng{authorbibnamehash}{1d6583cfa3aca92d9a7af479d80efb24}
+      \strng{authornamehash}{1d6583cfa3aca92d9a7af479d80efb24}
+      \strng{authorfullhash}{1d6583cfa3aca92d9a7af479d80efb24}
+      \field{extraname}{1}
+      \field{sortinit}{A}
+      \field{sortinithash}{2f401846e2029bad6b3ecc16d50031e2}
+      \field{extradate}{1}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{day}{24}
+      \field{month}{7}
+      \field{note}{Base de datos anonimizada y instrumento incluidos en los apéndices}
+      \field{title}{Encuesta de validación de GymHub}
+      \field{year}{2026}
+      \field{dateera}{ce}
+    \endentry
+    \entry{presupuesto_gymhub_2026}{report}{}
+      \name{author}{2}{}{%
+        {{un=0,uniquepart=base,hash=4e62518742b7235734a90775ad404c84}{%
+           family={Acuña\bibnamedelima Rojas},
+           familyi={A\bibinitperiod\bibinitdelim R\bibinitperiod},
+           given={Derian},
+           giveni={D\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=83ec838d59d7f8311f72db67d1700def}{%
+           family={Masis\bibnamedelima Cascante},
+           familyi={M\bibinitperiod\bibinitdelim C\bibinitperiod},
+           given={Ignacio},
+           giveni={I\bibinitperiod},
+           givenun=0}}%
+      }
+      \list{institution}{1}{%
+        {Colegio Técnico Profesional de Platanares}%
+      }
+      \list{location}{1}{%
+        {Pérez Zeledón, Costa Rica}%
+      }
+      \strng{namehash}{1d6583cfa3aca92d9a7af479d80efb24}
+      \strng{fullhash}{1d6583cfa3aca92d9a7af479d80efb24}
+      \strng{bibnamehash}{1d6583cfa3aca92d9a7af479d80efb24}
+      \strng{authorbibnamehash}{1d6583cfa3aca92d9a7af479d80efb24}
+      \strng{authornamehash}{1d6583cfa3aca92d9a7af479d80efb24}
+      \strng{authorfullhash}{1d6583cfa3aca92d9a7af479d80efb24}
+      \field{extraname}{2}
+      \field{sortinit}{A}
+      \field{sortinithash}{2f401846e2029bad6b3ecc16d50031e2}
+      \field{extradate}{2}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{day}{13}
+      \field{month}{8}
+      \field{note}{Estimación interna con supuestos y escenarios incluidos en los apéndices; requiere cotizaciones formales antes de vender}
+      \field{title}{Presupuesto operativo preliminar de GymHub}
+      \field{year}{2026}
+      \field{dateera}{ce}
+    \endentry
+    \entry{codigo_comercio_cr}{legislation}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=97cd6012a5eb7dcb8418829060a951c8}{%
+           family={{Asamblea Legislativa de la República de Costa Rica}},
+           familyi={A\bibinitperiod}}}%
+      }
+      \strng{namehash}{97cd6012a5eb7dcb8418829060a951c8}
+      \strng{fullhash}{97cd6012a5eb7dcb8418829060a951c8}
+      \strng{bibnamehash}{97cd6012a5eb7dcb8418829060a951c8}
+      \strng{authorbibnamehash}{97cd6012a5eb7dcb8418829060a951c8}
+      \strng{authornamehash}{97cd6012a5eb7dcb8418829060a951c8}
+      \strng{authorfullhash}{97cd6012a5eb7dcb8418829060a951c8}
+      \field{extraname}{1}
+      \field{sortinit}{A}
+      \field{sortinithash}{2f401846e2029bad6b3ecc16d50031e2}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{day}{30}
+      \field{month}{4}
+      \field{title}{Código de Comercio, Ley n.º 3284}
+      \field{urlday}{24}
+      \field{urlmonth}{7}
+      \field{urlyear}{2026}
+      \field{year}{1964}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_texto_completo.aspx?nValor1=1&nValor2=6239
+      \endverb
+      \verb{url}
+      \verb https://pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_texto_completo.aspx?nValor1=1&nValor2=6239
+      \endverb
+    \endentry
+    \entry{ley8968}{legislation}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=97cd6012a5eb7dcb8418829060a951c8}{%
+           family={{Asamblea Legislativa de la República de Costa Rica}},
+           familyi={A\bibinitperiod}}}%
+      }
+      \strng{namehash}{97cd6012a5eb7dcb8418829060a951c8}
+      \strng{fullhash}{97cd6012a5eb7dcb8418829060a951c8}
+      \strng{bibnamehash}{97cd6012a5eb7dcb8418829060a951c8}
+      \strng{authorbibnamehash}{97cd6012a5eb7dcb8418829060a951c8}
+      \strng{authornamehash}{97cd6012a5eb7dcb8418829060a951c8}
+      \strng{authorfullhash}{97cd6012a5eb7dcb8418829060a951c8}
+      \field{extraname}{2}
+      \field{sortinit}{A}
+      \field{sortinithash}{2f401846e2029bad6b3ecc16d50031e2}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{day}{7}
+      \field{month}{7}
+      \field{title}{Ley de Protección de la Persona frente al Tratamiento de sus Datos Personales, Ley n.º 8968}
+      \field{urlday}{1}
+      \field{urlmonth}{7}
+      \field{urlyear}{2026}
+      \field{year}{2011}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_texto_completo.aspx?param1=NRTC&nValor1=1&nValor2=70975&nValor3=85989&strTipM=TC
+      \endverb
+      \verb{url}
+      \verb https://pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_texto_completo.aspx?param1=NRTC&nValor1=1&nValor2=70975&nValor3=85989&strTipM=TC
+      \endverb
+    \endentry
+    \entry{baca2016}{book}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=b1fed4d55f9c6dff72231a20922807e2}{%
+           family={Baca\bibnamedelima Urbina},
+           familyi={B\bibinitperiod\bibinitdelim U\bibinitperiod},
+           given={Gabriel},
+           giveni={G\bibinitperiod},
+           givenun=0}}%
+      }
+      \list{publisher}{1}{%
+        {McGraw-Hill Interamericana}%
+      }
+      \strng{namehash}{b1fed4d55f9c6dff72231a20922807e2}
+      \strng{fullhash}{b1fed4d55f9c6dff72231a20922807e2}
+      \strng{bibnamehash}{b1fed4d55f9c6dff72231a20922807e2}
+      \strng{authorbibnamehash}{b1fed4d55f9c6dff72231a20922807e2}
+      \strng{authornamehash}{b1fed4d55f9c6dff72231a20922807e2}
+      \strng{authorfullhash}{b1fed4d55f9c6dff72231a20922807e2}
+      \field{sortinit}{B}
+      \field{sortinithash}{d7095fff47cda75ca2589920aae98399}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{edition}{8}
+      \field{title}{Evaluación de proyectos}
+      \field{year}{2016}
+      \field{dateera}{ce}
+    \endentry
+    \entry{bccr_tipo_cambio}{online}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=8d2fe02e0c3eab6a84ca26d1e039cc0a}{%
+           family={{Banco Central de Costa Rica}},
+           familyi={B\bibinitperiod}}}%
+      }
+      \strng{namehash}{8d2fe02e0c3eab6a84ca26d1e039cc0a}
+      \strng{fullhash}{8d2fe02e0c3eab6a84ca26d1e039cc0a}
+      \strng{bibnamehash}{8d2fe02e0c3eab6a84ca26d1e039cc0a}
+      \strng{authorbibnamehash}{8d2fe02e0c3eab6a84ca26d1e039cc0a}
+      \strng{authornamehash}{8d2fe02e0c3eab6a84ca26d1e039cc0a}
+      \strng{authorfullhash}{8d2fe02e0c3eab6a84ca26d1e039cc0a}
+      \field{sortinit}{B}
+      \field{sortinithash}{d7095fff47cda75ca2589920aae98399}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{note}{Tipo de cambio de referencia de venta consultado: CRC 456,94 por USD}
+      \field{title}{Indicadores económicos: tipo de cambio de referencia}
+      \field{urlday}{1}
+      \field{urlmonth}{7}
+      \field{urlyear}{2026}
+      \field{year}{2026}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://www.bccr.fi.cr/indicadores-economicos
+      \endverb
+      \verb{url}
+      \verb https://www.bccr.fi.cr/indicadores-economicos
+      \endverb
+    \endentry
+    \entry{ccss_independiente}{online}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=0e36267a386bfa218534c075844549fa}{%
+           family={{Caja Costarricense de Seguro Social}},
+           familyi={C\bibinitperiod}}}%
+      }
+      \strng{namehash}{0e36267a386bfa218534c075844549fa}
+      \strng{fullhash}{0e36267a386bfa218534c075844549fa}
+      \strng{bibnamehash}{0e36267a386bfa218534c075844549fa}
+      \strng{authorbibnamehash}{0e36267a386bfa218534c075844549fa}
+      \strng{authornamehash}{0e36267a386bfa218534c075844549fa}
+      \strng{authorfullhash}{0e36267a386bfa218534c075844549fa}
+      \field{sortinit}{C}
+      \field{sortinithash}{4d103a86280481745c9c897c925753c0}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Información para trabajadores independientes}
+      \field{urlday}{24}
+      \field{urlmonth}{7}
+      \field{urlyear}{2026}
+      \field{year}{2026}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://aissfa.ccss.sa.cr/contacto2
+      \endverb
+      \verb{url}
+      \verb https://aissfa.ccss.sa.cr/contacto2
+      \endverb
+    \endentry
+    \entry{celery2026}{online}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=a1db27179aedb5c3ca1937ad8598f620}{%
+           family={{Celery Project}},
+           familyi={C\bibinitperiod}}}%
+      }
+      \strng{namehash}{a1db27179aedb5c3ca1937ad8598f620}
+      \strng{fullhash}{a1db27179aedb5c3ca1937ad8598f620}
+      \strng{bibnamehash}{a1db27179aedb5c3ca1937ad8598f620}
+      \strng{authorbibnamehash}{a1db27179aedb5c3ca1937ad8598f620}
+      \strng{authornamehash}{a1db27179aedb5c3ca1937ad8598f620}
+      \strng{authorfullhash}{a1db27179aedb5c3ca1937ad8598f620}
+      \field{sortinit}{C}
+      \field{sortinithash}{4d103a86280481745c9c897c925753c0}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Introduction to Celery}
+      \field{urlday}{1}
+      \field{urlmonth}{7}
+      \field{urlyear}{2026}
+      \field{year}{2026}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://docs.celeryq.dev/en/stable/getting-started/introduction.html
+      \endverb
+      \verb{url}
+      \verb https://docs.celeryq.dev/en/stable/getting-started/introduction.html
+      \endverb
+    \endentry
+    \entry{django51}{online}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=f831bff1f5132f6edd2ec0e00e5b9af9}{%
+           family={{Django Software Foundation}},
+           familyi={D\bibinitperiod}}}%
+      }
+      \strng{namehash}{f831bff1f5132f6edd2ec0e00e5b9af9}
+      \strng{fullhash}{f831bff1f5132f6edd2ec0e00e5b9af9}
+      \strng{bibnamehash}{f831bff1f5132f6edd2ec0e00e5b9af9}
+      \strng{authorbibnamehash}{f831bff1f5132f6edd2ec0e00e5b9af9}
+      \strng{authornamehash}{f831bff1f5132f6edd2ec0e00e5b9af9}
+      \strng{authorfullhash}{f831bff1f5132f6edd2ec0e00e5b9af9}
+      \field{sortinit}{D}
+      \field{sortinithash}{6f385f66841fb5e82009dc833c761848}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Documentación de Django 5.1}
+      \field{urlday}{1}
+      \field{urlmonth}{7}
+      \field{urlyear}{2026}
+      \field{year}{2024}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://docs.djangoproject.com/es/5.1/
+      \endverb
+      \verb{url}
+      \verb https://docs.djangoproject.com/es/5.1/
+      \endverb
+    \endentry
+    \entry{drf315}{online}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=e70200697136727810847e18b40c5a1d}{%
+           family={{Encode OSS Ltd.}},
+           familyi={E\bibinitperiod}}}%
+      }
+      \strng{namehash}{e70200697136727810847e18b40c5a1d}
+      \strng{fullhash}{e70200697136727810847e18b40c5a1d}
+      \strng{bibnamehash}{e70200697136727810847e18b40c5a1d}
+      \strng{authorbibnamehash}{e70200697136727810847e18b40c5a1d}
+      \strng{authornamehash}{e70200697136727810847e18b40c5a1d}
+      \strng{authorfullhash}{e70200697136727810847e18b40c5a1d}
+      \field{sortinit}{E}
+      \field{sortinithash}{8da8a182d344d5b9047633dfc0cc9131}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Django REST framework documentation}
+      \field{urlday}{1}
+      \field{urlmonth}{7}
+      \field{urlyear}{2026}
+      \field{year}{2026}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://www.django-rest-framework.org/
+      \endverb
+      \verb{url}
+      \verb https://www.django-rest-framework.org/
+      \endverb
+    \endentry
+    \entry{inec_enameh2024}{report}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=e73b57f6a2f6ffad8f2d12043b84f0f2}{%
+           family={{Instituto Nacional de Estadística y Censos de Costa Rica}},
+           familyi={I\bibinitperiod}}}%
+      }
+      \list{institution}{1}{%
+        {Instituto Nacional de Estadística y Censos}%
+      }
+      \strng{namehash}{e73b57f6a2f6ffad8f2d12043b84f0f2}
+      \strng{fullhash}{e73b57f6a2f6ffad8f2d12043b84f0f2}
+      \strng{bibnamehash}{e73b57f6a2f6ffad8f2d12043b84f0f2}
+      \strng{authorbibnamehash}{e73b57f6a2f6ffad8f2d12043b84f0f2}
+      \strng{authornamehash}{e73b57f6a2f6ffad8f2d12043b84f0f2}
+      \strng{authorfullhash}{e73b57f6a2f6ffad8f2d12043b84f0f2}
+      \field{sortinit}{I}
+      \field{sortinithash}{8d291c51ee89b6cd86bf5379f0b151d8}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{day}{23}
+      \field{month}{1}
+      \field{title}{Resultados generales de la Encuesta Nacional de Microempresas de los Hogares 2024}
+      \field{urlday}{31}
+      \field{urlmonth}{7}
+      \field{urlyear}{2026}
+      \field{year}{2025}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://admin.inec.cr/sites/default/files/2025-01/reenameh2024.pdf.pdf
+      \endverb
+      \verb{url}
+      \verb https://admin.inec.cr/sites/default/files/2025-01/reenameh2024.pdf.pdf
+      \endverb
+    \endentry
+    \entry{kotler2018}{book}{}
+      \name{author}{2}{}{%
+        {{un=0,uniquepart=base,hash=68992773d1a840399049c9a31388c032}{%
+           family={Kotler},
+           familyi={K\bibinitperiod},
+           given={Philip},
+           giveni={P\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=4df14cccabb46207678b3e32922d7044}{%
+           family={Armstrong},
+           familyi={A\bibinitperiod},
+           given={Gary},
+           giveni={G\bibinitperiod},
+           givenun=0}}%
+      }
+      \list{publisher}{1}{%
+        {Pearson}%
+      }
+      \strng{namehash}{3b5de2fe0f40145c2091a25714d41488}
+      \strng{fullhash}{3b5de2fe0f40145c2091a25714d41488}
+      \strng{bibnamehash}{3b5de2fe0f40145c2091a25714d41488}
+      \strng{authorbibnamehash}{3b5de2fe0f40145c2091a25714d41488}
+      \strng{authornamehash}{3b5de2fe0f40145c2091a25714d41488}
+      \strng{authorfullhash}{3b5de2fe0f40145c2091a25714d41488}
+      \field{sortinit}{K}
+      \field{sortinithash}{c02bf6bff1c488450c352b40f5d853ab}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{edition}{2}
+      \field{title}{Introducción al marketing}
+      \field{year}{2018}
+      \field{dateera}{ce}
+    \endentry
+    \entry{react2026}{online}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=350a86b0327152e3a50596538f38a5db}{%
+           family={{Meta Platforms, Inc.}},
+           familyi={M\bibinitperiod}}}%
+      }
+      \strng{namehash}{350a86b0327152e3a50596538f38a5db}
+      \strng{fullhash}{350a86b0327152e3a50596538f38a5db}
+      \strng{bibnamehash}{350a86b0327152e3a50596538f38a5db}
+      \strng{authorbibnamehash}{350a86b0327152e3a50596538f38a5db}
+      \strng{authornamehash}{350a86b0327152e3a50596538f38a5db}
+      \strng{authorfullhash}{350a86b0327152e3a50596538f38a5db}
+      \field{sortinit}{M}
+      \field{sortinithash}{4625c616857f13d17ce56f7d4f97d451}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{React: Tu primer componente}
+      \field{urlday}{1}
+      \field{urlmonth}{7}
+      \field{urlyear}{2026}
+      \field{year}{2026}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://es.react.dev/learn/your-first-component
+      \endverb
+      \verb{url}
+      \verb https://es.react.dev/learn/your-first-component
+      \endverb
+    \endentry
+    \entry{meic_pndip2023_2026}{report}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=6ac0d04a88bf00bd573ce7e8bbe14c25}{%
+           family={{Ministerio de Economía, Industria y Comercio de Costa Rica}},
+           familyi={M\bibinitperiod}}}%
+      }
+      \list{institution}{1}{%
+        {Ministerio de Economía, Industria y Comercio}%
+      }
+      \strng{namehash}{6ac0d04a88bf00bd573ce7e8bbe14c25}
+      \strng{fullhash}{6ac0d04a88bf00bd573ce7e8bbe14c25}
+      \strng{bibnamehash}{6ac0d04a88bf00bd573ce7e8bbe14c25}
+      \strng{authorbibnamehash}{6ac0d04a88bf00bd573ce7e8bbe14c25}
+      \strng{authornamehash}{6ac0d04a88bf00bd573ce7e8bbe14c25}
+      \strng{authorfullhash}{6ac0d04a88bf00bd573ce7e8bbe14c25}
+      \field{sortinit}{M}
+      \field{sortinithash}{4625c616857f13d17ce56f7d4f97d451}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Anexos técnicos del Plan Nacional de Desarrollo e Inversión Pública 2023--2026}
+      \field{urlday}{31}
+      \field{urlmonth}{7}
+      \field{urlyear}{2026}
+      \field{year}{2024}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://www.meic.go.cr/wp-content/uploads/2024/11/Fichas_tecnicas-PNDIP-SPDR.pdf
+      \endverb
+      \verb{url}
+      \verb https://www.meic.go.cr/wp-content/uploads/2024/11/Fichas_tecnicas-PNDIP-SPDR.pdf
+      \endverb
+    \endentry
+    \entry{mep2026}{report}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=a9bbd990a2bbaf65a1a6c42fdf573034}{%
+           family={{Ministerio de Educación Pública de Costa Rica}},
+           familyi={M\bibinitperiod}}}%
+      }
+      \list{institution}{1}{%
+        {Dirección de Educación Técnica y Capacidades Emprendedoras}%
+      }
+      \list{location}{1}{%
+        {San José, Costa Rica}%
+      }
+      \strng{namehash}{a9bbd990a2bbaf65a1a6c42fdf573034}
+      \strng{fullhash}{a9bbd990a2bbaf65a1a6c42fdf573034}
+      \strng{bibnamehash}{a9bbd990a2bbaf65a1a6c42fdf573034}
+      \strng{authorbibnamehash}{a9bbd990a2bbaf65a1a6c42fdf573034}
+      \strng{authornamehash}{a9bbd990a2bbaf65a1a6c42fdf573034}
+      \strng{authorfullhash}{a9bbd990a2bbaf65a1a6c42fdf573034}
+      \field{sortinit}{M}
+      \field{sortinithash}{4625c616857f13d17ce56f7d4f97d451}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{note}{Documento institucional suministrado para el proyecto}
+      \field{title}{Lineamientos técnicos-administrativos ExpoTÉCNICA 2026}
+      \field{year}{2026}
+      \field{dateera}{ce}
+    \endentry
+    \entry{hacienda_rut}{online}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=311651a15b3e71b92e50f81301519717}{%
+           family={{Ministerio de Hacienda de Costa Rica}},
+           familyi={M\bibinitperiod}}}%
+      }
+      \strng{namehash}{311651a15b3e71b92e50f81301519717}
+      \strng{fullhash}{311651a15b3e71b92e50f81301519717}
+      \strng{bibnamehash}{311651a15b3e71b92e50f81301519717}
+      \strng{authorbibnamehash}{311651a15b3e71b92e50f81301519717}
+      \strng{authornamehash}{311651a15b3e71b92e50f81301519717}
+      \strng{authorfullhash}{311651a15b3e71b92e50f81301519717}
+      \field{sortinit}{M}
+      \field{sortinithash}{4625c616857f13d17ce56f7d4f97d451}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Inscripción, modificación y desinscripción en el Registro Único Tributario}
+      \field{urlday}{24}
+      \field{urlmonth}{7}
+      \field{urlyear}{2026}
+      \field{year}{2024}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://www.hacienda.go.cr/docs/GeneralidadesInscripcionModifDesinsc.pdf
+      \endverb
+      \verb{url}
+      \verb https://www.hacienda.go.cr/docs/GeneralidadesInscripcionModifDesinsc.pdf
+      \endverb
+    \endentry
+  \enddatalist
+  \datalist[entry]{nyt/global//global/global}
+    \entry{gymhub_repo}{software}{}
+      \name{author}{2}{}{%
+        {{un=0,uniquepart=base,hash=ad57243a6891429b520eca2d0ab0ef2c}{%
+           family={Acuña},
+           familyi={A\bibinitperiod},
+           given={Derian},
+           giveni={D\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=911fa3ac29ec55f8f584edae2b44f02e}{%
+           family={Masis},
+           familyi={M\bibinitperiod},
+           given={Ignacio},
+           giveni={I\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{b7423d5e5e0c60f92ce44487c08649b9}
+      \strng{fullhash}{b7423d5e5e0c60f92ce44487c08649b9}
+      \strng{bibnamehash}{b7423d5e5e0c60f92ce44487c08649b9}
+      \strng{authorbibnamehash}{b7423d5e5e0c60f92ce44487c08649b9}
+      \strng{authornamehash}{b7423d5e5e0c60f92ce44487c08649b9}
+      \strng{authorfullhash}{b7423d5e5e0c60f92ce44487c08649b9}
+      \field{sortinit}{A}
+      \field{sortinithash}{2f401846e2029bad6b3ecc16d50031e2}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{GymHub: repositorio del prototipo}
+      \field{urlday}{1}
+      \field{urlmonth}{7}
+      \field{urlyear}{2026}
+      \field{version}{MVP funcional}
+      \field{year}{2026}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://github.com/Derian8/gymhub-backend
+      \endverb
+      \verb{url}
+      \verb https://github.com/Derian8/gymhub-backend
+      \endverb
+    \endentry
+    \entry{encuesta_gymhub_2026}{report}{}
+      \name{author}{2}{}{%
+        {{un=0,uniquepart=base,hash=4e62518742b7235734a90775ad404c84}{%
+           family={Acuña\bibnamedelima Rojas},
+           familyi={A\bibinitperiod\bibinitdelim R\bibinitperiod},
+           given={Derian},
+           giveni={D\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=83ec838d59d7f8311f72db67d1700def}{%
+           family={Masis\bibnamedelima Cascante},
+           familyi={M\bibinitperiod\bibinitdelim C\bibinitperiod},
+           given={Ignacio},
+           giveni={I\bibinitperiod},
+           givenun=0}}%
+      }
+      \list{institution}{1}{%
+        {Colegio Técnico Profesional de Platanares}%
+      }
+      \list{location}{1}{%
+        {Pérez Zeledón, Costa Rica}%
+      }
+      \strng{namehash}{1d6583cfa3aca92d9a7af479d80efb24}
+      \strng{fullhash}{1d6583cfa3aca92d9a7af479d80efb24}
+      \strng{bibnamehash}{1d6583cfa3aca92d9a7af479d80efb24}
+      \strng{authorbibnamehash}{1d6583cfa3aca92d9a7af479d80efb24}
+      \strng{authornamehash}{1d6583cfa3aca92d9a7af479d80efb24}
+      \strng{authorfullhash}{1d6583cfa3aca92d9a7af479d80efb24}
+      \field{extraname}{1}
+      \field{sortinit}{A}
+      \field{sortinithash}{2f401846e2029bad6b3ecc16d50031e2}
+      \field{extradate}{1}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{day}{24}
+      \field{month}{7}
+      \field{note}{Base de datos anonimizada y instrumento incluidos en los apéndices}
+      \field{title}{Encuesta de validación de GymHub}
+      \field{year}{2026}
+      \field{dateera}{ce}
+    \endentry
+    \entry{presupuesto_gymhub_2026}{report}{}
+      \name{author}{2}{}{%
+        {{un=0,uniquepart=base,hash=4e62518742b7235734a90775ad404c84}{%
+           family={Acuña\bibnamedelima Rojas},
+           familyi={A\bibinitperiod\bibinitdelim R\bibinitperiod},
+           given={Derian},
+           giveni={D\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=83ec838d59d7f8311f72db67d1700def}{%
+           family={Masis\bibnamedelima Cascante},
+           familyi={M\bibinitperiod\bibinitdelim C\bibinitperiod},
+           given={Ignacio},
+           giveni={I\bibinitperiod},
+           givenun=0}}%
+      }
+      \list{institution}{1}{%
+        {Colegio Técnico Profesional de Platanares}%
+      }
+      \list{location}{1}{%
+        {Pérez Zeledón, Costa Rica}%
+      }
+      \strng{namehash}{1d6583cfa3aca92d9a7af479d80efb24}
+      \strng{fullhash}{1d6583cfa3aca92d9a7af479d80efb24}
+      \strng{bibnamehash}{1d6583cfa3aca92d9a7af479d80efb24}
+      \strng{authorbibnamehash}{1d6583cfa3aca92d9a7af479d80efb24}
+      \strng{authornamehash}{1d6583cfa3aca92d9a7af479d80efb24}
+      \strng{authorfullhash}{1d6583cfa3aca92d9a7af479d80efb24}
+      \field{extraname}{2}
+      \field{sortinit}{A}
+      \field{sortinithash}{2f401846e2029bad6b3ecc16d50031e2}
+      \field{extradate}{2}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{day}{13}
+      \field{month}{8}
+      \field{note}{Estimación interna con supuestos y escenarios incluidos en los apéndices; requiere cotizaciones formales antes de vender}
+      \field{title}{Presupuesto operativo preliminar de GymHub}
+      \field{year}{2026}
+      \field{dateera}{ce}
+    \endentry
+    \entry{codigo_comercio_cr}{legislation}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=97cd6012a5eb7dcb8418829060a951c8}{%
+           family={{Asamblea Legislativa de la República de Costa Rica}},
+           familyi={A\bibinitperiod}}}%
+      }
+      \strng{namehash}{97cd6012a5eb7dcb8418829060a951c8}
+      \strng{fullhash}{97cd6012a5eb7dcb8418829060a951c8}
+      \strng{bibnamehash}{97cd6012a5eb7dcb8418829060a951c8}
+      \strng{authorbibnamehash}{97cd6012a5eb7dcb8418829060a951c8}
+      \strng{authornamehash}{97cd6012a5eb7dcb8418829060a951c8}
+      \strng{authorfullhash}{97cd6012a5eb7dcb8418829060a951c8}
+      \field{extraname}{1}
+      \field{sortinit}{A}
+      \field{sortinithash}{2f401846e2029bad6b3ecc16d50031e2}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{day}{30}
+      \field{month}{4}
+      \field{title}{Código de Comercio, Ley n.º 3284}
+      \field{urlday}{24}
+      \field{urlmonth}{7}
+      \field{urlyear}{2026}
+      \field{year}{1964}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_texto_completo.aspx?nValor1=1&nValor2=6239
+      \endverb
+      \verb{url}
+      \verb https://pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_texto_completo.aspx?nValor1=1&nValor2=6239
+      \endverb
+    \endentry
+    \entry{ley8968}{legislation}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=97cd6012a5eb7dcb8418829060a951c8}{%
+           family={{Asamblea Legislativa de la República de Costa Rica}},
+           familyi={A\bibinitperiod}}}%
+      }
+      \strng{namehash}{97cd6012a5eb7dcb8418829060a951c8}
+      \strng{fullhash}{97cd6012a5eb7dcb8418829060a951c8}
+      \strng{bibnamehash}{97cd6012a5eb7dcb8418829060a951c8}
+      \strng{authorbibnamehash}{97cd6012a5eb7dcb8418829060a951c8}
+      \strng{authornamehash}{97cd6012a5eb7dcb8418829060a951c8}
+      \strng{authorfullhash}{97cd6012a5eb7dcb8418829060a951c8}
+      \field{extraname}{2}
+      \field{sortinit}{A}
+      \field{sortinithash}{2f401846e2029bad6b3ecc16d50031e2}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{day}{7}
+      \field{month}{7}
+      \field{title}{Ley de Protección de la Persona frente al Tratamiento de sus Datos Personales, Ley n.º 8968}
+      \field{urlday}{1}
+      \field{urlmonth}{7}
+      \field{urlyear}{2026}
+      \field{year}{2011}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_texto_completo.aspx?param1=NRTC&nValor1=1&nValor2=70975&nValor3=85989&strTipM=TC
+      \endverb
+      \verb{url}
+      \verb https://pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_texto_completo.aspx?param1=NRTC&nValor1=1&nValor2=70975&nValor3=85989&strTipM=TC
+      \endverb
+    \endentry
+    \entry{baca2016}{book}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=b1fed4d55f9c6dff72231a20922807e2}{%
+           family={Baca\bibnamedelima Urbina},
+           familyi={B\bibinitperiod\bibinitdelim U\bibinitperiod},
+           given={Gabriel},
+           giveni={G\bibinitperiod},
+           givenun=0}}%
+      }
+      \list{publisher}{1}{%
+        {McGraw-Hill Interamericana}%
+      }
+      \strng{namehash}{b1fed4d55f9c6dff72231a20922807e2}
+      \strng{fullhash}{b1fed4d55f9c6dff72231a20922807e2}
+      \strng{bibnamehash}{b1fed4d55f9c6dff72231a20922807e2}
+      \strng{authorbibnamehash}{b1fed4d55f9c6dff72231a20922807e2}
+      \strng{authornamehash}{b1fed4d55f9c6dff72231a20922807e2}
+      \strng{authorfullhash}{b1fed4d55f9c6dff72231a20922807e2}
+      \field{sortinit}{B}
+      \field{sortinithash}{d7095fff47cda75ca2589920aae98399}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{edition}{8}
+      \field{title}{Evaluación de proyectos}
+      \field{year}{2016}
+      \field{dateera}{ce}
+    \endentry
+    \entry{bccr_tipo_cambio}{online}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=8d2fe02e0c3eab6a84ca26d1e039cc0a}{%
+           family={{Banco Central de Costa Rica}},
+           familyi={B\bibinitperiod}}}%
+      }
+      \strng{namehash}{8d2fe02e0c3eab6a84ca26d1e039cc0a}
+      \strng{fullhash}{8d2fe02e0c3eab6a84ca26d1e039cc0a}
+      \strng{bibnamehash}{8d2fe02e0c3eab6a84ca26d1e039cc0a}
+      \strng{authorbibnamehash}{8d2fe02e0c3eab6a84ca26d1e039cc0a}
+      \strng{authornamehash}{8d2fe02e0c3eab6a84ca26d1e039cc0a}
+      \strng{authorfullhash}{8d2fe02e0c3eab6a84ca26d1e039cc0a}
+      \field{sortinit}{B}
+      \field{sortinithash}{d7095fff47cda75ca2589920aae98399}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{note}{Tipo de cambio de referencia de venta consultado: CRC 456,94 por USD}
+      \field{title}{Indicadores económicos: tipo de cambio de referencia}
+      \field{urlday}{1}
+      \field{urlmonth}{7}
+      \field{urlyear}{2026}
+      \field{year}{2026}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://www.bccr.fi.cr/indicadores-economicos
+      \endverb
+      \verb{url}
+      \verb https://www.bccr.fi.cr/indicadores-economicos
+      \endverb
+    \endentry
+    \entry{ccss_independiente}{online}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=0e36267a386bfa218534c075844549fa}{%
+           family={{Caja Costarricense de Seguro Social}},
+           familyi={C\bibinitperiod}}}%
+      }
+      \strng{namehash}{0e36267a386bfa218534c075844549fa}
+      \strng{fullhash}{0e36267a386bfa218534c075844549fa}
+      \strng{bibnamehash}{0e36267a386bfa218534c075844549fa}
+      \strng{authorbibnamehash}{0e36267a386bfa218534c075844549fa}
+      \strng{authornamehash}{0e36267a386bfa218534c075844549fa}
+      \strng{authorfullhash}{0e36267a386bfa218534c075844549fa}
+      \field{sortinit}{C}
+      \field{sortinithash}{4d103a86280481745c9c897c925753c0}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Información para trabajadores independientes}
+      \field{urlday}{24}
+      \field{urlmonth}{7}
+      \field{urlyear}{2026}
+      \field{year}{2026}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://aissfa.ccss.sa.cr/contacto2
+      \endverb
+      \verb{url}
+      \verb https://aissfa.ccss.sa.cr/contacto2
+      \endverb
+    \endentry
+    \entry{celery2026}{online}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=a1db27179aedb5c3ca1937ad8598f620}{%
+           family={{Celery Project}},
+           familyi={C\bibinitperiod}}}%
+      }
+      \strng{namehash}{a1db27179aedb5c3ca1937ad8598f620}
+      \strng{fullhash}{a1db27179aedb5c3ca1937ad8598f620}
+      \strng{bibnamehash}{a1db27179aedb5c3ca1937ad8598f620}
+      \strng{authorbibnamehash}{a1db27179aedb5c3ca1937ad8598f620}
+      \strng{authornamehash}{a1db27179aedb5c3ca1937ad8598f620}
+      \strng{authorfullhash}{a1db27179aedb5c3ca1937ad8598f620}
+      \field{sortinit}{C}
+      \field{sortinithash}{4d103a86280481745c9c897c925753c0}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Introduction to Celery}
+      \field{urlday}{1}
+      \field{urlmonth}{7}
+      \field{urlyear}{2026}
+      \field{year}{2026}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://docs.celeryq.dev/en/stable/getting-started/introduction.html
+      \endverb
+      \verb{url}
+      \verb https://docs.celeryq.dev/en/stable/getting-started/introduction.html
+      \endverb
+    \endentry
+    \entry{django51}{online}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=f831bff1f5132f6edd2ec0e00e5b9af9}{%
+           family={{Django Software Foundation}},
+           familyi={D\bibinitperiod}}}%
+      }
+      \strng{namehash}{f831bff1f5132f6edd2ec0e00e5b9af9}
+      \strng{fullhash}{f831bff1f5132f6edd2ec0e00e5b9af9}
+      \strng{bibnamehash}{f831bff1f5132f6edd2ec0e00e5b9af9}
+      \strng{authorbibnamehash}{f831bff1f5132f6edd2ec0e00e5b9af9}
+      \strng{authornamehash}{f831bff1f5132f6edd2ec0e00e5b9af9}
+      \strng{authorfullhash}{f831bff1f5132f6edd2ec0e00e5b9af9}
+      \field{sortinit}{D}
+      \field{sortinithash}{6f385f66841fb5e82009dc833c761848}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Documentación de Django 5.1}
+      \field{urlday}{1}
+      \field{urlmonth}{7}
+      \field{urlyear}{2026}
+      \field{year}{2024}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://docs.djangoproject.com/es/5.1/
+      \endverb
+      \verb{url}
+      \verb https://docs.djangoproject.com/es/5.1/
+      \endverb
+    \endentry
+    \entry{drf315}{online}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=e70200697136727810847e18b40c5a1d}{%
+           family={{Encode OSS Ltd.}},
+           familyi={E\bibinitperiod}}}%
+      }
+      \strng{namehash}{e70200697136727810847e18b40c5a1d}
+      \strng{fullhash}{e70200697136727810847e18b40c5a1d}
+      \strng{bibnamehash}{e70200697136727810847e18b40c5a1d}
+      \strng{authorbibnamehash}{e70200697136727810847e18b40c5a1d}
+      \strng{authornamehash}{e70200697136727810847e18b40c5a1d}
+      \strng{authorfullhash}{e70200697136727810847e18b40c5a1d}
+      \field{sortinit}{E}
+      \field{sortinithash}{8da8a182d344d5b9047633dfc0cc9131}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Django REST framework documentation}
+      \field{urlday}{1}
+      \field{urlmonth}{7}
+      \field{urlyear}{2026}
+      \field{year}{2026}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://www.django-rest-framework.org/
+      \endverb
+      \verb{url}
+      \verb https://www.django-rest-framework.org/
+      \endverb
+    \endentry
+    \entry{inec_enameh2024}{report}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=e73b57f6a2f6ffad8f2d12043b84f0f2}{%
+           family={{Instituto Nacional de Estadística y Censos de Costa Rica}},
+           familyi={I\bibinitperiod}}}%
+      }
+      \list{institution}{1}{%
+        {Instituto Nacional de Estadística y Censos}%
+      }
+      \strng{namehash}{e73b57f6a2f6ffad8f2d12043b84f0f2}
+      \strng{fullhash}{e73b57f6a2f6ffad8f2d12043b84f0f2}
+      \strng{bibnamehash}{e73b57f6a2f6ffad8f2d12043b84f0f2}
+      \strng{authorbibnamehash}{e73b57f6a2f6ffad8f2d12043b84f0f2}
+      \strng{authornamehash}{e73b57f6a2f6ffad8f2d12043b84f0f2}
+      \strng{authorfullhash}{e73b57f6a2f6ffad8f2d12043b84f0f2}
+      \field{sortinit}{I}
+      \field{sortinithash}{8d291c51ee89b6cd86bf5379f0b151d8}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{day}{23}
+      \field{month}{1}
+      \field{title}{Resultados generales de la Encuesta Nacional de Microempresas de los Hogares 2024}
+      \field{urlday}{31}
+      \field{urlmonth}{7}
+      \field{urlyear}{2026}
+      \field{year}{2025}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://admin.inec.cr/sites/default/files/2025-01/reenameh2024.pdf.pdf
+      \endverb
+      \verb{url}
+      \verb https://admin.inec.cr/sites/default/files/2025-01/reenameh2024.pdf.pdf
+      \endverb
+    \endentry
+    \entry{kotler2018}{book}{}
+      \name{author}{2}{}{%
+        {{un=0,uniquepart=base,hash=68992773d1a840399049c9a31388c032}{%
+           family={Kotler},
+           familyi={K\bibinitperiod},
+           given={Philip},
+           giveni={P\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=4df14cccabb46207678b3e32922d7044}{%
+           family={Armstrong},
+           familyi={A\bibinitperiod},
+           given={Gary},
+           giveni={G\bibinitperiod},
+           givenun=0}}%
+      }
+      \list{publisher}{1}{%
+        {Pearson}%
+      }
+      \strng{namehash}{3b5de2fe0f40145c2091a25714d41488}
+      \strng{fullhash}{3b5de2fe0f40145c2091a25714d41488}
+      \strng{bibnamehash}{3b5de2fe0f40145c2091a25714d41488}
+      \strng{authorbibnamehash}{3b5de2fe0f40145c2091a25714d41488}
+      \strng{authornamehash}{3b5de2fe0f40145c2091a25714d41488}
+      \strng{authorfullhash}{3b5de2fe0f40145c2091a25714d41488}
+      \field{sortinit}{K}
+      \field{sortinithash}{c02bf6bff1c488450c352b40f5d853ab}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{edition}{2}
+      \field{title}{Introducción al marketing}
+      \field{year}{2018}
+      \field{dateera}{ce}
+    \endentry
+    \entry{react2026}{online}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=350a86b0327152e3a50596538f38a5db}{%
+           family={{Meta Platforms, Inc.}},
+           familyi={M\bibinitperiod}}}%
+      }
+      \strng{namehash}{350a86b0327152e3a50596538f38a5db}
+      \strng{fullhash}{350a86b0327152e3a50596538f38a5db}
+      \strng{bibnamehash}{350a86b0327152e3a50596538f38a5db}
+      \strng{authorbibnamehash}{350a86b0327152e3a50596538f38a5db}
+      \strng{authornamehash}{350a86b0327152e3a50596538f38a5db}
+      \strng{authorfullhash}{350a86b0327152e3a50596538f38a5db}
+      \field{sortinit}{M}
+      \field{sortinithash}{4625c616857f13d17ce56f7d4f97d451}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{React: Tu primer componente}
+      \field{urlday}{1}
+      \field{urlmonth}{7}
+      \field{urlyear}{2026}
+      \field{year}{2026}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://es.react.dev/learn/your-first-component
+      \endverb
+      \verb{url}
+      \verb https://es.react.dev/learn/your-first-component
+      \endverb
+    \endentry
+    \entry{meic_pndip2023_2026}{report}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=6ac0d04a88bf00bd573ce7e8bbe14c25}{%
+           family={{Ministerio de Economía, Industria y Comercio de Costa Rica}},
+           familyi={M\bibinitperiod}}}%
+      }
+      \list{institution}{1}{%
+        {Ministerio de Economía, Industria y Comercio}%
+      }
+      \strng{namehash}{6ac0d04a88bf00bd573ce7e8bbe14c25}
+      \strng{fullhash}{6ac0d04a88bf00bd573ce7e8bbe14c25}
+      \strng{bibnamehash}{6ac0d04a88bf00bd573ce7e8bbe14c25}
+      \strng{authorbibnamehash}{6ac0d04a88bf00bd573ce7e8bbe14c25}
+      \strng{authornamehash}{6ac0d04a88bf00bd573ce7e8bbe14c25}
+      \strng{authorfullhash}{6ac0d04a88bf00bd573ce7e8bbe14c25}
+      \field{sortinit}{M}
+      \field{sortinithash}{4625c616857f13d17ce56f7d4f97d451}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Anexos técnicos del Plan Nacional de Desarrollo e Inversión Pública 2023--2026}
+      \field{urlday}{31}
+      \field{urlmonth}{7}
+      \field{urlyear}{2026}
+      \field{year}{2024}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://www.meic.go.cr/wp-content/uploads/2024/11/Fichas_tecnicas-PNDIP-SPDR.pdf
+      \endverb
+      \verb{url}
+      \verb https://www.meic.go.cr/wp-content/uploads/2024/11/Fichas_tecnicas-PNDIP-SPDR.pdf
+      \endverb
+    \endentry
+    \entry{mep2026}{report}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=a9bbd990a2bbaf65a1a6c42fdf573034}{%
+           family={{Ministerio de Educación Pública de Costa Rica}},
+           familyi={M\bibinitperiod}}}%
+      }
+      \list{institution}{1}{%
+        {Dirección de Educación Técnica y Capacidades Emprendedoras}%
+      }
+      \list{location}{1}{%
+        {San José, Costa Rica}%
+      }
+      \strng{namehash}{a9bbd990a2bbaf65a1a6c42fdf573034}
+      \strng{fullhash}{a9bbd990a2bbaf65a1a6c42fdf573034}
+      \strng{bibnamehash}{a9bbd990a2bbaf65a1a6c42fdf573034}
+      \strng{authorbibnamehash}{a9bbd990a2bbaf65a1a6c42fdf573034}
+      \strng{authornamehash}{a9bbd990a2bbaf65a1a6c42fdf573034}
+      \strng{authorfullhash}{a9bbd990a2bbaf65a1a6c42fdf573034}
+      \field{sortinit}{M}
+      \field{sortinithash}{4625c616857f13d17ce56f7d4f97d451}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{note}{Documento institucional suministrado para el proyecto}
+      \field{title}{Lineamientos técnicos-administrativos ExpoTÉCNICA 2026}
+      \field{year}{2026}
+      \field{dateera}{ce}
+    \endentry
+    \entry{hacienda_rut}{online}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=311651a15b3e71b92e50f81301519717}{%
+           family={{Ministerio de Hacienda de Costa Rica}},
+           familyi={M\bibinitperiod}}}%
+      }
+      \strng{namehash}{311651a15b3e71b92e50f81301519717}
+      \strng{fullhash}{311651a15b3e71b92e50f81301519717}
+      \strng{bibnamehash}{311651a15b3e71b92e50f81301519717}
+      \strng{authorbibnamehash}{311651a15b3e71b92e50f81301519717}
+      \strng{authornamehash}{311651a15b3e71b92e50f81301519717}
+      \strng{authorfullhash}{311651a15b3e71b92e50f81301519717}
+      \field{sortinit}{M}
+      \field{sortinithash}{4625c616857f13d17ce56f7d4f97d451}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Inscripción, modificación y desinscripción en el Registro Único Tributario}
+      \field{urlday}{24}
+      \field{urlmonth}{7}
+      \field{urlyear}{2026}
+      \field{year}{2024}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://www.hacienda.go.cr/docs/GeneralidadesInscripcionModifDesinsc.pdf
+      \endverb
+      \verb{url}
+      \verb https://www.hacienda.go.cr/docs/GeneralidadesInscripcionModifDesinsc.pdf
+      \endverb
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+

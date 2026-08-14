@@ -1,11 +1,14 @@
 import { useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { Search, UserPlus, ChevronLeft, ChevronRight, AlertTriangle, CreditCard, Users } from 'lucide-react'
-import { useAssignTrainerMutation, useMembersQuery } from '../hooks/useMembers'
+import { Link } from 'react-router-dom'
+import { Search, UserPlus, ChevronLeft, ChevronRight, AlertTriangle, CreditCard } from 'lucide-react'
+import { useMembersQuery } from '../hooks/useMembers'
 import { Badge, PageHeader, Avatar } from '@/shared/components/UI'
 import { TableRowSkeleton } from '@/shared/components/Skeleton'
 import { formatCurrency, formatDate, RISK_LEVEL_BADGE, RISK_LEVEL_LABELS } from '@/shared/lib/utils'
 import type { MemberMembershipSummary, MemberProfile } from '@/shared/types'
+import { useAuthStore } from '@/shared/store/authStore'
+import { QuickRoutineAssignmentModal } from '@/modules/plans/components/QuickRoutineAssignmentModal'
+import type { AdminRoutineQueueItem } from '@/shared/types'
 
 const MEMBERSHIP_RECURRENCE_LABELS: Record<MemberMembershipSummary['recurrence_type'], string> = {
   daily: 'día',
@@ -43,123 +46,45 @@ function getMembershipPlanName(member: MemberProfile) {
 }
 
 export function MembersPage() {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const initialAssignment = searchParams.get('assignment') === 'unassigned' ? 'unassigned' : 'mine'
+  const user = useAuthStore((state) => state.user)
+  const isAdmin = Boolean(user?.is_staff)
   const [search, setSearch] = useState('')
   const [paymentFilter, setPaymentFilter] = useState('')
   const [inactivityFilter, setInactivityFilter] = useState('')
   const [riskFilter, setRiskFilter] = useState('')
   const [prescriptionFilter, setPrescriptionFilter] = useState('')
   const [ordering, setOrdering] = useState('riesgo_desc')
-  const [assignmentFilter, setAssignmentFilter] = useState<'mine' | 'unassigned'>(initialAssignment)
   const [page, setPage] = useState(1)
+  const [routineClient, setRoutineClient] = useState<AdminRoutineQueueItem | null>(null)
 
   const { data, isLoading } = useMembersQuery({
-    assignment: assignmentFilter,
+    assignment: isAdmin ? undefined : 'mine',
     search: search || undefined,
-    payment_status: paymentFilter || undefined,
+    payment_status: paymentFilter && !['paid', 'none'].includes(paymentFilter) ? paymentFilter : undefined,
+    commercial_status: paymentFilter === 'paid' ? 'al_dia' : paymentFilter === 'none' ? 'sin_membresia' : undefined,
     inactivity: inactivityFilter || undefined,
     risk_level: riskFilter || undefined,
     prescription_status: prescriptionFilter || undefined,
     ordering: ordering || undefined,
     page,
   })
-  const { data: unassignedSummary, isLoading: isLoadingUnassignedSummary } = useMembersQuery({
-    assignment: 'unassigned',
-    page: 1,
-  })
-  const unassignedCount = assignmentFilter === 'unassigned'
-    ? data?.count ?? 0
-    : unassignedSummary?.count ?? 0
-
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value)
     setPage(1)
   }
 
-  const showUnassignedMembers = () => {
-    setAssignmentFilter('unassigned')
-    setPage(1)
-    setSearchParams((current) => {
-      const next = new URLSearchParams(current)
-      next.set('assignment', 'unassigned')
-      return next
-    })
-  }
-
-  const showMyMembers = () => {
-    setAssignmentFilter('mine')
-    setPage(1)
-    setSearchParams((current) => {
-      const next = new URLSearchParams(current)
-      next.delete('assignment')
-      return next
-    })
-  }
-
   return (
     <div data-testid="members-page" className="page-enter">
       <PageHeader
-        title="Miembros"
-        subtitle={assignmentFilter === 'unassigned' ? 'Miembros registrados pendientes de asignación' : `${data?.count || 0} miembros asignados a tu cuenta`}
-        action={
+        title={isAdmin ? 'Clientes' : 'Clientes asignados'}
+        subtitle={isAdmin ? `${data?.count || 0} clientes registrados` : `${data?.count || 0} clientes bajo tu seguimiento técnico`}
+        action={isAdmin ? (
           <Link to="/members/new" className="btn-primary flex items-center gap-2" data-testid="new-member-btn">
             <UserPlus size={16} />
-            Nuevo miembro
+            Registrar y cobrar
           </Link>
-        }
+        ) : undefined}
       />
-
-      <div className="mb-5 rounded-sm border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-950/30">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <div className="rounded-sm bg-white p-2 text-amber-700 shadow-sm dark:bg-amber-900/40 dark:text-amber-200">
-              <Users size={18} />
-            </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="font-heading text-lg font-bold text-neutral-900 dark:text-white">Miembros sin asignar</h2>
-                <Badge variant={unassignedCount > 0 ? 'warning' : 'neutral'}>
-                  {isLoadingUnassignedSummary ? 'Revisando...' : `${unassignedCount} pendiente(s)`}
-                </Badge>
-              </div>
-              <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
-                {unassignedCount > 0
-                  ? 'Hay miembros registrados que todavía no aparecen en tu lista. Asígnalos para crearles membresía, rutina y seguimiento.'
-                  : 'No hay miembros esperando asignación en este momento.'}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            className={assignmentFilter === 'unassigned' ? 'btn-primary' : 'btn-secondary'}
-            onClick={showUnassignedMembers}
-            data-testid="view-unassigned-members"
-          >
-            Ver y asignar
-          </button>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row">
-        <button
-          type="button"
-          className={`rounded-sm border px-4 py-2 text-sm font-semibold transition ${assignmentFilter === 'mine' ? 'border-primary bg-primary/10 text-primary' : 'border-neutral-200 bg-white text-neutral-600 hover:border-primary/60 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300'}`}
-          onClick={showMyMembers}
-          data-testid="assignment-tab-mine"
-        >
-          Mis miembros
-        </button>
-        <button
-          type="button"
-          className={`rounded-sm border px-4 py-2 text-sm font-semibold transition ${assignmentFilter === 'unassigned' ? 'border-primary bg-primary/10 text-primary' : 'border-neutral-200 bg-white text-neutral-600 hover:border-primary/60 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300'}`}
-          onClick={showUnassignedMembers}
-          data-testid="assignment-tab-unassigned"
-        >
-          Sin asignar {unassignedCount > 0 ? `(${unassignedCount})` : ''}
-        </button>
-      </div>
 
       <div className="flex flex-col gap-3 mb-6 sm:flex-row">
         <div className="relative flex-1">
@@ -174,19 +99,20 @@ export function MembersPage() {
           />
         </div>
 
-        <select
+        {isAdmin && <select
           value={paymentFilter}
           onChange={(e) => { setPaymentFilter(e.target.value); setPage(1) }}
           className="py-2.5 px-3 text-sm bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-sm focus:outline-none focus:border-primary text-neutral-700 dark:text-neutral-300"
           data-testid="payment-filter"
         >
           <option value="">Todos los estados</option>
-          <option value="paid">Pagados</option>
+          <option value="paid">Al día</option>
           <option value="pending">Pendientes</option>
           <option value="late">En mora</option>
-        </select>
+          <option value="none">Sin membresía</option>
+        </select>}
 
-        <label className="flex items-center gap-2 py-2.5 px-3 text-sm bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-sm cursor-pointer">
+        {!isAdmin && <label className="flex items-center gap-2 py-2.5 px-3 text-sm bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-sm cursor-pointer">
           <input
             type="checkbox"
             checked={inactivityFilter === 'true'}
@@ -195,9 +121,9 @@ export function MembersPage() {
             data-testid="inactivity-filter"
           />
           <span className="text-neutral-700 dark:text-neutral-300">Solo inactivos</span>
-        </label>
+        </label>}
 
-        <select
+        {!isAdmin && <select
           value={riskFilter}
           onChange={(e) => { setRiskFilter(e.target.value); setPage(1) }}
           className="py-2.5 px-3 text-sm bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-sm focus:outline-none focus:border-primary text-neutral-700 dark:text-neutral-300"
@@ -207,9 +133,9 @@ export function MembersPage() {
           <option value="high">Riesgo alto</option>
           <option value="medium">Riesgo medio</option>
           <option value="low">Riesgo bajo</option>
-        </select>
+        </select>}
 
-        <select
+        {!isAdmin && <select
           value={prescriptionFilter}
           onChange={(e) => { setPrescriptionFilter(e.target.value); setPage(1) }}
           className="py-2.5 px-3 text-sm bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-sm focus:outline-none focus:border-primary text-neutral-700 dark:text-neutral-300"
@@ -219,7 +145,7 @@ export function MembersPage() {
           <option value="sin_plan">Sin entrenamiento publicado</option>
           <option value="incompleta">Incompleta</option>
           <option value="lista">Lista para member</option>
-        </select>
+        </select>}
 
         <select
           value={ordering}
@@ -241,7 +167,7 @@ export function MembersPage() {
               <th className="th-base">Miembro</th>
               <th className="th-base hidden sm:table-cell">Teléfono</th>
               <th className="th-base hidden md:table-cell">Fecha ingreso</th>
-              <th className="th-base">Membresía</th>
+              <th className="th-base">{isAdmin ? 'Membresía' : 'Estado comercial'}</th>
               <th className="th-base hidden lg:table-cell">Riesgo</th>
               <th className="th-base">Estado operativo</th>
               <th className="th-base hidden xl:table-cell">Señales</th>
@@ -254,12 +180,12 @@ export function MembersPage() {
             ) : data?.results.length === 0 ? (
               <tr>
                 <td colSpan={8} className="py-8 text-center text-neutral-400 text-sm">
-                  {assignmentFilter === 'unassigned' ? 'No hay miembros sin asignar con estos filtros.' : 'No se encontraron miembros asignados con estos filtros.'}
+                  No se encontraron clientes con estos filtros.
                 </td>
               </tr>
             ) : (
               data?.results.map((member) => (
-                <MemberRow key={member.id} member={member} />
+                <MemberRow key={member.id} member={member} isAdmin={isAdmin} onAssignRoutine={setRoutineClient} />
               ))
             )}
           </tbody>
@@ -293,15 +219,18 @@ export function MembersPage() {
           </div>
         </div>
       )}
+      {routineClient ? <QuickRoutineAssignmentModal client={routineClient} onClose={() => setRoutineClient(null)} /> : null}
     </div>
   )
 }
 
-function MemberRow({ member }: { member: MemberProfile }) {
+function MemberRow({ member, isAdmin, onAssignRoutine }: { member: MemberProfile; isAdmin: boolean; onAssignRoutine: (client: AdminRoutineQueueItem) => void }) {
   const membership = member.membresia_actual
   const membershipBadge = getMembershipBadge(membership)
-  const { mutate: assignTrainer, isPending: isAssigning } = useAssignTrainerMutation()
   const isUnassigned = member.trainer_asignado == null
+  const visibleRiskReasons = (member.motivos_riesgo || []).filter(
+    (reason) => isAdmin || !reason.toLowerCase().includes('pago'),
+  )
 
   return (
     <tr className="tr-hover" data-testid={`member-row-${member.id}`}>
@@ -320,7 +249,7 @@ function MemberRow({ member }: { member: MemberProfile }) {
       <td className="td-base hidden sm:table-cell">{member.phone || '—'}</td>
       <td className="td-base hidden md:table-cell">{formatDate(member.join_date)}</td>
       <td className="td-base">
-        <div className="min-w-44 space-y-1" data-testid={`member-membership-${member.id}`}>
+        {isAdmin ? <div className="min-w-44 space-y-1" data-testid={`member-membership-${member.id}`}>
           <div className="flex items-center gap-2">
             <CreditCard size={14} className="text-primary" />
             <span className="text-sm font-semibold text-neutral-900 dark:text-white">
@@ -349,7 +278,11 @@ function MemberRow({ member }: { member: MemberProfile }) {
               Asigna una membresía desde facturación.
             </p>
           )}
-        </div>
+        </div> : (
+          <Badge variant={member.estado_comercial === 'bloqueado' ? 'error' : member.estado_comercial === 'por_vencer' ? 'warning' : 'success'}>
+            {member.estado_comercial === 'bloqueado' ? 'Bloqueado · contactar admin' : member.estado_comercial === 'por_vencer' ? 'Por vencer' : 'Al día'}
+          </Badge>
+        )}
       </td>
       <td className="td-base hidden lg:table-cell">
         {member.nivel_riesgo ? (
@@ -385,9 +318,9 @@ function MemberRow({ member }: { member: MemberProfile }) {
                   : 'Lista para member'}
             </Badge>
           ) : null}
-          {member.motivos_riesgo?.length ? (
+          {visibleRiskReasons.length ? (
             <p className="text-xs text-neutral-600 dark:text-neutral-400 line-clamp-2">
-              {member.motivos_riesgo.join(' · ')}
+              {visibleRiskReasons.join(' · ')}
             </p>
           ) : (
             <span className="text-xs text-neutral-400">Sin señales críticas</span>
@@ -395,19 +328,30 @@ function MemberRow({ member }: { member: MemberProfile }) {
         </div>
       </td>
       <td className="td-base">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           {member.nivel_riesgo === 'high' && <AlertTriangle size={14} className="text-red-500" />}
-          {isUnassigned ? (
-            <button
-              type="button"
-              className="text-sm font-medium text-primary hover:underline disabled:opacity-60"
-              onClick={() => assignTrainer(member.id)}
-              disabled={isAssigning}
-              data-testid={`assign-member-${member.id}`}
-            >
-              {isAssigning ? 'Asignando...' : 'Asignar a mí'}
-            </button>
-          ) : (
+          {isAdmin ? (
+            <>
+              <Link to={`/billing?member=${member.id}`} className="text-sm font-medium text-primary hover:underline">Cobrar</Link>
+              {!member.tiene_plan_activo ? (
+                <button
+                  type="button"
+                  className="text-sm font-medium text-primary hover:underline"
+                  onClick={() => onAssignRoutine({
+                    member_id: member.id,
+                    member_name: member.full_name,
+                    trainer_id: member.trainer_asignado ?? null,
+                    trainer_name: member.trainer_asignado_nombre ?? null,
+                    can_publish: Boolean(member.membresia_actual?.access_allowed),
+                  })}
+                >
+                  Asignar rutina
+                </button>
+              ) : null}
+              <Link to={`/members/${member.id}#progreso`} className="text-sm font-medium text-primary hover:underline">Progreso</Link>
+            </>
+          ) : null}
+          {!isAdmin && !isUnassigned ? (
             <Link
               to={`/members/${member.id}/program`}
               className="text-sm font-medium text-neutral-700 hover:text-primary dark:text-neutral-300"
@@ -415,7 +359,7 @@ function MemberRow({ member }: { member: MemberProfile }) {
             >
               Entrenamiento
             </Link>
-          )}
+          ) : null}
           <Link
             to={`/members/${member.id}`}
             className="text-primary text-sm font-medium hover:underline"

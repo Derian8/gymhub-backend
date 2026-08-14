@@ -12,8 +12,10 @@ logger = logging.getLogger(__name__)
 @shared_task(name='billing.tasks.run_daily_membership_maintenance')
 def run_daily_membership_maintenance():
     from billing.services import run_daily_billing_maintenance
+    from plans.tasks import activar_planes_programados
 
     result = run_daily_billing_maintenance()
+    training_plans = activar_planes_programados()
     membership_alerts = check_membership_status_alerts()
     upcoming = check_upcoming_payments()
     overdue = check_overdue_payments()
@@ -23,17 +25,14 @@ def run_daily_membership_maintenance():
         'membership_notifications': membership_alerts['notifications_created'],
         'upcoming_notifications': upcoming['notifications_created'],
         'overdue_notifications': overdue['notifications_created'],
+        'scheduled_plans_activated': training_plans['activated'],
     }
 
 
 def _notification_recipients(member):
-    trainer = getattr(member, 'trainer_asignado', None)
-    if trainer is not None:
-        return [trainer.user]
+    from django.contrib.auth import get_user_model
 
-    from users.models import TrainerProfile
-
-    return [trainer_profile.user for trainer_profile in TrainerProfile.objects.select_related('user').all()]
+    return list(get_user_model().objects.filter(is_staff=True, is_active=True))
 
 
 @shared_task(name='billing.tasks.check_upcoming_payments')
@@ -131,11 +130,11 @@ def check_membership_status_alerts():
         notifications_created += int(created)
 
         for recipient in _notification_recipients(member):
-            trainer_key = f'{event}:trainer:{recipient.id}:{subscription.id}:{today.isoformat()}'
+            admin_key = f'{event}:admin:{recipient.id}:{subscription.id}:{today.isoformat()}'
             _, created = Notification.objects.get_or_create(
                 user=recipient,
                 type='payment_due' if subscription.status == 'expiring' else 'payment_overdue',
-                dedupe_key=trainer_key,
+                dedupe_key=admin_key,
                 defaults={
                     'message': (
                         f"El miembro {member.user.get_full_name() or member.user.email} "
@@ -153,9 +152,9 @@ def check_overdue_payments():
     """
     Crontab: hour=9, minute=30
     PaymentRecord con status='pending' y (today - due_date).days > grace_period_days.
-    Cambia status a 'late'. Crea Notification para miembro y trainer.
+    Cambia status a 'late'. Crea Notification para miembro y administradores.
     """
-    from billing.models import PaymentRecord
+    from billing.models import PaymentRecord, SeguimientoCobro
     from alerts.models import Notification
 
     today = timezone.localdate()
@@ -183,6 +182,15 @@ def check_overdue_payments():
 
             member = record.schedule.member
             plan_name = record.schedule.resolved_membership_name or 'Membresía'
+            if not SeguimientoCobro.objects.filter(
+                cliente=member,
+                estado__in=['nuevo', 'en_seguimiento'],
+            ).exists():
+                SeguimientoCobro.objects.create(
+                    cliente=member,
+                    estado='nuevo',
+                    nota='Generado automáticamente por pago vencido.',
+                )
 
             member_dedupe_key = f'payment_overdue:member:{record.id}:{due_date.isoformat()}'
             _, created = Notification.objects.get_or_create(
@@ -199,13 +207,13 @@ def check_overdue_payments():
             notifications_created += int(created)
 
             for recipient in _notification_recipients(member):
-                trainer_dedupe_key = (
-                    f'payment_overdue:trainer:{recipient.id}:{record.id}:{due_date.isoformat()}'
+                admin_dedupe_key = (
+                    f'payment_overdue:admin:{recipient.id}:{record.id}:{due_date.isoformat()}'
                 )
                 _, created = Notification.objects.get_or_create(
                     user=recipient,
                     type='payment_overdue',
-                    dedupe_key=trainer_dedupe_key,
+                    dedupe_key=admin_dedupe_key,
                     defaults={
                         'message': (
                             f"El miembro {member.user.get_full_name() or member.user.email} "

@@ -71,7 +71,7 @@ function LoginHarness() {
       email: 'member@test.com',
       password: 'member123!',
     })
-  }, [mutation])
+  }, [])
 
   return <div>Login Trigger</div>
 }
@@ -88,7 +88,7 @@ function RegisterHarness() {
       password: 'pass123!ABC',
       password2: 'pass123!ABC',
     })
-  }, [mutation])
+  }, [])
 
   return <div>Register Trigger</div>
 }
@@ -98,7 +98,7 @@ function LogoutHarness() {
 
   useEffect(() => {
     mutation.mutate()
-  }, [mutation])
+  }, [])
 
   return <div>Logout Trigger</div>
 }
@@ -112,7 +112,7 @@ function UpdateMeHarness() {
       first_name: 'Nuevo',
       last_name: 'Nombre',
     })
-  }, [mutation])
+  }, [])
 
   return <div>Update Trigger</div>
 }
@@ -130,7 +130,7 @@ describe('useAuthMutations', () => {
     vi.clearAllMocks()
   })
 
-  it('stores authenticated member and redirects to membership', async () => {
+  it('stores authenticated member and redirects to today', async () => {
     vi.mocked(authApi.login).mockResolvedValue({
       user: {
         id: 1,
@@ -151,11 +151,11 @@ describe('useAuthMutations', () => {
     await waitFor(() => {
       expect(useAuthStore.getState().isAuthenticated).toBe(true)
       expect(useAuthStore.getState().user?.role).toBe('member')
-      expect(navegarMock).toHaveBeenCalledWith('/membership')
+      expect(navegarMock).toHaveBeenCalledWith('/dashboard/member')
     })
   })
 
-  it('stores registered member and redirects to membership', async () => {
+  it('stores registered member and redirects to today', async () => {
     vi.mocked(authApi.register).mockResolvedValue({
       user: {
         id: 3,
@@ -176,7 +176,7 @@ describe('useAuthMutations', () => {
     await waitFor(() => {
       expect(useAuthStore.getState().isAuthenticated).toBe(true)
       expect(useAuthStore.getState().user?.email).toBe('new.member@test.com')
-      expect(navegarMock).toHaveBeenCalledWith('/membership')
+      expect(navegarMock).toHaveBeenCalledWith('/dashboard/member')
     })
   })
 

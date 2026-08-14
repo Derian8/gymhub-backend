@@ -10,7 +10,7 @@ import secrets
 import string
 from rest_framework import status, viewsets, filters
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import MethodNotAllowed, PermissionDenied, ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
@@ -21,13 +21,24 @@ from rest_framework_simplejwt.exceptions import TokenError
 
 from progress.services import build_member_physical_summary
 from billing.models import MemberSubscription
+from billing.serializers import MemberMembershipSerializer, PaymentRecordSerializer
+from billing.services import default_grace_days, initialize_subscription, mark_payment_paid
 from .models import MemberProfile, TrainerProfile, PerfilGimnasio
 from .audit import registrar_auditoria
-from .permissions import IsStaffOrTrainer, IsTrainer, IsMember
+from .permissions import (
+    IsAdministrator,
+    IsStaffOrTrainer,
+    IsTrainer,
+    IsMember,
+    tiene_perfil_entrenador,
+    usa_contexto_cliente,
+)
 from .serializers import (
     UserSerializer, RegisterSerializer, LoginSerializer, MeUpdateSerializer,
     MemberProfileSerializer, TrainerProfileSerializer, PerfilGimnasioSerializer,
-    AltaMiembroSerializer, CambioContrasenaSerializer, AuditLogSerializer,
+    AltaMiembroSerializer, RegistroClientePagoSerializer,
+    HabilitarInstructorClienteSerializer,
+    CambioContrasenaSerializer, AuditLogSerializer,
 )
 from .prescription_services import get_member_prescription_summary
 from .services import (
@@ -62,8 +73,6 @@ def _enforce_csrf(request):
 
 
 def _get_trainer_profile(user):
-    if getattr(user, 'role', None) != 'trainer' and not user.is_staff:
-        raise PermissionDenied('Esta operación requiere un perfil de trainer.')
     try:
         return user.trainerprofile
     except ObjectDoesNotExist as exc:
@@ -108,8 +117,7 @@ def _clear_auth_cookies(response):
 class RegisterView(APIView):
     """
     POST /auth/register/
-    Registro público para miembros.
-    Registro de trainers requiere IsStaffOrTrainer (protegido).
+    Alta administrativa de cuentas. No inicia sesión como la cuenta creada.
     """
     permission_classes = []
     throttle_classes = [RegisterThrottle]
@@ -120,26 +128,26 @@ class RegisterView(APIView):
 
         if not request.user or not request.user.is_authenticated:
             return Response(
-                {'error': 'El alta de cuentas se realiza desde el panel del entrenador.'},
+                {'error': 'El alta de cuentas se realiza desde el panel administrativo.'},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        if not request.user.is_staff and request.user.role != 'trainer':
+        if not request.user.is_staff:
             return Response(
-                {'error': 'Solo el entrenador administra cuentas.'},
+                {'error': 'Solo el administrador puede crear cuentas.'},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # Proteger asignación de role='trainer' con IsStaffOrTrainer
+        # La creación de trainers también es una operación administrativa.
         if role == 'trainer':
             if not request.user or not request.user.is_authenticated:
                 return Response(
                     {'error': 'Debes estar autenticado para registrar un trainer.'},
                     status=status.HTTP_401_UNAUTHORIZED
                 )
-            perm = IsStaffOrTrainer()
+            perm = IsAdministrator()
             if not perm.has_permission(request, self):
                 return Response(
-                    {'error': 'Solo staff o trainers pueden registrar otros trainers.'},
+                    {'error': 'Solo el administrador puede registrar entrenadores.'},
                     status=status.HTTP_403_FORBIDDEN
                 )
 
@@ -148,13 +156,10 @@ class RegisterView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         user = serializer.save()
-        refresh = RefreshToken.for_user(user)
-        response = Response(
+        return Response(
             {'user': UserSerializer(user).data, 'message': 'Registro exitoso.'},
             status=status.HTTP_201_CREATED
         )
-        _set_auth_cookies(response, refresh)
-        return response
 
 
 class LoginView(APIView):
@@ -329,10 +334,23 @@ class MemberViewSet(viewsets.ModelViewSet):
 
     @transaction.atomic
     def create(self, request, *args, **kwargs):
-        serializer = AltaMiembroSerializer(data=request.data)
+        raise MethodNotAllowed(
+            'POST',
+            detail='Usa registro-con-pago para crear clientes con membresía activa.',
+        )
+
+    @action(detail=False, methods=['post'], url_path='registro-con-pago')
+    @transaction.atomic
+    def registro_con_pago(self, request):
+        serializer = RegistroClientePagoSerializer(
+            data=request.data,
+            context={'request': request},
+        )
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
-        trainer = _get_trainer_profile(request.user)
+        trainer = data['entrenador']
+        plan = data.get('plan_membresia')
+
         password = _temporary_password()
         user = User.objects.create_user(
             email=data['correo_electronico'],
@@ -353,18 +371,76 @@ class MemberViewSet(viewsets.ModelViewSet):
             'trainer_asignado', 'phone', 'birth_date',
             'emergency_contact', 'is_active',
         ])
+
+        recurrence_type = (
+            plan.recurrence_type
+            if plan
+            else data.get('tipo_recurrencia', 'monthly')
+        )
+        grace_period_days = (
+            plan.grace_period_days
+            if plan
+            else data.get('dias_gracia', default_grace_days(recurrence_type))
+        )
+        agreed_price = data.get('precio_acordado') or plan.price
+        today = timezone.localdate()
+        subscription = MemberSubscription.objects.create(
+            member=member,
+            plan=plan,
+            membership_name=(
+                plan.name if plan else data['nombre_membresia'].strip()
+            ),
+            description=plan.description if plan else 'Membresía comercial personalizada.',
+            trainer=trainer,
+            agreed_price=agreed_price,
+            start_date=today,
+            next_billing_date=today,
+            recurrence_type=recurrence_type,
+            grace_period_days=grace_period_days,
+            auto_generate_next=data['renovacion_automatica'],
+            status='pending',
+            is_active=True,
+            commercial_notes=data.get('notas_comerciales', '').strip(),
+            motivo_ajuste_precio=data.get('motivo_ajuste_precio', '').strip(),
+        )
+        _, payment = initialize_subscription(subscription)
+        try:
+            payment, _ = mark_payment_paid(
+                payment,
+                reference=data.get('referencia_pago', '').strip(),
+                notes=data.get('notas_pago', '').strip(),
+                method=data['metodo_pago'],
+                recorded_by=request.user,
+            )
+        except ValueError as exc:
+            raise ValidationError({'pago': str(exc)}) from exc
+
+        subscription.refresh_from_db()
         registrar_auditoria(
             request.user,
-            'member_onboarded',
+            'client_registered_with_payment',
             'MemberProfile',
             member.id,
             request=request,
-            details={'member_id': member.id, 'email': user.email},
+            details={
+                'member_id': member.id,
+                'subscription_id': subscription.id,
+                'payment_id': payment.id,
+                'amount': str(payment.amount),
+                'method': payment.metodo_registrado,
+                'payment_reference': payment.payment_reference,
+            },
         )
         return Response({
             'member': MemberProfileSerializer(member, context={'request': request}).data,
+            'membership': MemberMembershipSerializer(
+                subscription,
+                context={'request': request},
+            ).data,
+            'payment': PaymentRecordSerializer(payment).data,
             'contrasena_temporal': password,
-            'message': 'Miembro creado y asignado. La contraseña solo se muestra una vez.',
+            'receipt_url': f'/api/payment-records/{payment.id}/receipt/',
+            'message': 'Cliente registrado, pago confirmado y acceso activado.',
         }, status=status.HTTP_201_CREATED)
 
     def get_queryset(self):
@@ -378,39 +454,19 @@ class MemberViewSet(viewsets.ModelViewSet):
             ),
         ).order_by('id'))
 
-        # Members solo ven su propio perfil
-        if user.role == 'member' and not user.is_staff:
+        # El contexto cliente siempre queda limitado al perfil personal.
+        if usa_contexto_cliente(self.request):
             return qs.filter(user=user)
 
-        if user.role == 'trainer' and not user.is_staff:
+        if not user.is_staff and tiene_perfil_entrenador(user):
             trainer_profile = _get_trainer_profile(user)
-            assignment = self.request.query_params.get('assignment') or 'mine'
-            can_read_unassigned = self.action in {
-                'retrieve',
-                'assign_trainer',
-                'dashboard_summary',
-                'membership_summary',
-                'active_prescription',
-                'physical_summary',
-                'prescription_summary',
-            }
-            if self.action == 'list' and assignment == 'unassigned':
-                qs = qs.filter(trainer_asignado__isnull=True, is_active=True)
-            elif self.action == 'list' and assignment == 'available':
-                qs = qs.filter(
-                    Q(trainer_asignado=trainer_profile)
-                    | Q(trainer_asignado__isnull=True)
-                )
-            elif can_read_unassigned:
-                qs = qs.filter(
-                    Q(trainer_asignado=trainer_profile)
-                    | Q(trainer_asignado__isnull=True)
-                )
-            else:
-                qs = qs.filter(trainer_asignado=trainer_profile)
+            qs = qs.filter(trainer_asignado=trainer_profile)
+        elif not user.is_staff:
+            return qs.none()
 
         # Filtros adicionales para trainers/staff
         payment_status = self.request.query_params.get('payment_status')
+        commercial_status = self.request.query_params.get('commercial_status')
         inactivity = self.request.query_params.get('inactivity')
         risk_level = self.request.query_params.get('risk_level')
         prescription_status = self.request.query_params.get('prescription_status')
@@ -422,6 +478,21 @@ class MemberViewSet(viewsets.ModelViewSet):
                 status=payment_status
             ).values_list('schedule__member_id', flat=True).distinct()
             qs = qs.filter(id__in=member_ids)
+
+        if commercial_status == 'al_dia':
+            from billing.models import PaymentRecord
+            from billing.services import membership_access
+            overdue_ids = set(PaymentRecord.objects.filter(
+                status__in=['pending', 'late'],
+                schedule__due_date__lt=timezone.localdate(),
+            ).values_list('schedule__member_id', flat=True))
+            current_ids = [
+                member.id for member in qs
+                if member.id not in overdue_ids and membership_access(member)['allowed']
+            ]
+            qs = qs.filter(id__in=current_ids)
+        elif commercial_status == 'sin_membresia':
+            qs = qs.exclude(subscriptions__is_active=True).distinct()
 
         if inactivity == 'true':
             from attendance.models import Attendance
@@ -474,19 +545,46 @@ class MemberViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ('list', 'retrieve', 'dashboard_summary', 'membership_summary', 'active_prescription', 'progress_by_exercise', 'physical_summary'):
             return [IsAuthenticated()]
-        if self.action == 'assign_trainer':
-            return [IsAuthenticated(), IsTrainer()]
-        return [IsAuthenticated(), IsTrainer()]
+        if self.action in {
+            'create', 'registro_con_pago', 'assign_trainer', 'activate',
+            'temporary_password', 'deactivate_member', 'reactivate_member',
+            'update', 'partial_update', 'destroy',
+        }:
+            return [IsAuthenticated(), IsAdministrator()]
+        return [IsAuthenticated()]
 
     @action(detail=True, methods=['get'], url_path='dashboard-summary')
     def dashboard_summary(self, request, pk=None):
         """GET /api/members/{id}/dashboard-summary/"""
         member = self.get_object()
-        return Response(get_member_dashboard_summary(member))
+        summary = get_member_dashboard_summary(member)
+        if (
+            tiene_perfil_entrenador(request.user)
+            and not request.user.is_staff
+            and not usa_contexto_cliente(request)
+        ):
+            for field in (
+                'payment_status', 'days_until_due', 'days_overdue',
+                'membership_plan_name', 'membership_expires_at',
+                'membership_agreed_price', 'membership_recurrence_type',
+                'membership_next_billing_date',
+            ):
+                summary.pop(field, None)
+            from billing.services import membership_access
+            summary['estado_comercial'] = (
+                'al_dia' if membership_access(member)['allowed'] else 'bloqueado'
+            )
+        return Response(summary)
 
     @action(detail=True, methods=['get'], url_path='membership-summary')
     def membership_summary(self, request, pk=None):
         """GET /api/members/{id}/membership-summary/"""
+        if (
+            tiene_perfil_entrenador(request.user)
+            and not request.user.is_staff
+            and not usa_contexto_cliente(request)
+        ):
+            raise PermissionDenied('El entrenador no puede consultar información financiera.')
         from billing.services import membership_summary
         member = self.get_object()
         return Response(membership_summary(member))
@@ -499,6 +597,23 @@ class MemberViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], url_path='active-prescription')
     def active_prescription(self, request, pk=None):
         member = self.get_object()
+        if usa_contexto_cliente(request):
+            from billing.services import membership_access
+            from attendance.models import Attendance
+            access = membership_access(member)
+            if not access['allowed']:
+                raise PermissionDenied({
+                    'error': 'Tu acceso está bloqueado. Contacta al administrador.',
+                    'reason': access['reason'],
+                })
+            if not Attendance.objects.filter(
+                member=member,
+                attendance_date=timezone.localdate(),
+            ).exists():
+                raise PermissionDenied({
+                    'error': 'Pulsa “Ver rutina” para registrar tu entrada.',
+                    'reason': 'entry_required',
+                })
         return Response(get_active_prescription(member))
 
     @action(detail=True, methods=['get'], url_path='physical-summary')
@@ -592,6 +707,7 @@ class MemberViewSet(viewsets.ModelViewSet):
         reason = (request.data.get('reason') or '').strip()
         if not reason:
             raise ValidationError({'reason': 'Indica el motivo de la baja.'})
+        from billing.models import SeguimientoCobro
         from billing.services import cancel_membership, current_member_membership
         from plans.models import TrainingPlan
         subscription = current_member_membership(member)
@@ -604,6 +720,15 @@ class MemberViewSet(viewsets.ModelViewSet):
         member.user.is_active = False
         member.save(update_fields=['is_active'])
         member.user.save(update_fields=['is_active'])
+        SeguimientoCobro.objects.filter(
+            cliente=member,
+            estado__in=['nuevo', 'en_seguimiento'],
+        ).update(
+            estado='baja',
+            administrador=request.user,
+            nota=reason,
+            proxima_fecha=None,
+        )
         registrar_auditoria(request.user, 'member_deactivated', 'MemberProfile', member.id, request=request, details={'reason': reason})
         return Response(MemberProfileSerializer(member, context={'request': request}).data)
 
@@ -658,8 +783,145 @@ class TrainerOverviewView(APIView):
     permission_classes = [IsAuthenticated, IsTrainer]
 
     def get(self, request):
-        trainer_profile = _get_trainer_profile(request.user)
+        trainer_profile = (
+            None if request.user.is_staff else _get_trainer_profile(request.user)
+        )
         return Response(get_trainer_overview(request.user, trainer_profile))
+
+
+class TrainerListView(APIView):
+    """Catálogo mínimo de entrenadores para asignación administrativa."""
+
+    permission_classes = [IsAuthenticated, IsAdministrator]
+
+    def get(self, request):
+        trainers = TrainerProfile.objects.select_related('user').filter(
+            user__is_active=True,
+            user__is_staff=False,
+        ).order_by('user__first_name', 'user__last_name', 'id')
+        return Response(TrainerProfileSerializer(trainers, many=True).data)
+
+
+class AdminUserListView(APIView):
+    """Lista de cuentas y capacidades para administración de perfiles."""
+
+    permission_classes = [IsAuthenticated, IsAdministrator]
+
+    def get(self, request):
+        users = User.objects.select_related(
+            'trainerprofile',
+            'memberprofile',
+        ).order_by('first_name', 'last_name', 'email')
+        return Response(UserSerializer(users, many=True).data)
+
+
+class HabilitarInstructorClienteView(APIView):
+    """Agrega el perfil cliente a un instructor sin duplicar su cuenta."""
+
+    permission_classes = [IsAuthenticated, IsAdministrator]
+
+    @transaction.atomic
+    def post(self, request, pk):
+        try:
+            instructor = TrainerProfile.objects.select_related('user').get(pk=pk)
+        except TrainerProfile.DoesNotExist:
+            return Response(
+                {'error': 'Instructor no encontrado.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        if hasattr(instructor.user, 'memberprofile'):
+            raise ValidationError({
+                'instructor': 'Esta cuenta ya tiene perfil de cliente.',
+            })
+
+        serializer = HabilitarInstructorClienteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        plan = data.get('plan_membresia')
+        trainer = data['entrenador_asignado']
+
+        member = MemberProfile.objects.create(
+            user=instructor.user,
+            trainer_asignado=trainer,
+            membership_plan=plan,
+            phone=data.get('telefono', '').strip(),
+            birth_date=data.get('fecha_nacimiento'),
+            emergency_contact=data.get('contacto_emergencia', '').strip(),
+            is_active=True,
+        )
+        recurrence_type = (
+            plan.recurrence_type
+            if plan
+            else data.get('tipo_recurrencia', 'monthly')
+        )
+        grace_period_days = (
+            plan.grace_period_days
+            if plan
+            else data.get('dias_gracia', default_grace_days(recurrence_type))
+        )
+        subscription = MemberSubscription.objects.create(
+            member=member,
+            plan=plan,
+            membership_name=(
+                plan.name if plan else data['nombre_membresia'].strip()
+            ),
+            description=(
+                plan.description
+                if plan
+                else 'Membresía comercial personalizada.'
+            ),
+            trainer=trainer,
+            agreed_price=data.get('precio_acordado') or plan.price,
+            start_date=timezone.localdate(),
+            next_billing_date=timezone.localdate(),
+            recurrence_type=recurrence_type,
+            grace_period_days=grace_period_days,
+            auto_generate_next=data['renovacion_automatica'],
+            status='pending',
+            is_active=True,
+            commercial_notes=data.get('notas_comerciales', '').strip(),
+            motivo_ajuste_precio=data.get('motivo_ajuste_precio', '').strip(),
+        )
+        _, payment = initialize_subscription(subscription)
+        try:
+            payment, _ = mark_payment_paid(
+                payment,
+                reference=data.get('referencia_pago', '').strip(),
+                notes=data.get('notas_pago', '').strip(),
+                method=data['metodo_pago'],
+                recorded_by=request.user,
+            )
+        except ValueError as exc:
+            raise ValidationError({'pago': str(exc)}) from exc
+
+        registrar_auditoria(
+            request.user,
+            'instructor_client_profile_enabled',
+            'MemberProfile',
+            member.id,
+            request=request,
+            details={
+                'user_id': instructor.user_id,
+                'trainer_profile_id': instructor.id,
+                'member_profile_id': member.id,
+                'subscription_id': subscription.id,
+                'payment_id': payment.id,
+            },
+        )
+        instructor.user.refresh_from_db()
+        return Response({
+            'user': UserSerializer(instructor.user).data,
+            'member': MemberProfileSerializer(
+                member,
+                context={'request': request},
+            ).data,
+            'membership': MemberMembershipSerializer(
+                subscription,
+                context={'request': request},
+            ).data,
+            'payment': PaymentRecordSerializer(payment).data,
+            'message': 'Perfil de cliente habilitado y primer pago registrado.',
+        }, status=status.HTTP_201_CREATED)
 
 
 class PerfilGimnasioView(APIView):

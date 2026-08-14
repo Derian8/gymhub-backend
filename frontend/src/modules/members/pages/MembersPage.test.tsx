@@ -2,6 +2,7 @@ import { renderWithProviders } from '@/test/utils'
 import { within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MembersPage } from './MembersPage'
+import { useAuthStore } from '@/shared/store/authStore'
 
 const assignTrainerMock = vi.fn()
 const membersQueryParams: Array<Record<string, unknown> | undefined> = []
@@ -84,6 +85,7 @@ vi.mock('../hooks/useMembers', () => ({
                   access_allowed: true,
                   access_reason: null,
                 },
+                estado_comercial: 'bloqueado',
               },
               {
                 id: 16,
@@ -110,6 +112,7 @@ vi.mock('../hooks/useMembers', () => ({
                 tiene_plan_activo: false,
                 prescripcion_lista_para_member: false,
                 membresia_actual: null,
+                estado_comercial: 'al_dia',
               },
             ],
       },
@@ -126,6 +129,12 @@ describe('MembersPage', () => {
   beforeEach(() => {
     assignTrainerMock.mockReset()
     membersQueryParams.length = 0
+    useAuthStore.setState({
+      user: { id: 9, email: 'trainer@test.com', username: 'trainer', first_name: 'Trainer', last_name: 'Demo', role: 'trainer', is_staff: false, memberprofile_id: null, trainerprofile_id: 9 },
+      isAuthenticated: true,
+      authResolved: true,
+      theme: 'dark',
+    })
   })
 
   it('renders member list with filters and detail action', () => {
@@ -134,49 +143,24 @@ describe('MembersPage', () => {
 
     expect(getByTestId('members-page')).toBeInTheDocument()
     expect(getByTestId('members-search')).toBeInTheDocument()
-    expect(getByTestId('view-unassigned-members')).toBeInTheDocument()
-    expect(getByTestId('assignment-tab-mine')).toBeInTheDocument()
-    expect(getByTestId('assignment-tab-unassigned')).toHaveTextContent('Sin asignar (1)')
-    expect(getByTestId('payment-filter')).toBeInTheDocument()
+    expect(() => getByTestId('view-unassigned-members')).toThrow()
+    expect(() => getByTestId('payment-filter')).toThrow()
     expect(getByTestId('risk-filter')).toBeInTheDocument()
     expect(getByTestId('prescription-filter')).toBeInTheDocument()
     expect(getByTestId('members-ordering')).toBeInTheDocument()
     expect(row).toBeInTheDocument()
     expect(within(row).getByText('Maria Perez')).toBeInTheDocument()
     expect(within(row).getByText(/Alto/i)).toBeInTheDocument()
-    expect(getByTestId('member-membership-15')).toHaveTextContent('Premium mensual')
-    expect(getByTestId('member-membership-15')).toHaveTextContent('Suscripción #44')
-    expect(getByTestId('member-membership-15')).toHaveTextContent('₡50 000')
-    expect(getByTestId('member-membership-15')).toHaveTextContent('Vigente')
-    expect(getByTestId('member-membership-16')).toHaveTextContent('Sin membresía')
-    expect(getByTestId('member-membership-16')).toHaveTextContent('Asigna una membresía desde facturación.')
-    expect(within(row).getByText(/Tiene pagos en mora/i)).toBeInTheDocument()
+    expect(within(row).getByText(/Bloqueado · contactar admin/i)).toBeInTheDocument()
+    expect(within(row).queryByText(/Tiene pagos en mora/i)).not.toBeInTheDocument()
     expect(within(row).getByText(/Prescripción incompleta/i)).toBeInTheDocument()
     expect(getByTestId('member-program-15')).toHaveAttribute('href', '/members/15/program')
     expect(getByTestId('member-detail-15')).toHaveAttribute('href', '/members/15')
   })
 
-  it('shows unassigned members and lets the trainer assign them', async () => {
-    const user = userEvent.setup()
-    const { getByTestId, getByText } = renderWithProviders(<MembersPage />)
-
-    await user.click(getByTestId('view-unassigned-members'))
-
-    expect(membersQueryParams.at(-1)).toEqual(expect.objectContaining({ assignment: 'unassigned' }))
-    expect(getByTestId('assignment-tab-unassigned')).toHaveTextContent('Sin asignar (1)')
-    expect(getByText('Derian Isaac')).toBeInTheDocument()
-    expect(getByText('Sin trainer asignado')).toBeInTheDocument()
-
-    await user.click(getByTestId('assign-member-17'))
-
-    expect(assignTrainerMock).toHaveBeenCalledWith(17)
-  })
-
-  it('opens the unassigned tab directly from the assignment query param', () => {
-    const { getByTestId, getByText } = renderWithProviders(<MembersPage />, { route: '/members?assignment=unassigned' })
-
-    expect(membersQueryParams.at(-1)).toEqual(expect.objectContaining({ assignment: 'unassigned' }))
-    expect(getByTestId('assignment-tab-unassigned')).toHaveTextContent('Sin asignar (1)')
-    expect(getByText('Derian Isaac')).toBeInTheDocument()
+  it('keeps the trainer focused on assigned clients', () => {
+    renderWithProviders(<MembersPage />)
+    expect(membersQueryParams[0]).toEqual(expect.objectContaining({ assignment: 'mine' }))
+    expect(assignTrainerMock).not.toHaveBeenCalled()
   })
 })

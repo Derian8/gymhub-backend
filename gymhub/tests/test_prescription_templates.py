@@ -1,5 +1,31 @@
 import pytest
+from datetime import date, timedelta
 from rest_framework import status
+
+
+@pytest.fixture(autouse=True)
+def acceso_prescripcion_vigente(db, member_profile, membership_plan, trainer_profile):
+    from attendance.models import Attendance
+    from billing.models import MemberSubscription
+
+    MemberSubscription.objects.get_or_create(
+        member=member_profile,
+        defaults={
+            'plan': membership_plan,
+            'membership_name': membership_plan.name,
+            'trainer': trainer_profile,
+            'agreed_price': membership_plan.price,
+            'start_date': date.today() - timedelta(days=5),
+            'next_billing_date': date.today() + timedelta(days=25),
+            'recurrence_type': 'monthly',
+            'grace_period_days': 7,
+            'is_active': True,
+            'status': 'active',
+            'current_period_start': date.today() - timedelta(days=5),
+            'current_period_end': date.today() + timedelta(days=25),
+        },
+    )
+    Attendance.objects.get_or_create(member=member_profile, attendance_date=date.today())
 
 
 @pytest.mark.django_db

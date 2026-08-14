@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useSearchParams } from 'react-router-dom'
-import { Activity, AlertTriangle, CalendarDays, CheckSquare, Clock3, Loader2, NotebookPen, Search, ShieldAlert, UserCheck } from 'lucide-react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { Activity, CalendarDays, CheckSquare, Clock3, Loader2, NotebookPen, Search, UserCheck } from 'lucide-react'
 
 import { useCheckInMutation, useCheckOutMutation, useAttendanceQuery } from '../hooks/useAttendance'
 import { PageHeader, EmptyState, Badge } from '@/shared/components/UI'
@@ -12,11 +12,11 @@ import { useAuthStore } from '@/shared/store/authStore'
 import { progressApi } from '@/modules/progress/api/progressApi'
 import { QUERY_KEYS } from '@/shared/constants/queryKeys'
 import { useMembersQuery } from '@/modules/members/hooks/useMembers'
-import type { Attendance, CheckInBlockedResponse } from '@/shared/types'
+import type { Attendance } from '@/shared/types'
 
 export function CheckInPage() {
   const { user } = useAuthStore()
-  const esEntrenador = user?.role === 'trainer' || user?.is_staff
+  const esEntrenador = Boolean(user?.is_staff)
   const [searchParams] = useSearchParams()
   const memberId = searchParams.get('member')
   const todayCostaRica = new Intl.DateTimeFormat('en-CA', {
@@ -34,39 +34,19 @@ export function CheckInPage() {
   const [notes, setNotes] = useState('')
   const [assistedMemberId, setAssistedMemberId] = useState(memberId || '')
   const [overrideReason, setOverrideReason] = useState('')
-  const [blockedState, setBlockedState] = useState<CheckInBlockedResponse | null>(null)
   const { mutate: checkIn, isPending } = useCheckInMutation()
   const { mutate: checkOut, isPending: isCheckingOut } = useCheckOutMutation()
   const { data: attendance, isLoading } = useAttendanceQuery(filtros)
   const { data: members } = useMembersQuery({ assignment: 'mine' }, esEntrenador)
   const { data: sessions, isLoading: sessionsLoading } = useQuery({
     queryKey: QUERY_KEYS.WORKOUT_SESSIONS,
-    queryFn: progressApi.sessions,
+    queryFn: () => progressApi.sessions(),
     enabled: !esEntrenador,
   })
 
   const ultimoRegistro = attendance?.results?.[0]
   const registroHoy = attendance?.results.find((item) => item.attendance_date === todayCostaRica)
   const todayAttendanceCount = attendance?.results.filter((item) => item.attendance_date === todayCostaRica).length ?? 0
-
-  const handleCheckIn = () => {
-    checkIn({ notes }, {
-      onSuccess: () => {
-        setBlockedState(null)
-        setNotes('')
-      },
-      onError: (error) => {
-        const response = (error as { response?: { data?: unknown } })?.response?.data as Partial<CheckInBlockedResponse> | undefined
-        if (response?.blocked && response.reason && typeof response.days_overdue === 'number') {
-          setBlockedState({
-            blocked: true,
-            reason: response.reason,
-            days_overdue: response.days_overdue,
-          })
-        }
-      },
-    })
-  }
 
   return (
     <div data-testid="checkin-page" className="page-enter mx-auto max-w-4xl">
@@ -86,26 +66,20 @@ export function CheckInPage() {
           <section className="rounded-[1.9rem] border border-neutral-200 bg-gradient-to-br from-white via-neutral-50 to-primary/5 p-6 shadow-sm dark:border-neutral-800 dark:from-neutral-950 dark:via-neutral-950 dark:to-primary/10">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-4">
-                <SymbolFrame size="lg" tone={blockedState ? 'danger' : 'primary'}>
-                  {blockedState ? <ShieldAlert size={26} /> : <CheckSquare size={26} />}
+                <SymbolFrame size="lg" tone="primary">
+                  <CheckSquare size={26} />
                 </SymbolFrame>
                 <div>
                   <p className="label-base">Acción principal</p>
                   <h2 className="font-heading text-2xl font-bold text-neutral-900 dark:text-white">
-                    {blockedState ? 'Check-in bloqueado' : 'Registrar asistencia'}
+                    Entrada desde tu rutina
                   </h2>
                   <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
-                    {blockedState
-                      ? blockedState.reason === 'payment_overdue'
-                        ? `Tu membresía venció hace ${blockedState.days_overdue} días. Registra el pago para recuperar el acceso.`
-                        : 'Necesitas una membresía activa y pagada para registrar asistencia.'
-                      : 'Confirma tu presencia y deja una nota opcional si quieres registrar el foco de tu sesión.'}
+                    Confirma tu presencia desde “Ver rutina”; allí se valida la membresía antes de mostrar el entrenamiento.
                   </p>
                 </div>
               </div>
-              <Badge variant={blockedState ? 'error' : 'success'}>
-                {blockedState ? 'Requiere regularización' : 'Disponible hoy'}
-              </Badge>
+              <Badge variant="success">Disponible hoy</Badge>
             </div>
 
             {ultimoRegistro ? (
@@ -120,19 +94,7 @@ export function CheckInPage() {
               </div>
             ) : null}
 
-            {blockedState ? (
-              <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-300">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle size={18} className="mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold">No puedes hacer check-in por mora</p>
-                    <p className="mt-1 text-xs opacity-90">
-                      Regulariza tu pago pendiente para volver a registrar asistencia sin fricción.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : registroHoy && !registroHoy.check_out_time ? (
+            {registroHoy && !registroHoy.check_out_time ? (
               <button
                 onClick={() => checkOut(registroHoy.id)}
                 disabled={isCheckingOut}
@@ -147,41 +109,10 @@ export function CheckInPage() {
                 Tu entrada y salida de hoy ya están registradas.
               </div>
             ) : (
-              <>
-                <div className="mt-5">
-                  <label className="label-base mb-2 flex items-center gap-2">
-                    <NotebookPen size={14} />
-                    Nota opcional
-                  </label>
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Ejemplo: torso, movilidad, cardio suave"
-                    rows={3}
-                    className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition-colors focus:border-primary dark:border-neutral-800 dark:bg-neutral-950 dark:text-white"
-                    data-testid="checkin-notes"
-                  />
-                </div>
-
-                <button
-                  onClick={handleCheckIn}
-                  disabled={isPending}
-                  className="btn-primary mt-5 flex w-full items-center justify-center gap-2"
-                  data-testid="checkin-submit"
-                >
-                  {isPending ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      Registrando...
-                    </>
-                  ) : (
-                    <>
-                      <CheckSquare size={16} />
-                      HACER CHECK-IN
-                    </>
-                  )}
-                </button>
-              </>
+              <Link to="/today" className="btn-primary mt-5 flex w-full items-center justify-center gap-2" data-testid="open-routine-link">
+                <CheckSquare size={16} />
+                IR A VER RUTINA
+              </Link>
             )}
           </section>
 
@@ -209,7 +140,7 @@ export function CheckInPage() {
       ) : null}
 
       {esEntrenador ? (
-        <><section className="rounded-[1.5rem] border border-primary/20 bg-primary/5 p-5"><p className="label-base">Registro asistido</p><h2 className="font-heading text-xl font-bold">Marcar llegada de un miembro</h2><p className="mt-1 text-sm text-neutral-500">Si la membresía está bloqueada, el motivo de excepción será obligatorio y quedará auditado.</p><div className="mt-4 grid gap-3 md:grid-cols-3"><select className="input" value={assistedMemberId} onChange={(event) => setAssistedMemberId(event.target.value)}><option value="">Selecciona miembro</option>{members?.results.map((member) => <option key={member.id} value={member.id}>{member.full_name}</option>)}</select><input className="input" placeholder="Nota operativa (opcional)" value={notes} onChange={(event) => setNotes(event.target.value)} /><input className="input" placeholder="Motivo si requiere excepción" value={overrideReason} onChange={(event) => setOverrideReason(event.target.value)} /></div><button className="btn-primary mt-3" disabled={!assistedMemberId || isPending} onClick={() => checkIn({ member_id: Number(assistedMemberId), notes, override_reason: overrideReason }, { onSuccess: () => { setNotes(''); setOverrideReason('') } })}>Registrar llegada</button></section><section className="mt-6 rounded-[1.5rem] border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
+        <><section className="rounded-[1.5rem] border border-primary/20 bg-primary/5 p-5"><p className="label-base">Registro asistido</p><h2 className="font-heading text-xl font-bold">Marcar llegada de un cliente</h2><p className="mt-1 text-sm text-neutral-500">Si la membresía está bloqueada, el motivo de excepción será obligatorio y quedará auditado. Esta excepción no habilita la rutina.</p><div className="mt-4 grid gap-3 md:grid-cols-3"><select className="input" value={assistedMemberId} onChange={(event) => setAssistedMemberId(event.target.value)}><option value="">Selecciona cliente</option>{members?.results.map((member) => <option key={member.id} value={member.id}>{member.full_name}</option>)}</select><input className="input" placeholder="Nota operativa (opcional)" value={notes} onChange={(event) => setNotes(event.target.value)} /><input className="input" placeholder="Motivo si requiere excepción" value={overrideReason} onChange={(event) => setOverrideReason(event.target.value)} /></div><button className="btn-primary mt-3" disabled={!assistedMemberId || isPending} onClick={() => checkIn({ member_id: Number(assistedMemberId), notes, override_reason: overrideReason, trainer_override: Boolean(overrideReason.trim()) }, { onSuccess: () => { setNotes(''); setOverrideReason('') } })}>Registrar llegada</button></section><section className="mt-6 rounded-[1.5rem] border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="flex items-start gap-4">
               <SymbolFrame size="lg" tone="success">

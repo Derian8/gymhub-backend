@@ -19,8 +19,10 @@ export const progressApi = {
     return data
   },
 
-  sessions: async (): Promise<PaginatedResponse<WorkoutSession>> => {
-    const { data } = await apiClient.get('/api/workout-sessions/')
+  sessions: async (memberId?: number): Promise<PaginatedResponse<WorkoutSession>> => {
+    const { data } = await apiClient.get('/api/workout-sessions/', {
+      params: memberId ? { member_id: memberId } : undefined,
+    })
     return data
   },
 

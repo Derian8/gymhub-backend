@@ -2,6 +2,7 @@ import { waitFor } from '@testing-library/react'
 import { renderWithProviders } from '@/test/utils'
 import { ProgressPage } from './ProgressPage'
 import { progressApi } from '../api/progressApi'
+import { useAuthStore } from '@/shared/store/authStore'
 
 vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div data-testid="recharts-container">{children}</div>,
@@ -22,6 +23,25 @@ vi.mock('../api/progressApi', () => ({
 }))
 
 describe('ProgressPage', () => {
+  beforeEach(() => {
+    useAuthStore.setState({
+      user: {
+        id: 9,
+        email: 'member@test.com',
+        username: 'member',
+        first_name: 'Ana',
+        last_name: 'Cliente',
+        role: 'member',
+        is_staff: false,
+        memberprofile_id: 9,
+        trainerprofile_id: null,
+      },
+      activeContext: 'cliente',
+      isAuthenticated: true,
+      authResolved: true,
+    })
+  })
+
   it('renders progress logs, sessions and chart when data exists', async () => {
     vi.mocked(progressApi.summary).mockResolvedValue({
       latest_log_id: 41,

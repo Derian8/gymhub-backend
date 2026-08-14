@@ -73,20 +73,20 @@ describe('Sidebar', () => {
     )
 
     expect(getByTestId('sidebar')).toHaveClass('lg:w-16')
-    expect(getByText('Entrenamiento')).toBeInTheDocument()
+    expect(getByText('Hoy')).toBeInTheDocument()
   })
 
   it('shows only the essential member destinations including membership', () => {
-    const { getByRole, getByTestId, queryByText } = renderWithProviders(
+    const { getByRole, queryByText } = renderWithProviders(
       <Sidebar collapsed={false} mobileOpen={true} onToggle={vi.fn()} onCloseMobile={closeMobileMock} />,
     )
 
     expect(getByRole('link', { name: /Mi membresía/ })).toHaveAttribute('href', '/membership')
-    expect(getByRole('link', { name: /Entrenamiento/ })).toHaveAttribute('href', '/today')
+    expect(getByRole('link', { name: /Hoy/ })).toHaveAttribute('href', '/today')
+    fireEvent.click(getByRole('button', { name: /Mi seguimiento/ }))
     expect(getByRole('link', { name: /Mi Plan/ })).toHaveAttribute('href', '/plans/my')
-    expect(getByRole('link', { name: /Registros/ })).toHaveAttribute('href', '/records')
+    expect(getByRole('link', { name: /Historial/ })).toHaveAttribute('href', '/records')
     expect(getByRole('link', { name: /Progreso/ })).toHaveAttribute('href', '/progress')
-    expect(getByTestId('nav-membership').compareDocumentPosition(getByTestId('nav-today')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(queryByText('Nutrición')).not.toBeInTheDocument()
     expect(queryByText('Chat IA')).not.toBeInTheDocument()
     expect(queryByText('Pagos')).not.toBeInTheDocument()
@@ -103,13 +103,33 @@ describe('Sidebar', () => {
     )
 
     expect(getByRole('link', { name: /Dashboard/ })).toHaveAttribute('href', '/dashboard/trainer')
-    expect(getByRole('link', { name: /Miembros/ })).toHaveAttribute('href', '/members')
+    expect(getByRole('link', { name: /Clientes asignados/ })).toHaveAttribute('href', '/members')
+    fireEvent.click(getByRole('button', { name: /Entrenamiento · Etapa 2/ }))
     expect(getByRole('link', { name: /Planes/ })).toHaveAttribute('href', '/plans')
-    expect(getByRole('link', { name: /Asistencia/ })).toHaveAttribute('href', '/attendance')
-    expect(getByRole('link', { name: /Facturación/ })).toHaveAttribute('href', '/billing')
+    expect(queryByText('Asistencia')).not.toBeInTheDocument()
+    expect(queryByText('Facturación')).not.toBeInTheDocument()
     expect(queryByText('Alertas')).not.toBeInTheDocument()
     expect(queryByText('Nutrición')).not.toBeInTheDocument()
     expect(queryByText('Gráficas')).not.toBeInTheDocument()
     expect(queryByText('Chat IA')).not.toBeInTheDocument()
+  })
+
+  it('keeps the administrator focused and moves secondary tools under More', () => {
+    useAuthStore.setState((state) => ({
+      ...state,
+      user: state.user ? { ...state.user, role: 'trainer', is_staff: true, trainerprofile_id: null, memberprofile_id: null } : null,
+    }))
+
+    const view = renderWithProviders(
+      <Sidebar collapsed={false} mobileOpen={true} onToggle={vi.fn()} onCloseMobile={closeMobileMock} />,
+    )
+
+    expect(view.getByRole('link', { name: /Pagos/ })).toHaveAttribute('href', '/billing')
+    expect(view.getByRole('link', { name: /Clientes/ })).toHaveAttribute('href', '/members')
+    expect(view.getByRole('link', { name: /Rutinas/ })).toHaveAttribute('href', '/routines')
+    expect(view.queryByRole('link', { name: /Reportes/ })).not.toBeInTheDocument()
+    fireEvent.click(view.getByRole('button', { name: /Más/ }))
+    expect(view.getByRole('link', { name: /Accesos/ })).toHaveAttribute('href', '/attendance')
+    expect(view.getByRole('link', { name: /Reportes/ })).toHaveAttribute('href', '/reports')
   })
 })

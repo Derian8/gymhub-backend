@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { User, Mail, Lock, Loader2, Save } from 'lucide-react'
-import { useAuthStore } from '@/shared/store/authStore'
+import { getAvailableProfiles, getResolvedContext, useAuthStore } from '@/shared/store/authStore'
 import { PageHeader, Avatar, Badge } from '@/shared/components/UI'
 import { useUpdateMeMutation } from '@/modules/auth/hooks/useAuthMutations'
 import type { UpdateProfileData } from '@/shared/types'
@@ -20,9 +20,10 @@ const profileSchema = z.object({
 type ProfileForm = z.infer<typeof profileSchema>
 
 export function ProfilePage() {
-  const { user } = useAuthStore()
+  const { user, activeContext } = useAuthStore()
+  const currentContext = getResolvedContext(user, activeContext)
   const { mutate: updateMe, isPending } = useUpdateMeMutation()
-  const gymQuery = useQuery({ queryKey: ['gym-profile'], queryFn: async () => (await apiClient.get('/api/trainer/gym-profile/')).data as { nombre: string; telefono: string; correo: string; direccion: string; logo?: string | null }, enabled: user?.role === 'trainer' })
+  const gymQuery = useQuery({ queryKey: ['gym-profile'], queryFn: async () => (await apiClient.get('/api/trainer/gym-profile/')).data as { nombre: string; telefono: string; correo: string; direccion: string; logo?: string | null }, enabled: currentContext === 'instructor' })
   const [gym, setGym] = useState({ nombre: '', telefono: '', correo: '', direccion: '' })
   const [gymLogo, setGymLogo] = useState<File | null>(null)
   const saveGym = useMutation({ mutationFn: async () => { const payload = new FormData(); Object.entries(gym).forEach(([key, value]) => payload.append(key, value)); if (gymLogo) payload.append('logo', gymLogo); return (await apiClient.patch('/api/trainer/gym-profile/', payload)).data }, onSuccess: () => { toast.success('Datos del gimnasio actualizados'); gymQuery.refetch() } })
@@ -82,10 +83,11 @@ export function ProfilePage() {
             <p className="text-sm text-neutral-500">{user.email}</p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-2">
-            <Badge variant={user.role === 'trainer' ? 'info' : 'success'}>
-              {user.role === 'trainer' ? 'Entrenador' : 'Miembro'}
-            </Badge>
-            {user.is_staff ? <Badge variant="warning">Staff</Badge> : null}
+            {getAvailableProfiles(user).map((profile) => (
+              <Badge key={profile} variant={profile === 'instructor' ? 'info' : profile === 'cliente' ? 'success' : 'warning'}>
+                {profile === 'administrador' ? 'Administrador' : profile === 'instructor' ? 'Instructor' : 'Cliente'}
+              </Badge>
+            ))}
           </div>
         </section>
 
@@ -95,7 +97,7 @@ export function ProfilePage() {
               Información de acceso
             </h3>
             <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-              El correo se normaliza en minúsculas y tu rol permanece fijo.
+              El correo se normaliza en minúsculas. Tus perfiles comparten una sola cuenta.
             </p>
           </div>
 
@@ -167,8 +169,8 @@ export function ProfilePage() {
               />
               <InfoField
                 icon={<Lock size={16} />}
-                label="Rol"
-                value={user.role === 'trainer' ? 'Entrenador' : 'Miembro'}
+                label="Contexto activo"
+                value={currentContext === 'administrador' ? 'Administrador' : currentContext === 'instructor' ? 'Instructor' : 'Cliente'}
               />
             </div>
 
@@ -193,7 +195,7 @@ export function ProfilePage() {
           </form>
         </section>
       </div>
-      {user.role === 'trainer' ? <section className="card mt-6 p-6"><h3 className="font-heading text-lg font-bold">Identidad del gimnasio</h3><p className="mt-1 text-sm text-neutral-500">Estos datos aparecen en comprobantes internos y pantallas administrativas.</p><div className="mt-5 grid gap-4 sm:grid-cols-2">{Object.entries(gym).map(([key, value]) => <label key={key} className={key === 'direccion' ? 'sm:col-span-2' : ''}><span className="label-base">{{ nombre: 'Nombre', telefono: 'Teléfono', correo: 'Correo', direccion: 'Dirección' }[key as keyof typeof gym]}</span><input className="input-base mt-2 w-full" value={value} onChange={(event) => setGym((current) => ({ ...current, [key]: event.target.value }))} /></label>)}<label className="sm:col-span-2"><span className="label-base">Logo del gimnasio</span><input className="input-base mt-2 w-full" type="file" accept="image/*" onChange={(event) => setGymLogo(event.target.files?.[0] ?? null)} /></label></div><div className="mt-5 flex justify-end"><button className="btn-primary" onClick={() => saveGym.mutate()} disabled={saveGym.isPending}>Guardar gimnasio</button></div></section> : null}
+      {currentContext === 'instructor' ? <section className="card mt-6 p-6"><h3 className="font-heading text-lg font-bold">Identidad del gimnasio</h3><p className="mt-1 text-sm text-neutral-500">Estos datos aparecen en comprobantes internos y pantallas administrativas.</p><div className="mt-5 grid gap-4 sm:grid-cols-2">{Object.entries(gym).map(([key, value]) => <label key={key} className={key === 'direccion' ? 'sm:col-span-2' : ''}><span className="label-base">{{ nombre: 'Nombre', telefono: 'Teléfono', correo: 'Correo', direccion: 'Dirección' }[key as keyof typeof gym]}</span><input className="input-base mt-2 w-full" value={value} onChange={(event) => setGym((current) => ({ ...current, [key]: event.target.value }))} /></label>)}<label className="sm:col-span-2"><span className="label-base">Logo del gimnasio</span><input className="input-base mt-2 w-full" type="file" accept="image/*" onChange={(event) => setGymLogo(event.target.files?.[0] ?? null)} /></label></div><div className="mt-5 flex justify-end"><button className="btn-primary" onClick={() => saveGym.mutate()} disabled={saveGym.isPending}>Guardar gimnasio</button></div></section> : null}
     </div>
   )
 }

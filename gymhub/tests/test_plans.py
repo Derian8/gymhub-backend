@@ -7,9 +7,36 @@ from django.utils import timezone
 from rest_framework import status
 
 
+@pytest.fixture(autouse=True)
+def acceso_entrenamiento_vigente(db, request, member_profile, membership_plan, trainer_profile):
+    """Las pruebas técnicas parten del flujo comercial y de llegada ya completado."""
+    from attendance.models import Attendance
+    from billing.models import MemberSubscription
+
+    if request.node.name != 'test_trainer_cannot_create_plan_without_membership':
+        MemberSubscription.objects.get_or_create(
+            member=member_profile,
+            defaults={
+                'plan': membership_plan,
+                'membership_name': membership_plan.name,
+                'trainer': trainer_profile,
+                'agreed_price': membership_plan.price,
+                'start_date': date.today() - timedelta(days=5),
+                'next_billing_date': date.today() + timedelta(days=25),
+                'recurrence_type': 'monthly',
+                'grace_period_days': 7,
+                'is_active': True,
+                'status': 'active',
+                'current_period_start': date.today() - timedelta(days=5),
+                'current_period_end': date.today() + timedelta(days=25),
+            },
+        )
+        Attendance.objects.get_or_create(member=member_profile, attendance_date=date.today())
+
+
 @pytest.mark.django_db
 class TestTrainingPlans:
-    def test_trainer_can_create_plan_without_membership(
+    def test_trainer_cannot_create_plan_without_membership(
         self, trainer_client, member_profile
     ):
         from billing.models import MemberSubscription
@@ -28,8 +55,7 @@ class TestTrainingPlans:
             'is_active': True,
         }, format='json')
 
-        assert resp.status_code == status.HTTP_201_CREATED
-        assert resp.data['member'] == member_profile.id
+        assert resp.status_code == status.HTTP_403_FORBIDDEN
         assert not MemberSubscription.objects.filter(member=member_profile).exists()
 
     def test_trainer_can_create_plan_without_sending_trainer_field(
@@ -54,6 +80,9 @@ class TestTrainingPlans:
         assert resp.data['trainer'] == trainer_profile.id
 
     def test_trainer_can_delete_plan_and_cascade_content(self, trainer_client, training_plan):
+        training_plan.status = 'draft'
+        training_plan.is_active = False
+        training_plan.save(update_fields=['status', 'is_active'])
         plan_id = training_plan.id
         day_ids = list(training_plan.workout_days.values_list('id', flat=True))
 
@@ -221,7 +250,7 @@ class TestTrainingPlans:
         assert resp.status_code == status.HTTP_400_BAD_REQUEST
         assert 'end_date' in resp.data
 
-    def test_complete_active_plan_requires_conflict_strategy_when_member_has_active_plan(self, trainer_client, training_plan):
+    def test_complete_plan_always_starts_as_draft(self, trainer_client, training_plan):
         resp = trainer_client.post('/api/plans/create-complete/', {
             'member': training_plan.member_id,
             'name': 'Nuevo activo',
@@ -235,10 +264,10 @@ class TestTrainingPlans:
             'days': [],
         }, format='json')
 
-        assert resp.status_code == status.HTTP_400_BAD_REQUEST
-        assert 'member' in resp.data
+        assert resp.status_code == status.HTTP_201_CREATED
+        assert resp.data['status'] == 'draft'
 
-    def test_complete_plan_replace_active_finishes_previous_plan(self, trainer_client, training_plan):
+    def test_complete_draft_does_not_replace_active_plan(self, trainer_client, training_plan):
         from plans.models import TrainingPlan
 
         resp = trainer_client.post('/api/plans/create-complete/', {
@@ -256,9 +285,11 @@ class TestTrainingPlans:
 
         assert resp.status_code == status.HTTP_201_CREATED
         training_plan.refresh_from_db()
-        assert training_plan.status == 'finished'
-        assert training_plan.is_active is False
-        assert TrainingPlan.objects.get(id=resp.data['id']).is_active is True
+        assert training_plan.status == 'active'
+        assert training_plan.is_active is True
+        created = TrainingPlan.objects.get(id=resp.data['id'])
+        assert created.status == 'draft'
+        assert created.is_active is False
 
     def test_complete_plan_is_atomic_when_nested_exercise_invalid(self, trainer_client, member_profile):
         from plans.models import TrainingPlan
@@ -385,6 +416,7 @@ class TestTodayWorkout:
         assert resp1.data['id'] == resp2.data['id']
 
     def test_today_workout_uses_local_business_day(self, member_client, training_plan, monkeypatch):
+        from attendance.models import Attendance
         from django.utils import timezone as django_timezone
         from plans.models import WorkoutDay
         from plans import views as plan_views
@@ -404,6 +436,10 @@ class TestTodayWorkout:
         monkeypatch.setattr(plan_views.timezone, 'localdate', lambda: local_saturday)
         monkeypatch.setattr(user_services.timezone, 'localdate', lambda: local_saturday)
         monkeypatch.setattr(django_timezone, 'localdate', lambda: local_saturday)
+        Attendance.objects.get_or_create(
+            member=training_plan.member,
+            attendance_date=local_saturday,
+        )
 
         resp = member_client.get(f'/api/plans/{training_plan.id}/today-workout/')
 

@@ -73,7 +73,7 @@ const riskLabels: Record<'low' | 'medium' | 'high', string> = {
   high: 'Riesgo alto',
 }
 
-const dayOptions: DayLabel[] = ['A', 'B', 'C', 'D']
+const dayOptions: DayLabel[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
 const dayOfWeekOptions: Array<{ value: DayOfWeek; label: string }> = [
   { value: 'mon', label: 'Lunes' },
   { value: 'tue', label: 'Martes' },
@@ -1853,11 +1853,13 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
         data-testid="delete-confirm-dialog"
       />
 
-      <TrainingPlanWizard
-        open={createPlanWizardOpen}
-        onClose={() => setCreatePlanWizardOpen(false)}
-        preselectedMember={member}
-      />
+      {createPlanWizardOpen ? (
+        <TrainingPlanWizard
+          open
+          onClose={() => setCreatePlanWizardOpen(false)}
+          preselectedMember={member}
+        />
+      ) : null}
     </div>
   )
 }

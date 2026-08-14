@@ -1,6 +1,6 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useLocation } from 'react-router-dom'
 import { ArrowLeft, Phone, Calendar, Mail, Dumbbell, CreditCard, CheckSquare, AlertTriangle, Activity, Ruler, Scale, PencilLine } from 'lucide-react'
-import { useMemberActivePrescriptionQuery, useMemberDetailQuery, useActivateMemberMutation, useAssignTrainerMutation, useMemberDashboardQuery, useMemberPhysicalSummaryQuery } from '../hooks/useMembers'
+import { useMemberActivePrescriptionQuery, useMemberDetailQuery, useActivateMemberMutation, useMemberDashboardQuery, useMemberPhysicalSummaryQuery } from '../hooks/useMembers'
 import { Badge, PageHeader, Avatar, EmptyState } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
 import { extractApiError, formatCurrency, formatDate, formatDateTime, RISK_LEVEL_BADGE, RISK_LEVEL_LABELS } from '@/shared/lib/utils'
@@ -52,6 +52,7 @@ function getMembershipStatusCopy(summary: ReturnType<typeof useMemberDashboardQu
 }
 
 export function MemberDetailPage() {
+  const location = useLocation()
   const { id } = useParams<{ id: string }>()
   const memberId = parseInt(id || '0')
   const queryClient = useQueryClient()
@@ -60,8 +61,8 @@ export function MemberDetailPage() {
   const { data: physicalSummary } = useMemberPhysicalSummaryQuery(memberId)
   const { data: activePrescription } = useMemberActivePrescriptionQuery(memberId)
   const { mutate: activate, isPending: isActivating } = useActivateMemberMutation()
-  const { mutate: assignTrainer, isPending: isAssigningTrainer } = useAssignTrainerMutation()
   const { user } = useAuthStore()
+  const isAdmin = Boolean(user?.is_staff)
   const [isMeasurementFormOpen, setIsMeasurementFormOpen] = useState(false)
   const [temporaryPassword, setTemporaryPassword] = useState('')
   const accountAction = useMutation({ mutationFn: async (action: 'password' | 'deactivate' | 'reactivate') => {
@@ -85,7 +86,7 @@ export function MemberDetailPage() {
   const { data: progressLogs, isLoading: isLoadingProgressLogs } = useQuery({
     queryKey: QUERY_KEYS.PROGRESS_LOGS(memberId),
     queryFn: () => progressApi.logs(memberId),
-    enabled: !!memberId && !!user && (user.role === 'trainer' || user.is_staff),
+    enabled: !!memberId && !!user && (Boolean(user.trainerprofile_id) || user.is_staff),
   })
 
   const upsertMeasurement = useMutation({
@@ -122,11 +123,29 @@ export function MemberDetailPage() {
     })
   }
 
+  const canManagePhysical = Boolean(
+    user?.is_staff
+    || (
+      member
+      && member.trainer_asignado !== null
+      && member.trainer_asignado === user?.trainerprofile_id
+    ),
+  )
+
   useEffect(() => {
     if (!isMeasurementFormOpen && !editingMeasurementId) {
       resetMeasurementForm()
     }
   }, [isMeasurementFormOpen, editingMeasurementId])
+
+  useEffect(() => {
+    if (location.hash === '#progreso' && canManagePhysical) {
+      resetMeasurementForm()
+      setEditingMeasurementId(null)
+      setIsMeasurementFormOpen(true)
+      window.requestAnimationFrame(() => document.getElementById('progreso')?.scrollIntoView({ behavior: 'smooth' }))
+    }
+  }, [canManagePhysical, location.hash])
 
   if (isLoading) {
     return (
@@ -151,8 +170,7 @@ export function MemberDetailPage() {
     )
   }
 
-  const canManagePrescription = user?.is_staff || (member.trainer_asignado !== null && member.trainer_asignado === user?.trainerprofile_id)
-  const canManagePhysical = user?.is_staff || (member.trainer_asignado !== null && member.trainer_asignado === user?.trainerprofile_id)
+  const canManagePrescription = !user?.is_staff && Boolean(user?.trainerprofile_id) && member.trainer_asignado !== null && member.trainer_asignado === user?.trainerprofile_id
   const prescriptionStatus = !member.trainer_asignado
     ? 'Sin asignar'
     : activePrescription?.estado_prescripcion.esta_lista_para_member
@@ -196,7 +214,7 @@ export function MemberDetailPage() {
                 {activePrescription?.estado_prescripcion.tiene_plan_activo ? 'Editar prescripción' : 'Asignar entrenamiento al miembro'}
               </Link>
             )}
-            {!member.is_active && (
+            {isAdmin && !member.is_active && (
               <button
                 onClick={() => activate({ id: member.id })}
                 disabled={isActivating}
@@ -206,49 +224,12 @@ export function MemberDetailPage() {
                 {isActivating ? 'Activando...' : 'Activar miembro'}
               </button>
             )}
-            <button className="btn-secondary" type="button" onClick={() => accountAction.mutate('password')}>Nueva contraseña temporal</button>
-            {member.is_active ? <button className="btn-secondary" type="button" onClick={() => accountAction.mutate('deactivate')}>Dar de baja</button> : null}
-            {!member.trainer_asignado && user?.role === 'trainer' && (
-              <button
-                onClick={() => assignTrainer(member.id)}
-                disabled={isAssigningTrainer}
-                className="btn-secondary"
-                data-testid="assign-trainer-btn"
-              >
-                {isAssigningTrainer ? 'Asignando...' : 'Asignarme cliente'}
-              </button>
-            )}
+            {isAdmin && <button className="btn-secondary" type="button" onClick={() => accountAction.mutate('password')}>Nueva contraseña temporal</button>}
+            {isAdmin && member.is_active ? <button className="btn-secondary" type="button" onClick={() => accountAction.mutate('deactivate')}>Dar de baja</button> : null}
           </div>
         }
       />
       {temporaryPassword ? <div className="mb-6 rounded-sm border border-amber-300 bg-amber-50 p-4 text-amber-900"><p className="font-semibold">Contraseña temporal (se muestra una sola vez)</p><div className="mt-2 flex items-center gap-3"><code className="text-lg font-bold">{temporaryPassword}</code><button className="btn-secondary" onClick={() => navigator.clipboard.writeText(temporaryPassword)}>Copiar</button></div></div> : null}
-
-      {!member.trainer_asignado && user?.role === 'trainer' ? (
-        <div
-          className="mb-6 rounded-sm border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-950/30"
-          data-testid="unassigned-member-banner"
-        >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="font-heading text-lg font-bold text-neutral-900 dark:text-white">
-                Este miembro todavía no está asignado a ningún trainer
-              </h2>
-              <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
-                Asígnalo a tu cuenta para que aparezca en tus miembros y puedas crearle planes, membresías y seguimiento.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => assignTrainer(member.id)}
-              disabled={isAssigningTrainer}
-              className="btn-primary"
-              data-testid="banner-assign-trainer-btn"
-            >
-              {isAssigningTrainer ? 'Asignando...' : 'Asignar a mí'}
-            </button>
-          </div>
-        </div>
-      ) : null}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Profile card */}
@@ -280,7 +261,7 @@ export function MemberDetailPage() {
 
         {/* Actions & details */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="card p-6" data-testid="member-membership-panel">
+          {isAdmin && <div className="card p-6" data-testid="member-membership-panel">
             <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
               <div>
                 <p className="label-base">Membresía y cobro</p>
@@ -339,7 +320,7 @@ export function MemberDetailPage() {
                 {membership ? 'Ver facturación' : 'Crear membresía'}
               </Link>
             </div>
-          </div>
+          </div>}
 
           <div className="card p-6" data-testid="member-prescription-panel">
             <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
@@ -378,16 +359,7 @@ export function MemberDetailPage() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {!member.trainer_asignado && user?.role === 'trainer' ? (
-                <button
-                  onClick={() => assignTrainer(member.id)}
-                  disabled={isAssigningTrainer}
-                  className="btn-secondary"
-                  data-testid="prescription-assign-trainer-btn"
-                >
-                  {isAssigningTrainer ? 'Asignando...' : 'Asignarme y empezar prescripción'}
-                </button>
-              ) : canManagePrescription ? (
+              {canManagePrescription ? (
                 <Link
                   to={`/members/${member.id}/program`}
                   className="btn-secondary"
@@ -443,8 +415,8 @@ export function MemberDetailPage() {
 
             <div className="space-y-2">
               <p className="text-xs uppercase tracking-wide text-neutral-500">Señales detectadas</p>
-              {member.motivos_riesgo?.length ? (
-                member.motivos_riesgo.map((reason) => (
+              {member.motivos_riesgo?.filter((reason) => !reason.toLowerCase().includes('pago')).length ? (
+                member.motivos_riesgo.filter((reason) => !reason.toLowerCase().includes('pago')).map((reason) => (
                   <div key={reason} className="flex items-start gap-2 text-sm text-neutral-700 dark:text-neutral-300">
                     <AlertTriangle size={14} className="text-yellow-500 mt-0.5 flex-shrink-0" />
                     <span>{reason}</span>
@@ -456,7 +428,7 @@ export function MemberDetailPage() {
             </div>
           </div>
 
-          <div className="card p-6" data-testid="member-physical-panel">
+          <div id="progreso" className="card p-6 scroll-mt-24" data-testid="member-physical-panel">
             <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
               <div>
                 <p className="label-base">Evaluación física</p>
@@ -691,7 +663,7 @@ export function MemberDetailPage() {
           </div>
 
           {/* Activation panel */}
-          {!member.is_active && (
+          {isAdmin && !member.is_active && (
             <div className="card p-6 border-yellow-500/30" data-testid="activation-panel">
               <h3 className="font-heading font-bold text-lg text-neutral-900 dark:text-white mb-4">
                 Activar miembro
@@ -707,24 +679,24 @@ export function MemberDetailPage() {
 
           {/* Quick links */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <QuickLink
+            {!isAdmin && <QuickLink
               icon={<Dumbbell size={20} />}
               label="Plan de entrenamiento"
               to={`/members/${member.id}/program`}
               testId="member-program-link"
-            />
-            <QuickLink
+            />}
+            {isAdmin && <QuickLink
               icon={<CreditCard size={20} />}
               label="Facturación"
               to={`/billing?member=${member.id}`}
               testId="member-billing-link"
-            />
-            <QuickLink
+            />}
+            {isAdmin && <QuickLink
               icon={<CheckSquare size={20} />}
               label="Asistencia"
               to={`/attendance?member=${member.id}`}
               testId="member-attendance-link"
-            />
+            />}
           </div>
         </div>
       </div>

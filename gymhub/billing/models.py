@@ -294,3 +294,55 @@ class PaymentInstruction(models.Model):
 
     def __str__(self):
         return f"Instrucción: {self.title}"
+
+
+class SeguimientoCobro(models.Model):
+    ESTADOS = [
+        ('nuevo', 'Nuevo'),
+        ('en_seguimiento', 'En seguimiento'),
+        ('resuelto', 'Resuelto'),
+        ('baja', 'Baja'),
+    ]
+    MEDIOS = [
+        ('whatsapp', 'WhatsApp'),
+        ('llamada', 'Llamada'),
+        ('correo', 'Correo'),
+        ('presencial', 'Presencial'),
+    ]
+
+    cliente = models.ForeignKey(
+        'users.MemberProfile',
+        on_delete=models.CASCADE,
+        related_name='seguimientos_cobro',
+    )
+    administrador = models.ForeignKey(
+        'users.User',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='seguimientos_cobro',
+    )
+    estado = models.CharField(max_length=20, choices=ESTADOS, default='nuevo')
+    medio_contacto = models.CharField(max_length=20, choices=MEDIOS, blank=True)
+    nota = models.TextField(blank=True)
+    proxima_fecha = models.DateField(null=True, blank=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'seguimientos_cobro'
+        ordering = ['-actualizado_en', '-id']
+        indexes = [
+            models.Index(fields=['estado', 'proxima_fecha'], name='seguimiento_estado_fecha_idx'),
+            models.Index(fields=['cliente', 'estado'], name='seguimiento_cliente_estado_idx'),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['cliente'],
+                condition=Q(estado__in=['nuevo', 'en_seguimiento']),
+                name='seguimiento_cobro_abierto_unico',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.cliente} — {self.estado}'

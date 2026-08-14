@@ -36,11 +36,6 @@ export const billingApi = {
     return data
   },
 
-  updatePaymentRecord: async (id: number, payload: Partial<PaymentRecord>): Promise<PaymentRecord> => {
-    const { data } = await apiClient.patch(`/api/payment-records/${id}/`, payload)
-    return data
-  },
-
   markPaymentAsPaid: async (
     id: number,
     payload: Pick<PaymentRecord, 'payment_reference' | 'notes'> & { method: 'cash' | 'sinpe' | 'transfer' | 'other' },

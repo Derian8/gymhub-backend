@@ -3,6 +3,8 @@
 // ============================================================
 
 // --- Auth ---
+export type PerfilUsuario = 'administrador' | 'instructor' | 'cliente'
+
 export interface User {
   id: number
   email: string
@@ -14,6 +16,8 @@ export interface User {
   memberprofile_id: number | null
   trainerprofile_id: number | null
   requiere_cambio_contrasena?: boolean
+  perfiles_disponibles?: PerfilUsuario[]
+  contexto_predeterminado?: PerfilUsuario
 }
 
 export interface LoginCredentials {
@@ -165,6 +169,150 @@ export interface MemberProfile {
   suscripcion_activa_id?: number | null
   precio_suscripcion_actual?: string | null
   membresia_actual?: MemberMembershipSummary | null
+  estado_comercial?: 'al_dia' | 'por_vencer' | 'bloqueado'
+  accion_comercial?: 'contactar_administrador' | null
+}
+
+export interface RegistroClientePagoPayload {
+  nombres: string
+  apellidos: string
+  correo_electronico: string
+  telefono: string
+  fecha_nacimiento?: string
+  contacto_emergencia?: string
+  entrenador: number | null
+  tipo_membresia: 'catalogo' | 'personalizada'
+  plan_membresia?: number | null
+  nombre_membresia?: string
+  precio_acordado?: string
+  tipo_recurrencia?: MembershipPlan['recurrence_type']
+  dias_gracia?: number
+  renovacion_automatica: boolean
+  motivo_ajuste_precio?: string
+  notas_comerciales?: string
+  metodo_pago: 'cash' | 'sinpe' | 'transfer' | 'other'
+  referencia_pago?: string
+  notas_pago?: string
+}
+
+export interface RegistroClientePagoResponse {
+  member: MemberProfile
+  membership: MemberMembership
+  payment: PaymentRecord
+  contrasena_temporal: string
+  receipt_url: string
+  message: string
+}
+
+export interface TrainerProfile {
+  id: number
+  user: User
+  specialization: string
+  bio: string
+  certification: string
+}
+
+export interface AdminReportOverview {
+  period: { start_date: string; end_date: string }
+  commercial: {
+    collected: string
+    expected: string
+    pending: string
+    overdue: string
+    payments_count: number
+    active_memberships: number
+    cancelled_memberships: number
+    new_members: number
+    blocked_clients: number
+    expiring_clients: number
+    by_method: Array<{ method: string; total: string; cantidad: number }>
+  }
+  access: {
+    entries: number
+    entries_today: number
+    unique_clients: number
+    currently_inside: number
+    check_outs: number
+    exceptions: number
+    denied_attempts: number
+    daily: Array<{ date: string; total: number; clientes: number }>
+  }
+  alerts: Array<{
+    payment_id: number
+    member_id: number
+    member_name: string
+    amount: string
+    due_date: string
+    days_overdue: number
+    follow_up_id: number | null
+    follow_up_status: string
+  }>
+}
+
+export interface AdminDashboardOverview {
+  generated_at: string
+  commercial: {
+    current_clients: number
+    current_clients_pct: number
+    active_clients: number
+    collected_this_month: string
+    due_soon_count: number
+    due_soon_amount: string
+    overdue_count: number
+    overdue_amount: string
+  }
+  payments: {
+    overdue: Array<{
+      payment_id: number
+      member_id: number
+      member_name: string
+      amount: string
+      due_date: string
+      days_overdue: number
+      days_until_due: number
+    }>
+    due_soon: Array<{
+      payment_id: number
+      member_id: number
+      member_name: string
+      amount: string
+      due_date: string
+      days_overdue: number
+      days_until_due: number
+    }>
+    current: Array<{
+      member_id: number
+      member_name: string
+      access_allowed: boolean
+    }>
+  }
+  training: {
+    without_routine_count: number
+    without_routine: AdminRoutineQueueItem[]
+    ending_soon_count: number
+    ending_soon: AdminRoutineQueueItem[]
+  }
+}
+
+export interface AdminRoutineQueueItem {
+  member_id: number
+  member_name: string
+  trainer_id: number | null
+  trainer_name: string | null
+  can_publish: boolean
+  plan_id?: number
+  plan_name?: string
+  end_date?: string
+  days_until_end?: number
+}
+
+export interface QuickRoutineAssignmentPayload {
+  member_id: number
+  trainer_id: number
+  template_id: number
+  start_date: string
+  weeks_duration: number
+  confirm_trainer_change: boolean
 }
 
 export interface MemberDashboardSummary {
@@ -391,7 +539,7 @@ export type ChartsOverview = MemberChartsOverview | TrainerChartsOverview
 // --- Plans ---
 export type GoalType = 'fat_loss' | 'muscle_gain' | 'endurance' | 'flexibility' | 'maintenance' | 'general'
 export type MuscleGroup = 'chest' | 'back' | 'lats' | 'shoulders' | 'traps' | 'biceps' | 'triceps' | 'forearms' | 'legs' | 'quadriceps' | 'hamstrings' | 'glutes' | 'calves' | 'adductors' | 'abductors' | 'hip_flexors' | 'core' | 'abs' | 'obliques' | 'lower_back' | 'full_body' | 'cardio'
-export type DayLabel = 'A' | 'B' | 'C' | 'D'
+export type DayLabel = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G'
 export type DayOfWeek = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun'
 export type ExerciseType = 'strength' | 'timed'
 
@@ -406,6 +554,8 @@ export interface GymMachine {
 export interface Exercise {
   id: number
   workout_day: number
+  catalogo_ejercicio?: number | null
+  catalogo_detalle?: CatalogExercise | null
   name: string
   muscle_group: MuscleGroup
   exercise_type: ExerciseType
@@ -465,6 +615,8 @@ export interface TrainingPlan {
   publicado_en?: string | null
   publicado_por?: number | null
   plan_origen?: number | null
+  modo_ejecucion?: 'weekly' | 'cycle'
+  indice_bloque_actual?: number
   workout_days?: WorkoutDay[]
 }
 
@@ -513,6 +665,8 @@ export interface ActivePrescription {
 export interface TrainingTemplateExercise {
   id: number
   dia: number
+  catalogo_ejercicio?: number | null
+  catalogo_detalle?: CatalogExercise | null
   nombre: string
   grupo_muscular: MuscleGroup
   tipo_ejercicio: ExerciseType
@@ -530,6 +684,7 @@ export interface TrainingTemplateDay {
   plantilla: number
   nombre: string
   etiqueta_dia: DayLabel
+  dia_semana?: DayOfWeek | null
   orden: number
   ejercicios: TrainingTemplateExercise[]
 }
@@ -544,6 +699,8 @@ export interface TrainingTemplate {
   nivel_adherencia_recomendado: 'low' | 'medium' | 'high'
   dias_por_semana_sugeridos: number
   esta_activa: boolean
+  es_compartida?: boolean
+  modo_ejecucion?: 'weekly' | 'cycle'
   creada_en: string
   dias: TrainingTemplateDay[]
 }
@@ -583,10 +740,11 @@ export interface CompleteTrainingPlanPayload {
   level: TrainingPlanLevel
   notes?: string
   conflict_strategy: 'keep' | 'replace_active' | 'schedule_after_active'
+  modo_ejecucion?: 'weekly' | 'cycle'
   days: Array<{
     name: string
     day_label: DayLabel
-    day_of_week: DayOfWeek
+    day_of_week?: DayOfWeek | null
     order: number
     exercises: Array<Omit<ExercisePayload, 'workout_day'>>
   }>
@@ -609,6 +767,7 @@ export interface WorkoutDayPayload {
 
 export interface ExercisePayload {
   workout_day: number
+  catalogo_ejercicio?: number | null
   name: string
   muscle_group: MuscleGroup
   exercise_type: ExerciseType
@@ -631,6 +790,40 @@ export interface TodayWorkout {
   today_session_id: number | null
   today_session_completed: boolean
   today_session_started: boolean
+  descripcion_general?: string
+  progreso_sesion?: {
+    total: number
+    realizados: number
+    omitidos: number
+    pendientes: number
+    ejercicios: Array<{ exercise_id: number; estado: 'realizado' | 'omitido' }>
+  }
+  modo_ejecucion?: 'weekly' | 'cycle'
+  posicion_ciclo?: number
+  total_bloques_ciclo?: number
+}
+
+export interface ExerciseProgressPayload {
+  exercise_id: number
+  estado: 'realizado' | 'omitido'
+}
+
+export interface CatalogExercise {
+  id: number
+  identificador_origen: string
+  nombre: string
+  categoria: string
+  parte_cuerpo: string
+  equipo: string
+  musculo_objetivo: string
+  grupo_muscular: string
+  musculos_secundarios: string[]
+  instrucciones_es: string
+  pasos_es: string[]
+  imagen_url: string
+  animacion_url: string
+  atribucion_media: string
+  esta_activo: boolean
 }
 
 export interface WeeklyWorkoutStatus {
@@ -707,6 +900,7 @@ export interface ExerciseLog {
   weight_used_kg: number | null
   rpe: number | null
   notes: string
+  estado: 'realizado' | 'omitido'
 }
 
 export interface ExerciseLogPayload {
@@ -726,6 +920,7 @@ export interface CompleteWorkoutSessionPayload {
   waist_cm?: number
   body_fat_pct?: number
   muscle_mass_kg?: number
+  omitir_pendientes?: boolean
 }
 
 export interface ProgressByExercise {

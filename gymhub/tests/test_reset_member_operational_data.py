@@ -131,7 +131,7 @@ def test_reset_member_operational_data_clears_activity_and_preserves_identity_an
     from ai_chat.models import AIChatConversation, AIChatMessage
     from alerts.models import InactivityAlert, InactivityAlertContact, MemberJustifiedAbsence, Notification
     from attendance.models import Attendance
-    from billing.models import MemberSubscription, PaymentInstruction, PaymentMethod, PaymentRecord, PaymentSchedule
+    from billing.models import MemberSubscription, PaymentInstruction, PaymentMethod, PaymentRecord, PaymentSchedule, SeguimientoCobro
     from classes.models import ClassEnrollment, GymClass
     from nutrition.models import NutritionGuideline, NutritionProfile, PlantillaNutricion, PlanNutritionLink
     from plans.models import Exercise, GymMachine, PlantillaEntrenamiento, TrainingPlan, WorkoutDay
@@ -144,6 +144,7 @@ def test_reset_member_operational_data_clears_activity_and_preserves_identity_an
     for model in (
         AIChatConversation, AIChatMessage, InactivityAlert, InactivityAlertContact,
         MemberJustifiedAbsence, Notification, Attendance, MemberSubscription,
+        SeguimientoCobro,
         PaymentMethod, PaymentRecord, PaymentSchedule, ClassEnrollment,
         NutritionProfile, PlanNutritionLink, TrainingPlan, WorkoutDay, Exercise,
         ProgressLog, WorkoutSession, ExerciseLog,
@@ -156,7 +157,7 @@ def test_reset_member_operational_data_clears_activity_and_preserves_identity_an
     assert member_user.password == operational_data['password_hash']
     assert member_profile.trainer_asignado_id == operational_data['trainer_id']
     assert member_profile.membership_plan_id is None
-    assert AuditLog.objects.count() == 1
+    assert AuditLog.objects.count() == 0
 
     assert GymMachine.objects.count() == 1
     assert PlantillaEntrenamiento.objects.count() == 1

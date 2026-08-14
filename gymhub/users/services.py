@@ -661,7 +661,7 @@ def get_trainer_overview(user, trainer_profile):
     members_incomplete_prescription_items.sort(key=lambda member: member['riesgo_adherencia'], reverse=True)
     late_rate = round((payments_overdue / active_subscriptions_count) * 100, 1) if active_subscriptions_count else 0
 
-    return {
+    payload = {
         'total_active_members': total_active,
         'active_subscriptions_count': active_subscriptions_count,
         'checked_in_today': checked_in_today,
@@ -683,3 +683,18 @@ def get_trainer_overview(user, trainer_profile):
         'miembros_sin_plan_activo': members_missing_plan_items[:3],
         'miembros_con_prescripcion_incompleta': members_incomplete_prescription_items[:3],
     }
+    if not user.is_staff:
+        for item in payload['miembros_en_riesgo']:
+            item.pop('payment_status', None)
+            item['motivos_riesgo'] = [
+                reason for reason in item.get('motivos_riesgo', [])
+                if 'pago' not in reason.lower()
+            ]
+        for field in (
+            'active_subscriptions_count', 'members_in_mora',
+            'revenue_this_month', 'estimated_mrr',
+            'expected_revenue_this_month', 'late_rate_pct',
+            'payments_due_soon', 'payments_overdue',
+        ):
+            payload.pop(field, None)
+    return payload

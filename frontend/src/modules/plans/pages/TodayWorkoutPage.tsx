@@ -2,14 +2,15 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Activity, ArrowLeft, CalendarClock, CheckCircle, Dumbbell, Flame, Loader2, NotebookTabs, Play, Target } from 'lucide-react'
 
-import { useTodayWorkoutQuery, useWeeklyPlanQuery, useCreateSessionMutation, useCompleteSessionMutation, useBulkExerciseLogsMutation } from '../hooks/usePlans'
+import { useTodayWorkoutQuery, useWeeklyPlanQuery, useCreateSessionMutation, useCompleteSessionMutation, useBulkExerciseLogsMutation, useRegisterExerciseProgressMutation } from '../hooks/usePlans'
 import { EmptyState, Badge } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
 import { SymbolFrame } from '@/shared/components/Brand'
 import { DAY_OF_WEEK_LABELS, formatCurrency, formatDate, MUSCLE_LABELS, cn } from '@/shared/lib/utils'
 import type { CompleteWorkoutSessionPayload, Exercise, ExerciseLogPayload } from '@/shared/types'
-import { useAuthStore } from '@/shared/store/authStore'
+import { getResolvedContext, useAuthStore } from '@/shared/store/authStore'
 import { useMemberActivePrescriptionQuery, useMemberDashboardQuery } from '@/modules/members/hooks/useMembers'
+import { useOpenRoutineMutation } from '@/modules/attendance/hooks/useAttendance'
 
 interface ExerciseLogEntry {
   exercise_id: number
@@ -53,29 +54,39 @@ function getExercisePrescriptionLabel(exercise: Exercise) {
 function TodayWorkoutPageContent() {
   const { id } = useParams<{ id: string }>()
   const requestedPlanId = parseInt(id || '0')
-  const { user } = useAuthStore()
-  const isMember = user?.role === 'member'
+  const { user, activeContext } = useAuthStore()
+  const currentContext = getResolvedContext(user, activeContext)
+  const isMember = currentContext === 'cliente'
+  const routineEntryDate = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Costa_Rica', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date())
+  const routineEntryKey = `gymhub-routine-entry:${routineEntryDate}`
+  const [routineAccessGranted, setRoutineAccessGranted] = useState(
+    () => !isMember || window.sessionStorage.getItem(routineEntryKey) === 'granted',
+  )
   const memberId = user?.memberprofile_id || 0
   const {
     data: activePrescription,
     isLoading: isLoadingPrescription,
     isError: isPrescriptionError,
-  } = useMemberActivePrescriptionQuery(isMember ? memberId : 0)
+  } = useMemberActivePrescriptionQuery(isMember ? memberId : 0, !isMember || routineAccessGranted)
   const planId = requestedPlanId || activePrescription?.plan_activo?.id || 0
   const {
     data,
     isLoading: isLoadingTodayWorkout,
     isError: isTodayWorkoutError,
-  } = useTodayWorkoutQuery(planId)
+  } = useTodayWorkoutQuery(planId, !isMember || routineAccessGranted)
   const {
     data: weeklyView,
     isLoading: isLoadingWeeklyView,
     isError: isWeeklyViewError,
-  } = useWeeklyPlanQuery(planId)
+  } = useWeeklyPlanQuery(planId, !isMember || routineAccessGranted)
   const { data: dashboardSummary } = useMemberDashboardQuery(isMember ? memberId : 0)
   const { mutate: createSession, isPending: isCreating } = useCreateSessionMutation()
   const { mutate: completeSession, isPending: isCompleting } = useCompleteSessionMutation()
   const { mutate: bulkLogs, isPending: isSaving } = useBulkExerciseLogsMutation()
+  const { mutate: registerExerciseProgress, isPending: isRegisteringExercise } = useRegisterExerciseProgressMutation(planId)
+  const openRoutine = useOpenRoutineMutation()
 
   const [sessionId, setSessionId] = useState<number | null>(null)
   const [sessionStarted, setSessionStarted] = useState(false)
@@ -85,6 +96,8 @@ function TodayWorkoutPageContent() {
   const [sessionCompletedToday, setSessionCompletedToday] = useState(false)
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState<string | null>(null)
   const [isDaySelectorOpen, setIsDaySelectorOpen] = useState(false)
+  const [exerciseStates, setExerciseStates] = useState<Record<number, 'realizado' | 'omitido'>>({})
+  const [isFinishConfirmOpen, setIsFinishConfirmOpen] = useState(false)
 
   const workoutDay = useMemo(() => {
     if (data?.id) {
@@ -133,6 +146,7 @@ function TodayWorkoutPageContent() {
       setSessionId(workoutDay.today_session_id)
       setSessionStarted(false)
       setSessionCompletedToday(true)
+      setExerciseStates(Object.fromEntries((workoutDay.progreso_sesion?.ejercicios || []).map((item) => [item.exercise_id, item.estado])))
       return
     }
 
@@ -140,6 +154,7 @@ function TodayWorkoutPageContent() {
       setSessionId(workoutDay.today_session_id)
       setSessionStarted(true)
       setSessionCompletedToday(false)
+      setExerciseStates(Object.fromEntries((workoutDay.progreso_sesion?.ejercicios || []).map((item) => [item.exercise_id, item.estado])))
       setLogs((current) => (Object.keys(current).length ? current : (() => {
         const initialLogs: Record<number, ExerciseLogEntry> = {}
         workoutDay.exercises?.forEach((exercise) => {
@@ -164,6 +179,7 @@ function TodayWorkoutPageContent() {
     }
 
     setSessionCompletedToday(false)
+    setExerciseStates({})
   }, [
     workoutDay?.id,
     workoutDay?.today_session_id,
@@ -182,6 +198,7 @@ function TodayWorkoutPageContent() {
           setSessionStarted(true)
           setSessionCompletedToday(false)
           initializeLogs(workoutDay)
+          setExerciseStates({})
         },
       },
     )
@@ -259,6 +276,30 @@ function TodayWorkoutPageContent() {
     }))
   }
 
+  const resolveClientExercise = (exerciseId: number, estado: 'realizado' | 'omitido') => {
+    if (!sessionId || isRegisteringExercise) return
+    registerExerciseProgress({ sessionId, payload: { exercise_id: exerciseId, estado } }, {
+      onSuccess: (result) => {
+        setExerciseStates((current) => ({ ...current, [exerciseId]: estado }))
+        if (result.session_completed) {
+          setSessionStarted(false)
+          setSessionCompletedToday(true)
+        }
+      },
+    })
+  }
+
+  const finishClientRoutine = () => {
+    if (!sessionId) return
+    completeSession({ sessionId, payload: { omitir_pendientes: true } }, {
+      onSuccess: () => {
+        setSessionStarted(false)
+        setSessionCompletedToday(true)
+        setIsFinishConfirmOpen(false)
+      },
+    })
+  }
+
   const diasPrograma = useMemo(
     () => activePrescription?.dias || [],
     [activePrescription?.dias],
@@ -307,6 +348,38 @@ function TodayWorkoutPageContent() {
   useEffect(() => {
     setIsDaySelectorOpen(mostrarFallbackSemanal)
   }, [mostrarFallbackSemanal])
+
+  if (isMember && !routineAccessGranted) {
+    const errorData = (openRoutine.error as { response?: { data?: { message?: string; days_overdue?: number } } } | null)?.response?.data
+    return (
+      <div className="page-enter mx-auto max-w-3xl">
+        <section className="rounded-[2rem] border border-primary/20 bg-white p-8 text-center shadow-sm dark:bg-neutral-950">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary"><Dumbbell size={30} /></div>
+          <p className="label-base mt-6">Tu llegada al gimnasio</p>
+          <h1 className="mt-2 text-4xl font-heading font-black text-neutral-900 dark:text-white">Ver rutina</h1>
+          <p className="mx-auto mt-3 max-w-xl text-sm text-neutral-500">Validaremos tu membresía y registraremos la entrada de hoy antes de mostrar el entrenamiento.</p>
+          {errorData && (
+            <div className="mx-auto mt-5 max-w-xl rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-700 dark:text-red-300">
+              {errorData.message || 'Tu acceso está bloqueado. Contacta al administrador.'}
+              {errorData.days_overdue ? ` Mora registrada: ${errorData.days_overdue} días.` : ''}
+            </div>
+          )}
+          <button
+            type="button"
+            className="btn-primary mx-auto mt-7 px-8 py-3"
+            disabled={openRoutine.isPending}
+            onClick={() => openRoutine.mutate(undefined, { onSuccess: () => {
+              window.sessionStorage.setItem(routineEntryKey, 'granted')
+              setRoutineAccessGranted(true)
+            } })}
+          >
+            {openRoutine.isPending ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} />}
+            {openRoutine.isPending ? 'Validando acceso…' : 'Ver rutina y registrar entrada'}
+          </button>
+        </section>
+      </div>
+    )
+  }
 
   if (isInitialLoading) {
     return (
@@ -451,15 +524,23 @@ function TodayWorkoutPageContent() {
                 </div>
               </div>
             ) : !sessionStarted ? (
-              <button
-                onClick={handleStartSession}
-                disabled={isCreating}
-                className="btn-primary flex w-full items-center justify-center gap-2 py-4 text-base"
-                data-testid="start-session-btn"
-              >
-                {isCreating ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
-                {isCreating ? 'Iniciando...' : 'Registrar entrenamiento'}
-              </button>
+              <div className="space-y-4">
+                {isMember ? (
+                  <div className="rounded-2xl border border-neutral-200 bg-neutral-50/80 p-4 text-sm text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900/60 dark:text-neutral-300">
+                    <p className="label-base mb-2">Antes de comenzar</p>
+                    <p>{workoutDay?.descripcion_general || 'Sigue cada ejercicio a tu ritmo. Podrás marcarlo como realizado u omitirlo con un toque.'}</p>
+                  </div>
+                ) : null}
+                <button
+                  onClick={handleStartSession}
+                  disabled={isCreating}
+                  className="btn-primary flex w-full items-center justify-center gap-2 py-4 text-base"
+                  data-testid="start-session-btn"
+                >
+                  {isCreating ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
+                  {isCreating ? 'Iniciando...' : isMember ? 'Iniciar rutina' : 'Registrar entrenamiento'}
+                </button>
+              </div>
             ) : (
               <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
                 <SymbolFrame size="sm" tone="success">
@@ -476,7 +557,18 @@ function TodayWorkoutPageContent() {
       </section>
 
       {!mostrarFallbackSemanal ? (
-        <section className="space-y-4" data-testid="exercise-checklist">
+        isMember && sessionStarted ? (
+          <ClientRoutineFlow
+            exercises={workoutDay?.exercises || []}
+            states={exerciseStates}
+            isSaving={isRegisteringExercise || isCompleting}
+            isFinishConfirmOpen={isFinishConfirmOpen}
+            onResolve={resolveClientExercise}
+            onOpenFinish={() => setIsFinishConfirmOpen(true)}
+            onCancelFinish={() => setIsFinishConfirmOpen(false)}
+            onFinish={finishClientRoutine}
+          />
+        ) : !isMember ? <section className="space-y-4" data-testid="exercise-checklist">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="label-base">Lo que haces hoy</p>
@@ -508,10 +600,10 @@ function TodayWorkoutPageContent() {
               />
             ))}
           </div>
-        </section>
+        </section> : null
       ) : null}
 
-      {sessionStarted ? (
+      {sessionStarted && !isMember ? (
           <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
             <h3 className="font-heading text-lg font-bold text-neutral-900 dark:text-white">Finalizar sesión</h3>
             <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
@@ -781,16 +873,17 @@ export function TodayWorkoutPage() {
 
 function MemberTrainingFallback() {
   const navigate = useNavigate()
-  const user = useAuthStore((s) => s.user)
+  const { user, activeContext } = useAuthStore()
+  const currentContext = getResolvedContext(user, activeContext)
 
   useEffect(() => {
-    const target = user?.role === 'member' ? '/dashboard/member' : '/plans'
+    const target = currentContext === 'cliente' ? '/dashboard/member' : '/plans'
     const timer = window.setTimeout(() => {
       navigate(target, { replace: true, state: { trainingFallback: true } })
     }, 250)
 
     return () => window.clearTimeout(timer)
-  }, [navigate, user?.role])
+  }, [currentContext, navigate])
 
   return (
     <div data-testid="training-fallback" className="page-enter mx-auto max-w-3xl space-y-6">
@@ -803,7 +896,7 @@ function MemberTrainingFallback() {
           Estamos abriendo una vista más estable para que no te quedes con la pantalla en negro.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
-          <Link to={user?.role === 'member' ? '/dashboard/member' : '/plans'} className="btn-secondary">
+          <Link to={currentContext === 'cliente' ? '/dashboard/member' : '/plans'} className="btn-secondary">
             Ir ahora
           </Link>
         </div>
@@ -1061,8 +1154,79 @@ interface ExerciseCardProps {
   onUpdate: (field: string, value: number) => void
 }
 
+function ClientRoutineFlow({
+  exercises,
+  states,
+  isSaving,
+  isFinishConfirmOpen,
+  onResolve,
+  onOpenFinish,
+  onCancelFinish,
+  onFinish,
+}: {
+  exercises: Exercise[]
+  states: Record<number, 'realizado' | 'omitido'>
+  isSaving: boolean
+  isFinishConfirmOpen: boolean
+  onResolve: (exerciseId: number, estado: 'realizado' | 'omitido') => void
+  onOpenFinish: () => void
+  onCancelFinish: () => void
+  onFinish: () => void
+}) {
+  const resueltos = Object.keys(states).length
+  const actual = exercises.find((exercise) => !states[exercise.id])
+  const porcentaje = exercises.length ? Math.round((resueltos / exercises.length) * 100) : 0
+
+  if (!actual) return null
+  const mediaUrl = actual.catalogo_detalle?.animacion_url || actual.catalogo_detalle?.imagen_url
+  const esTiempo = actual.exercise_type === 'timed'
+
+  return (
+    <section className="space-y-4" data-testid="client-routine-flow">
+      <div className="rounded-[1.5rem] border border-primary/20 bg-primary/5 p-5 dark:bg-primary/10">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="label-base">Progreso de la rutina</p>
+            <p className="mt-1 text-sm font-semibold text-neutral-800 dark:text-neutral-100">{resueltos} de {exercises.length} ejercicios resueltos</p>
+          </div>
+          <span className="font-heading text-xl font-black text-primary">{porcentaje}%</span>
+        </div>
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-primary/15"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${porcentaje}%` }} /></div>
+      </div>
+
+      <article className="rounded-[1.75rem] border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-950" data-testid={`current-exercise-${actual.id}`}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="label-base">Ejercicio {resueltos + 1} de {exercises.length}</p>
+            <h2 className="mt-1 text-3xl font-heading font-black text-neutral-900 dark:text-white">{actual.name}</h2>
+            <p className="mt-1 text-sm text-neutral-500">{MUSCLE_LABELS[actual.muscle_group]}</p>
+          </div>
+          <Badge variant="info">{getExercisePrescriptionLabel(actual)}</Badge>
+        </div>
+
+        {mediaUrl ? <img className="mt-5 h-56 w-full rounded-2xl object-cover sm:h-72" src={mediaUrl} alt={`Demostración de ${actual.name}`} /> : null}
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          {esTiempo ? <StaticMetric label="Duración" value={`${actual.target_minutes ?? 0} min`} /> : <><StaticMetric label="Series" value={String(actual.sets ?? 0)} /><StaticMetric label="Repeticiones" value={actual.reps_range} /></>}
+          <StaticMetric label="Descanso" value={`${actual.rest_seconds}s`} />
+          <StaticMetric label="Equipo" value={actual.machine_detail?.name || 'Ejercicio libre'} />
+          {!esTiempo ? <StaticMetric label="Peso sugerido" value={actual.weight_suggestion_kg ? `${actual.weight_suggestion_kg} kg` : 'Según indicación'} /> : null}
+        </div>
+        {(actual.catalogo_detalle?.instrucciones_es || actual.technique_notes) ? <div className="mt-5 rounded-2xl bg-neutral-50 p-4 text-sm text-neutral-600 dark:bg-neutral-900 dark:text-neutral-300"><p className="font-semibold text-neutral-900 dark:text-white">Cómo hacerlo</p><p className="mt-2">{actual.catalogo_detalle?.instrucciones_es || actual.technique_notes}</p></div> : null}
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <button type="button" disabled={isSaving} onClick={() => onResolve(actual.id, 'realizado')} className="btn-primary min-h-14 justify-center text-base" data-testid="mark-exercise-done">{isSaving ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18} />} Realizado</button>
+          <button type="button" disabled={isSaving} onClick={() => onResolve(actual.id, 'omitido')} className="btn-secondary min-h-14 justify-center text-base" data-testid="skip-exercise">Omitir</button>
+        </div>
+      </article>
+
+      {isFinishConfirmOpen ? <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/30"><p className="font-semibold text-amber-900 dark:text-amber-200">¿Finalizar ahora?</p><p className="mt-1 text-sm text-amber-800 dark:text-amber-300">Los ejercicios pendientes se marcarán como omitidos.</p><div className="mt-4 flex gap-3"><button type="button" className="btn-secondary" onClick={onCancelFinish}>Continuar</button><button type="button" disabled={isSaving} className="btn-primary" onClick={onFinish}>Omitir y finalizar</button></div></div> : <button type="button" disabled={isSaving} onClick={onOpenFinish} className="w-full py-3 text-sm font-semibold text-neutral-500 hover:text-primary">Finalizar rutina</button>}
+    </section>
+  )
+}
+
 function ExerciseCard({ exercise, log, active, onUpdate }: ExerciseCardProps) {
   const isTimed = exercise.exercise_type === 'timed'
+  const mediaUrl = exercise.catalogo_detalle?.animacion_url || exercise.catalogo_detalle?.imagen_url
 
   return (
     <div
@@ -1079,6 +1243,27 @@ function ExerciseCard({ exercise, log, active, onUpdate }: ExerciseCardProps) {
         </div>
         <Badge variant="info">{getExercisePrescriptionLabel(exercise)}</Badge>
       </div>
+
+      {exercise.catalogo_detalle && (
+        <div className="mt-4 grid gap-4 rounded-2xl border border-neutral-200 p-4 md:grid-cols-[180px_1fr] dark:border-neutral-800">
+          {mediaUrl ? (
+            <img className="h-[180px] w-[180px] rounded-xl object-cover" src={mediaUrl} alt={`Ilustración de ${exercise.name}`} />
+          ) : null}
+          <div>
+            <p className="text-sm text-neutral-600 dark:text-neutral-300">{exercise.catalogo_detalle.instrucciones_es}</p>
+            {!!exercise.catalogo_detalle.pasos_es.length && (
+              <ol className="mt-3 list-decimal space-y-1 pl-5 text-xs text-neutral-500">
+                {exercise.catalogo_detalle.pasos_es.map((paso, index) => <li key={index}>{paso}</li>)}
+              </ol>
+            )}
+            {exercise.catalogo_detalle.atribucion_media ? (
+              <a className="mt-3 inline-block text-[11px] text-neutral-400 underline" href="https://repdb.co" target="_blank" rel="noreferrer">
+                {exercise.catalogo_detalle.atribucion_media}
+              </a>
+            ) : null}
+          </div>
+        </div>
+      )}
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[0.92fr_1.08fr]">
         <div className="rounded-2xl border border-neutral-200 bg-neutral-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/60">

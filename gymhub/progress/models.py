@@ -9,6 +9,10 @@ SOURCE_CHOICES = [
 ]
 
 FEELING_CHOICES = [(i, str(i)) for i in range(1, 6)]
+ESTADO_EJERCICIO_CHOICES = [
+    ('realizado', 'Realizado'),
+    ('omitido', 'Omitido'),
+]
 
 
 class ProgressLog(models.Model):
@@ -100,6 +104,11 @@ class ExerciseLog(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(10)]
     )
     notes = models.TextField(blank=True)
+    estado = models.CharField(
+        max_length=12,
+        choices=ESTADO_EJERCICIO_CHOICES,
+        default='realizado',
+    )
 
     def __str__(self):
         if self.minutes_completed is not None:

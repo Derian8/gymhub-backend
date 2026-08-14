@@ -6,8 +6,6 @@ def user_can_manage_member_progress(user, member):
         return False
     if user.is_staff:
         return True
-    if getattr(user, 'role', None) != 'trainer':
-        return False
     try:
         trainer_profile = user.trainerprofile
     except ObjectDoesNotExist:

@@ -41,9 +41,9 @@ class TestCheckIn:
     def test_checkin_active_member_returns_201(self, member_client, member_profile, membership_plan):
         """Miembro activo con pagos al día → 201."""
         create_active_subscription(member_profile, membership_plan)
-        resp = member_client.post('/api/attendance/check-in/', {})
+        resp = member_client.post('/api/member/ver-rutina/', {})
         assert resp.status_code == status.HTTP_201_CREATED
-        assert resp.data['member'] == member_profile.id
+        assert resp.data['attendance']['member'] == member_profile.id
 
     def test_checkin_with_overdue_payment_returns_403(self, member_client, member_profile, membership_plan):
         """Miembro con mora > PAYMENT_GRACE_DAYS+7 → 403."""
@@ -68,14 +68,14 @@ class TestCheckIn:
             status='pending',  # pending pero muy vencido
         )
 
-        resp = member_client.post('/api/attendance/check-in/', {})
+        resp = member_client.post('/api/member/ver-rutina/', {})
         assert resp.status_code == status.HTTP_403_FORBIDDEN
         assert resp.data['blocked'] is True
         assert resp.data['reason'] == 'payment_overdue'
         assert 'days_overdue' in resp.data
 
-    def test_checkin_with_expired_membership_returns_403(self, member_client, member_profile, membership_plan):
-        """Miembro con membresía vencida → 403 aunque esté cerca del vencimiento."""
+    def test_checkin_with_expired_membership_inside_grace_returns_201(self, member_client, member_profile, membership_plan):
+        """La membresía vencida dentro del período de gracia permite entrada."""
         from billing.models import PaymentSchedule, PaymentRecord
         create_active_subscription(
             member_profile,
@@ -97,11 +97,10 @@ class TestCheckIn:
             status='pending',
         )
 
-        resp = member_client.post('/api/attendance/check-in/', {})
-        assert resp.status_code == status.HTTP_403_FORBIDDEN
-        assert resp.data['reason'] == 'payment_overdue'
+        resp = member_client.post('/api/member/ver-rutina/', {})
+        assert resp.status_code == status.HTTP_201_CREATED
 
-    def test_trainer_override_creates_manual_attendance(self, trainer_client, trainer_profile, member_profile, membership_plan):
+    def test_admin_override_creates_manual_attendance(self, admin_client, trainer_profile, member_profile, membership_plan):
         """
         Trainer con trainer_override=True → 201 con is_manual_override=True.
         """
@@ -118,15 +117,16 @@ class TestCheckIn:
             schedule=schedule, amount=50.00, status='late',
         )
 
-        resp = trainer_client.post('/api/attendance/check-in/', {
+        resp = admin_client.post('/api/attendance/check-in/', {
             'trainer_override': True,
             'member_id': member_profile.id,
+            'override_reason': 'Excepción aprobada por recepción.',
             'notes': 'Excepción aprobada por recepción.',
         })
         assert resp.status_code == status.HTTP_201_CREATED
         assert resp.data['is_manual_override'] is True
 
-    def test_trainer_override_creates_audit_log(self, trainer_client, trainer_profile, member_profile, membership_plan):
+    def test_admin_override_creates_audit_log(self, admin_client, trainer_profile, member_profile, membership_plan):
         """trainer_override genera entrada en AuditLog."""
         from users.models import AuditLog
         from billing.models import PaymentSchedule, PaymentRecord
@@ -140,15 +140,16 @@ class TestCheckIn:
         PaymentRecord.objects.create(schedule=schedule, amount=50.00, status='late')
 
         initial_count = AuditLog.objects.count()
-        resp = trainer_client.post('/api/attendance/check-in/', {
+        resp = admin_client.post('/api/attendance/check-in/', {
             'trainer_override': True,
             'member_id': member_profile.id,
+            'override_reason': 'Pago en revisión.',
             'notes': 'Excepción por pago en revisión.',
         })
         assert resp.status_code == status.HTTP_201_CREATED
         assert AuditLog.objects.count() == initial_count + 1
         log = AuditLog.objects.latest('created_at')
-        assert log.action_type == 'TRAINER_OVERRIDE_CHECKIN'
+        assert log.action_type == 'ADMIN_ACCESS_EXCEPTION'
 
     def test_member_cannot_use_trainer_override(self, member_client, member_profile):
         """Miembro no puede usar trainer_override → 403."""
@@ -158,7 +159,7 @@ class TestCheckIn:
         })
         assert resp.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_trainer_can_filter_attendance_by_member(self, trainer_client, member_profile, membership_plan):
+    def test_admin_can_filter_attendance_by_member(self, admin_client, member_profile, membership_plan):
         from django.contrib.auth import get_user_model
         from users.models import MemberProfile
         from attendance.models import Attendance
@@ -187,18 +188,18 @@ class TestCheckIn:
         )
         Attendance.objects.create(member=other_profile)
 
-        resp = trainer_client.get(f'/api/attendance/?member={member_profile.id}')
+        resp = admin_client.get(f'/api/attendance/?member={member_profile.id}')
 
         assert resp.status_code == status.HTTP_200_OK
         results = resp.data.get('results', resp.data)
         assert [item['id'] for item in results] == [own_attendance.id]
 
-    def test_attendance_list_includes_member_identity(self, trainer_client, member_profile):
+    def test_attendance_list_includes_member_identity(self, admin_client, member_profile):
         from attendance.models import Attendance
 
         attendance = Attendance.objects.create(member=member_profile)
 
-        resp = trainer_client.get('/api/attendance/')
+        resp = admin_client.get('/api/attendance/')
 
         assert resp.status_code == status.HTTP_200_OK
         results = resp.data.get('results', resp.data)
@@ -207,7 +208,7 @@ class TestCheckIn:
         assert payload['member_email'] == member_profile.user.email
         assert 'checked_in_by_name' in payload
 
-    def test_trainer_can_search_attendance_by_member_name_or_email(self, trainer_client, trainer_profile, member_profile):
+    def test_admin_can_search_attendance_by_member_name_or_email(self, admin_client, trainer_profile, member_profile):
         from django.contrib.auth import get_user_model
         from users.models import MemberProfile
         from attendance.models import Attendance
@@ -232,13 +233,13 @@ class TestCheckIn:
         other_profile.save(update_fields=['trainer_asignado', 'is_active'])
         Attendance.objects.create(member=other_profile)
 
-        resp = trainer_client.get('/api/attendance/?search=derian')
+        resp = admin_client.get('/api/attendance/?search=derian')
 
         assert resp.status_code == status.HTTP_200_OK
         results = resp.data.get('results', resp.data)
         assert [item['id'] for item in results] == [matching.id]
 
-    def test_trainer_can_filter_attendance_by_date(self, trainer_client, member_profile):
+    def test_admin_can_filter_attendance_by_date(self, admin_client, member_profile):
         from django.utils import timezone
         from attendance.models import Attendance
 
@@ -250,7 +251,7 @@ class TestCheckIn:
         )
         Attendance.objects.create(member=member_profile)
 
-        resp = trainer_client.get(f'/api/attendance/?date={selected_day.isoformat()}')
+        resp = admin_client.get(f'/api/attendance/?date={selected_day.isoformat()}')
 
         assert resp.status_code == status.HTTP_200_OK
         results = resp.data.get('results', resp.data)
@@ -272,7 +273,7 @@ class TestCheckIn:
         }):
             responses = []
             for _ in range(5):
-                resp = member_client.post('/api/attendance/check-in/', {})
+                resp = member_client.post('/api/member/ver-rutina/', {})
                 responses.append(resp.status_code)
 
             # Al menos uno debe dar 429 después de superar el límite
@@ -282,20 +283,20 @@ class TestCheckIn:
         self, member_client, member_profile, membership_plan
     ):
         create_active_subscription(member_profile, membership_plan)
-        first = member_client.post('/api/attendance/check-in/', {})
-        second = member_client.post('/api/attendance/check-in/', {})
+        first = member_client.post('/api/member/ver-rutina/', {})
+        second = member_client.post('/api/member/ver-rutina/', {})
 
         assert first.status_code == status.HTTP_201_CREATED
-        assert second.status_code == status.HTTP_409_CONFLICT
+        assert second.status_code == status.HTTP_200_OK
 
     def test_member_can_check_out_today(
-        self, member_client, member_profile, membership_plan
+        self, member_client, admin_client, member_profile, membership_plan
     ):
         create_active_subscription(member_profile, membership_plan)
-        check_in = member_client.post('/api/attendance/check-in/', {})
+        check_in = member_client.post('/api/member/ver-rutina/', {})
 
-        response = member_client.post(
-            f"/api/attendance/{check_in.data['id']}/check-out/"
+        response = admin_client.post(
+            f"/api/attendance/{check_in.data['attendance']['id']}/check-out/"
         )
 
         assert response.status_code == status.HTTP_200_OK

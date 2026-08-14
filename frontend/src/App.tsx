@@ -13,8 +13,12 @@ import { LoginPage } from '@/modules/auth/pages/LoginPage'
 import { ChangePasswordPage } from '@/modules/auth/pages/ChangePasswordPage'
 
 // Dashboards
-import { TrainerDashboard } from '@/modules/dashboard/pages/TrainerDashboard'
+import { TrainerTechnicalDashboard } from '@/modules/dashboard/pages/TrainerTechnicalDashboard'
 import { MemberDashboard } from '@/modules/dashboard/pages/MemberDashboard'
+import { AdminDashboard } from '@/modules/admin/pages/AdminDashboard'
+import { ReportsPage } from '@/modules/admin/pages/ReportsPage'
+import { AdminRoutinesPage } from '@/modules/admin/pages/AdminRoutinesPage'
+import { AdminUsersPage } from '@/modules/admin/pages/AdminUsersPage'
 
 // Members
 import { MembersPage } from '@/modules/members/pages/MembersPage'
@@ -137,10 +141,14 @@ function App() {
       >
         {/* Dashboards */}
         <Route
+          path="/dashboard/admin"
+          element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>}
+        />
+        <Route
           path="/dashboard/trainer"
           element={
             <ProtectedRoute requiredRole="trainer">
-              <TrainerDashboard />
+              <TrainerTechnicalDashboard />
             </ProtectedRoute>
           }
         />
@@ -154,10 +162,13 @@ function App() {
         />
 
         {/* Members (trainer/staff only) */}
-        <Route path="/members" element={<ProtectedRoute requiredRole="trainer"><MembersPage /></ProtectedRoute>} />
-        <Route path="/members/:id" element={<ProtectedRoute requiredRole="trainer"><MemberDetailPage /></ProtectedRoute>} />
+        <Route path="/members" element={<ProtectedRoute requiredRole="operator"><MembersPage /></ProtectedRoute>} />
+        <Route path="/members/:id" element={<ProtectedRoute requiredRole="operator"><MemberDetailPage /></ProtectedRoute>} />
         <Route path="/members/:id/program" element={<ProtectedRoute requiredRole="trainer"><MemberProgramRedirectPage /></ProtectedRoute>} />
-        <Route path="/members/new" element={<ProtectedRoute requiredRole="trainer"><NewMemberPage /></ProtectedRoute>} />
+        <Route path="/members/new" element={<ProtectedRoute requiredRole="admin"><NewMemberPage /></ProtectedRoute>} />
+
+        <Route path="/routines" element={<ProtectedRoute requiredRole="admin"><AdminRoutinesPage /></ProtectedRoute>} />
+        <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><AdminUsersPage /></ProtectedRoute>} />
 
         {/* Plans */}
         <Route
@@ -168,15 +179,15 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/plans" element={<PlansPage />} />
-        <Route path="/plans/my" element={<PlansPage />} />
+        <Route path="/plans" element={<ProtectedRoute requiredRole="trainer"><PlansPage /></ProtectedRoute>} />
+        <Route path="/plans/my" element={<ProtectedRoute requiredRole="member"><PlansPage /></ProtectedRoute>} />
         <Route path="/plans/:planId/days/:dayId" element={<WorkoutDayDetailPage />} />
         <Route path="/plans/:id/edit" element={<ProtectedRoute requiredRole="trainer"><PlanEditorPage /></ProtectedRoute>} />
         <Route path="/plans/:id" element={<PlanDetailPage />} />
         <Route path="/plans/:id/today" element={<TodayWorkoutPage />} />
 
         {/* Attendance */}
-        <Route path="/attendance" element={<CheckInPage />} />
+        <Route path="/attendance" element={<ProtectedRoute requiredRole="admin"><CheckInPage /></ProtectedRoute>} />
         <Route
           path="/attendance/check-in"
           element={
@@ -199,7 +210,8 @@ function App() {
         <Route path="/sessions" element={<ProgressPage />} />
 
         {/* Billing */}
-        <Route path="/billing" element={<BillingPage />} />
+        <Route path="/billing" element={<ProtectedRoute requiredRole="admin"><BillingPage /></ProtectedRoute>} />
+        <Route path="/reports" element={<ProtectedRoute requiredRole="admin"><ReportsPage /></ProtectedRoute>} />
         <Route
           path="/membership"
           element={

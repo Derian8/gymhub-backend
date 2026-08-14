@@ -45,6 +45,9 @@ DAY_LABEL_CHOICES = [
     ('B', 'Day B'),
     ('C', 'Day C'),
     ('D', 'Day D'),
+    ('E', 'Day E'),
+    ('F', 'Day F'),
+    ('G', 'Day G'),
 ]
 
 WEEKDAY_CHOICES = [
@@ -76,6 +79,39 @@ PLAN_LEVEL_CHOICES = [
     ('advanced', 'Avanzado'),
     ('custom', 'Personalizado'),
 ]
+
+MODO_EJECUCION_CHOICES = [
+    ('weekly', 'Semanal'),
+    ('cycle', 'Ciclo flexible'),
+]
+
+
+class CatalogoEjercicio(models.Model):
+    """Catálogo reutilizable importado de una fuente externa autorizada."""
+    identificador_origen = models.CharField(max_length=80, unique=True)
+    nombre = models.CharField(max_length=240)
+    categoria = models.CharField(max_length=100, blank=True)
+    parte_cuerpo = models.CharField(max_length=100, blank=True)
+    equipo = models.CharField(max_length=100, blank=True)
+    musculo_objetivo = models.CharField(max_length=120, blank=True)
+    grupo_muscular = models.CharField(max_length=120, blank=True)
+    musculos_secundarios = models.JSONField(default=list, blank=True)
+    instrucciones_es = models.TextField(blank=True)
+    pasos_es = models.JSONField(default=list, blank=True)
+    imagen_url = models.URLField(blank=True)
+    animacion_url = models.URLField(blank=True)
+    atribucion_media = models.CharField(max_length=255, blank=True)
+    version_origen = models.CharField(max_length=80, blank=True)
+    esta_activo = models.BooleanField(default=True)
+    importado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'catalogo_ejercicios'
+        ordering = ['nombre', 'id']
+        indexes = [models.Index(fields=['nombre'], name='catalogo_ejercicio_nombre_idx')]
+
+    def __str__(self):
+        return self.nombre
 
 
 class TrainingPlan(models.Model):
@@ -120,6 +156,10 @@ class TrainingPlan(models.Model):
         on_delete=models.SET_NULL,
         related_name='revisiones',
     )
+    modo_ejecucion = models.CharField(
+        max_length=10, choices=MODO_EJECUCION_CHOICES, default='weekly'
+    )
+    indice_bloque_actual = models.PositiveIntegerField(default=0)
 
     class Meta:
         ordering = ['-start_date']
@@ -158,7 +198,7 @@ class WorkoutDay(models.Model):
     )
     name = models.CharField(max_length=200)
     day_label = models.CharField(max_length=1, choices=DAY_LABEL_CHOICES)
-    day_of_week = models.CharField(max_length=3, choices=WEEKDAY_CHOICES, default='mon')
+    day_of_week = models.CharField(max_length=3, choices=WEEKDAY_CHOICES, null=True, blank=True)
     order = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -166,8 +206,12 @@ class WorkoutDay(models.Model):
 
     def clean(self):
         super().clean()
-        if not self.plan_id or not self.day_of_week:
+        if not self.plan_id:
             return
+        if self.plan.modo_ejecucion == 'cycle':
+            return
+        if not self.day_of_week:
+            raise ValidationError({'day_of_week': 'Los planes semanales requieren un día de semana.'})
         duplicated = WorkoutDay.objects.filter(plan_id=self.plan_id, day_of_week=self.day_of_week)
         if self.pk:
             duplicated = duplicated.exclude(pk=self.pk)
@@ -197,6 +241,10 @@ class Exercise(models.Model):
         WorkoutDay,
         on_delete=models.CASCADE,
         related_name='exercises'
+    )
+    catalogo_ejercicio = models.ForeignKey(
+        CatalogoEjercicio, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='prescripciones',
     )
     name = models.CharField(max_length=200)
     muscle_group = models.CharField(max_length=20, choices=MUSCLE_GROUP_CHOICES)
@@ -289,6 +337,10 @@ class PlantillaEntrenamiento(models.Model):
     )
     dias_por_semana_sugeridos = models.PositiveIntegerField(default=3)
     esta_activa = models.BooleanField(default=True)
+    es_compartida = models.BooleanField(default=True)
+    modo_ejecucion = models.CharField(
+        max_length=10, choices=MODO_EJECUCION_CHOICES, default='cycle'
+    )
     creada_en = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -307,6 +359,7 @@ class PlantillaDiaEntrenamiento(models.Model):
     )
     nombre = models.CharField(max_length=200)
     etiqueta_dia = models.CharField(max_length=1, choices=DAY_LABEL_CHOICES)
+    dia_semana = models.CharField(max_length=3, choices=WEEKDAY_CHOICES, null=True, blank=True)
     orden = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -322,6 +375,10 @@ class PlantillaEjercicio(models.Model):
         PlantillaDiaEntrenamiento,
         on_delete=models.CASCADE,
         related_name='ejercicios'
+    )
+    catalogo_ejercicio = models.ForeignKey(
+        CatalogoEjercicio, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='plantillas_ejercicios',
     )
     nombre = models.CharField(max_length=200)
     grupo_muscular = models.CharField(max_length=20, choices=MUSCLE_GROUP_CHOICES)

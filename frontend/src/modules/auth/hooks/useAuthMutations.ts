@@ -5,6 +5,7 @@ import { authApi } from '../api/authApi'
 import { useAuthStore } from '@/shared/store/authStore'
 import { QUERY_KEYS } from '@/shared/constants/queryKeys'
 import { extractApiError } from '@/shared/lib/utils'
+import { homePathForUser } from '@/shared/components/RouteGuards'
 
 export function useLoginMutation() {
   const navigate = useNavigate()
@@ -15,6 +16,7 @@ export function useLoginMutation() {
   return useMutation({
     mutationFn: authApi.login,
     onSuccess: (data) => {
+      window.sessionStorage.removeItem('gymhub-active-context')
       setUser(data.user)
       setAuthResolved(true)
       queryClient.setQueryData(QUERY_KEYS.ME, data.user)
@@ -23,12 +25,7 @@ export function useLoginMutation() {
         navigate('/change-password', { replace: true })
         return
       }
-      const role = data.user.role
-      if (role === 'trainer' || data.user.is_staff) {
-        navigate('/dashboard/trainer')
-      } else {
-        navigate('/membership')
-      }
+      navigate(homePathForUser(data.user))
     },
     onError: (error) => {
       toast.error(extractApiError(error))
@@ -46,7 +43,7 @@ export function useChangePasswordMutation() {
     onSuccess: () => {
       if (user) setUser({ ...user, requiere_cambio_contrasena: false })
       toast.success('Contraseña actualizada')
-      navigate(user?.role === 'trainer' || user?.is_staff ? '/dashboard/trainer' : '/membership', { replace: true })
+      navigate(user ? homePathForUser(user) : '/login', { replace: true })
     },
     onError: (error) => toast.error(extractApiError(error)),
   })
@@ -65,11 +62,7 @@ export function useRegisterMutation() {
       setAuthResolved(true)
       queryClient.setQueryData(QUERY_KEYS.ME, data.user)
       toast.success('Cuenta creada correctamente')
-      if (data.user.role === 'trainer' || data.user.is_staff) {
-        navigate('/dashboard/trainer')
-      } else {
-        navigate('/membership')
-      }
+      navigate(homePathForUser(data.user))
     },
     onError: (error) => {
       toast.error(extractApiError(error))

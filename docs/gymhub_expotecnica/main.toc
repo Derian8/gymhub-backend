@@ -1,0 +1,67 @@
+\babel@toc {spanish}{}\relax 
+\contentsline {section}{Resumen ejecutivo}{1}{Doc-Start}%
+\contentsline {section}{\numberline {1}Justificación}{1}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Problema y necesidad identificada}{2}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Oportunidad detectada}{2}{subsection.1.2}%
+\contentsline {subsection}{\numberline {1.3}Contexto social, económico, tecnológico y ambiental}{3}{subsection.1.3}%
+\contentsline {subsection}{\numberline {1.4}Pertinencia del modelo de suscripción}{4}{subsection.1.4}%
+\contentsline {section}{\numberline {2}Objetivos del modelo de negocio}{4}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Objetivo general}{4}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Objetivos específicos}{4}{subsection.2.2}%
+\contentsline {section}{\numberline {3}Idea de negocio}{5}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Servicio ofrecido}{5}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Cliente y personas usuarias}{6}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Forma de comercialización}{6}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}Necesidad atendida}{7}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}Impacto esperado}{7}{subsection.3.5}%
+\contentsline {section}{\numberline {4}Modelo de negocio}{7}{section.4}%
+\contentsline {section}{\numberline {5}Investigación de necesidades y antecedentes}{9}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Digitalización de pequeñas y medianas empresas}{9}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Situación del mercado y la industria}{9}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Origen de la propuesta}{10}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}Alternativas actuales y competencia}{11}{subsection.5.4}%
+\contentsline {subsection}{\numberline {5.5}Criterios de diseño derivados}{12}{subsection.5.5}%
+\contentsline {section}{\numberline {6}Desarrollo del modelo Canvas}{12}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Segmentos de mercado}{12}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Propuesta de valor}{14}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}Canales}{14}{subsection.6.3}%
+\contentsline {subsection}{\numberline {6.4}Estrategia de mercadeo y posicionamiento}{15}{subsection.6.4}%
+\contentsline {subsection}{\numberline {6.5}Relaciones con clientes}{15}{subsection.6.5}%
+\contentsline {subsection}{\numberline {6.6}Fuentes de ingresos}{17}{subsection.6.6}%
+\contentsline {subsection}{\numberline {6.7}Recursos clave}{18}{subsection.6.7}%
+\contentsline {subsection}{\numberline {6.8}Actividades clave}{18}{subsection.6.8}%
+\contentsline {subsection}{\numberline {6.9}Alianzas clave}{18}{subsection.6.9}%
+\contentsline {subsection}{\numberline {6.10}Estructura de costos}{20}{subsection.6.10}%
+\contentsline {section}{\numberline {7}Desarrollo tecnológico y estado del prototipo}{20}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Arquitectura implementada}{20}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}Módulos funcionales}{21}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}Evidencia de funcionamiento}{22}{subsection.7.3}%
+\contentsline {subsection}{\numberline {7.4}Seguridad y privacidad}{25}{subsection.7.4}%
+\contentsline {subsection}{\numberline {7.5}Preparación para el piloto comercial}{26}{subsection.7.5}%
+\contentsline {section}{\numberline {8}Viabilidad comercial y económica}{27}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Criterios de la proyección}{27}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}Inversión y financiamiento}{27}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}Costo mensual de operación}{29}{subsection.8.3}%
+\contentsline {subsection}{\numberline {8.4}Precios e ingresos}{30}{subsection.8.4}%
+\contentsline {subsection}{\numberline {8.5}Punto de equilibrio y utilidad}{31}{subsection.8.5}%
+\contentsline {subsection}{\numberline {8.6}Flujo de caja exploratorio de seis meses}{33}{subsection.8.6}%
+\contentsline {subsection}{\numberline {8.7}Sostenibilidad y crecimiento}{34}{subsection.8.7}%
+\contentsline {subsection}{\numberline {8.8}Riesgos y medidas de respuesta}{34}{subsection.8.8}%
+\contentsline {section}{\numberline {9}Validación comercial inicial y diseño del piloto}{35}{section.9}%
+\contentsline {subsection}{\numberline {9.1}Ficha técnica de la encuesta}{35}{subsection.9.1}%
+\contentsline {subsection}{\numberline {9.2}Resultados de responsables}{36}{subsection.9.2}%
+\contentsline {subsection}{\numberline {9.3}Resultados de miembros}{38}{subsection.9.3}%
+\contentsline {subsection}{\numberline {9.4}Alcance de los resultados}{39}{subsection.9.4}%
+\contentsline {subsection}{\numberline {9.5}Diseño del piloto}{40}{subsection.9.5}%
+\contentsline {subsection}{\numberline {9.6}Privacidad, imagen y propiedad intelectual}{40}{subsection.9.6}%
+\contentsline {subsection}{\numberline {9.7}Declaración del estado del proyecto}{41}{subsection.9.7}%
+\contentsline {section}{\numberline {10}Conclusiones y recomendaciones}{42}{section.10}%
+\contentsline {section}{\numberline {11}Declaración sobre apoyo técnico}{43}{section.11}%
+\contentsline {section}{\numberline {A}Apéndices}{47}{appendix.Alph1}%
+\contentsline {subsection}{\numberline {A.1}Modelo Canvas}{47}{subsection.Alph1.1}%
+\contentsline {subsection}{\numberline {A.2}Ruta comercial propuesta}{47}{subsection.Alph1.2}%
+\contentsline {subsection}{\numberline {A.3}Instrumento de validación}{47}{subsection.Alph1.3}%
+\contentsline {subsection}{\numberline {A.4}Limitaciones metodológicas de la encuesta}{49}{subsection.Alph1.4}%
+\contentsline {subsection}{\numberline {A.5}Evidencia técnica disponible}{51}{subsection.Alph1.5}%
+\contentsline {subsection}{\numberline {A.6}Presupuesto operativo preliminar}{51}{subsection.Alph1.6}%
+\contentsline {subsection}{\numberline {A.7}Referencias de despliegue demostrativo}{52}{subsection.Alph1.7}%

@@ -1,0 +1,6 @@
+escenario,ingreso,costo,utilidad
+Bajo: 2 Básico,60000,68847,-8847
+Conservador: 3 Básico,90000,71847,18153
+Base: 2 Gestión,90000,68847,21153
+Crecimiento: 3 mixtos,135000,71847,63153
+Alto: cartera propuesta,150000,71847,78153

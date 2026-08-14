@@ -1,12 +1,13 @@
 # Avance Y Pendientes Del Escrito
 
-Última actualización: 31 de julio de 2026.
+Última actualización: 13 de agosto de 2026.
 
 ## Avance Confirmado
 
 - Portada completa con título, categoría, eje temático, participantes, docente
   tutor, centro educativo, CORVEC, correos y logos institucionales.
-- Objetivo general y cuatro objetivos específicos aprobados por el equipo.
+- Objetivo general y cuatro objetivos específicos aprobados por el equipo,
+  formulados con una secuencia de necesidades, funciones, suscripción y viabilidad.
 - Documento organizado según la secuencia: investigación, desarrollo de la
   plataforma, modelo de negocio y evaluación de viabilidad.
 - Arquitectura y módulos del MVP documentados con sus limitaciones reales y con
@@ -14,6 +15,10 @@
 - Canvas y estrategia de suscripción contrastados con la encuesta.
 - Canvas visual actualizado con los planes, costos, segmentos, alianzas y
   capacidades vigentes, e incorporado en los apéndices según la guía.
+- Maquetación continua corregida: se eliminaron los saltos forzados entre
+  secciones del cuerpo, se evitó el aislamiento de encabezados y las capturas
+  técnicas volvieron a flotar junto con su explicación. El Canvas se rediseñó
+  como nueve tarjetas turquesa nativas de LaTeX, legibles en PDF e impresión.
 - Resumen ejecutivo reducido al máximo reglamentario de 150 palabras.
 - Contexto de mercado reforzado con datos oficiales de INEC y el marco de
   digitalización de pymes del MEIC, sin convertirlos en estimaciones de la
@@ -25,7 +30,7 @@
 - Seguimiento de calidad definido para incorporación, operación, continuidad y
   cierre del piloto.
 - Piloto de cuatro semanas definido en CRC 15 000, seguido por planes de
-  CRC 30 000, CRC 45 000 y CRC 60 000 según cantidad de miembros.
+  CRC 30 000, CRC 45 000 y CRC 60 000 según uso y acompañamiento requerido.
 - Costos de desarrollo, operación, trabajo y soporte incluidos en la proyección.
 - Punto de equilibrio establecido en 3 gimnasios Básico o 2 gimnasios Gestión.
 - Meta comercial inicial definida en 3 gimnasios durante los primeros 6 meses.
@@ -55,12 +60,20 @@
 - Matriz privada de trazabilidad de los 24 indicadores ExpoTEC-11 disponible en
   `AUDITORIA_EXPOTEC11.md`; los controles internos no forman parte del PDF que
   recibe el jurado.
+- Auditoría institucional ampliada para ExpoTEC-11 y ExpoTEC-8, con evidencia
+  documentada y pendientes comerciales separados de la cobertura del informe.
+- Plan de cumplimiento ExpoTEC-12 creado para la futura etapa regional/nacional;
+  identifica los 28 indicadores del plan de negocios y la evidencia faltante.
+- Control de fuentes actualizado: fuentes en español y dos excepciones técnicas
+  oficiales en inglés justificadas para Django REST Framework y Celery.
+- Gráfica reproducible de escenarios de viabilidad y ruta comercial propuesta
+  incorporadas como apoyo visual del modelo de negocio.
 - Objetivos alineados explícitamente con viabilidad, escalabilidad y
   sostenibilidad.
 - Origen documentado en el segundo periodo de 2025, en Fundamentos de
   Programación, y primera participación de GymHub en ExpoTÉCNICA.
-- Declaración de uso puntual de ChatGPT, inferior al 10 %, ajustada a los
-  lineamientos de transparencia y autoría.
+- Declaración breve de apoyo técnico, sin atribuir a una herramienta la creación
+  ni la redacción final del proyecto.
 - Compilación LaTeX funcional y PDF vigente generado en `build/main.pdf`.
 
 ## Pendientes De Investigación

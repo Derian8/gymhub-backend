@@ -18,7 +18,7 @@ class ExerciseLogSerializer(serializers.ModelSerializer):
         model = ExerciseLog
         fields = (
             'id', 'session', 'exercise', 'sets_completed',
-            'reps_completed', 'minutes_completed', 'weight_used_kg', 'rpe', 'notes'
+            'reps_completed', 'minutes_completed', 'weight_used_kg', 'rpe', 'notes', 'estado'
         )
         read_only_fields = ('id',)
 
@@ -63,3 +63,9 @@ class CompleteWorkoutSessionSerializer(serializers.Serializer):
     waist_cm = serializers.FloatField(required=False, allow_null=True, min_value=0)
     body_fat_pct = serializers.FloatField(required=False, allow_null=True, min_value=0, max_value=100)
     muscle_mass_kg = serializers.FloatField(required=False, allow_null=True, min_value=0)
+    omitir_pendientes = serializers.BooleanField(required=False, default=False)
+
+
+class RegistrarProgresoEjercicioSerializer(serializers.Serializer):
+    exercise_id = serializers.IntegerField()
+    estado = serializers.ChoiceField(choices=('realizado', 'omitido'))

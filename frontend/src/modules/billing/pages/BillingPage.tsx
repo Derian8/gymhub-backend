@@ -29,7 +29,8 @@ type CobroFormState = {
   method: 'cash' | 'sinpe' | 'transfer' | 'other'
 }
 
-type PaymentPortfolioFilter = '' | 'pending' | 'late'
+type PaymentPortfolioFilter = '' | 'paid' | 'pending' | 'late' | 'none'
+type BillingSection = 'portfolio' | 'history' | 'catalog'
 type MembershipCreationMode = 'custom' | 'catalog_plan'
 
 const SUBSCRIPTION_STATUS_LABELS: Record<MemberSubscription['status'], string> = {
@@ -117,11 +118,13 @@ export function BillingPage() {
   const memberIdNumber = memberId ? Number(memberId) : undefined
   const [portfolioSearch, setPortfolioSearch] = useState('')
   const [portfolioPaymentFilter, setPortfolioPaymentFilter] = useState<PaymentPortfolioFilter>('')
+  const [section, setSection] = useState<BillingSection>('portfolio')
   const memberPortfolioParams = useMemo(
     () => ({
       ordering: 'riesgo_desc',
       search: portfolioSearch.trim() || undefined,
-      payment_status: portfolioPaymentFilter || undefined,
+      payment_status: portfolioPaymentFilter && !['paid', 'none'].includes(portfolioPaymentFilter) ? portfolioPaymentFilter : undefined,
+      commercial_status: portfolioPaymentFilter === 'paid' ? 'al_dia' : portfolioPaymentFilter === 'none' ? 'sin_membresia' : undefined,
     }),
     [portfolioPaymentFilter, portfolioSearch],
   )
@@ -226,7 +229,15 @@ export function BillingPage() {
       </div>
 
       {!memberId && (
-        <><MembershipCatalog plans={plans?.results || []} /><MembershipPortfolio
+        <div className="mb-6 flex flex-wrap gap-2" role="tablist" aria-label="Secciones de pagos">
+          <button type="button" className={section === 'portfolio' ? 'btn-primary' : 'btn-secondary'} onClick={() => setSection('portfolio')}>Cartera</button>
+          <button type="button" className={section === 'history' ? 'btn-primary' : 'btn-secondary'} onClick={() => setSection('history')}>Historial de cobros</button>
+          <button type="button" className={section === 'catalog' ? 'btn-primary' : 'btn-secondary'} onClick={() => setSection('catalog')}>Planes de membresía</button>
+        </div>
+      )}
+
+      {!memberId && section === 'portfolio' && (
+        <MembershipPortfolio
           members={membersPortfolio?.results || []}
           totalCount={membersPortfolio?.count || 0}
           isLoading={isLoadingMembersPortfolio}
@@ -234,8 +245,10 @@ export function BillingPage() {
           paymentFilter={portfolioPaymentFilter}
           onSearchChange={setPortfolioSearch}
           onPaymentFilterChange={setPortfolioPaymentFilter}
-        /></>
+        />
       )}
+
+      {!memberId && section === 'catalog' && <MembershipCatalog plans={plans?.results || []} />}
 
       {memberId && (
         <div className="mb-8">
@@ -427,7 +440,7 @@ export function BillingPage() {
         </div>
       )}
 
-      <h3 className="font-heading font-bold text-xl text-neutral-900 dark:text-white mb-4">
+      {(memberId || section === 'history') && <><h3 className="font-heading font-bold text-xl text-neutral-900 dark:text-white mb-4">
         Registros de pago
       </h3>
 
@@ -470,7 +483,7 @@ export function BillingPage() {
             </tbody>
           </table>
         </div>
-      )}
+      )}</>}
     </div>
   )
 }
@@ -575,7 +588,7 @@ function MembershipPortfolio({
   const membersWithoutMembership = members.filter((member) => !member.membresia_actual)
   const visibleMembers = [...membersWithMembership, ...membersWithoutMembership]
   const hasActiveFilter = Boolean(search.trim() || paymentFilter)
-  const filterLabel = paymentFilter === 'pending' ? 'pagos pendientes' : paymentFilter === 'late' ? 'pagos en mora' : 'todos los pagos'
+  const filterLabel = paymentFilter === 'paid' ? 'clientes al día' : paymentFilter === 'pending' ? 'pagos pendientes' : paymentFilter === 'late' ? 'pagos en mora' : paymentFilter === 'none' ? 'clientes sin membresía' : 'todos los pagos'
 
   return (
     <section className="card p-6 mb-8" data-testid="membership-portfolio">
@@ -617,6 +630,22 @@ function MembershipPortfolio({
             onClick={() => onPaymentFilterChange('')}
           >
             Todos
+          </button>
+          <button
+            type="button"
+            className={paymentFilter === 'paid' ? 'btn-primary' : 'btn-secondary'}
+            data-testid="billing-payment-filter-paid"
+            onClick={() => onPaymentFilterChange('paid')}
+          >
+            Al día
+          </button>
+          <button
+            type="button"
+            className={paymentFilter === 'none' ? 'btn-primary' : 'btn-secondary'}
+            data-testid="billing-payment-filter-none"
+            onClick={() => onPaymentFilterChange('none')}
+          >
+            Sin membresía
           </button>
           <button
             type="button"

@@ -17,4 +17,8 @@ app.conf.beat_schedule = {
         'task': 'billing.tasks.run_daily_membership_maintenance',
         'schedule': crontab(hour=6, minute=5),
     },
+    'activate-scheduled-training-plans': {
+        'task': 'plans.tasks.activate_scheduled_plans',
+        'schedule': crontab(hour=5, minute=55),
+    },
 }

@@ -121,6 +121,27 @@ docker compose exec backend python manage.py seed_data
 6. Desplegar frontend desde `frontend/`.
 7. Validar login, refresh token, CORS/CSRF y endpoints criticos.
 
+## Despliegue Automatizado
+
+Desde la raíz del repositorio:
+
+```bash
+./deploy-supabase-vercel.sh --dry-run
+./deploy-supabase-vercel.sh
+```
+
+El script usa `.env.supabase-vercel.local`, selecciona
+`SUPABASE_POOLER_DATABASE_URL` para las migraciones cuando está disponible,
+ejecuta `migrate` y `auditar_esquema`, publica primero el backend y espera que
+responda antes de publicar el frontend. Finalmente ejecuta
+`./gym-connection-check`.
+
+Antes de tocar Supabase también ejecuta `makemigrations --check --dry-run`; si
+los modelos cambiaron sin una migración versionada, el despliegue se detiene.
+
+No carga datos demo. Para repetir una parte del flujo están disponibles
+`--sin-migraciones`, `--sin-backend`, `--sin-frontend` y `--sin-validacion`.
+
 ## Comandos Vercel Utiles
 
 ```bash

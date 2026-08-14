@@ -14,6 +14,9 @@ export const QUERY_KEYS = {
 
   // Trainer
   TRAINER_OVERVIEW: ['trainer', 'overview'] as const,
+  TRAINERS: ['trainers'] as const,
+  ADMIN_REPORT: (params?: Record<string, string>) => ['admin', 'report', params] as const,
+  ADMIN_DASHBOARD: ['admin', 'dashboard'] as const,
 
   // Plans
   PLANS: ['plans'] as const,
@@ -29,6 +32,7 @@ export const QUERY_KEYS = {
   EXERCISES_BY_DAY: (workoutDayId: number) => ['exercises', 'day', workoutDayId] as const,
   GYM_MACHINES: ['gym-machines'] as const,
   PLAN_TEMPLATES: ['plan-templates'] as const,
+  CATALOGO_EJERCICIOS: (params?: Record<string, string>) => ['catalogo-ejercicios', params] as const,
 
   // Attendance
   ATTENDANCE: ['attendance'] as const,

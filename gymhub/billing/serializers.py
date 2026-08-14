@@ -1,6 +1,7 @@
 from rest_framework import serializers
-from .models import MembershipPlan, MemberSubscription, PaymentSchedule, PaymentRecord, PaymentMethod, PaymentInstruction
+from .models import MembershipPlan, MemberSubscription, PaymentSchedule, PaymentRecord, PaymentMethod, PaymentInstruction, SeguimientoCobro
 from .services import default_grace_days, membership_access, membership_summary, refresh_membership_status
+from users.permissions import tiene_perfil_entrenador
 
 
 class MembershipPlanSerializer(serializers.ModelSerializer):
@@ -128,7 +129,7 @@ class MemberMembershipSerializer(serializers.ModelSerializer):
             if existing.exists():
                 raise serializers.ValidationError({'member': 'El miembro ya tiene una membresía operativa.'})
         request = self.context.get('request')
-        if request and request.user.role == 'trainer' and not request.user.is_staff:
+        if request and tiene_perfil_entrenador(request.user) and not request.user.is_staff:
             trainer = request.user.trainerprofile
             if member and member.trainer_asignado_id != trainer.id:
                 raise serializers.ValidationError({'member': 'Solo puedes administrar miembros asignados.'})
@@ -222,3 +223,44 @@ class PaymentInstructionSerializer(serializers.ModelSerializer):
     class Meta:
         model = PaymentInstruction
         fields = ('id', 'plan', 'title', 'steps_text', 'bank_info', 'qr_image')
+
+
+class SeguimientoCobroSerializer(serializers.ModelSerializer):
+    cliente_nombre = serializers.SerializerMethodField()
+    administrador_nombre = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SeguimientoCobro
+        fields = (
+            'id', 'cliente', 'cliente_nombre', 'administrador',
+            'administrador_nombre', 'estado', 'medio_contacto', 'nota',
+            'proxima_fecha', 'creado_en', 'actualizado_en',
+        )
+        read_only_fields = (
+            'id', 'administrador', 'administrador_nombre',
+            'creado_en', 'actualizado_en',
+        )
+
+    def get_cliente_nombre(self, obj):
+        return obj.cliente.user.get_full_name() or obj.cliente.user.email
+
+    def get_administrador_nombre(self, obj):
+        if not obj.administrador:
+            return None
+        return obj.administrador.get_full_name() or obj.administrador.email
+
+    def validate(self, attrs):
+        cliente = attrs.get('cliente') or getattr(self.instance, 'cliente', None)
+        estado = attrs.get('estado', getattr(self.instance, 'estado', 'nuevo'))
+        if cliente and estado in ('nuevo', 'en_seguimiento'):
+            abiertos = SeguimientoCobro.objects.filter(
+                cliente=cliente,
+                estado__in=['nuevo', 'en_seguimiento'],
+            )
+            if self.instance:
+                abiertos = abiertos.exclude(pk=self.instance.pk)
+            if abiertos.exists():
+                raise serializers.ValidationError({
+                    'cliente': 'El cliente ya tiene un seguimiento de cobro abierto.',
+                })
+        return attrs

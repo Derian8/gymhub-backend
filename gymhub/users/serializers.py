@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -6,7 +8,8 @@ from django.contrib.auth.password_validation import validate_password
 
 from .models import MemberProfile, TrainerProfile, PerfilGimnasio, AuditLog
 from .services import get_member_prescription_status, get_member_risk_snapshot
-from billing.services import current_member_membership, refresh_membership_status
+from billing.models import MembershipPlan
+from billing.services import current_member_membership, membership_access, refresh_membership_status
 
 User = get_user_model()
 
@@ -14,13 +17,16 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     memberprofile_id = serializers.SerializerMethodField()
     trainerprofile_id = serializers.SerializerMethodField()
+    perfiles_disponibles = serializers.SerializerMethodField()
+    contexto_predeterminado = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = (
             'id', 'email', 'username', 'first_name', 'last_name',
             'role', 'is_staff', 'memberprofile_id', 'trainerprofile_id',
-            'requiere_cambio_contrasena',
+            'requiere_cambio_contrasena', 'perfiles_disponibles',
+            'contexto_predeterminado',
         )
         read_only_fields = (
             'id', 'is_staff', 'memberprofile_id', 'trainerprofile_id',
@@ -34,6 +40,23 @@ class UserSerializer(serializers.ModelSerializer):
     def get_trainerprofile_id(self, obj):
         profile = getattr(obj, 'trainerprofile', None)
         return profile.id if profile else None
+
+    def get_perfiles_disponibles(self, obj):
+        perfiles = []
+        if obj.is_staff:
+            perfiles.append('administrador')
+        if getattr(obj, 'trainerprofile', None):
+            perfiles.append('instructor')
+        if getattr(obj, 'memberprofile', None):
+            perfiles.append('cliente')
+        return perfiles
+
+    def get_contexto_predeterminado(self, obj):
+        if obj.is_staff:
+            return 'administrador'
+        if getattr(obj, 'trainerprofile', None):
+            return 'instructor'
+        return 'cliente'
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -150,6 +173,8 @@ class MemberProfileSerializer(serializers.ModelSerializer):
     suscripcion_activa_id = serializers.SerializerMethodField()
     precio_suscripcion_actual = serializers.SerializerMethodField()
     membresia_actual = serializers.SerializerMethodField()
+    estado_comercial = serializers.SerializerMethodField()
+    accion_comercial = serializers.SerializerMethodField()
 
     class Meta:
         model = MemberProfile
@@ -163,6 +188,7 @@ class MemberProfileSerializer(serializers.ModelSerializer):
             'estado_prescripcion', 'tiene_plan_activo', 'prescripcion_lista_para_member',
             'membership_plan_nombre', 'suscripcion_activa_id', 'precio_suscripcion_actual',
             'membresia_actual',
+            'estado_comercial', 'accion_comercial',
         )
         read_only_fields = ('id', 'user', 'email', 'full_name')
 
@@ -255,6 +281,36 @@ class MemberProfileSerializer(serializers.ModelSerializer):
         subscription = self._active_subscription(obj)
         return str(subscription.agreed_price) if subscription else None
 
+    def get_estado_comercial(self, obj):
+        access = membership_access(obj)
+        if not access['allowed']:
+            return 'bloqueado'
+        subscription = self._active_subscription(obj)
+        if not subscription:
+            return 'bloqueado'
+        refresh_membership_status(subscription)
+        return 'por_vencer' if subscription.status == 'expiring' else 'al_dia'
+
+    def get_accion_comercial(self, obj):
+        return 'contactar_administrador' if self.get_estado_comercial(obj) != 'al_dia' else None
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if user and not user.is_staff and getattr(user, 'role', None) == 'trainer':
+            for field in (
+                'membership_plan', 'membership_plan_nombre',
+                'suscripcion_activa_id', 'precio_suscripcion_actual',
+                'membresia_actual',
+            ):
+                data.pop(field, None)
+            data['motivos_riesgo'] = [
+                reason for reason in data.get('motivos_riesgo', [])
+                if 'pago' not in reason.lower()
+            ]
+        return data
+
     def get_membresia_actual(self, obj):
         subscription = self._active_subscription(obj)
         if not subscription:
@@ -334,6 +390,195 @@ class AltaMiembroSerializer(serializers.Serializer):
         if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError('Ya existe una cuenta con este correo.')
         return value
+
+
+class RegistroClientePagoSerializer(AltaMiembroSerializer):
+    entrenador = serializers.PrimaryKeyRelatedField(
+        queryset=TrainerProfile.objects.filter(
+            user__is_active=True,
+            user__is_staff=False,
+            user__role='trainer',
+        ),
+    )
+    tipo_membresia = serializers.ChoiceField(
+        choices=(('catalogo', 'Catálogo'), ('personalizada', 'Personalizada')),
+    )
+    plan_membresia = serializers.PrimaryKeyRelatedField(
+        queryset=MembershipPlan.objects.filter(is_active=True),
+        required=False,
+        allow_null=True,
+    )
+    nombre_membresia = serializers.CharField(
+        max_length=200,
+        required=False,
+        allow_blank=True,
+    )
+    precio_acordado = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        min_value=Decimal('0.01'),
+        required=False,
+    )
+    tipo_recurrencia = serializers.ChoiceField(
+        choices=('daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'annual'),
+        required=False,
+    )
+    dias_gracia = serializers.IntegerField(min_value=0, required=False)
+    renovacion_automatica = serializers.BooleanField(default=True)
+    motivo_ajuste_precio = serializers.CharField(
+        max_length=255,
+        required=False,
+        allow_blank=True,
+    )
+    notas_comerciales = serializers.CharField(required=False, allow_blank=True)
+    metodo_pago = serializers.ChoiceField(
+        choices=('cash', 'sinpe', 'transfer', 'other'),
+    )
+    referencia_pago = serializers.CharField(
+        max_length=120,
+        required=False,
+        allow_blank=True,
+    )
+    notas_pago = serializers.CharField(required=False, allow_blank=True)
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        tipo = attrs['tipo_membresia']
+        plan = attrs.get('plan_membresia')
+        precio = attrs.get('precio_acordado')
+        motivo_ajuste = attrs.get('motivo_ajuste_precio', '').strip()
+
+        if tipo == 'catalogo':
+            if not plan:
+                raise serializers.ValidationError({
+                    'plan_membresia': 'Selecciona una membresía del catálogo.',
+                })
+            if precio is not None and precio != plan.price and not motivo_ajuste:
+                raise serializers.ValidationError({
+                    'motivo_ajuste_precio': 'Explica por qué el precio difiere del catálogo.',
+                })
+            entrenador = attrs.get('entrenador')
+            if plan.trainer_id and plan.trainer_id != entrenador.id:
+                raise serializers.ValidationError({
+                    'plan_membresia': 'La membresía seleccionada no corresponde al entrenador asignado.',
+                })
+        else:
+            if plan:
+                raise serializers.ValidationError({
+                    'plan_membresia': 'Una membresía personalizada no usa un plan del catálogo.',
+                })
+            if not attrs.get('nombre_membresia', '').strip():
+                raise serializers.ValidationError({
+                    'nombre_membresia': 'Escribe el nombre de la membresía.',
+                })
+            if precio is None:
+                raise serializers.ValidationError({
+                    'precio_acordado': 'Escribe el precio acordado.',
+                })
+
+        if attrs['metodo_pago'] != 'cash' and not attrs.get('referencia_pago', '').strip():
+            raise serializers.ValidationError({
+                'referencia_pago': 'La referencia es obligatoria para pagos que no sean en efectivo.',
+            })
+        return attrs
+
+
+class HabilitarInstructorClienteSerializer(serializers.Serializer):
+    """Datos personales y comerciales para agregar el perfil cliente."""
+
+    entrenador_asignado = serializers.PrimaryKeyRelatedField(
+        queryset=TrainerProfile.objects.filter(user__is_active=True),
+    )
+    telefono = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    fecha_nacimiento = serializers.DateField(required=False, allow_null=True)
+    contacto_emergencia = serializers.CharField(
+        max_length=200,
+        required=False,
+        allow_blank=True,
+    )
+    tipo_membresia = serializers.ChoiceField(
+        choices=(('catalogo', 'Catálogo'), ('personalizada', 'Personalizada')),
+    )
+    plan_membresia = serializers.PrimaryKeyRelatedField(
+        queryset=MembershipPlan.objects.filter(is_active=True),
+        required=False,
+        allow_null=True,
+    )
+    nombre_membresia = serializers.CharField(
+        max_length=200,
+        required=False,
+        allow_blank=True,
+    )
+    precio_acordado = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        min_value=Decimal('0.01'),
+        required=False,
+    )
+    tipo_recurrencia = serializers.ChoiceField(
+        choices=('daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'annual'),
+        required=False,
+    )
+    dias_gracia = serializers.IntegerField(min_value=0, required=False)
+    renovacion_automatica = serializers.BooleanField(default=True)
+    motivo_ajuste_precio = serializers.CharField(
+        max_length=255,
+        required=False,
+        allow_blank=True,
+    )
+    notas_comerciales = serializers.CharField(required=False, allow_blank=True)
+    metodo_pago = serializers.ChoiceField(
+        choices=('cash', 'sinpe', 'transfer', 'other'),
+    )
+    referencia_pago = serializers.CharField(
+        max_length=120,
+        required=False,
+        allow_blank=True,
+    )
+    notas_pago = serializers.CharField(required=False, allow_blank=True)
+
+    def validate(self, attrs):
+        tipo = attrs['tipo_membresia']
+        plan = attrs.get('plan_membresia')
+        precio = attrs.get('precio_acordado')
+        entrenador = attrs['entrenador_asignado']
+
+        if tipo == 'catalogo':
+            if not plan:
+                raise serializers.ValidationError({
+                    'plan_membresia': 'Selecciona una membresía del catálogo.',
+                })
+            if plan.trainer_id and plan.trainer_id != entrenador.id:
+                raise serializers.ValidationError({
+                    'plan_membresia': 'La membresía no corresponde al instructor asignado.',
+                })
+            if (
+                precio is not None
+                and precio != plan.price
+                and not attrs.get('motivo_ajuste_precio', '').strip()
+            ):
+                raise serializers.ValidationError({
+                    'motivo_ajuste_precio': 'Explica por qué el precio difiere del catálogo.',
+                })
+        else:
+            if plan:
+                raise serializers.ValidationError({
+                    'plan_membresia': 'Una membresía personalizada no usa catálogo.',
+                })
+            if not attrs.get('nombre_membresia', '').strip():
+                raise serializers.ValidationError({
+                    'nombre_membresia': 'Escribe el nombre de la membresía.',
+                })
+            if precio is None:
+                raise serializers.ValidationError({
+                    'precio_acordado': 'Escribe el precio acordado.',
+                })
+
+        if attrs['metodo_pago'] != 'cash' and not attrs.get('referencia_pago', '').strip():
+            raise serializers.ValidationError({
+                'referencia_pago': 'La referencia es obligatoria fuera de efectivo.',
+            })
+        return attrs
 
 
 class CambioContrasenaSerializer(serializers.Serializer):

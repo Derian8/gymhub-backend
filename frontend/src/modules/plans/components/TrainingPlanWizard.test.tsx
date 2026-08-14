@@ -21,6 +21,7 @@ vi.mock('../hooks/usePlans', () => ({
     isLoading: false,
   }),
   useTrainingTemplatesQuery: () => ({ data: { results: [] } }),
+  useCatalogExercisesQuery: () => ({ data: { results: [] }, isLoading: false }),
 }))
 
 vi.mock('@/modules/members/hooks/useMembers', () => ({

@@ -110,8 +110,8 @@ class TestCheckOverduePayments:
         ).count() > initial_count
 
     @patch('billing.tasks.send_mail')
-    def test_overdue_payment_notifies_assigned_trainer_only(
-        self, mock_send_mail, member_profile, membership_plan, trainer_user
+    def test_overdue_payment_notifies_administrator_not_trainers(
+        self, mock_send_mail, member_profile, membership_plan, trainer_user, admin_user
     ):
         from django.contrib.auth import get_user_model
         from alerts.models import Notification
@@ -139,6 +139,10 @@ class TestCheckOverduePayments:
         check_overdue_payments()
 
         assert Notification.objects.filter(
+            user=admin_user,
+            type='payment_overdue',
+        ).exists()
+        assert not Notification.objects.filter(
             user=trainer_user,
             type='payment_overdue',
         ).exists()

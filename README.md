@@ -10,6 +10,7 @@
 - Supabase y Vercel: [`docs/SUPABASE_VERCEL.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/SUPABASE_VERCEL.md)
 - Avance deploy: [`docs/AVANCE_DEPLOY.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/AVANCE_DEPLOY.md)
 - Proyecto escrito ExpoTÉCNICA en LaTeX y APA 7: [`docs/gymhub_expotecnica/README.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/gymhub_expotecnica/README.md)
+- Roles, perfiles compartidos y selector de contexto: [`docs/ROLES_Y_CONTEXTOS.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/ROLES_Y_CONTEXTOS.md)
 
 ## Deploy Actual
 - Frontend: `https://proyectoappgym-frontend.vercel.app`
@@ -25,6 +26,8 @@
 3. Configura PostgreSQL en Supabase en `.env`. El proyecto ya no levanta PostgreSQL local.
    Para crear demos, define también `DEMO_TRAINER_PASSWORD` y `DEMO_MEMBER_PASSWORD` con valores privados.
 4. Ejecuta `./gym-start` para levantar `frontend`, `backend`, `redis`, `celery` y `celerybeat`.
+
+El panel administrativo prioriza clientes al día, cartera de pagos, clientes sin rutina y rutinas que vencen en 14 días. La asignación rápida publica plantillas para clientes elegibles y programa la siguiente rutina sin interrumpir la vigente.
    Para un arranque de producción local usa `./gym-start --prod`.
 5. Usa `./gym-log` para seguir logs en tiempo real.
 6. Ejecuta `./gym-smoke` para validar el MVP con usuarios demo y endpoints reales.
@@ -32,6 +35,17 @@
 7. Usa `./gym-stop` para detener los contenedores sin borrar volúmenes.
 8. Usa `./gym-frontend-test` para correr Vitest del frontend dentro del contenedor dedicado `frontend-test`, sin depender de `frontend/node_modules` del host.
 9. Usa `./gym-connection-check` para validar conexión pública de frontend, backend, base de datos, cache y rewrites de Vercel.
+
+Para publicar todo el entorno con un único comando, primero revisa la simulación y
+después ejecuta el despliegue real:
+
+```bash
+./deploy-supabase-vercel.sh --dry-run
+./deploy-supabase-vercel.sh
+```
+
+El script aplica y audita las migraciones de Supabase, despliega backend y frontend
+en Vercel y termina con la validación pública. Usa `--help` para omitir etapas.
 
 Para reconstruir las demos numeradas sin tocar cuentas reales, ejecuta primero
 `python manage.py restablecer_demo` y confirma después con
@@ -73,6 +87,7 @@ El segundo comando debe responder `401` si no hay sesión; eso confirma que el p
 
 ## Entrega Y Release
 - La fuente principal para operación, soporte y recuperación es [`RUNBOOK.md`](/mnt/c/dev/proyectos/proyectoappgym/RUNBOOK.md).
+- El estado exacto para continuar el desarrollo y los pendientes priorizados están en [`docs/TODO.md`](/mnt/c/dev/proyectoappgym/docs/TODO.md).
 - El alcance funcional a validar manualmente está congelado en [`docs/MVP_FUNCIONAL.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/MVP_FUNCIONAL.md).
 - El orden ejecutable de validación antes de entregar está en [`docs/RELEASE_CHECKLIST.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/RELEASE_CHECKLIST.md).
 - [`render.yaml`](/mnt/c/dev/proyectos/proyectoappgym/render.yaml) declara la API persistente, Celery, Beat y Redis. Vercel sigue como backend activo hasta completar los gates y cambiar el rewrite.

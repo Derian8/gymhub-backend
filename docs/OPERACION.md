@@ -45,6 +45,13 @@ Para un despliegue real con HTTPS, no reutilices sin cambios el `.env.prod.examp
 - `./gym-smoke --write`: habilita mutaciones; sin esta bandera no crea sesiones ni blacklists de logout.
 - `python manage.py restablecer_demo`: muestra el inventario demo sin modificarlo.
 - `python manage.py restablecer_demo --yes`: recrea trainer1/member1 y elimina demos numeradas adicionales.
+- `./deploy-supabase-vercel.sh --dry-run`: muestra el flujo de publicación sin modificar Supabase ni Vercel.
+- `./deploy-supabase-vercel.sh`: migra y audita Supabase, despliega backend y frontend en Vercel y valida los servicios públicos.
+
+El despliegue automatizado se detiene ante el primer error. También acepta
+`--sin-migraciones`, `--sin-backend`, `--sin-frontend` y `--sin-validacion` para
+repetir solo una parte del proceso. Las credenciales permanecen en
+`.env.supabase-vercel.local`; el script no ejecuta `seed_data` ni imprime secretos.
 
 ## Servicios
 - `frontend`: ejecuta Vite en el puerto `3000`.
@@ -53,6 +60,8 @@ Para un despliegue real con HTTPS, no reutilices sin cambios el `.env.prod.examp
 - `redis`: broker y caché.
 - `celery`: worker de tareas.
 - `celerybeat`: scheduler de tareas recurrentes.
+
+La rutina `plans.tasks.activate_scheduled_plans` se ejecuta diariamente a las 05:55 (Costa Rica). Además, el mantenimiento diario protegido por `CRON_SECRET` invoca la misma operación de forma idempotente para instalaciones serverless sin Celery Beat.
 
 ## Pruebas
 Comandos principales:
@@ -123,6 +132,7 @@ Las tolerancias operativas se guardan por plan: 0 días para diario, 1 para sema
 - La renovación extiende de forma controlada la membresía existente y crea un nuevo `PaymentSchedule`/`PaymentRecord` para el siguiente periodo.
 - Una membresía `expired`, `suspended` o `cancelled` bloquea check-in. El trainer/admin puede hacer override manual solo si envía un motivo en `notes`; el motivo queda en `AuditLog.details`.
 - La tarea diaria `run_daily_membership_maintenance` actualiza `expiring`/`expired` y crea notificaciones deduplicadas por evento y día.
+- El mismo mantenimiento activa rutinas publicadas con estado `scheduled` cuando llega su fecha inicial y finaliza la rutina activa anterior del cliente.
 
 En Vercel, `gymhub/vercel.json` invoca diariamente `/api/internal/daily-membership-maintenance/` a las 12:05 UTC (06:05 Costa Rica). El endpoint es idempotente y exige `CRON_SECRET`.
 - `DEMO_TRAINER_PASSWORD`

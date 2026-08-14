@@ -4,7 +4,7 @@ import { AlertTriangle, Copy, Plus, Trash2, X } from 'lucide-react'
 import { Avatar, Badge } from '@/shared/components/UI'
 import { DAY_OF_WEEK_LABELS, GOAL_LABELS, MUSCLE_GROUP_OPTIONS, formatDate } from '@/shared/lib/utils'
 import { useAssignTrainerMutation, useMembersQuery } from '@/modules/members/hooks/useMembers'
-import { useCreateCompletePlanMutation, useGymMachinesQuery, useTrainingTemplatesQuery } from '../hooks/usePlans'
+import { useCatalogExercisesQuery, useCreateCompletePlanMutation, useGymMachinesQuery, useTrainingTemplatesQuery } from '../hooks/usePlans'
 import type {
   CompleteTrainingPlanPayload,
   DayLabel,
@@ -18,7 +18,7 @@ import type {
   TrainingPlanStatus,
 } from '@/shared/types'
 
-const dayLabels: DayLabel[] = ['A', 'B', 'C', 'D']
+const dayLabels: DayLabel[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
 const weekdays: Array<{ value: DayOfWeek; label: string }> = [
   { value: 'mon', label: 'Lunes' },
   { value: 'tue', label: 'Martes' },
@@ -106,8 +106,10 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
     days_per_week: 3,
     notes: '',
     status: 'draft' as TrainingPlanStatus,
+    modo_ejecucion: 'cycle' as 'weekly' | 'cycle',
   })
   const [days, setDays] = useState<WizardDay[]>([])
+  const catalogoQuery = useCatalogExercisesQuery({ search: '' }, open)
   const membersQuery = useMembersQuery({ assignment: 'available', search, ordering: 'prescripcion' }, open)
   const gymMachinesQuery = useGymMachinesQuery(open)
   const templatesQuery = useTrainingTemplatesQuery()
@@ -200,14 +202,16 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
       name: current.name || template.nombre,
       goal: template.objetivo,
       days_per_week: template.dias_por_semana_sugeridos,
+      modo_ejecucion: template.modo_ejecucion ?? 'cycle',
     }))
     setDays(template.dias.map((day, index) => ({
       name: day.nombre,
       day_label: day.etiqueta_dia,
-      day_of_week: weekdays[index % weekdays.length].value,
+      day_of_week: template.modo_ejecucion === 'weekly' ? (day.dia_semana ?? weekdays[index % weekdays.length].value) : null,
       order: index,
       exercises: day.ejercicios.map((exercise, exerciseIndex) => normalizeExercise({
         name: exercise.nombre,
+        catalogo_ejercicio: exercise.catalogo_ejercicio ?? null,
         muscle_group: exercise.grupo_muscular,
         exercise_type: exercise.tipo_ejercicio,
         sets: exercise.series,
@@ -233,6 +237,7 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
       end_date: form.end_date,
       weeks_duration: form.weeks_duration,
       days_per_week: form.days_per_week,
+      modo_ejecucion: form.modo_ejecucion,
       status: 'draft',
       level: form.level,
       notes: form.notes,
@@ -383,6 +388,12 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
               <Field label="Días por semana">
                 <input className="input" type="number" min={1} max={7} value={form.days_per_week} onChange={(event) => setForm({ ...form, days_per_week: Number(event.target.value) || 1 })} />
               </Field>
+              <Field label="Ejecución">
+                <select className="input" value={form.modo_ejecucion} onChange={(event) => setForm({ ...form, modo_ejecucion: event.target.value as 'weekly' | 'cycle' })}>
+                  <option value="cycle">Ciclo flexible A → B → C</option>
+                  <option value="weekly">Días fijos de semana</option>
+                </select>
+              </Field>
             </div>
             <Field label="Notas generales">
               <textarea className="input min-h-24" value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} />
@@ -427,11 +438,13 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
                           {dayLabels.map((label) => <option key={label} value={label}>{label}</option>)}
                         </select>
                       </Field>
-                      <Field label="Día real">
-                        <select className="input" value={day.day_of_week} onChange={(event) => setDays((current) => current.map((item, index) => index === dayIndex ? { ...item, day_of_week: event.target.value as DayOfWeek } : item))}>
-                          {weekdays.map((weekday) => <option key={weekday.value} value={weekday.value}>{weekday.label}</option>)}
-                        </select>
-                      </Field>
+                      {form.modo_ejecucion === 'weekly' && (
+                        <Field label="Día real">
+                          <select className="input" value={day.day_of_week ?? ''} onChange={(event) => setDays((current) => current.map((item, index) => index === dayIndex ? { ...item, day_of_week: event.target.value as DayOfWeek } : item))}>
+                            {weekdays.map((weekday) => <option key={weekday.value} value={weekday.value}>{weekday.label}</option>)}
+                          </select>
+                        </Field>
+                      )}
                       <div className="flex items-end gap-2">
                         <button type="button" className="btn-secondary" onClick={() => duplicateDay(day)}><Copy size={16} /> Duplicar</button>
                         <button type="button" className="btn-danger" onClick={() => setDays((current) => current.filter((_, index) => index !== dayIndex))}><Trash2 size={16} /></button>
@@ -442,6 +455,25 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
                         <div key={exerciseIndex} className="grid grid-cols-1 gap-3 rounded-sm bg-neutral-50 p-3 md:grid-cols-6 dark:bg-neutral-900/60">
                           <Field label="Ejercicio">
                             <input className="input" value={exercise.name} onChange={(event) => updateExercise(dayIndex, exerciseIndex, { name: event.target.value })} />
+                          </Field>
+                          <Field label="Catálogo en español">
+                            <select
+                              className="input"
+                              value={exercise.catalogo_ejercicio ?? ''}
+                              onChange={(event) => {
+                                const item = (catalogoQuery.data?.results ?? []).find((catalogo) => catalogo.id === Number(event.target.value))
+                                updateExercise(dayIndex, exerciseIndex, item ? {
+                                  catalogo_ejercicio: item.id,
+                                  name: item.nombre,
+                                  technique_notes: item.instrucciones_es,
+                                } : { catalogo_ejercicio: null })
+                              }}
+                            >
+                              <option value="">Ejercicio manual</option>
+                              {(catalogoQuery.data?.results ?? []).map((catalogo) => (
+                                <option key={catalogo.id} value={catalogo.id}>{catalogo.nombre}</option>
+                              ))}
+                            </select>
                           </Field>
                           <Field label="Grupo">
                             <select className="input" value={exercise.muscle_group} onChange={(event) => updateExercise(dayIndex, exerciseIndex, { muscle_group: event.target.value as MuscleGroup })}>

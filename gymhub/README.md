@@ -22,6 +22,11 @@
 
 > Flujo recomendado: usa la orquestación de raíz del repositorio con `./gym-start`, `./gym-start --prod`, `./gym-smoke`, `./gym-log` y `./gym-stop`. Este README conserva los comandos directos del backend solo para tareas puntuales dentro del servicio `backend`.
 
+Para desplegar Supabase y ambos proyectos de Vercel desde la raíz, usa primero
+`./deploy-supabase-vercel.sh --dry-run` y luego `./deploy-supabase-vercel.sh`.
+El comando aplica las migraciones Django y ejecuta `auditar_esquema` antes de
+publicar el backend y el frontend.
+
 ```bash
 # 1. Clonar y configurar variables de entorno
 cp ../.env.example ../.env
@@ -55,7 +60,9 @@ docker compose exec backend python manage.py createsuperuser
 | GET | `/api/members/{id}/dashboard-summary/` | Dashboard del miembro |
 | POST | `/api/members/{id}/activate/` | Activar miembro |
 | GET | `/api/trainer/gym-overview/` | Resumen del gimnasio |
+| GET | `/api/admin/dashboard/` | Cartera y alertas operativas del administrador |
 | GET | `/api/plans/summary/` | Métricas reales de planes para trainer |
+| POST | `/api/plans/assign-template/` | Publica o programa una plantilla con cliente y entrenador |
 | POST | `/api/plans/create-complete/` | Crear plan completo con miembro, días y ejercicios |
 | POST | `/api/plans/{id}/duplicate/` | Duplicar plan como copia independiente |
 | POST | `/api/plans/{id}/finish/` | Finalizar plan |
@@ -64,6 +71,7 @@ docker compose exec backend python manage.py createsuperuser
 | GET | `/api/plans/{id}/weekly-view/` | Vista semanal |
 | POST | `/api/workout-sessions/` | Crear sesión |
 | PATCH | `/api/workout-sessions/{id}/complete/` | Completar sesión |
+| POST | `/api/workout-sessions/{id}/progreso-ejercicio/` | Registrar un ejercicio como realizado u omitido |
 | POST | `/api/exercise-logs/bulk/` | Registrar múltiples ejercicios (atómico) |
 | GET | `/api/members/{id}/progress-by-exercise/{exercise_id}/` | Progresión por ejercicio |
 | POST | `/api/attendance/check-in/` | Check-in (throttle 30/min) |
@@ -116,12 +124,13 @@ docker compose exec backend pytest tests/ -v
 al confirmarlo elimina demos numeradas adicionales, reconstruye trainer1/member1
 y preserva cuentas reales y superusuarios.
 
-## Tareas Celery Beat (2)
+## Tareas Celery Beat (3)
 
 | Tarea | Horario | Descripción |
 |-------|---------|-------------|
 | `check_member_inactivity` | 08:00 Costa Rica | Crea y resuelve alertas de inactividad desde 5 días sin asistir, solo con membresía activa e historial previo |
 | `run_daily_membership_maintenance` | 06:05 Costa Rica | Actualiza vigencias, mora y recordatorios de pago |
+| `activate_scheduled_plans` | 05:55 Costa Rica | Activa rutinas programadas y finaliza la versión anterior |
 
 ## Modelos (22)
 `User` · `MemberProfile` · `TrainerProfile` · `AuditLog` · `GymClass` · `ClassEnrollment` ·

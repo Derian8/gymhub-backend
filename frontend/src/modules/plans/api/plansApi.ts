@@ -10,6 +10,7 @@ import type {
   WorkoutSession,
   ExerciseLog,
   ExerciseLogPayload,
+  ExerciseProgressPayload,
   CompleteWorkoutSessionPayload,
   TrainingPlanPayload,
   TrainingTemplateUpdatePayload,
@@ -18,6 +19,8 @@ import type {
   TrainingTemplate,
   CompleteTrainingPlanPayload,
   TrainingPlansSummary,
+  CatalogExercise,
+  QuickRoutineAssignmentPayload,
 } from '@/shared/types'
 
 export const plansApi = {
@@ -66,6 +69,11 @@ export const plansApi = {
     return data
   },
 
+  catalogExercises: async (params?: Record<string, string>): Promise<PaginatedResponse<CatalogExercise>> => {
+    const { data } = await apiClient.get('/api/catalogo-ejercicios/', { params })
+    return data
+  },
+
   gymMachines: async (): Promise<PaginatedResponse<GymMachine>> => {
     const { data } = await apiClient.get('/api/gym-machines/')
     return data
@@ -78,6 +86,11 @@ export const plansApi = {
 
   createCompletePlan: async (payload: CompleteTrainingPlanPayload): Promise<TrainingPlan> => {
     const { data } = await apiClient.post('/api/plans/create-complete/', payload)
+    return data
+  },
+
+  assignTemplateQuickly: async (payload: QuickRoutineAssignmentPayload): Promise<TrainingPlan> => {
+    const { data } = await apiClient.post('/api/plans/assign-template/', payload)
     return data
   },
 
@@ -193,6 +206,11 @@ export const plansApi = {
 
   completeSession: async (sessionId: number, payload: CompleteWorkoutSessionPayload): Promise<WorkoutSession> => {
     const { data } = await apiClient.patch(`/api/workout-sessions/${sessionId}/complete/`, payload)
+    return data
+  },
+
+  registerExerciseProgress: async (sessionId: number, payload: ExerciseProgressPayload): Promise<{ session_completed: boolean }> => {
+    const { data } = await apiClient.post(`/api/workout-sessions/${sessionId}/progreso-ejercicio/`, payload)
     return data
   },
 

@@ -41,8 +41,8 @@ describe('ProfilePage', () => {
     expect(getByDisplayValue('Mendoza')).toBeInTheDocument()
     expect(getByDisplayValue('trainer1@gymhub.com')).toBeInTheDocument()
     expect(getByText('@trainer1')).toBeInTheDocument()
-    expect(getAllByText('Entrenador').length).toBeGreaterThan(0)
-    expect(getByText('Staff')).toBeInTheDocument()
+    expect(getAllByText('Instructor').length).toBeGreaterThan(0)
+    expect(getAllByText('Administrador').length).toBeGreaterThan(0)
   })
 
   it('submits updated profile data without changing role', async () => {

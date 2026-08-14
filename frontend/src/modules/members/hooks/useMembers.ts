@@ -9,6 +9,7 @@ interface MembersParams {
   assignment?: 'mine' | 'unassigned' | 'available'
   search?: string
   payment_status?: string
+  commercial_status?: string
   inactivity?: string
   risk_level?: string
   prescription_status?: string
@@ -29,6 +30,21 @@ export function useCreateMemberMutation() {
   return useMutation({
     mutationFn: membersApi.create,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERS }),
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useRegisterClientWithPaymentMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: membersApi.registerWithPayment,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERSHIP_PLANS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PAYMENT_RECORDS_ALL })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TRAINER_OVERVIEW })
+      toast.success('Cliente registrado, pago confirmado y acceso activado')
+    },
     onError: (error) => toast.error(extractApiError(error)),
   })
 }
@@ -73,6 +89,14 @@ export function useActivateMemberMutation() {
   })
 }
 
+export function useTrainersQuery(enabled = true) {
+  return useQuery({
+    queryKey: QUERY_KEYS.TRAINERS,
+    queryFn: membersApi.trainers,
+    enabled,
+  })
+}
+
 export function useMemberPhysicalSummaryQuery(id: number) {
   return useQuery({
     queryKey: QUERY_KEYS.MEMBER_PHYSICAL_SUMMARY(id),
@@ -89,11 +113,11 @@ export function useMemberPrescriptionQuery(id: number) {
   })
 }
 
-export function useMemberActivePrescriptionQuery(id: number) {
+export function useMemberActivePrescriptionQuery(id: number, enabled = true) {
   return useQuery({
     queryKey: QUERY_KEYS.MEMBER_ACTIVE_PRESCRIPTION(id),
     queryFn: () => membersApi.activePrescription(id),
-    enabled: !!id,
+    enabled: !!id && enabled,
   })
 }
 

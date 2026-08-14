@@ -246,6 +246,7 @@ vi.mock('@/modules/plans/hooks/usePlans', () => ({
   useTrainingTemplatesQuery: () => ({
     data: trainingTemplatesResponse,
   }),
+  useCatalogExercisesQuery: () => ({ data: { results: [] }, isLoading: false }),
   useCreateCompletePlanMutation: () => ({ mutate: vi.fn(), isPending: false, isSuccess: false }),
   useCreatePlanMutation: () => ({ mutate: vi.fn(), isPending: false, isSuccess: false }),
   useUpdatePlanMutation: () => ({ mutate: vi.fn(), isPending: false, isSuccess: true }),

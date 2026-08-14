@@ -1,29 +1,56 @@
-import { Activity, Ruler, Scale } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
+import { useEffect, useState, type FormEvent } from 'react'
+import { Activity, Plus, Ruler, Scale } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { progressApi } from '../api/progressApi'
 import { Badge, PageHeader, EmptyState } from '@/shared/components/UI'
 import { TableRowSkeleton } from '@/shared/components/Skeleton'
 import { QUERY_KEYS } from '@/shared/constants/queryKeys'
 import { formatDate } from '@/shared/lib/utils'
+import { getResolvedContext, useAuthStore } from '@/shared/store/authStore'
+import { useMembersQuery } from '@/modules/members/hooks/useMembers'
+import { toast } from 'sonner'
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis,
   CartesianGrid, Tooltip
 } from 'recharts'
 
 export function ProgressPage() {
+  const { user, activeContext } = useAuthStore()
+  const clientView = getResolvedContext(user, activeContext) === 'cliente'
+  const { data: members } = useMembersQuery({ assignment: 'mine' }, !clientView)
+  const [memberId, setMemberId] = useState(0)
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    if (!clientView && !memberId && members?.results.length) setMemberId(members.results[0].id)
+  }, [clientView, memberId, members])
+
   const { data: logs, isLoading: logsLoading } = useQuery({
-    queryKey: QUERY_KEYS.PROGRESS_LOGS(),
-    queryFn: () => progressApi.logs(),
+    queryKey: QUERY_KEYS.PROGRESS_LOGS(clientView ? undefined : memberId),
+    queryFn: () => progressApi.logs(clientView ? undefined : memberId),
+    enabled: clientView || memberId > 0,
   })
 
   const { data: sessions, isLoading: sessionsLoading } = useQuery({
-    queryKey: QUERY_KEYS.WORKOUT_SESSIONS,
-    queryFn: progressApi.sessions,
+    queryKey: [...QUERY_KEYS.WORKOUT_SESSIONS, clientView ? 'self' : memberId],
+    queryFn: () => progressApi.sessions(clientView ? undefined : memberId),
+    enabled: clientView || memberId > 0,
   })
 
   const { data: physicalSummary } = useQuery({
-    queryKey: ['progress-logs', 'summary', 'self'],
-    queryFn: () => progressApi.summary(),
+    queryKey: ['progress-logs', 'summary', clientView ? 'self' : memberId],
+    queryFn: () => progressApi.summary(clientView ? undefined : memberId),
+    enabled: clientView || memberId > 0,
+  })
+
+  const createLog = useMutation({
+    mutationFn: (payload: Parameters<typeof progressApi.createLog>[0]) => progressApi.createLog(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROGRESS_LOGS(memberId) })
+      queryClient.invalidateQueries({ queryKey: ['progress-logs', 'summary', memberId] })
+      toast.success('Avance registrado')
+    },
+    onError: () => toast.error('No se pudo registrar el avance'),
   })
 
   const chartData = logs?.results
@@ -37,7 +64,20 @@ export function ProgressPage() {
 
   return (
     <div data-testid="progress-page" className="page-enter">
-      <PageHeader title="Mi Progreso" subtitle="Seguimiento de métricas y evolución" />
+      <PageHeader
+        title={clientView ? 'Mi progreso' : 'Progreso de clientes'}
+        subtitle={clientView ? 'Consulta tus métricas y evolución registradas.' : 'Selecciona un cliente y registra sus mediciones sin salir del módulo.'}
+      />
+
+      {!clientView ? (
+        <ProgressOperatorPanel
+          members={members?.results || []}
+          memberId={memberId}
+          onMemberChange={setMemberId}
+          onSubmit={(payload) => createLog.mutate({ member: memberId, ...payload })}
+          isPending={createLog.isPending}
+        />
+      ) : null}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" data-testid="physical-summary-grid">
         <div className="card p-5">
@@ -185,4 +225,58 @@ export function ProgressPage() {
       </div>
     </div>
   )
+}
+
+function ProgressOperatorPanel({ members, memberId, onMemberChange, onSubmit, isPending }: {
+  members: Array<{ id: number; full_name: string; email: string }>
+  memberId: number
+  onMemberChange: (id: number) => void
+  onSubmit: (payload: { weight_kg?: number; height_cm?: number; body_fat_pct?: number; waist_cm?: number; notes?: string }) => void
+  isPending: boolean
+}) {
+  const [weight, setWeight] = useState('')
+  const [height, setHeight] = useState('')
+  const [fat, setFat] = useState('')
+  const [waist, setWaist] = useState('')
+  const [notes, setNotes] = useState('')
+  const numberOrUndefined = (value: string) => value.trim() ? Number(value) : undefined
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    if (!memberId) return
+    onSubmit({
+      weight_kg: numberOrUndefined(weight),
+      height_cm: numberOrUndefined(height),
+      body_fat_pct: numberOrUndefined(fat),
+      waist_cm: numberOrUndefined(waist),
+      notes,
+    })
+  }
+
+  return (
+    <section className="card mb-6 p-6">
+      <div className="grid gap-5 xl:grid-cols-[minmax(240px,0.7fr)_minmax(0,1.3fr)]">
+        <label className="text-sm font-medium">Cliente
+          <select className="input mt-2 w-full" value={memberId || ''} onChange={(event) => onMemberChange(Number(event.target.value))}>
+            <option value="">Selecciona un cliente</option>
+            {members.map((member) => <option key={member.id} value={member.id}>{member.full_name || member.email}</option>)}
+          </select>
+        </label>
+        <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <MeasurementInput label="Peso kg" value={weight} onChange={setWeight} />
+          <MeasurementInput label="Altura cm" value={height} onChange={setHeight} />
+          <MeasurementInput label="Grasa %" value={fat} onChange={setFat} />
+          <MeasurementInput label="Cintura cm" value={waist} onChange={setWaist} />
+          <button className="btn-primary self-end" type="submit" disabled={!memberId || isPending}><Plus size={16} /> Registrar</button>
+          <label className="sm:col-span-2 xl:col-span-5 text-sm font-medium">Notas
+            <input className="input mt-2 w-full" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Observaciones del avance" />
+          </label>
+        </form>
+      </div>
+    </section>
+  )
+}
+
+function MeasurementInput({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  return <label className="text-sm font-medium">{label}<input type="number" min="0" step="0.1" className="input mt-2 w-full" value={value} onChange={(event) => onChange(event.target.value)} /></label>
 }

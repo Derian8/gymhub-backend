@@ -24,7 +24,7 @@ disponibles se consideran aportes en especie; la inversión adicional se concent
 en servicios digitales y tiempo de trabajo.
 
 El capital operativo mínimo para sostener el primer mes comercial sin clientes
-es CRC 71\,986. Si se atiende un gimnasio piloto, asciende a CRC 74\,986 por la
+es CRC 62\,847. Si se atiende un gimnasio piloto, asciende a CRC 65\,847 por la
 hora de soporte asociada. Este monto no representa la compra de computadoras ni
 otros activos ya disponibles; corresponde al efectivo y trabajo valorado que el
 escenario necesita para operar durante un mes.
@@ -37,7 +37,6 @@ Recurso & Aporte & Tratamiento económico \\
 \midrule
 Computadoras y teléfonos & Equipo propiedad de los estudiantes. & Aporte en especie; no requiere compra inicial. \\
 Internet y electricidad & Recursos disponibles en los hogares. & Aporte en especie durante la etapa educativa. \\
-ChatGPT Plus & Suscripción pagada por los estudiantes. & CRC 9\,139 mensuales como apoyo técnico de desarrollo. \\
 Trabajo del equipo & Diseño, programación, pruebas y soporte. & Diez horas mensuales más una hora por cliente, a CRC 3\,000 por hora. \\
 \bottomrule
 \end{tabularx}
@@ -62,15 +61,12 @@ promoción.
 
 \subsection{Costo mensual de operación}
 
-Para pasar de demostración educativa a servicio comercial se presupuestan Vercel
-Pro, Supabase Pro y Railway. Sus tarifas iniciales de referencia son USD 20,
-USD 25 y una base de USD 5, respectivamente
-\parencite{vercel_pricing,supabase_pricing,railway_pricing}. Estos montos no son
-un techo garantizado: el consumo de cómputo, almacenamiento y transferencia puede
-aumentar el pago al proveedor.
-Upstash permite iniciar Redis en un nivel gratuito limitado y crecer por consumo
-\parencite{upstash_pricing}. Esta selección aprovecha servicios administrados y
-evita comprar servidores propios.
+El presupuesto operativo preliminar separa infraestructura, trabajo, reserva y
+soporte. Sus montos son estimaciones internas
+documentadas en el Apéndice~\ref{ap:presupuesto}; no constituyen cotizaciones
+vinculantes de proveedores y deberán actualizarse antes de iniciar ventas
+\parencite{presupuesto_gymhub_2026}. El consumo de cómputo, almacenamiento y
+transferencia puede modificar el costo real.
 
 \begin{table}[htbp]
 \caption{Costo económico mensual inicial}
@@ -80,15 +76,14 @@ evita comprar servidores propios.
 Concepto & CRC mensual & Criterio \\
 \midrule
 Infraestructura comercial & 22\,847 & Vercel Pro, Supabase Pro y base de Railway. \\
-Herramienta de desarrollo & 9\,139 & ChatGPT Plus pagado por los estudiantes \parencite{openai_plus}. \\
 Trabajo general & 30\,000 & Diez horas de mantenimiento a CRC 3\,000. \\
 Reserva operativa & 10\,000 & Dominio, promoción básica y contingencias. \\
 Soporte por gimnasio & 3\,000 & Una hora mensual por cliente. \\
 \midrule
-\textbf{Costo fijo antes de clientes} & \textbf{71\,986} & Más CRC 3\,000 por gimnasio activo. \\
+\textbf{Costo fijo antes de clientes} & \textbf{62\,847} & Más CRC 3\,000 por gimnasio activo. \\
 \bottomrule
 \end{tabularx}
-\caption*{\textit{Nota}. Los montos corresponden al escenario inicial y se revisarán con el consumo real.}
+\caption*{\textit{Nota}. Elaboración propia a partir del presupuesto operativo preliminar \parencite{presupuesto_gymhub_2026}. Los montos se revisarán con el consumo real.}
 \end{table}
 
 Reconocer las horas evita presentar como ganancia un monto que en realidad
@@ -126,29 +121,30 @@ semanas por CRC 15\,000, cuyo objetivo es reducir el riesgo de adopción y medir
 el valor percibido. El aprendizaje mediante un producto mínimo viable permite
 ajustar una propuesta con datos de uso antes de ampliar la inversión.
 
-Después del piloto se ofrecen tres planes: Básico por CRC 30\,000 hasta 50
-miembros, Gestión por CRC 45\,000 de 51 a 150 y Crecimiento por CRC 60\,000 de
-151 a 300. Dos responsables encuestados se encuentran en el rango de 76 a 150
-miembros y uno supera 150; por ello, las bandas representan tamaños observados
-en el estudio.
+Después del piloto se proponen tres planes: Básico por CRC 30\,000, Gestión por
+CRC 45\,000 y Crecimiento por CRC 60\,000. Las diferencias de precio responden
+al nivel de acompañamiento y uso esperado. Los límites de miembros se definirán
+con datos del piloto y costos reales de operación; todavía no son una condición
+comercial definitiva.
 
 \begin{table}[htbp]
-\caption{Comparación de precios mensuales por tamaño}
+\caption{Planes mensuales propuestos}
 \begin{tabularx}{\textwidth}{>{\bfseries\raggedright\arraybackslash}p{3.2cm}r r>{\raggedright\arraybackslash}X}
 \toprule
-Plan GymHub & Precio CRC & USD aprox. & Referencia internacional \\
+Plan GymHub & Precio CRC & USD aprox. & Estado de validación \\
 \midrule
-Básico & 30\,000 & 66 & Gymdesk: USD 75 hasta 50 miembros. \\
-Gestión & 45\,000 & 98 & Gymdesk: USD 100 hasta 100 y USD 150 hasta 200. \\
-Crecimiento & 60\,000 & 131 & Gymdesk: USD 150 hasta 200 y USD 200 hasta 400. \\
+Básico & 30\,000 & 66 & Hipótesis comercial. \\
+Gestión & 45\,000 & 98 & Hipótesis comercial. \\
+Crecimiento & 60\,000 & 131 & Hipótesis comercial. \\
 \bottomrule
 \end{tabularx}
-\caption*{\textit{Nota}. Tarifas de Gymdesk consultadas en 2026 \parencite{gymdesk_pricing}. La comparación considera precio y cantidad de miembros, no igualdad total de funciones.}
+\caption*{\textit{Nota}. Elaboración propia a partir del presupuesto operativo preliminar y el tipo de cambio de referencia \parencite{presupuesto_gymhub_2026,bccr_tipo_cambio}. Los precios requieren validación con clientes reales.}
 \end{table}
 
-GymHub compite con una tarifa menor o cercana a esas referencias, cobro en
-colones, acompañamiento local y una experiencia enfocada en los procesos que la
-encuesta destacó: pagos, vencimientos, rutina y progreso.
+GymHub propone cobro en colones, acompañamiento cercano y una experiencia
+centrada en pagos, vencimientos, rutina y progreso. Estas características se
+validarán con personas usuarias y posibles clientes antes de fijar una tarifa
+definitiva.
 
 \subsection{Punto de equilibrio y utilidad}
 
@@ -164,29 +160,37 @@ CRC 3\,000 de soporte mensual.
 \toprule
 Escenario & Ingreso & Costo & Utilidad & Margen y lectura \\
 \midrule
-Bajo: dos Básico & 60\,000 & 77\,986 & $-17\,986$ & $-30,0\%$; no cubre el costo. \\
-Conservador: tres Básico & 90\,000 & 80\,986 & 9\,014 & 10,0\%; primer nivel rentable. \\
-Base: dos Gestión & 90\,000 & 77\,986 & 12\,014 & 13,3\%; dos gimnasios medianos. \\
-Crecimiento: tres mixtos & 135\,000 & 80\,986 & 54\,014 & 40,0\%; uno de cada nivel. \\
-Alto: cartera observada & 150\,000 & 80\,986 & 69\,014 & 46,0\%; dos Gestión y un Crecimiento. \\
+Bajo: dos Básico & 60\,000 & 68\,847 & $-8\,847$ & $-14,7\%$; no cubre el costo. \\
+Conservador: tres Básico & 90\,000 & 71\,847 & 18\,153 & 20,2\%; primer nivel rentable. \\
+Base: dos Gestión & 90\,000 & 68\,847 & 21\,153 & 23,5\%; dos planes Gestión. \\
+Crecimiento: tres mixtos & 135\,000 & 71\,847 & 63\,153 & 46,8\%; uno de cada nivel. \\
+Alto: cartera propuesta & 150\,000 & 71\,847 & 78\,153 & 52,1\%; dos Gestión y un Crecimiento. \\
 \bottomrule
 \end{tabularx}
 \caption*{\textit{Nota}. Utilidad operativa antes de impuestos. No representa clientes ya contratados.}
 \end{table}
 
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{imagenes/escenarios_punto_equilibrio.png}
+\caption{Escenarios mensuales de viabilidad de GymHub}
+\label{fig:escenarios-equilibrio}
+\caption*{\textit{Nota}. Elaboración propia a partir de los escenarios del presupuesto operativo preliminar \parencite{presupuesto_gymhub_2026}. Los resultados son proyecciones antes de impuestos y no representan clientes contratados.}
+\end{figure}
+
 La respuesta principal de viabilidad es concreta: GymHub comienza a generar
 utilidad con \textbf{tres gimnasios en el plan Básico} o con \textbf{dos
 gimnasios en el plan Gestión}. La meta de los primeros seis meses será alcanzar
 tres clientes de pago. Incluso en el escenario más conservador, tres planes
-Básico producen CRC 9\,014 mensuales después de reconocer infraestructura,
+Básico producen CRC 18\,153 mensuales después de reconocer infraestructura,
 trabajo, soporte y reserva.
 
-Si la cartera alcanza dos planes Gestión y uno Crecimiento, combinación
-compatible con los tres tamaños conocidos en la encuesta, la utilidad operativa
-mensual sería CRC 69\,014. Mantener ese escenario durante doce meses produciría
-CRC 828\,168 antes de impuestos. No se asume que las personas encuestadas ya sean
-clientes; sus tamaños se utilizan únicamente para comprobar cómo funcionaría la
-estructura comercial.
+Si la cartera alcanza dos planes Gestión y uno Crecimiento, combinación propuesta
+para este escenario, la utilidad operativa
+mensual sería CRC 78\,153. Mantener ese escenario durante doce meses produciría
+CRC 937\,836 antes de impuestos. No se asume que las personas encuestadas ya sean
+clientes; es una proyección para comprobar cómo funcionaría la estructura
+comercial.
 
 \subsection{Flujo de caja exploratorio de seis meses}
 
@@ -201,29 +205,29 @@ piloto en el segundo mes y conversión gradual hasta tres clientes en el sexto.
 \toprule
 Mes & Cartera supuesta & Ingreso & Costo & Resultado \\
 \midrule
-1 & Demostración; sin cliente de pago & 0 & 71\,986 & $-71\,986$ \\
-2 & Un piloto & 15\,000 & 74\,986 & $-59\,986$ \\
-3 & Un plan Básico & 30\,000 & 74\,986 & $-44\,986$ \\
-4 & Un Básico y un Gestión & 75\,000 & 77\,986 & $-2\,986$ \\
-5 & Un Básico y un Gestión & 75\,000 & 77\,986 & $-2\,986$ \\
-6 & Dos Básico y un Gestión & 105\,000 & 80\,986 & 24\,014 \\
+1 & Demostración; sin cliente de pago & 0 & 62\,847 & $-62\,847$ \\
+2 & Un piloto & 15\,000 & 65\,847 & $-50\,847$ \\
+3 & Un plan Básico & 30\,000 & 65\,847 & $-35\,847$ \\
+4 & Un Básico y un Gestión & 75\,000 & 68\,847 & 6\,153 \\
+5 & Un Básico y un Gestión & 75\,000 & 68\,847 & 6\,153 \\
+6 & Dos Básico y un Gestión & 105\,000 & 71\,847 & 33\,153 \\
 \midrule
-Total & Escenario acumulado & 300\,000 & 458\,916 & $-158\,916$ \\
+Total & Escenario acumulado & 300\,000 & 404\,082 & $-104\,082$ \\
 \bottomrule
 \end{tabularx}
 \caption*{\textit{Nota}. Escenario antes de impuestos y de los costos pendientes de cotización. No representa contratos ni resultados obtenidos.}
 \end{table}
 
 El escenario alcanza rentabilidad mensual en el sexto mes, pero conserva una
-pérdida acumulada de CRC 158\,916. Por tanto, la meta de tres clientes prueba la
+pérdida acumulada de CRC 104\,082. Por tanto, la meta de tres clientes prueba la
 capacidad de cubrir la operación mensual, no la recuperación total de la etapa
 inicial. El flujo deberá sustituirse por datos reales cuando se conozcan las
 conversiones, permanencia, consumo de nube y horas de soporte.
 
 Si desde el séptimo mes se mantuvieran dos planes Básico y uno Gestión, sin
-cancelaciones ni aumentos de costo, la utilidad mensual de CRC 24\,014 recuperaría
-la pérdida acumulada después de aproximadamente 6,6 meses adicionales. En ese
-escenario la recuperación ocurriría alrededor del mes 13. Se trata de un periodo
+cancelaciones ni aumentos de costo, la utilidad mensual de CRC 33\,153 recuperaría
+la pérdida acumulada después de aproximadamente 3,1 meses adicionales. En ese
+escenario la recuperación ocurriría alrededor del mes 10. Se trata de un periodo
 de recuperación condicionado, no de una promesa, porque depende de conservar la
 cartera y los supuestos de soporte e infraestructura.
 

@@ -2,10 +2,22 @@ from datetime import timedelta
 
 from django.utils import timezone
 from rest_framework import serializers
+from users.permissions import usa_contexto_cliente
 from .models import (
     TrainingPlan, WorkoutDay, Exercise, GymMachine,
-    PlantillaEntrenamiento, PlantillaDiaEntrenamiento, PlantillaEjercicio,
+    PlantillaEntrenamiento, PlantillaDiaEntrenamiento, PlantillaEjercicio, CatalogoEjercicio,
 )
+
+
+class CatalogoEjercicioSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CatalogoEjercicio
+        fields = (
+            'id', 'identificador_origen', 'nombre', 'categoria', 'parte_cuerpo',
+            'equipo', 'musculo_objetivo', 'grupo_muscular', 'musculos_secundarios',
+            'instrucciones_es', 'pasos_es', 'imagen_url', 'animacion_url',
+            'atribucion_media', 'version_origen', 'esta_activo',
+        )
 
 
 class GymMachineSerializer(serializers.ModelSerializer):
@@ -16,6 +28,7 @@ class GymMachineSerializer(serializers.ModelSerializer):
 
 class ExerciseSerializer(serializers.ModelSerializer):
     machine_detail = GymMachineSerializer(source='machine', read_only=True)
+    catalogo_detalle = CatalogoEjercicioSerializer(source='catalogo_ejercicio', read_only=True)
     previous_log = serializers.SerializerMethodField()
 
     def validate(self, attrs):
@@ -44,7 +57,7 @@ class ExerciseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Exercise
         fields = (
-            'id', 'workout_day', 'name', 'muscle_group', 'exercise_type',
+            'id', 'workout_day', 'catalogo_ejercicio', 'catalogo_detalle', 'name', 'muscle_group', 'exercise_type',
             'sets', 'reps_range', 'target_minutes', 'machine', 'machine_detail',
             'weight_suggestion_kg', 'rest_seconds', 'technique_notes', 'order',
             'previous_log',
@@ -54,7 +67,7 @@ class ExerciseSerializer(serializers.ModelSerializer):
         member = self.context.get('member')
         if not member:
             request = self.context.get('request')
-            if request and getattr(request.user, 'role', None) == 'member':
+            if request and usa_contexto_cliente(request):
                 member = getattr(request.user, 'memberprofile', None)
         if not member:
             return None
@@ -157,6 +170,7 @@ class TrainingPlanSerializer(serializers.ModelSerializer):
             'archived_at', 'finished_at', 'workout_days',
             'member_name', 'member_email', 'member_photo',
             'numero_version', 'publicado_en', 'publicado_por', 'plan_origen',
+            'modo_ejecucion', 'indice_bloque_actual',
         )
         read_only_fields = (
             'trainer', 'archived_at', 'finished_at', 'numero_version',
@@ -168,6 +182,7 @@ class TrainingPlanSerializer(serializers.ModelSerializer):
 
 
 class NestedExerciseInputSerializer(serializers.Serializer):
+    catalogo_ejercicio = serializers.IntegerField(required=False, allow_null=True)
     name = serializers.CharField(max_length=200)
     muscle_group = serializers.ChoiceField(choices=Exercise._meta.get_field('muscle_group').choices)
     exercise_type = serializers.ChoiceField(choices=Exercise._meta.get_field('exercise_type').choices, default='strength')
@@ -187,7 +202,7 @@ class NestedExerciseInputSerializer(serializers.Serializer):
 class NestedWorkoutDayInputSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200)
     day_label = serializers.ChoiceField(choices=WorkoutDay._meta.get_field('day_label').choices)
-    day_of_week = serializers.ChoiceField(choices=WorkoutDay._meta.get_field('day_of_week').choices)
+    day_of_week = serializers.ChoiceField(choices=WorkoutDay._meta.get_field('day_of_week').choices, required=False, allow_null=True)
     order = serializers.IntegerField(default=0, min_value=0)
     exercises = NestedExerciseInputSerializer(many=True, required=False)
 
@@ -203,6 +218,7 @@ class CompleteTrainingPlanSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=TrainingPlan._meta.get_field('status').choices, default='draft')
     level = serializers.ChoiceField(choices=TrainingPlan._meta.get_field('level').choices, default='intermediate')
     notes = serializers.CharField(required=False, allow_blank=True)
+    modo_ejecucion = serializers.ChoiceField(choices=('weekly', 'cycle'), default='weekly')
     conflict_strategy = serializers.ChoiceField(
         choices=('keep', 'replace_active', 'schedule_after_active'),
         default='keep',
@@ -217,8 +233,10 @@ class CompleteTrainingPlanSerializer(serializers.Serializer):
             raise serializers.ValidationError({'end_date': 'La fecha final no puede ser anterior a la fecha inicial.'})
         attrs['end_date'] = end_date
 
-        day_weekdays = [day['day_of_week'] for day in attrs.get('days', [])]
-        if len(day_weekdays) != len(set(day_weekdays)):
+        day_weekdays = [day.get('day_of_week') for day in attrs.get('days', []) if day.get('day_of_week')]
+        if attrs.get('modo_ejecucion') == 'weekly' and (
+            len(day_weekdays) != len(attrs.get('days', [])) or len(day_weekdays) != len(set(day_weekdays))
+        ):
             raise serializers.ValidationError({'days': 'No puedes repetir el mismo día real de la semana dentro del plan.'})
         return attrs
 
@@ -228,6 +246,7 @@ class TodayWorkoutSerializer(serializers.ModelSerializer):
     today_session_id = serializers.SerializerMethodField()
     today_session_completed = serializers.SerializerMethodField()
     today_session_started = serializers.SerializerMethodField()
+    progreso_sesion = serializers.SerializerMethodField()
 
     def _get_member(self):
         member = self.context.get('member')
@@ -235,7 +254,7 @@ class TodayWorkoutSerializer(serializers.ModelSerializer):
             return member
 
         request = self.context.get('request')
-        if request and getattr(request.user, 'role', None) == 'member':
+        if request and usa_contexto_cliente(request):
             return getattr(request.user, 'memberprofile', None)
         return None
 
@@ -275,6 +294,29 @@ class TodayWorkoutSerializer(serializers.ModelSerializer):
         session = self._get_today_session(obj)
         return bool(session and not session.is_completed)
 
+    def get_progreso_sesion(self, obj):
+        session = self._get_today_session(obj)
+        total = obj.exercises.count()
+        if not session:
+            return {'total': total, 'realizados': 0, 'omitidos': 0, 'pendientes': total, 'ejercicios': []}
+
+        from progress.models import ExerciseLog
+        estados = {}
+        for log in ExerciseLog.objects.filter(session=session).order_by('exercise_id', '-id'):
+            estados.setdefault(log.exercise_id, log.estado)
+        realizados = sum(estado == 'realizado' for estado in estados.values())
+        omitidos = sum(estado == 'omitido' for estado in estados.values())
+        return {
+            'total': total,
+            'realizados': realizados,
+            'omitidos': omitidos,
+            'pendientes': max(total - len(estados), 0),
+            'ejercicios': [
+                {'exercise_id': exercise_id, 'estado': estado}
+                for exercise_id, estado in estados.items()
+            ],
+        }
+
     def get_exercises(self, obj):
         return ExerciseSerializer(
             obj.exercises.all(),
@@ -287,14 +329,16 @@ class TodayWorkoutSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'name', 'day_label', 'day_of_week', 'exercises',
             'today_session_id', 'today_session_completed', 'today_session_started',
+            'progreso_sesion',
         )
 
 
 class PlantillaEjercicioSerializer(serializers.ModelSerializer):
+    catalogo_detalle = CatalogoEjercicioSerializer(source='catalogo_ejercicio', read_only=True)
     class Meta:
         model = PlantillaEjercicio
         fields = (
-            'id', 'dia', 'nombre', 'grupo_muscular', 'tipo_ejercicio', 'series',
+            'id', 'dia', 'catalogo_ejercicio', 'catalogo_detalle', 'nombre', 'grupo_muscular', 'tipo_ejercicio', 'series',
             'rango_repeticiones', 'minutos_objetivo', 'peso_sugerido_kg', 'descanso_segundos',
             'notas_tecnicas', 'orden',
         )
@@ -305,7 +349,7 @@ class PlantillaDiaEntrenamientoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PlantillaDiaEntrenamiento
-        fields = ('id', 'plantilla', 'nombre', 'etiqueta_dia', 'orden', 'ejercicios')
+        fields = ('id', 'plantilla', 'nombre', 'etiqueta_dia', 'dia_semana', 'orden', 'ejercicios')
 
 
 class PlantillaEntrenamientoSerializer(serializers.ModelSerializer):
@@ -317,6 +361,7 @@ class PlantillaEntrenamientoSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'trainer', 'trainer_nombre', 'nombre', 'descripcion',
             'objetivo', 'nivel_adherencia_recomendado', 'dias_por_semana_sugeridos',
+            'es_compartida', 'modo_ejecucion',
             'esta_activa', 'creada_en', 'dias',
         )
         read_only_fields = ('trainer', 'creada_en')

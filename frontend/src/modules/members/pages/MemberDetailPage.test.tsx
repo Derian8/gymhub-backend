@@ -29,8 +29,8 @@ vi.mock('../hooks/useMembers', () => ({
       join_date: '2026-01-15',
       is_active: false,
       photo: null,
-      trainer_asignado: null,
-      trainer_asignado_nombre: null,
+      trainer_asignado: 9,
+      trainer_asignado_nombre: 'Trainer Demo',
       riesgo_adherencia: 74,
       nivel_riesgo: 'high',
       motivos_riesgo: ['Tiene pagos en mora', 'No registra progreso hace 21 días'],
@@ -182,7 +182,7 @@ describe('MemberDetailPage', () => {
     })
   })
 
-  it('renders inactive member detail with activation and quick links', async () => {
+  it('renders the assigned client without administrative financial controls', async () => {
     const { getAllByText, getByTestId, queryByTestId, queryByText } = renderWithProviders(<MemberDetailPage />, {
       route: '/members/15',
       path: '/members/:id',
@@ -192,34 +192,23 @@ describe('MemberDetailPage', () => {
 
     expect(getByTestId('member-detail-page')).toBeInTheDocument()
     expect(getByTestId('member-profile-card')).toBeInTheDocument()
-    expect(getByTestId('member-membership-panel')).toHaveTextContent('Membresía y cobro')
-    expect(getByTestId('member-membership-panel')).toHaveTextContent('Estandar')
-    expect(getByTestId('member-membership-panel')).toHaveTextContent('Membresía vencida')
-    expect(getByTestId('member-membership-panel')).toHaveTextContent('₡50 000')
-    expect(getByTestId('member-membership-panel')).toHaveTextContent('mes')
-    expect(getByTestId('member-membership-panel')).toHaveTextContent('Requiere revisión')
-    expect(getByTestId('member-membership-panel')).toHaveTextContent('8 vencido')
-    expect(getByTestId('member-membership-billing-link')).toHaveAttribute('href', '/billing?member=15')
+    expect(queryByTestId('member-membership-panel')).not.toBeInTheDocument()
     expect(getByTestId('member-prescription-panel')).toBeInTheDocument()
     expect(queryByTestId('member-last-publication')).not.toBeInTheDocument()
     expect(getByTestId('member-risk-panel')).toBeInTheDocument()
     expect(getByTestId('member-physical-panel')).toBeInTheDocument()
     expect(getByTestId('member-physical-weight-change')).toHaveTextContent('-1.2 kg')
     expect(getAllByText('Maria Perez').length).toBeGreaterThan(1)
-    expect(getByTestId('activation-panel')).toBeInTheDocument()
-    expect(getByTestId('activate-member-btn')).toBeInTheDocument()
-    expect(getByTestId('activation-panel')).toHaveTextContent('La membresía, el precio acordado y el primer cobro se crean después desde facturación.')
-    expect(getByTestId('assign-trainer-btn')).toBeInTheDocument()
-    expect(getByTestId('unassigned-member-banner')).toHaveTextContent('Este miembro todavía no está asignado a ningún trainer')
-    expect(getByTestId('banner-assign-trainer-btn')).toHaveTextContent('Asignar a mí')
-    expect(getByTestId('prescription-assign-trainer-btn')).toBeInTheDocument()
-    expect(getAllByText('Sin trainer asignado').length).toBeGreaterThan(0)
+    expect(queryByTestId('activation-panel')).not.toBeInTheDocument()
+    expect(queryByTestId('activate-member-btn')).not.toBeInTheDocument()
+    expect(queryByTestId('assign-trainer-btn')).not.toBeInTheDocument()
+    expect(queryByTestId('unassigned-member-banner')).not.toBeInTheDocument()
     expect(getByTestId('member-program-link')).toHaveAttribute('href', '/members/15/program')
-    expect(getByTestId('member-billing-link')).toHaveAttribute('href', '/billing?member=15')
-    expect(getByTestId('member-attendance-link')).toHaveAttribute('href', '/attendance?member=15')
+    expect(queryByTestId('member-billing-link')).not.toBeInTheDocument()
+    expect(queryByTestId('member-attendance-link')).not.toBeInTheDocument()
     expect(queryByText('Nutrición')).not.toBeInTheDocument()
     expect(queryByText('Alertas')).not.toBeInTheDocument()
     expect(queryByTestId('open-ai-copilot-btn')).not.toBeInTheDocument()
-    expect(getAllByText(/Tiene pagos en mora/i).length).toBeGreaterThan(0)
+    expect(queryByText(/Tiene pagos en mora/i)).not.toBeInTheDocument()
   })
 })

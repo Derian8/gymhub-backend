@@ -4,76 +4,57 @@
 \subsection{Modelo Canvas}
 
 La Figura~\ref{fig:canvas} sintetiza los nueve bloques desarrollados en el cuerpo
-del informe. Sus precios, capacidades y límites corresponden al modelo vigente.
+del informe. Sus precios, capacidades y límites corresponden al modelo vigente;
+las condiciones comerciales definitivas dependen de la validación del piloto.
 
-\begin{figure}[p]
+\begingroup
 \centering
-\setlength{\fboxsep}{3pt}
-\begin{minipage}[t]{0.19\textwidth}
-\fbox{\parbox[t][8.2cm][t]{0.90\linewidth}{\scriptsize\raggedright
-\textbf{Alianzas clave}\par\smallskip
-Gimnasio piloto por confirmar.\par\smallskip
-Docente tutor.\par\smallskip
-Participantes de encuesta como colaboración.\par\smallskip
-Proveedores de nube.}}
-\end{minipage}
-\begin{minipage}[t]{0.19\textwidth}
-\fbox{\parbox[t][3.8cm][t]{0.90\linewidth}{\scriptsize\raggedright
-\textbf{Actividades clave}\par\smallskip
-Investigar.\par Desarrollar y probar.\par Demostrar e incorporar.\par Dar soporte.}}\par\smallskip
-\fbox{\parbox[t][3.8cm][t]{0.90\linewidth}{\scriptsize\raggedright
-\textbf{Recursos clave}\par\smallskip
-Equipo humano.\par Código y datos.\par Infraestructura web.\par Conocimiento técnico.}}
-\end{minipage}
-\begin{minipage}[t]{0.19\textwidth}
-\fbox{\parbox[t][8.2cm][t]{0.90\linewidth}{\scriptsize\raggedright
-\textbf{Propuesta de valor}\par\smallskip
-Centraliza pagos, membresías y asistencia.\par\smallskip
-Relaciona rutinas y progreso.\par\smallskip
-Acceso responsive por rol.\par\smallskip Precio en colones.\par\smallskip Acompañamiento local.}}
-\end{minipage}
-\begin{minipage}[t]{0.19\textwidth}
-\fbox{\parbox[t][3.8cm][t]{0.90\linewidth}{\scriptsize\raggedright
-\textbf{Relaciones}\par\smallskip
-Incorporación asistida.\par Soporte por WhatsApp y correo.\par Revisión periódica.}}\par\smallskip
-\fbox{\parbox[t][3.8cm][t]{0.90\linewidth}{\scriptsize\raggedright
-\textbf{Canales}\par\smallskip
-Contacto directo.\par Demostración y piloto.\par Web responsive.\par Recomendaciones.}}
-\end{minipage}
-\begin{minipage}[t]{0.19\textwidth}
-\fbox{\parbox[t][8.2cm][t]{0.90\linewidth}{\scriptsize\raggedright
-\textbf{Segmentos}\par\smallskip
-Dueños y administradores de gimnasios pequeños y medianos.\par\smallskip
-Entrenadores personales.\par\smallskip Miembros adultos como usuarios beneficiarios.\par\smallskip
-Mercado inicial: Pérez Zeledón.}}
-\end{minipage}
-
-\vspace{0.5em}
-\begin{minipage}[t]{0.49\textwidth}
-\fbox{\parbox[t][3.2cm][t]{0.94\linewidth}{\scriptsize\raggedright
-\textbf{Estructura de costos}\par\smallskip
-Infraestructura, herramienta de desarrollo, mantenimiento, soporte, promoción y reserva.
-Costo fijo: CRC 71\,986 más CRC 3\,000 por gimnasio.}}
-\end{minipage}
-\begin{minipage}[t]{0.49\textwidth}
-\fbox{\parbox[t][3.2cm][t]{0.94\linewidth}{\scriptsize\raggedright
-\textbf{Fuentes de ingresos}\par\smallskip
-Piloto: CRC 15\,000.\par Básico: CRC 30\,000.\par Gestión: CRC 45\,000.\par Crecimiento: CRC 60\,000.}}
-\end{minipage}
-\caption{Modelo Canvas vigente de GymHub}
+\vspace*{0.5cm}
+\makebox[\textwidth][c]{\includegraphics[width=1.08\textwidth]{imagenes/modelo_canvas_gymhub.png}}
+\captionof{figure}{Modelo Canvas vigente de GymHub}
 \label{fig:canvas}
-\caption*{\textit{Nota}. Elaboración propia, 2026.}
+\caption*{\textit{Nota}. Elaboración propia, 2026. Presenta la propuesta vigente; no acredita ventas ni un piloto ejecutado.}
+\par
+\endgroup
+\clearpage
+
+\subsection{Ruta comercial propuesta}
+
+\begin{figure}[htbp]
+\centering
+\newcommand{\pasorutacomercial}[4]{%
+  \begin{tcolorbox}[enhanced,arc=1.2mm,boxrule=0.7pt,
+    colback=#3,colframe=#4,colbacktitle=#4,coltitle=white,
+    fonttitle=\bfseries\small,title={#1},
+    width=\linewidth,height=1.9cm,top=1.4mm,bottom=1.2mm,left=1.5mm,right=1.5mm]
+    \centering\sffamily\small #2
+  \end{tcolorbox}%
+}
+\begin{minipage}[c]{0.205\textwidth}
+\pasorutacomercial{Contacto}{Visita o mensaje}{teal!6}{teal!65!black}
+\end{minipage}\hfill
+{\color{teal!65!black}\Large$\longrightarrow$}\hfill
+\begin{minipage}[c]{0.205\textwidth}
+\pasorutacomercial{Demostración}{Datos ficticios}{cyan!8}{cyan!60!black}
+\end{minipage}\hfill
+{\color{teal!65!black}\Large$\longrightarrow$}\hfill
+\begin{minipage}[c]{0.205\textwidth}
+\pasorutacomercial{Piloto}{4 semanas}{orange!10}{orange!75!black}
+\end{minipage}\hfill
+{\color{teal!65!black}\Large$\longrightarrow$}\hfill
+\begin{minipage}[c]{0.205\textwidth}
+\pasorutacomercial{Suscripción}{Soporte y revisión}{green!8}{green!50!black}
+\end{minipage}
+\caption{Ruta comercial propuesta de GymHub}
+\label{fig:ruta-comercial}
+\caption*{\textit{Nota}. Elaboración propia. Representa el proceso previsto; no acredita ventas, piloto ni continuidad ejecutados.}
 \end{figure}
 
 \subsection{Instrumento de validación}
 
-El instrumento completo se incluye en el archivo
-\texttt{encuesta\_validacion.md}. La exportación original se conserva en
-\texttt{resultado\_encuesta.csv} y los gráficos se reproducen con
-\texttt{generar\_graficos\_encuesta.py}. La encuesta cerró con 15 respuestas
-válidas: cinco de responsables y diez de miembros. En la sección de limitaciones
-metodológicas de este apéndice se explican las diferencias entre el instrumento
-previsto y el formulario aplicado.
+Las encuestas se aplicaron a dueños o administradores de gimnasios,
+entrenadores personales y clientes o miembros de gimnasios. Se obtuvieron
+15 respuestas válidas: cinco de responsables y diez de miembros.
 
 \begin{longtable}{>{\bfseries}p{1.5cm}p{8cm}p{4.5cm}}
 \caption{Transcripción normalizada del instrumento aplicado}\label{tab:instrumento-resumen}\\
@@ -126,6 +107,7 @@ inconsistente. Esos campos se excluyeron de cualquier comparación que el dato n
 permitiera. El archivo original se conserva sin modificaciones y los gráficos se
 producen mediante un script reproducible.
 
+\Needspace{12\baselineskip}
 \subsection{Evidencia técnica disponible}
 
 \begin{table}[htbp]
@@ -144,6 +126,31 @@ Capturas anonimizadas & Planes, facturación y asistencia del entrenador, ademá
 \bottomrule
 \end{tabularx}
 \caption*{\textit{Nota}. Elaboración propia a partir del repositorio al 31 de julio de 2026 \parencite{gymhub_repo}.}
+\end{table}
+
+\subsection{Presupuesto operativo preliminar}\label{ap:presupuesto}
+
+El presupuesto se utiliza para explorar la viabilidad mensual de GymHub. Fue
+elaborado por el equipo con montos expresados en colones, una hora de soporte por
+gimnasio y una reserva operativa. No sustituye cotizaciones formales ni incluye
+impuestos, comisiones bancarias, consumo extraordinario de nube o costos de
+formalización todavía no cotizados \parencite{presupuesto_gymhub_2026}.
+
+\begin{table}[htbp]
+\caption{Supuestos del presupuesto operativo preliminar}
+\begin{tabularx}{\textwidth}{>{\bfseries}p{4.3cm}r X}
+\toprule
+Concepto & CRC mensual & Supuesto \\
+\midrule
+Infraestructura comercial & 22\,847 & Estimación interna para la operación comercial inicial. \\
+Trabajo general & 30\,000 & Diez horas mensuales a CRC 3\,000. \\
+Reserva operativa & 10\,000 & Dominio, promoción básica y contingencias. \\
+Soporte por gimnasio & 3\,000 & Una hora mensual a CRC 3\,000 por cliente. \\
+\midrule
+Costo fijo antes de clientes & 62\,847 & Más el soporte asociado a cada gimnasio activo. \\
+\bottomrule
+\end{tabularx}
+\caption*{\textit{Nota}. Elaboración propia \parencite{presupuesto_gymhub_2026}. Los montos requieren validación con cotizaciones formales antes de la venta.}
 \end{table}
 
 \subsection{Referencias de despliegue demostrativo}

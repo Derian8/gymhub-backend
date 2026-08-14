@@ -1,12 +1,13 @@
+import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Users, Dumbbell,
   CreditCard, User,
   LogOut, ChevronLeft, ChevronRight, Activity,
-  CheckSquare, ClipboardList, NotebookTabs,
+  CheckSquare, ClipboardList, NotebookTabs, BarChart3, ChevronDown,
 } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
-import { useAuthStore } from '@/shared/store/authStore'
+import { getResolvedContext, useAuthStore } from '@/shared/store/authStore'
 import { useLogoutMutation } from '@/modules/auth/hooks/useAuthMutations'
 import { Avatar } from '@/shared/components/UI'
 import { BrandMark, BrandWordmark, SymbolFrame } from '@/shared/components/Brand'
@@ -15,23 +16,43 @@ interface NavItem {
   label: string
   icon: React.ReactNode
   to: string
-  roles?: ('trainer' | 'member')[]
 }
+
+const adminNav: NavItem[] = [
+  { label: 'Inicio', icon: <LayoutDashboard size={18} />, to: '/dashboard/admin' },
+  { label: 'Pagos', icon: <CreditCard size={18} />, to: '/billing' },
+  { label: 'Clientes', icon: <Users size={18} />, to: '/members' },
+  { label: 'Usuarios y perfiles', icon: <User size={18} />, to: '/admin/users' },
+  { label: 'Rutinas', icon: <Dumbbell size={18} />, to: '/routines' },
+]
+
+const adminMoreNav: NavItem[] = [
+  { label: 'Accesos', icon: <CheckSquare size={18} />, to: '/attendance' },
+  { label: 'Planes técnicos', icon: <Dumbbell size={18} />, to: '/plans' },
+  { label: 'Progreso', icon: <Activity size={18} />, to: '/progress' },
+  { label: 'Reportes', icon: <BarChart3 size={18} />, to: '/reports' },
+]
 
 const trainerNav: NavItem[] = [
   { label: 'Dashboard', icon: <LayoutDashboard size={18} />, to: '/dashboard/trainer' },
-  { label: 'Miembros', icon: <Users size={18} />, to: '/members' },
+  { label: 'Clientes asignados', icon: <Users size={18} />, to: '/members' },
+]
+
+const trainerStageTwoNav: NavItem[] = [
   { label: 'Planes', icon: <Dumbbell size={18} />, to: '/plans' },
-  { label: 'Asistencia', icon: <CheckSquare size={18} />, to: '/attendance' },
-  { label: 'Facturación', icon: <CreditCard size={18} />, to: '/billing' },
+  { label: 'Progreso', icon: <Activity size={18} />, to: '/progress' },
 ]
 
 const memberNav: NavItem[] = [
+  { label: 'Inicio', icon: <LayoutDashboard size={18} />, to: '/dashboard/member' },
+  { label: 'Hoy', icon: <Dumbbell size={18} />, to: '/today' },
   { label: 'Mi membresía', icon: <CreditCard size={18} />, to: '/membership' },
-  { label: 'Entrenamiento', icon: <Dumbbell size={18} />, to: '/today' },
+]
+
+const memberTrackingNav: NavItem[] = [
   { label: 'Mi Plan', icon: <NotebookTabs size={18} />, to: '/plans/my' },
-  { label: 'Registros', icon: <ClipboardList size={18} />, to: '/records' },
   { label: 'Progreso', icon: <Activity size={18} />, to: '/progress' },
+  { label: 'Historial', icon: <ClipboardList size={18} />, to: '/records' },
 ]
 
 interface SidebarProps {
@@ -42,10 +63,15 @@ interface SidebarProps {
 }
 
 export function Sidebar({ collapsed, mobileOpen, onToggle, onCloseMobile }: SidebarProps) {
-  const { user } = useAuthStore()
+  const { user, activeContext } = useAuthStore()
   const { mutate: logout, isPending } = useLogoutMutation()
-  const isTrainer = user?.role === 'trainer' || user?.is_staff
-  const navItems = isTrainer ? trainerNav : memberNav
+  const [secondaryOpen, setSecondaryOpen] = useState(false)
+  const currentContext = getResolvedContext(user, activeContext)
+  const isAdmin = currentContext === 'administrador'
+  const isTrainer = currentContext === 'instructor'
+  const navItems = isAdmin ? adminNav : isTrainer ? trainerNav : memberNav
+  const secondaryItems = isTrainer ? trainerStageTwoNav : isAdmin ? adminMoreNav : memberTrackingNav
+  const secondaryLabel = isTrainer ? 'Entrenamiento · Etapa 2' : isAdmin ? 'Más' : 'Mi seguimiento'
   const compact = collapsed && !mobileOpen
 
   return (
@@ -103,6 +129,33 @@ export function Sidebar({ collapsed, mobileOpen, onToggle, onCloseMobile }: Side
             {!compact && <span>{item.label}</span>}
           </NavLink>
         ))}
+        {secondaryItems.length > 0 && (
+          <div className="pt-2">
+            {!compact && (
+              <button
+                type="button"
+                className="sidebar-link w-full justify-between text-left"
+                onClick={() => setSecondaryOpen((open) => !open)}
+                aria-expanded={secondaryOpen}
+              >
+                <span className="text-xs font-semibold uppercase tracking-wider">{secondaryLabel}</span>
+                <ChevronDown size={15} className={cn('transition-transform', secondaryOpen && 'rotate-180')} />
+              </button>
+            )}
+            {(compact || secondaryOpen) && secondaryItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                onClick={onCloseMobile}
+                className={({ isActive }) => cn('sidebar-link', isActive && 'sidebar-link-active', compact && 'justify-center px-0')}
+                title={compact ? item.label : undefined}
+              >
+                <SymbolFrame size="sm" tone="default" className="rounded-xl border-transparent bg-transparent shadow-none">{item.icon}</SymbolFrame>
+                {!compact && <span>{item.label}</span>}
+              </NavLink>
+            ))}
+          </div>
+        )}
       </nav>
 
       {/* User section */}
@@ -150,7 +203,7 @@ export function Sidebar({ collapsed, mobileOpen, onToggle, onCloseMobile }: Side
               <p className="text-sm font-semibold text-neutral-900 dark:text-white truncate">
                 {user.first_name || user.username}
               </p>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-neutral-500 capitalize">{user.role}</p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-neutral-500 capitalize">{isAdmin ? 'Administrador' : isTrainer ? 'Instructor' : 'Cliente'}</p>
             </div>
           </div>
         )}

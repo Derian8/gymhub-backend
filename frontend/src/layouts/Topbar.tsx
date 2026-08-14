@@ -1,6 +1,8 @@
 import { Sun, Moon, Search, Menu } from 'lucide-react'
-import { Link } from 'react-router-dom'
-import { useAuthStore } from '@/shared/store/authStore'
+import { Link, useNavigate } from 'react-router-dom'
+import { getAvailableProfiles, useAuthStore } from '@/shared/store/authStore'
+import { homePathForUser } from '@/shared/components/RouteGuards'
+import type { PerfilUsuario } from '@/shared/types'
 import { cn } from '@/shared/lib/utils'
 import { BrandMark, SymbolFrame } from '@/shared/components/Brand'
 
@@ -10,7 +12,15 @@ interface TopbarProps {
 }
 
 export function Topbar({ onMenuClick, sidebarCollapsed }: TopbarProps) {
-  const { theme, toggleTheme, user } = useAuthStore()
+  const { theme, toggleTheme, user, activeContext, setActiveContext } = useAuthStore()
+  const navigate = useNavigate()
+  const profiles = getAvailableProfiles(user)
+
+  const changeContext = (context: PerfilUsuario) => {
+    if (!user) return
+    setActiveContext(context)
+    navigate(homePathForUser(user, context))
+  }
 
   return (
     <header
@@ -48,6 +58,24 @@ export function Topbar({ onMenuClick, sidebarCollapsed }: TopbarProps) {
       </div>
 
       <div className="flex items-center gap-2 ml-auto">
+        {user && profiles.length > 1 && activeContext && (
+          <label className="hidden items-center gap-2 sm:flex">
+            <span className="sr-only">Perfil activo</span>
+            <select
+              value={activeContext}
+              onChange={(event) => changeContext(event.target.value as PerfilUsuario)}
+              className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 dark:border-white/10 dark:bg-neutral-900 dark:text-neutral-200"
+              data-testid="active-context-selector"
+              aria-label="Perfil activo"
+            >
+              {profiles.map((profile) => (
+                <option key={profile} value={profile}>
+                  {profile === 'administrador' ? 'Administrador' : profile === 'instructor' ? 'Instructor' : 'Cliente'}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}
@@ -73,7 +101,7 @@ export function Topbar({ onMenuClick, sidebarCollapsed }: TopbarProps) {
                 {user.first_name || user.username}
               </span>
               <span className="block text-[10px] uppercase tracking-[0.22em] text-neutral-500 dark:text-neutral-400">
-                Perfil
+                {activeContext === 'administrador' ? 'Administrador' : activeContext === 'instructor' ? 'Instructor' : 'Cliente'}
               </span>
             </div>
           </Link>

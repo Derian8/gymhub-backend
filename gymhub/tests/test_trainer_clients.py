@@ -4,7 +4,7 @@ from rest_framework import status
 
 @pytest.mark.django_db
 class TestTrainerClients:
-    def test_trainer_can_activate_member_without_creating_membership(self, trainer_client, trainer_profile, membership_plan):
+    def test_trainer_cannot_activate_member(self, trainer_client, trainer_profile, membership_plan):
         from billing.models import MemberSubscription, PaymentRecord, PaymentSchedule
         from django.contrib.auth import get_user_model
 
@@ -24,16 +24,16 @@ class TestTrainerClients:
             'agreed_price': '64.90',
         })
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_403_FORBIDDEN
         member.refresh_from_db()
 
-        assert member.is_active is True
+        assert member.is_active is False
         assert member.membership_plan_id is None
         assert not MemberSubscription.objects.filter(member=member).exists()
         assert not PaymentSchedule.objects.filter(member=member).exists()
         assert not PaymentRecord.objects.filter(schedule__member=member).exists()
 
-    def test_trainer_can_assign_self_to_unassigned_member(self, trainer_client, membership_plan):
+    def test_trainer_cannot_assign_self_to_unassigned_member(self, trainer_client, membership_plan):
         from django.contrib.auth import get_user_model
         from users.models import MemberProfile
 
@@ -51,12 +51,11 @@ class TestTrainerClients:
 
         response = trainer_client.post(f'/api/members/{member.id}/assign-trainer/')
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_403_FORBIDDEN
         member.refresh_from_db()
-        assert member.trainer_asignado is not None
-        assert response.data['trainer_asignado'] == member.trainer_asignado_id
+        assert member.trainer_asignado is None
 
-    def test_trainer_can_list_unassigned_members_separately(self, trainer_client, trainer_profile, member_profile, membership_plan):
+    def test_trainer_only_lists_assigned_clients_even_with_unassigned_filter(self, trainer_client, trainer_profile, member_profile, membership_plan):
         from django.contrib.auth import get_user_model
 
         free_user = get_user_model().objects.create_user(
@@ -75,8 +74,8 @@ class TestTrainerClients:
         assert response.status_code == status.HTTP_200_OK
         results = response.data.get('results', response.data)
         ids = {item['id'] for item in results}
-        assert free_member.id in ids
-        assert member_profile.id not in ids
+        assert free_member.id not in ids
+        assert member_profile.id in ids
 
     def test_trainer_available_members_excludes_other_trainer_clients(self, trainer_client, trainer_profile, member_profile, membership_plan):
         from django.contrib.auth import get_user_model
@@ -119,7 +118,7 @@ class TestTrainerClients:
         results = response.data.get('results', response.data)
         ids = {item['id'] for item in results}
         assert member_profile.id in ids
-        assert free_member.id in ids
+        assert free_member.id not in ids
         assert other_member.id not in ids
 
     def test_trainer_only_sees_assigned_members_plans(self, trainer_client, member_profile, trainer_profile, membership_plan):
