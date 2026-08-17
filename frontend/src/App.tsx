@@ -7,6 +7,7 @@ import { useAuth } from '@/shared/hooks/useAuth'
 import { useAuthStore } from '@/shared/store/authStore'
 import { useBackendStatusStore } from '@/shared/store/backendStatusStore'
 import { getProductionRedirectUrl, shouldRedirectPreviewToProduction, syncClientBuildState } from '@/shared/lib/runtimeInfo'
+import { ThemeManager } from '@/shared/components/ThemeManager'
 
 // Auth
 import { LoginPage } from '@/modules/auth/pages/LoginPage'
@@ -118,6 +119,7 @@ function App() {
 
   return (
     <>
+      <ThemeManager />
       <AuthBootstrap />
       <Routes>
       {/* Public routes */}

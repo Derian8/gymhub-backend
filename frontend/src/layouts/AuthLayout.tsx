@@ -1,23 +1,13 @@
 import { Outlet } from 'react-router-dom'
-import { useAuthStore } from '@/shared/store/authStore'
 import { useEffect } from 'react'
 import { BrandMark, BrandWordmark, SymbolFrame } from '@/shared/components/Brand'
 import { useBackendStatusStore } from '@/shared/store/backendStatusStore'
 import { BASE_URL } from '@/shared/api/client'
 import { warmBackend } from '@/shared/api/backendWarmup'
+import { ThemeToggle } from '@/shared/components/ThemeToggle'
 
 export function AuthLayout() {
-  const { theme } = useAuthStore()
   const clearBackendIssue = useBackendStatusStore((s) => s.clearIssue)
-
-  useEffect(() => {
-    const root = document.documentElement
-    if (theme === 'dark') {
-      root.classList.add('dark')
-    } else {
-      root.classList.remove('dark')
-    }
-  }, [theme])
 
   useEffect(() => {
     clearBackendIssue()
@@ -25,7 +15,8 @@ export function AuthLayout() {
   }, [clearBackendIssue])
 
   return (
-    <div className="min-h-screen flex bg-white dark:bg-neutral-950">
+    <div className="relative min-h-screen flex bg-white dark:bg-neutral-950">
+      <ThemeToggle className="absolute right-5 top-5 z-20 rounded-xl border border-neutral-200 bg-white p-2 text-neutral-600 shadow-sm dark:border-white/10 dark:bg-neutral-900 dark:text-neutral-300" />
       {/* Left: decorative */}
       <div className="hidden lg:flex flex-1 relative overflow-hidden bg-neutral-950">
         <img

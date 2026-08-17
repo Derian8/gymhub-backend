@@ -1,10 +1,11 @@
-import { Sun, Moon, Search, Menu } from 'lucide-react'
+import { Search, Menu } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { getAvailableProfiles, useAuthStore } from '@/shared/store/authStore'
 import { homePathForUser } from '@/shared/components/RouteGuards'
 import type { PerfilUsuario } from '@/shared/types'
 import { cn } from '@/shared/lib/utils'
 import { BrandMark, SymbolFrame } from '@/shared/components/Brand'
+import { ThemeToggle } from '@/shared/components/ThemeToggle'
 
 interface TopbarProps {
   onMenuClick: () => void
@@ -12,7 +13,7 @@ interface TopbarProps {
 }
 
 export function Topbar({ onMenuClick, sidebarCollapsed }: TopbarProps) {
-  const { theme, toggleTheme, user, activeContext, setActiveContext } = useAuthStore()
+  const { user, activeContext, setActiveContext } = useAuthStore()
   const navigate = useNavigate()
   const profiles = getAvailableProfiles(user)
 
@@ -76,17 +77,9 @@ export function Topbar({ onMenuClick, sidebarCollapsed }: TopbarProps) {
             </select>
           </label>
         )}
-        {/* Theme toggle */}
-        <button
-          onClick={toggleTheme}
-          data-testid="theme-toggle"
-          className="text-neutral-600 dark:text-neutral-400 transition-colors"
-          title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-        >
-          <SymbolFrame size="sm" className="rounded-xl">
-            {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
-          </SymbolFrame>
-        </button>
+        <SymbolFrame size="sm" className="rounded-xl text-neutral-600 dark:text-neutral-400">
+          <ThemeToggle />
+        </SymbolFrame>
 
         {/* User greeting */}
         {user && (
