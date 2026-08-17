@@ -34,3 +34,12 @@ La historia actual no define una convención útil, así que usa mensajes impera
 
 ## Configuración
 Los secretos van en [`.env`](/mnt/c/dev/proyectos/proyectoappgym/.env) en la raíz y nunca deben versionarse. Si cambias variables de entorno, cookies de autenticación, tareas programadas o convención de nombres, actualiza también [`README.md`](/mnt/c/dev/proyectos/proyectoappgym/README.md), [`docs/OPERACION.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/OPERACION.md) y [`gymhub/README.md`](/mnt/c/dev/proyectos/proyectoappgym/gymhub/README.md).
+
+## Avance Funcional Vigente
+La rutina del cliente se ejecuta de forma guiada: primero muestra la descripción
+general y, tras iniciar, presenta un solo ejercicio a la vez. El cliente solo
+puede elegir `Realizado` u `Omitir`; ambas decisiones se guardan de inmediato
+en `ExerciseLog.estado`. Al resolver todos los ejercicios, la sesión se cierra
+automáticamente. Si el cliente finaliza antes, debe confirmarlo y los pendientes
+se registran como `omitido`. El instructor mantiene el flujo técnico de series,
+repeticiones, carga y RPE.

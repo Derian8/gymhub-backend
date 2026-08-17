@@ -2,7 +2,7 @@
 
 Este documento es el punto de entrada para retomar el proyecto en una conversación nueva. La funcionalidad activa de esta etapa es **administración comercial, control de accesos y entrega protegida de rutinas**.
 
-## Estado Al 13 De Agosto De 2026
+## Estado Al 14 De Agosto De 2026
 
 - [x] La migración `billing.0012_seguimiento_cobro` está aplicada en Supabase.
 - [x] El recorrido transaccional de API se ejecutó contra Supabase y validó alta, pago, login temporal, cambio de contraseña, entrada, rutina, reporte, CSV de ingresos y comprobante PDF.
@@ -10,6 +10,9 @@ Este documento es el punto de entrada para retomar el proyecto en una conversaci
 - [x] Suite backend: `238 passed`.
 - [x] Suite frontend: `108 passed`.
 - [x] Compilación de producción del frontend completada correctamente.
+- [x] Experiencia guiada de rutina para cliente implementada y desplegada: descripción inicial, un ejercicio por pantalla, acciones `Realizado` y `Omitir`, guardado inmediato y cierre automático.
+- [x] El cierre anticipado de rutina confirma la acción y registra los ejercicios pendientes como `omitido`; el avance se conserva al recargar.
+- [x] Migración `progress.0005_exerciselog_estado` aplicada en Supabase y servicios públicos de Vercel verificados.
 - [ ] Ejecutar el recorrido visual en navegador contra el dominio final. Docker Desktop no respondió desde WSL durante la última validación.
 - [ ] Confirmar que el código actual del worktree, y no solo la migración, está desplegado antes de probar producción.
 - [ ] Revisar `git status` antes de editar. Hay cambios funcionales de esta etapa y documentos de ExpoTÉCNICA sin consolidar; no descartarlos ni sobrescribirlos.
@@ -63,6 +66,7 @@ Antes de implementarlo, confirmar si se trata de planes de entrenamiento. Si la 
 - Entrada del cliente desde `Ver rutina`, validando membresía y período de gracia.
 - Excepción administrativa de acceso físico, auditable y sin desbloquear rutinas.
 - Bandeja de seguimiento de cobros y reportes administrativos en pantalla, PDF y CSV.
+- Ejecución de rutina simplificada para clientes, con estados persistentes por ejercicio (`realizado` u `omitido`); el instructor conserva su registro técnico detallado.
 
 ## P0 — Antes De Producción Formal
 
