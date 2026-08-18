@@ -62,12 +62,18 @@
     @apply w-full rounded-sm border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 px-3 py-2.5 text-sm text-neutral-900 dark:text-neutral-50 outline-none transition-all duration-200 placeholder-neutral-400 dark:placeholder-neutral-500 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60 disabled:bg-neutral-100 dark:disabled:bg-neutral-900;
   }
 
-  .input option {
+  select.input-base {
+    @apply rounded-sm border border-neutral-200 bg-white px-3 py-2.5 text-sm dark:border-neutral-800 dark:bg-neutral-950;
+  }
+
+  .input option,
+  .input-base option {
     color: rgb(10 10 10);
     background: rgb(255 255 255);
   }
 
-  .dark .input option {
+  .dark .input option,
+  .dark .input-base option {
     color: rgb(250 250 250);
     background: rgb(23 23 23);
   }

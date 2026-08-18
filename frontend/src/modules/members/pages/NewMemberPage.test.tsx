@@ -75,6 +75,19 @@ describe('NewMemberPage', () => {
 
     expect(view.getByTestId('custom-membership-name')).toBeInTheDocument()
     expect(view.getByTestId('agreed-price')).toBeInTheDocument()
+    expect(view.getByTestId('custom-membership-recurrence')).toHaveValue('monthly')
     expect(view.queryByTestId('membership-plan')).not.toBeInTheDocument()
+  })
+
+  it('permite seleccionar una recurrencia personalizada visible', () => {
+    const view = renderWithProviders(<NewMemberPage />)
+
+    fireEvent.click(view.getByTestId('membership-custom'))
+    fireEvent.change(view.getByTestId('custom-membership-recurrence'), {
+      target: { value: 'weekly' },
+    })
+
+    expect(view.getByTestId('custom-membership-recurrence')).toHaveValue('weekly')
+    expect(view.getByRole('option', { name: 'Semanal' })).toBeInTheDocument()
   })
 })

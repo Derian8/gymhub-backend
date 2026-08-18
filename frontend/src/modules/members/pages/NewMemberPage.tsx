@@ -251,7 +251,7 @@ export function NewMemberPage() {
                 <input className="input-base mt-2 w-full" data-testid="agreed-price" type="number" min="1" step="0.01" required value={form.precio_acordado} onChange={(event) => update('precio_acordado', event.target.value)} />
               </Field>
               <Field label="Recurrencia" required>
-                <select className="input-base mt-2 w-full" value={form.tipo_recurrencia} onChange={(event) => update('tipo_recurrencia', event.target.value as RegistroClientePagoPayload['tipo_recurrencia'])}>
+                <select className="input-base mt-2 w-full" data-testid="custom-membership-recurrence" value={form.tipo_recurrencia} onChange={(event) => update('tipo_recurrencia', event.target.value as RegistroClientePagoPayload['tipo_recurrencia'])}>
                   {recurrenceOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                 </select>
               </Field>
