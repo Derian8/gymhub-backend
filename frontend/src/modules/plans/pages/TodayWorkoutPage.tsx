@@ -1102,7 +1102,9 @@ function SelectedDayDetail({
       <div className="mt-5 space-y-4">
         {workoutDay.exercises.length ? (
           workoutDay.exercises.map((exercise) => (
-            <div
+            (() => {
+              const mediaUrl = exercise.catalogo_detalle?.animacion_url || exercise.catalogo_detalle?.imagen_url
+              return <div
               key={exercise.id}
               className="rounded-[1.25rem] border border-neutral-200 bg-neutral-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/60"
               data-testid={`selected-exercise-${exercise.id}`}
@@ -1117,6 +1119,12 @@ function SelectedDayDetail({
                 <Badge variant="neutral">{getExercisePrescriptionLabel(exercise)}</Badge>
               </div>
 
+              {mediaUrl ? (
+                <div className="mt-4 overflow-hidden rounded-xl border border-neutral-200 bg-white p-2 dark:border-neutral-800 dark:bg-neutral-950">
+                  <img className="h-52 w-full rounded-lg object-contain" src={mediaUrl} alt={`Demostración de ${exercise.name}`} loading="lazy" />
+                </div>
+              ) : null}
+
               <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <StaticMetric label="Máquina" value={exercise.machine_detail?.name || 'Libre'} />
                 <StaticMetric
@@ -1130,10 +1138,19 @@ function SelectedDayDetail({
                 />
               </div>
 
-              {exercise.technique_notes ? (
-                <p className="mt-3 text-xs italic text-neutral-500 dark:text-neutral-400">{exercise.technique_notes}</p>
+              {(exercise.catalogo_detalle?.instrucciones_es || exercise.technique_notes) ? (
+                <div className="mt-4 rounded-xl bg-white p-3 text-sm text-neutral-600 dark:bg-neutral-950/60 dark:text-neutral-300">
+                  <p className="font-semibold text-neutral-900 dark:text-white">Cómo hacerlo</p>
+                  <p className="mt-1">{exercise.catalogo_detalle?.instrucciones_es || exercise.technique_notes}</p>
+                  {!!exercise.catalogo_detalle?.pasos_es.length && (
+                    <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs text-neutral-500 dark:text-neutral-400">
+                      {exercise.catalogo_detalle.pasos_es.map((paso, index) => <li key={index}>{paso}</li>)}
+                    </ol>
+                  )}
+                </div>
               ) : null}
             </div>
+            })()
           ))
         ) : (
           <EmptyState
@@ -1204,7 +1221,16 @@ function ClientRoutineFlow({
           <Badge variant="info">{getExercisePrescriptionLabel(actual)}</Badge>
         </div>
 
-        {mediaUrl ? <img className="mt-5 h-56 w-full rounded-2xl object-cover sm:h-72" src={mediaUrl} alt={`Demostración de ${actual.name}`} /> : null}
+        {mediaUrl ? (
+          <div className="mt-5 overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50 p-2 dark:border-neutral-800 dark:bg-neutral-900">
+            <img
+              className="h-56 w-full rounded-xl object-contain sm:h-72"
+              src={mediaUrl}
+              alt={`Demostración de ${actual.name}`}
+              loading="eager"
+            />
+          </div>
+        ) : null}
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           {esTiempo ? <StaticMetric label="Duración" value={`${actual.target_minutes ?? 0} min`} /> : <><StaticMetric label="Series" value={String(actual.sets ?? 0)} /><StaticMetric label="Repeticiones" value={actual.reps_range} /></>}
           <StaticMetric label="Descanso" value={`${actual.rest_seconds}s`} />
@@ -1213,9 +1239,9 @@ function ClientRoutineFlow({
         </div>
         {(actual.catalogo_detalle?.instrucciones_es || actual.technique_notes) ? <div className="mt-5 rounded-2xl bg-neutral-50 p-4 text-sm text-neutral-600 dark:bg-neutral-900 dark:text-neutral-300"><p className="font-semibold text-neutral-900 dark:text-white">Cómo hacerlo</p><p className="mt-2">{actual.catalogo_detalle?.instrucciones_es || actual.technique_notes}</p></div> : null}
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          <button type="button" disabled={isSaving} onClick={() => onResolve(actual.id, 'realizado')} className="btn-primary min-h-14 justify-center text-base" data-testid="mark-exercise-done">{isSaving ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18} />} Realizado</button>
-          <button type="button" disabled={isSaving} onClick={() => onResolve(actual.id, 'omitido')} className="btn-secondary min-h-14 justify-center text-base" data-testid="skip-exercise">Omitir</button>
+        <div className="mx-auto mt-6 grid w-full max-w-xl gap-3 sm:grid-cols-2">
+          <button type="button" disabled={isSaving} onClick={() => onResolve(actual.id, 'realizado')} className="btn-primary inline-flex min-h-14 w-full items-center justify-center gap-2 text-base shadow-sm" data-testid="mark-exercise-done">{isSaving ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18} />}<span>Realizado</span></button>
+          <button type="button" disabled={isSaving} onClick={() => onResolve(actual.id, 'omitido')} className="btn-secondary inline-flex min-h-14 w-full items-center justify-center gap-2 text-base" data-testid="skip-exercise">Omitir</button>
         </div>
       </article>
 
@@ -1247,7 +1273,9 @@ function ExerciseCard({ exercise, log, active, onUpdate }: ExerciseCardProps) {
       {exercise.catalogo_detalle && (
         <div className="mt-4 grid gap-4 rounded-2xl border border-neutral-200 p-4 md:grid-cols-[180px_1fr] dark:border-neutral-800">
           {mediaUrl ? (
-            <img className="h-[180px] w-[180px] rounded-xl object-cover" src={mediaUrl} alt={`Ilustración de ${exercise.name}`} />
+            <div className="flex h-[180px] w-full items-center justify-center rounded-xl bg-neutral-50 p-2 dark:bg-neutral-900 md:w-[180px]">
+              <img className="h-full w-full rounded-lg object-contain" src={mediaUrl} alt={`Ilustración de ${exercise.name}`} loading="lazy" />
+            </div>
           ) : null}
           <div>
             <p className="text-sm text-neutral-600 dark:text-neutral-300">{exercise.catalogo_detalle.instrucciones_es}</p>

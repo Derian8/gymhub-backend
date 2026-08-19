@@ -3,6 +3,23 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import type { PerfilUsuario, User } from '@/shared/types'
 
 const CONTEXT_KEY = 'gymhub-active-context'
+export const THEME_STORAGE_KEY = 'gymhub-theme'
+type Theme = 'dark' | 'light'
+
+function getInitialTheme(): Theme {
+  if (typeof window === 'undefined') return 'dark'
+
+  try {
+    const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY)
+    if (storedTheme === 'light' || storedTheme === 'dark') return storedTheme
+
+    // Compatibilidad con versiones anteriores que guardaban el tema junto a la sesión.
+    const savedAuth = JSON.parse(window.localStorage.getItem('gymhub-auth') || '{}')
+    return savedAuth?.state?.theme === 'light' ? 'light' : 'dark'
+  } catch {
+    return 'dark'
+  }
+}
 
 export function getAvailableProfiles(user: User | null): PerfilUsuario[] {
   if (!user) return []
@@ -36,7 +53,7 @@ interface AuthState {
   isAuthenticated: boolean
   authResolved: boolean
   activeContext: PerfilUsuario | null
-  theme: 'dark' | 'light'
+  theme: Theme
   setUser: (user: User | null) => void
   setAuthResolved: (resolved: boolean) => void
   setActiveContext: (context: PerfilUsuario) => void
@@ -52,7 +69,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       authResolved: false,
       activeContext: null,
-      theme: 'dark',
+      theme: getInitialTheme(),
 
       setUser: (user) => set((state) => {
         if (!user) {
@@ -89,16 +106,21 @@ export const useAuthStore = create<AuthState>()(
       },
 
       toggleTheme: () =>
-        set((state) => ({
-          theme: state.theme === 'dark' ? 'light' : 'dark',
-        })),
+        set((state) => {
+          const theme: Theme = state.theme === 'dark' ? 'light' : 'dark'
+          window.localStorage.setItem(THEME_STORAGE_KEY, theme)
+          return { theme }
+        }),
 
-      setTheme: (theme) => set({ theme }),
+      setTheme: (theme) => {
+        window.localStorage.setItem(THEME_STORAGE_KEY, theme)
+        set({ theme })
+      },
     }),
     {
       name: 'gymhub-auth',
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ theme: state.theme }),
+      partialize: () => ({}),
     },
   ),
 )

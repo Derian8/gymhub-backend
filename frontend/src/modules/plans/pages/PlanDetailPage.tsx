@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Calendar, NotebookTabs, UserRound } from 'lucide-react'
+import { ArrowLeft, Calendar, Dumbbell, NotebookTabs, UserRound } from 'lucide-react'
 import { useDeletePlanMutation, usePlanDetailQuery, useTodayWorkoutQuery } from '../hooks/usePlans'
 import { Badge, ConfirmDialog, PageHeader, EmptyState } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
@@ -223,16 +223,25 @@ function WorkoutDayCard({ day, planId }: { day: WorkoutDay; planId: number }) {
 }
 
 function ExerciseRow({ exercise }: { exercise: Exercise }) {
+  const mediaUrl = exercise.catalogo_detalle?.animacion_url || exercise.catalogo_detalle?.imagen_url
+
   return (
-    <div className="flex items-center justify-between py-1.5 border-b border-neutral-100 dark:border-neutral-800/50 last:border-0">
-      <div>
+    <div className="flex items-center gap-3 border-b border-neutral-100 py-2.5 dark:border-neutral-800/50 last:border-0">
+      {mediaUrl ? (
+        <img className="h-12 w-12 shrink-0 rounded-lg bg-neutral-100 object-contain p-1 dark:bg-neutral-900" src={mediaUrl} alt="" loading="lazy" />
+      ) : (
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <Dumbbell size={16} />
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
         <span className="text-sm text-neutral-700 dark:text-neutral-300">{exercise.name}</span>
-        <span className="ml-2 text-xs text-neutral-400">{MUSCLE_LABELS[exercise.muscle_group]}</span>
+        <div className="text-xs text-neutral-400">{MUSCLE_LABELS[exercise.muscle_group]}</div>
         {exercise.machine_detail?.name ? (
-          <span className="ml-2 text-xs text-primary">{exercise.machine_detail.name}</span>
+          <span className="text-xs text-primary">{exercise.machine_detail.name}</span>
         ) : null}
       </div>
-      <span className="text-xs font-mono text-neutral-500">
+      <span className="shrink-0 text-right text-xs font-mono text-neutral-500">
         {formatExercisePrescription(exercise)}
       </span>
     </div>

@@ -120,7 +120,7 @@ Para E2E con Playwright:
 - `AI_CHAT_HISTORY_WINDOW`
 - `INACTIVITY_DAYS_THRESHOLD`
 - `PAYMENT_GRACE_DAYS`
-- `MEMBERSHIP_EXPIRING_DAYS`: días para marcar una membresía como próxima a vencer. Valor por defecto: `5`.
+- `MEMBERSHIP_EXPIRING_DAYS`: días para marcar una membresía como próxima a vencer y mostrar el aviso de renovación. Valor por defecto: `7`.
 - `CRON_SECRET`: secreto compartido que Vercel Cron envía como `Authorization: Bearer ...` al mantenimiento diario.
 - `DB_DISABLE_SERVER_SIDE_CURSORS=True`: obligatorio al usar el Transaction Pooler de Supabase en el puerto 6543.
 

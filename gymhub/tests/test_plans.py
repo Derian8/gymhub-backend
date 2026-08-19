@@ -96,6 +96,18 @@ class TestTrainingPlans:
         assert WorkoutDay.objects.filter(id__in=day_ids).count() == 0
         assert Exercise.objects.filter(workout_day_id__in=day_ids).count() == 0
 
+    def test_trainer_can_delete_active_plan_and_cascade_content(self, trainer_client, training_plan):
+        training_plan.status = 'active'
+        training_plan.is_active = True
+        training_plan.save(update_fields=['status', 'is_active'])
+        plan_id = training_plan.id
+
+        resp = trainer_client.delete(f'/api/plans/{plan_id}/')
+
+        assert resp.status_code == status.HTTP_204_NO_CONTENT
+        from plans.models import TrainingPlan
+        assert not TrainingPlan.objects.filter(id=plan_id).exists()
+
     def test_member_cannot_delete_plan(self, member_client, training_plan):
         resp = member_client.delete(f'/api/plans/{training_plan.id}/')
 

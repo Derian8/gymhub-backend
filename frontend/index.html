@@ -7,9 +7,17 @@
     <title>GymHub — Gestión de Gimnasio</title>
     <meta name="description" content="Sistema de gestión integral para gimnasios. Miembros, entrenadores y administradores." />
     <script>
+      const themeStorageKey = 'gymhub-theme';
       try {
+        const savedTheme = localStorage.getItem(themeStorageKey);
         const savedState = JSON.parse(localStorage.getItem('gymhub-auth') || '{}');
-        const theme = savedState?.state?.theme === 'light' ? 'light' : 'dark';
+        const legacyTheme = savedState?.state?.theme;
+        const theme = savedTheme === 'light' || savedTheme === 'dark'
+          ? savedTheme
+          : legacyTheme === 'light' || legacyTheme === 'dark'
+            ? legacyTheme
+            : 'dark';
+        localStorage.setItem(themeStorageKey, theme);
         document.documentElement.classList.toggle('dark', theme === 'dark');
         document.documentElement.style.colorScheme = theme;
       } catch {

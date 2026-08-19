@@ -178,9 +178,38 @@ export function PlansPage() {
                           <Badge variant="info">Hoy</Badge>
                         ) : null}
                       </div>
-                      <p className="text-sm text-neutral-600 dark:text-neutral-300">
-                        {day.exercises.slice(0, 3).map((exercise) => exercise.name).join(' · ') || 'Este bloque todavía no tiene ejercicios visibles.'}
-                      </p>
+                      {day.exercises.length ? (
+                        <div className="mt-3 space-y-2">
+                          {day.exercises.slice(0, 4).map((exercise) => {
+                            const mediaUrl = exercise.catalogo_detalle?.animacion_url || exercise.catalogo_detalle?.imagen_url
+                            return (
+                              <div key={exercise.id} className="flex items-center gap-3 rounded-xl bg-neutral-50 p-2.5 dark:bg-neutral-900/70">
+                                {mediaUrl ? (
+                                  <img
+                                    src={mediaUrl}
+                                    alt=""
+                                    loading="lazy"
+                                    className="h-12 w-12 shrink-0 rounded-lg object-cover"
+                                    onError={(event) => { event.currentTarget.style.display = 'none' }}
+                                  />
+                                ) : (
+                                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                    <Dumbbell size={18} />
+                                  </div>
+                                )}
+                                <span className="min-w-0 truncate text-sm font-medium text-neutral-700 dark:text-neutral-200">
+                                  {exercise.name}
+                                </span>
+                              </div>
+                            )
+                          })}
+                          {day.exercises.length > 4 ? (
+                            <p className="px-1 text-xs text-neutral-500 dark:text-neutral-400">+{day.exercises.length - 4} ejercicio(s) más</p>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-neutral-600 dark:text-neutral-300">Este bloque todavía no tiene ejercicios visibles.</p>
+                      )}
                     </div>
                   ))}
                 </div>

@@ -167,6 +167,8 @@ function AnalysisCard({ icon, label, value }: { icon: ReactNode; label: string; 
 }
 
 function ExerciseDetailCard({ exercise, index }: { exercise: Exercise; index: number }) {
+  const mediaUrl = exercise.catalogo_detalle?.animacion_url || exercise.catalogo_detalle?.imagen_url
+
   return (
     <article className="rounded-2xl border border-neutral-200 bg-white/70 p-4 dark:border-neutral-800 dark:bg-neutral-900/50" data-testid={`day-exercise-${exercise.id}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -186,16 +188,28 @@ function ExerciseDetailCard({ exercise, index }: { exercise: Exercise; index: nu
         </Badge>
       </div>
 
+      {mediaUrl ? (
+        <div className="mt-4 overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50 p-2 dark:border-neutral-800 dark:bg-neutral-950">
+          <img className="h-52 w-full rounded-lg object-contain" src={mediaUrl} alt={`Demostración de ${exercise.name}`} loading="lazy" />
+        </div>
+      ) : null}
+
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <ExerciseMetric label="Prescripción" value={formatExercisePrescription(exercise)} />
         <ExerciseMetric label="Descanso" value={`${exercise.rest_seconds}s`} />
         <ExerciseMetric label="Orden" value={`#${exercise.order + 1}`} />
       </div>
 
-      {exercise.technique_notes ? (
-        <p className="mt-4 rounded-xl bg-neutral-50 p-3 text-sm text-neutral-600 dark:bg-neutral-950/50 dark:text-neutral-300">
-          {exercise.technique_notes}
-        </p>
+      {(exercise.catalogo_detalle?.instrucciones_es || exercise.technique_notes) ? (
+        <div className="mt-4 rounded-xl bg-neutral-50 p-3 text-sm text-neutral-600 dark:bg-neutral-950/50 dark:text-neutral-300">
+          <p className="font-semibold text-neutral-900 dark:text-white">Cómo hacerlo</p>
+          <p className="mt-1">{exercise.catalogo_detalle?.instrucciones_es || exercise.technique_notes}</p>
+          {!!exercise.catalogo_detalle?.pasos_es.length && (
+            <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs text-neutral-500 dark:text-neutral-400">
+              {exercise.catalogo_detalle.pasos_es.map((paso, stepIndex) => <li key={stepIndex}>{paso}</li>)}
+            </ol>
+          )}
+        </div>
       ) : null}
     </article>
   )

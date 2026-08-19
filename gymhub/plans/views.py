@@ -150,7 +150,6 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
         serializer.save(member=member, status='draft', is_active=False)
 
     def perform_destroy(self, instance):
-        assert_plan_editable(instance)
         instance.delete()
 
     def get_permissions(self):
@@ -235,6 +234,11 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
         nombre = request.data.get('nombre') or f'Plantilla — {plan.name}'
         descripcion = request.data.get('descripcion', '')
         nivel = request.data.get('nivel_adherencia_recomendado', 'medium')
+        workout_days = list(plan.workout_days.prefetch_related('exercises').order_by('order'))
+        if not workout_days or any(not day.exercises.all() for day in workout_days):
+            raise ValidationError({
+                'plan': 'Completa todos los días y ejercicios del plan antes de guardarlo como plantilla.',
+            })
 
         with transaction.atomic():
             plantilla = PlantillaEntrenamiento.objects.create(
@@ -246,7 +250,7 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                 dias_por_semana_sugeridos=plan.days_per_week,
                 modo_ejecucion=plan.modo_ejecucion,
             )
-            for day in plan.workout_days.order_by('order'):
+            for day in workout_days:
                 template_day = PlantillaDiaEntrenamiento.objects.create(
                     plantilla=plantilla,
                     nombre=day.name,

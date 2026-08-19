@@ -204,6 +204,10 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
   )
 
   const { data: daysData, isLoading: daysLoading } = useWorkoutDaysByPlanQuery(activePlan?.id ?? 0)
+  const planHasTemplateStructure = Boolean(
+    daysData?.results.length
+    && daysData.results.every((day) => day.exercises.length > 0),
+  )
   const { data: gymMachinesData } = useGymMachinesQuery()
   const trainingTemplates = useMemo(
     () => trainingTemplatesData?.results ?? [],
@@ -1251,6 +1255,11 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
 
           <form className="grid grid-cols-1 gap-3 border-t border-neutral-200 pt-4 dark:border-neutral-800" onSubmit={handleSaveTrainingTemplate}>
             <p className="text-sm font-semibold text-neutral-900 dark:text-white">Guardar plan actual como plantilla</p>
+            {!planHasTemplateStructure ? (
+              <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
+                Agrega al menos un ejercicio a cada día antes de guardar la plantilla.
+              </p>
+            ) : null}
             <Field label="Nombre de la plantilla">
               <input
                 className="input"
@@ -1277,7 +1286,7 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
               />
             </Field>
             <div className="flex justify-end">
-              <button className="btn-primary" type="submit" disabled={!activePlan || savePlanAsTemplate.isPending}>
+              <button className="btn-primary" type="submit" disabled={!activePlan || !planHasTemplateStructure || savePlanAsTemplate.isPending}>
                 Guardar plantilla
               </button>
             </div>

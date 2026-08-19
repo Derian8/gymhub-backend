@@ -170,7 +170,12 @@ export function usePublishPlanMutation() {
     onSuccess: (plan) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLANS })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_DETAIL(plan.id) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_DETAIL(plan.member) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_PROGRAM(plan.member) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_PRESCRIPTION(plan.member) })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_ACTIVE_PRESCRIPTION(plan.member) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TRAINER_OVERVIEW })
       toast.success(`Versión ${plan.numero_version ?? 1} publicada para el miembro`)
     },
     onError: (error) => toast.error(extractApiError(error)),

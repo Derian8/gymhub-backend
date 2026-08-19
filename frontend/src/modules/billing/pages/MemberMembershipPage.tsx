@@ -71,12 +71,24 @@ function getMembershipPresentation(data?: MemberDashboardSummary) {
     }
   }
 
+  if (data.payment_status === 'pending' && data.days_until_due != null && data.days_until_due <= 7) {
+    return {
+      label: data.membership_plan_name,
+      badge: 'Por vencer',
+      variant: 'warning' as const,
+      tone: 'warning' as const,
+      title: 'Tu membresía está próxima a vencer',
+      detail: `Tu membresía vence en ${data.days_until_due} día(s). Renueva dentro de esta semana para mantener el acceso activo.`,
+      icon: <CalendarClock size={24} />,
+    }
+  }
+
   return {
     label: data.membership_plan_name,
-    badge: 'Pago pendiente',
+    badge: 'Membresía por confirmar',
     variant: 'warning' as const,
     tone: 'warning' as const,
-    title: 'Tu pago está pendiente',
+    title: 'Tu membresía está por confirmar',
     detail: data.days_until_due != null
       ? `Tienes ${data.days_until_due} día(s) para completar el pago.`
       : 'Consulta con el gimnasio si necesitas actualizar tu membresía.',

@@ -316,6 +316,15 @@ def get_member_risk_snapshot(member):
         else:
             days_overdue = abs(delta)
 
+    # Una cuota futura ya programada no debe marcar al cliente como pendiente
+    # durante todo el período. Solo se muestra como alerta en la última semana.
+    if (
+        payment_status == 'pending'
+        and days_until_due is not None
+        and days_until_due > settings.MEMBERSHIP_EXPIRING_DAYS
+    ):
+        payment_status = 'paid'
+
     active_plan = get_active_plan(member)
     workout_day = get_today_workout_day(active_plan) if active_plan else None
     today_has_workout = workout_day is not None

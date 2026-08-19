@@ -221,17 +221,22 @@ export function MemberDashboard() {
     )
   }
 
+  const membershipExpiring = data?.payment_status === 'pending' && data.days_until_due != null && data.days_until_due <= 7
   const membershipBadge = data?.payment_status === 'paid'
     ? { variant: 'success' as const, label: 'Membresía vigente' }
     : data?.payment_status === 'late'
       ? { variant: 'error' as const, label: 'Membresía vencida' }
-      : { variant: 'warning' as const, label: 'Pago pendiente' }
+      : membershipExpiring
+        ? { variant: 'warning' as const, label: 'Membresía por vencer' }
+        : { variant: 'warning' as const, label: 'Membresía por confirmar' }
   const membershipTone = data?.payment_status === 'paid' ? 'success' : data?.payment_status === 'late' ? 'danger' : 'warning'
   const membershipHelp = data?.payment_status === 'paid'
     ? (data.days_until_due != null ? `${data.days_until_due} día(s) restantes antes del próximo vencimiento.` : 'Tu acceso comercial está al día.')
     : data?.payment_status === 'late'
       ? (data.days_overdue != null ? `${data.days_overdue} día(s) de atraso. Contacta al gym o registra el pago para regularizarla.` : 'Hay un cobro vencido pendiente.')
-      : (data?.days_until_due != null ? `${data.days_until_due} día(s) para completar el pago.` : 'Consulta con tu entrenador si necesitas actualizar la membresía.')
+      : membershipExpiring
+        ? `Tu membresía vence en ${data.days_until_due} día(s). Renueva esta semana para mantener tu acceso.`
+        : (data?.days_until_due != null ? `${data.days_until_due} día(s) restantes antes del próximo vencimiento.` : 'Consulta con tu entrenador si necesitas actualizar la membresía.')
 
   const membershipHero = (
     <section

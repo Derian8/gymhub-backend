@@ -144,7 +144,7 @@ LANGUAGE_CODE = 'es-es'
 TIME_ZONE = 'America/Costa_Rica'
 USE_I18N = True
 USE_TZ = True
-MEMBERSHIP_EXPIRING_DAYS = env.int('MEMBERSHIP_EXPIRING_DAYS', default=5)
+MEMBERSHIP_EXPIRING_DAYS = env.int('MEMBERSHIP_EXPIRING_DAYS', default=7)
 
 STATIC_URL = '/static/'
 STATIC_ROOT = env('STATIC_ROOT', default=str(BASE_DIR / 'staticfiles'))

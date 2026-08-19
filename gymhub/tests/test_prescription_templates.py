@@ -118,6 +118,19 @@ class TestPrescriptionTemplates:
         assert response.data['dias']
         assert response.data['dias'][0]['ejercicios']
 
+    def test_trainer_cannot_save_incomplete_plan_as_template(self, trainer_client, training_plan):
+        training_plan.workout_days.first().exercises.all().delete()
+
+        response = trainer_client.post(
+            f'/api/plans/{training_plan.id}/save-as-template/',
+            {'nombre': 'Base incompleta'},
+            format='json',
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        from plans.models import PlantillaEntrenamiento
+        assert not PlantillaEntrenamiento.objects.filter(nombre='Base incompleta').exists()
+
     def test_trainer_can_apply_training_template_to_assigned_member(self, trainer_client, trainer_profile, member_profile):
         from plans.models import PlantillaDiaEntrenamiento, PlantillaEjercicio, PlantillaEntrenamiento, TrainingPlan
 

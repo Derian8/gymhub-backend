@@ -42,11 +42,18 @@ function getMembershipStatusCopy(summary: ReturnType<typeof useMemberDashboardQu
         : 'Hay un cobro vencido pendiente de regularizar.',
     }
   }
+  if (summary?.payment_status === 'pending' && summary.days_until_due != null && summary.days_until_due <= 7) {
+    return {
+      label: 'Membresía por vencer',
+      variant: 'warning' as const,
+      detail: `Vence en ${summary.days_until_due} día(s). Renueva esta semana para mantener el acceso vigente.`,
+    }
+  }
   return {
-    label: 'Pago pendiente',
+    label: 'Membresía por confirmar',
     variant: 'warning' as const,
     detail: summary?.days_until_due != null
-      ? `${summary.days_until_due} día(s) para completar el pago.`
+      ? `${summary.days_until_due} día(s) restantes antes del próximo vencimiento.`
       : 'Confirma la membresía y el cobro desde facturación.',
   }
 }

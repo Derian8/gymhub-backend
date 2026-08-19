@@ -5,6 +5,7 @@ import { ThemeManager } from './ThemeManager'
 
 afterEach(() => {
   cleanup()
+  localStorage.clear()
   document.documentElement.classList.remove('dark')
   document.documentElement.style.colorScheme = ''
 })
@@ -29,5 +30,16 @@ describe('ThemeManager', () => {
 
     expect(document.documentElement).not.toHaveClass('dark')
     expect(document.documentElement.style.colorScheme).toBe('light')
+  })
+
+  it('persists the selected theme outside the authentication session', () => {
+    useAuthStore.setState({ theme: 'dark' })
+
+    act(() => {
+      useAuthStore.getState().setTheme('light')
+    })
+
+    expect(localStorage.getItem('gymhub-theme')).toBe('light')
+    expect(JSON.parse(localStorage.getItem('gymhub-auth') || '{}')).not.toHaveProperty('state.theme')
   })
 })
