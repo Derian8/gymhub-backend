@@ -6,7 +6,13 @@ from django.utils import timezone
 from django.utils.text import slugify
 from django.contrib.auth.password_validation import validate_password
 
-from .models import MemberProfile, TrainerProfile, PerfilGimnasio, AuditLog
+from .models import (
+    MemberProfile,
+    TrainerProfile,
+    PerfilGimnasio,
+    AuditLog,
+    requiere_cambio_contrasena_efectivo,
+)
 from .services import get_member_prescription_status, get_member_risk_snapshot
 from billing.models import MembershipPlan
 from billing.services import current_member_membership, membership_access, refresh_membership_status
@@ -19,6 +25,7 @@ class UserSerializer(serializers.ModelSerializer):
     trainerprofile_id = serializers.SerializerMethodField()
     perfiles_disponibles = serializers.SerializerMethodField()
     contexto_predeterminado = serializers.SerializerMethodField()
+    requiere_cambio_contrasena = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -36,6 +43,9 @@ class UserSerializer(serializers.ModelSerializer):
     def get_memberprofile_id(self, obj):
         profile = getattr(obj, 'memberprofile', None)
         return profile.id if profile else None
+
+    def get_requiere_cambio_contrasena(self, obj):
+        return requiere_cambio_contrasena_efectivo(obj)
 
     def get_trainerprofile_id(self, obj):
         profile = getattr(obj, 'trainerprofile', None)

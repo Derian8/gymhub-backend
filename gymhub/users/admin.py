@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, MemberProfile, TrainerProfile, AuditLog
+from .models import User, MemberProfile, TrainerProfile, AuditLog, ConfiguracionSistema
 
 
 @admin.register(User)
@@ -30,3 +30,12 @@ class AuditLogAdmin(admin.ModelAdmin):
     list_display = ('user', 'action_type', 'target_model', 'target_id', 'created_at')
     list_filter = ('action_type', 'target_model')
     readonly_fields = ('details', 'created_at',)
+
+
+@admin.register(ConfiguracionSistema)
+class ConfiguracionSistemaAdmin(admin.ModelAdmin):
+    list_display = ('exigir_cambio_contrasena_cliente', 'actualizado_en')
+    fields = ('exigir_cambio_contrasena_cliente',)
+
+    def has_add_permission(self, request):
+        return not ConfiguracionSistema.objects.exists() and super().has_add_permission(request)

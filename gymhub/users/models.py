@@ -19,6 +19,30 @@ class User(AbstractUser):
         return f"{self.email} ({self.role})"
 
 
+class ConfiguracionSistema(models.Model):
+    """Configuración global editable desde administración."""
+
+    exigir_cambio_contrasena_cliente = models.BooleanField(default=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'configuracion_sistema'
+
+    def __str__(self):
+        return 'Configuración del sistema'
+
+    @classmethod
+    def principal(cls):
+        config, _ = cls.objects.get_or_create(pk=1)
+        return config
+
+
+def requiere_cambio_contrasena_efectivo(user):
+    if getattr(user, 'role', None) == 'member' and not ConfiguracionSistema.principal().exigir_cambio_contrasena_cliente:
+        return False
+    return bool(getattr(user, 'requiere_cambio_contrasena', False))
+
+
 class MemberProfile(models.Model):
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name='memberprofile'

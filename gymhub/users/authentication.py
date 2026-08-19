@@ -3,6 +3,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from rest_framework.authentication import SessionAuthentication
+from .models import requiere_cambio_contrasena_efectivo
 
 
 class JWTCookieAuthentication(JWTAuthentication):
@@ -48,7 +49,7 @@ class JWTCookieAuthentication(JWTAuthentication):
             '/auth/csrf/',
         }
         if (
-            getattr(user, 'requiere_cambio_contrasena', False)
+            requiere_cambio_contrasena_efectivo(user)
             and request.path not in allowed_password_paths
         ):
             raise AuthenticationFailed(
