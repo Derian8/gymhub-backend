@@ -100,7 +100,7 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, action, breadcrumb }: PageHeaderProps) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
       <div>
         {breadcrumb && (
           <div className="flex items-center gap-1 text-xs text-neutral-500 dark:text-neutral-400 mb-1">

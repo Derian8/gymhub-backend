@@ -43,7 +43,22 @@ describe('AdminDashboard', () => {
   it('prioritizes current clients and payment queues', () => {
     const view = renderWithProviders(<AdminDashboard />)
 
-    expect(view.getByText('18 · 75%')).toBeInTheDocument()
+    expect(view.getByText('Clientes activos')).toBeInTheDocument()
+    expect(view.getByText('24')).toBeInTheDocument()
+    expect(view.getByText('Clientes al día')).toBeInTheDocument()
+    expect(view.getByText('18')).toBeInTheDocument()
+    expect(view.getByText('Pendientes por cobrar')).toBeInTheDocument()
+    expect(view.getByText('Cobros vencidos')).toBeInTheDocument()
+    expect(view.getByText('Cobrado este mes')).toBeInTheDocument()
+    expect(view.getByTestId('admin-register-and-charge')).toHaveClass('w-full', 'flex')
+    expect(view.getByRole('link', { name: 'Clientes activos: 24' })).toHaveAttribute('href', '/members')
+    expect(view.getByRole('link', { name: 'Clientes al día: 18' })).toHaveAttribute('href', '/members?commercial_status=al_dia')
+    expect(view.getByRole('link', { name: 'Pendientes por cobrar: 2' })).toHaveAttribute('href', '/members?payment_status=pending')
+    expect(view.getByRole('link', { name: 'Cobros vencidos: 1' })).toHaveAttribute('href', '/members?payment_status=late')
+    expect(view.getAllByText('Ver detalle →')).toHaveLength(4)
+    expect(view.getByRole('link', { name: /Clientes Gestionar clientes/ })).toHaveAttribute('href', '/members')
+    expect(view.getByRole('link', { name: /Pagos Cartera y cobros/ })).toHaveAttribute('href', '/billing')
+    expect(view.getByRole('link', { name: /Accesos Entradas al gym/ })).toHaveAttribute('href', '/attendance')
     expect(view.getByText('Ana Mora')).toBeInTheDocument()
     expect(view.getByRole('link', { name: 'Registrar pago' })).toHaveAttribute('href', '/billing?member=4')
 
