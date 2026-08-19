@@ -56,9 +56,10 @@ describe('AdminDashboard', () => {
     expect(view.getByRole('link', { name: 'Pendientes por cobrar: 2' })).toHaveAttribute('href', '/members?payment_status=pending')
     expect(view.getByRole('link', { name: 'Cobros vencidos: 1' })).toHaveAttribute('href', '/members?payment_status=late')
     expect(view.getAllByText('Ver detalle →')).toHaveLength(4)
-    expect(view.getByRole('link', { name: /Clientes Gestionar clientes/ })).toHaveAttribute('href', '/members')
-    expect(view.getByRole('link', { name: /Pagos Cartera y cobros/ })).toHaveAttribute('href', '/billing')
-    expect(view.getByRole('link', { name: /Accesos Entradas al gym/ })).toHaveAttribute('href', '/attendance')
+    expect(view.queryByText('Pantallas activas')).not.toBeInTheDocument()
+    expect(view.queryByRole('link', { name: /Gestionar clientes/ })).not.toBeInTheDocument()
+    expect(view.queryByRole('link', { name: /Cartera y cobros/ })).not.toBeInTheDocument()
+    expect(view.queryByRole('link', { name: /Entradas al gym/ })).not.toBeInTheDocument()
     expect(view.getByText('Ana Mora')).toBeInTheDocument()
     expect(view.getByRole('link', { name: 'Registrar pago' })).toHaveAttribute('href', '/billing?member=4')
 

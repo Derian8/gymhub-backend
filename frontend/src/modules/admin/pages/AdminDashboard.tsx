@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Banknote, BarChart3, CalendarClock, CheckCircle2, CheckSquare, ClipboardList, Dumbbell, UserPlus, Users } from 'lucide-react'
+import { Banknote, CalendarClock, CheckCircle2, Dumbbell, UserPlus, Users } from 'lucide-react'
 import { PageHeader } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
 import { formatCurrency, formatDate } from '@/shared/lib/utils'
@@ -65,21 +65,6 @@ export function AdminDashboard() {
               icon={<Banknote size={17} />}
               variant="danger"
             />
-          </section>
-
-          <section aria-label="Accesos directos" className="space-y-3">
-            <div>
-              <p className="label-base">Navegación rápida</p>
-              <h2 className="mt-1 text-xl font-heading font-bold text-neutral-900 dark:text-white">Pantallas activas</h2>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-              <QuickLink to="/members" icon={<Users size={20} />} title="Clientes" description="Gestionar clientes" />
-              <QuickLink to="/billing" icon={<Banknote size={20} />} title="Pagos" description="Cartera y cobros" />
-              <QuickLink to="/routines" icon={<Dumbbell size={20} />} title="Rutinas" description="Rutinas activas" />
-              <QuickLink to="/attendance" icon={<CheckSquare size={20} />} title="Accesos" description="Entradas al gym" />
-              <QuickLink to="/plans" icon={<ClipboardList size={20} />} title="Planes" description="Planes técnicos" />
-              <QuickLink to="/reports" icon={<BarChart3 size={20} />} title="Reportes" description="Ver reportes" />
-            </div>
           </section>
 
           <section className="card p-5 sm:p-6" data-testid="admin-payment-management">
@@ -223,14 +208,5 @@ function RoutineQueue({ title, subtitle, items, empty, onAssign }: {
         )) : <p className="py-8 text-center text-sm text-neutral-500">{empty}</p>}
       </div>
     </div>
-  )
-}
-
-function QuickLink({ to, icon, title, description }: { to: string; icon: React.ReactNode; title: string; description: string }) {
-  return (
-    <Link to={to} className="card flex items-start gap-3 p-5 hover:border-primary">
-      <span className="rounded-xl bg-primary/10 p-2 text-primary">{icon}</span>
-      <span><strong className="block">{title}</strong><span className="mt-1 block text-sm text-neutral-500">{description}</span></span>
-    </Link>
   )
 }
