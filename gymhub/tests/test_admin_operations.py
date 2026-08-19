@@ -178,6 +178,53 @@ class TestQuickRoutineAssignment:
         assert draft.end_date == date.today() + timedelta(weeks=6)
         assert exercise.name == 'Ejercicio personalizado'
 
+    def test_admin_copies_finished_plan_without_copying_execution_history(
+        self, admin_client, member_profile, trainer_profile, membership_plan,
+    ):
+        from plans.models import Exercise, TrainingPlan, WorkoutDay
+
+        crear_suscripcion_vigente(member_profile, trainer_profile, membership_plan)
+        source = TrainingPlan.objects.create(
+            member=member_profile,
+            trainer=trainer_profile,
+            name='Plan histórico de fuerza',
+            goal='muscle_gain',
+            start_date=date.today() - timedelta(weeks=8),
+            weeks_duration=8,
+            days_per_week=3,
+            status='finished',
+            is_active=False,
+            finished_at=timezone.now(),
+        )
+        day = WorkoutDay.objects.create(plan=source, name='Día histórico', day_label='A', order=0)
+        Exercise.objects.create(
+            workout_day=day,
+            name='Press histórico',
+            muscle_group='chest',
+            sets=4,
+            reps_range='8-10',
+            rest_seconds=90,
+            order=0,
+        )
+
+        response = admin_client.post('/api/plans/assign-template/', {
+            'source_type': 'plan',
+            'plan_id': source.id,
+            'member_id': member_profile.id,
+            'trainer_id': trainer_profile.id,
+            'start_date': date.today().isoformat(),
+            'weeks_duration': 8,
+            'confirm_trainer_change': False,
+        }, format='json')
+
+        assert response.status_code == status.HTTP_201_CREATED
+        copied = TrainingPlan.objects.get(id=response.data['id'])
+        assert copied.id != source.id
+        assert copied.plan_origen_id == source.id
+        assert copied.status == 'active'
+        assert source.status == 'finished'
+        assert copied.workout_days.first().exercises.first().name == 'Press histórico'
+
     def test_admin_publishes_template_for_client_without_routine(
         self, admin_client, member_profile, trainer_profile, membership_plan,
     ):

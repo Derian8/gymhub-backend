@@ -302,7 +302,7 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
         member_id = request.data.get('member_id')
         trainer_id = request.data.get('trainer_id')
         template_id = request.data.get('template_id')
-        draft_id = request.data.get('plan_id')
+        plan_id = request.data.get('plan_id')
         weeks_duration = request.data.get('weeks_duration', 8)
         start_date_value = request.data.get('start_date')
 
@@ -311,11 +311,11 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
             errors['member_id'] = 'Este campo es requerido.'
         if not trainer_id:
             errors['trainer_id'] = 'Este campo es requerido.'
-        if source_type not in {'template', 'draft'}:
-            errors['source_type'] = 'El origen debe ser template o draft.'
+        if source_type not in {'template', 'draft', 'plan'}:
+            errors['source_type'] = 'El origen debe ser template, draft o plan.'
         if source_type == 'template' and not template_id:
             errors['template_id'] = 'Este campo es requerido.'
-        if source_type == 'draft' and not draft_id:
+        if source_type in {'draft', 'plan'} and not plan_id:
             errors['plan_id'] = 'Este campo es requerido.'
         try:
             weeks_duration = int(weeks_duration)
@@ -341,6 +341,7 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
             raise ValidationError({'trainer_id': 'Entrenador activo no encontrado.'}) from exc
         template = None
         draft = None
+        source_plan = None
         if source_type == 'template':
             try:
                 template = PlantillaEntrenamiento.objects.prefetch_related(
@@ -348,18 +349,29 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                 ).get(id=template_id, esta_activa=True)
             except PlantillaEntrenamiento.DoesNotExist as exc:
                 raise ValidationError({'template_id': 'Plantilla activa no encontrada.'}) from exc
-        else:
+        elif source_type == 'draft':
             try:
                 draft = TrainingPlan.objects.prefetch_related(
                     'workout_days__exercises'
-                ).get(id=draft_id, member=member, status='draft')
+                ).get(id=plan_id, member=member, status='draft')
             except TrainingPlan.DoesNotExist as exc:
                 raise ValidationError({'plan_id': 'Borrador del cliente no encontrado.'}) from exc
+        else:
+            try:
+                source_plan = TrainingPlan.objects.prefetch_related(
+                    'workout_days__exercises'
+                ).get(
+                    id=plan_id,
+                    member=member,
+                    status__in={'scheduled', 'finished', 'archived'},
+                )
+            except TrainingPlan.DoesNotExist as exc:
+                raise ValidationError({'plan_id': 'Plan reutilizable del cliente no encontrado.'}) from exc
 
         if not request.user.is_staff:
             own_trainer = _get_trainer_profile(request.user)
             if trainer.id != own_trainer.id or member.trainer_asignado_id != own_trainer.id:
-                raise PermissionDenied('Solo puedes asignar plantillas a tus clientes.')
+                raise PermissionDenied('Solo puedes asignar planes a tus clientes.')
         elif (
             member.trainer_asignado_id
             and member.trainer_asignado_id != trainer.id
@@ -375,9 +387,10 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
             if not source_days or any(not list(day.ejercicios.all()) for day in source_days):
                 raise ValidationError({'template_id': 'La plantilla debe tener días y ejercicios completos.'})
         else:
-            source_days = list(draft.workout_days.order_by('order').prefetch_related('exercises'))
+            plan_source = draft if source_type == 'draft' else source_plan
+            source_days = list(plan_source.workout_days.order_by('order').prefetch_related('exercises'))
             if not source_days or any(not list(day.exercises.all()) for day in source_days):
-                raise ValidationError({'plan_id': 'El borrador debe tener días y ejercicios completos.'})
+                raise ValidationError({'plan_id': 'El plan debe tener días y ejercicios completos.'})
 
         today = timezone.localdate()
         active_plan = TrainingPlan.objects.filter(
@@ -401,11 +414,14 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                     'start_date': 'La nueva rutina debe iniciar después de la rutina vigente.',
                 })
 
-        if TrainingPlan.objects.filter(
+        scheduled_plans = TrainingPlan.objects.filter(
             member=member,
             status='scheduled',
             publicado_en__isnull=False,
-        ).exists():
+        )
+        if source_type == 'plan':
+            scheduled_plans = scheduled_plans.exclude(id=source_plan.id)
+        if scheduled_plans.exists():
             raise ValidationError({'member_id': 'El cliente ya tiene una rutina programada.'})
 
         status_value = 'active' if start_date <= today else 'scheduled'
@@ -431,6 +447,55 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                     'trainer', 'start_date', 'end_date', 'weeks_duration',
                     'status', 'is_active', 'publicado_en', 'publicado_por',
                 ])
+            elif source_type == 'plan':
+                if source_plan.status == 'scheduled':
+                    source_plan.status = 'archived'
+                    source_plan.is_active = False
+                    source_plan.archived_at = timezone.now()
+                    source_plan.save(update_fields=['status', 'is_active', 'archived_at'])
+                plan = TrainingPlan.objects.create(
+                    member=member,
+                    trainer=trainer,
+                    name=f'{source_plan.name} — copia',
+                    goal=source_plan.goal,
+                    start_date=start_date,
+                    weeks_duration=weeks_duration,
+                    days_per_week=source_plan.days_per_week,
+                    status=status_value,
+                    is_active=status_value == 'active',
+                    level=source_plan.level,
+                    notes=source_plan.notes,
+                    numero_version=source_plan.numero_version + 1,
+                    plan_origen=source_plan,
+                    modo_ejecucion=source_plan.modo_ejecucion,
+                    indice_bloque_actual=source_plan.indice_bloque_actual,
+                    publicado_en=timezone.now(),
+                    publicado_por=request.user,
+                )
+                for source_day in source_days:
+                    day = WorkoutDay.objects.create(
+                        plan=plan,
+                        name=source_day.name,
+                        day_label=source_day.day_label,
+                        day_of_week=source_day.day_of_week,
+                        order=source_day.order,
+                    )
+                    for source_exercise in source_day.exercises.order_by('order'):
+                        Exercise.objects.create(
+                            workout_day=day,
+                            catalogo_ejercicio=source_exercise.catalogo_ejercicio,
+                            name=source_exercise.name,
+                            muscle_group=source_exercise.muscle_group,
+                            exercise_type=source_exercise.exercise_type,
+                            sets=source_exercise.sets,
+                            reps_range=source_exercise.reps_range,
+                            target_minutes=source_exercise.target_minutes,
+                            machine=source_exercise.machine,
+                            weight_suggestion_kg=source_exercise.weight_suggestion_kg,
+                            rest_seconds=source_exercise.rest_seconds,
+                            technique_notes=source_exercise.technique_notes,
+                            order=source_exercise.order,
+                        )
             else:
                 plan = TrainingPlan.objects.create(
                     member=member,

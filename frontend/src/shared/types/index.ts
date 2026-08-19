@@ -315,6 +315,7 @@ export type QuickRoutineAssignmentPayload = {
 } & (
   | { source_type: 'template'; template_id: number }
   | { source_type: 'draft'; plan_id: number }
+  | { source_type: 'plan'; plan_id: number }
 )
 
 export interface MemberDashboardSummary {

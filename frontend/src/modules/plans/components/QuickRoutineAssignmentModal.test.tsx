@@ -51,6 +51,7 @@ describe('QuickRoutineAssignmentModal', () => {
       member: 7,
       trainer: 3,
       name: 'Plan fuerza de agosto',
+      status: 'draft',
       start_date: '2026-08-19',
       end_date: '2026-10-14',
       weeks_duration: 8,
@@ -76,6 +77,36 @@ describe('QuickRoutineAssignmentModal', () => {
       plan_id: 44,
       start_date: '2026-08-19',
       weeks_duration: 8,
+    }), expect.objectContaining({ onSuccess: onClose }))
+  })
+
+  it('shows historical plans as reusable copies', async () => {
+    const onClose = vi.fn()
+    draftResults = [{
+      id: 55,
+      member: 7,
+      trainer: 3,
+      name: 'Plan finalizado',
+      status: 'finished',
+      start_date: '2026-06-19',
+      end_date: '2026-08-14',
+      weeks_duration: 8,
+    }]
+
+    const view = renderWithProviders(
+      <QuickRoutineAssignmentModal
+        client={{ member_id: 7, member_name: 'Carlos Cliente', trainer_id: 3, trainer_name: 'Laura Trainer', can_publish: true }}
+        onClose={onClose}
+      />,
+    )
+
+    await waitFor(() => expect(view.getByTestId('quick-routine-template')).toHaveValue('plan:55'))
+    fireEvent.click(view.getByRole('button', { name: 'Revisar rutina' }))
+    fireEvent.click(view.getByTestId('quick-routine-confirm'))
+
+    expect(mutate).toHaveBeenCalledWith(expect.objectContaining({
+      source_type: 'plan',
+      plan_id: 55,
     }), expect.objectContaining({ onSuccess: onClose }))
   })
 })
