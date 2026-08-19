@@ -129,6 +129,55 @@ class TestAdminDashboardOperations:
 
 @pytest.mark.django_db
 class TestQuickRoutineAssignment:
+    def test_admin_publishes_existing_client_draft_without_copying_it(
+        self, admin_client, member_profile, trainer_profile, membership_plan,
+    ):
+        from plans.models import Exercise, TrainingPlan, WorkoutDay
+
+        crear_suscripcion_vigente(member_profile, trainer_profile, membership_plan)
+        draft = TrainingPlan.objects.create(
+            member=member_profile,
+            trainer=trainer_profile,
+            name='Plan creado independientemente',
+            goal='muscle_gain',
+            start_date=date.today(),
+            weeks_duration=8,
+            days_per_week=3,
+            status='draft',
+            is_active=False,
+        )
+        day = WorkoutDay.objects.create(
+            plan=draft, name='Día personalizado', day_label='A', order=0,
+        )
+        exercise = Exercise.objects.create(
+            workout_day=day,
+            name='Ejercicio personalizado',
+            muscle_group='legs',
+            sets=5,
+            reps_range='5-8',
+            rest_seconds=120,
+            order=0,
+        )
+
+        response = admin_client.post('/api/plans/assign-template/', {
+            'source_type': 'draft',
+            'plan_id': draft.id,
+            'member_id': member_profile.id,
+            'trainer_id': trainer_profile.id,
+            'start_date': date.today().isoformat(),
+            'weeks_duration': 6,
+            'confirm_trainer_change': False,
+        }, format='json')
+
+        assert response.status_code == status.HTTP_201_CREATED
+        draft.refresh_from_db()
+        exercise.refresh_from_db()
+        assert response.data['id'] == draft.id
+        assert draft.status == 'active'
+        assert draft.weeks_duration == 6
+        assert draft.end_date == date.today() + timedelta(weeks=6)
+        assert exercise.name == 'Ejercicio personalizado'
+
     def test_admin_publishes_template_for_client_without_routine(
         self, admin_client, member_profile, trainer_profile, membership_plan,
     ):

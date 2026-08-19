@@ -4,7 +4,7 @@ import { useTrainersQuery } from '@/modules/members/hooks/useMembers'
 import { Badge } from '@/shared/components/UI'
 import { formatDate } from '@/shared/lib/utils'
 import type { AdminRoutineQueueItem } from '@/shared/types'
-import { useQuickRoutineAssignmentMutation, useTrainingTemplatesQuery } from '../hooks/usePlans'
+import { usePlanDetailQuery, usePlansQuery, useQuickRoutineAssignmentMutation, useTrainingTemplatesQuery } from '../hooks/usePlans'
 
 interface QuickRoutineAssignmentModalProps {
   client: AdminRoutineQueueItem | null
@@ -25,20 +25,30 @@ function nextDate(dateIso?: string) {
 
 export function QuickRoutineAssignmentModal({ client, onClose }: QuickRoutineAssignmentModalProps) {
   const templatesQuery = useTrainingTemplatesQuery(Boolean(client))
+  const draftsQuery = usePlansQuery(client ? { member: String(client.member_id), status: 'draft' } : undefined)
   const trainersQuery = useTrainersQuery(Boolean(client))
   const assignment = useQuickRoutineAssignmentMutation()
-  const [templateId, setTemplateId] = useState('')
+  const [sourceKey, setSourceKey] = useState('')
   const [trainerId, setTrainerId] = useState('')
   const [startDate, setStartDate] = useState(localDateIso())
   const [weeksDuration, setWeeksDuration] = useState(8)
   const [preview, setPreview] = useState(false)
 
   const templates = templatesQuery.data?.results ?? []
+  const drafts = draftsQuery.data?.results ?? []
   const trainers = trainersQuery.data ?? []
+  const sourceType = sourceKey.startsWith('draft:') ? 'draft' : 'template'
+  const sourceId = Number(sourceKey.split(':')[1])
   const selectedTemplate = useMemo(
-    () => templates.find((template) => template.id === Number(templateId)),
-    [templateId, templates],
+    () => sourceType === 'template' ? templates.find((template) => template.id === sourceId) : undefined,
+    [sourceId, sourceType, templates],
   )
+  const selectedDraft = useMemo(
+    () => sourceType === 'draft' ? drafts.find((draft) => draft.id === sourceId) : undefined,
+    [drafts, sourceId, sourceType],
+  )
+  const draftDetailQuery = usePlanDetailQuery(sourceType === 'draft' ? sourceId : 0)
+  const selectedDraftDetail = draftDetailQuery.data ?? selectedDraft
   const selectedTrainer = useMemo(
     () => trainers.find((trainer) => trainer.id === Number(trainerId)),
     [trainerId, trainers],
@@ -46,7 +56,7 @@ export function QuickRoutineAssignmentModal({ client, onClose }: QuickRoutineAss
 
   useEffect(() => {
     if (!client) return
-    setTemplateId('')
+    setSourceKey('')
     setTrainerId(client.trainer_id ? String(client.trainer_id) : '')
     setStartDate(nextDate(client.end_date))
     setWeeksDuration(8)
@@ -54,8 +64,18 @@ export function QuickRoutineAssignmentModal({ client, onClose }: QuickRoutineAss
   }, [client])
 
   useEffect(() => {
-    if (client && !templateId && templates.length) setTemplateId(String(templates[0].id))
-  }, [client, templateId, templates])
+    if (client && !sourceKey) {
+      if (drafts.length) setSourceKey(`draft:${drafts[0].id}`)
+      else if (templates.length) setSourceKey(`template:${templates[0].id}`)
+    }
+  }, [client, drafts, sourceKey, templates])
+
+  useEffect(() => {
+    if (sourceType === 'draft' && selectedDraft) {
+      setStartDate(selectedDraft.start_date || localDateIso())
+      setWeeksDuration(selectedDraft.weeks_duration || 8)
+    }
+  }, [selectedDraft, sourceType])
 
   useEffect(() => {
     if (client && !trainerId && trainers.length) setTrainerId(String(trainers[0].id))
@@ -63,21 +83,34 @@ export function QuickRoutineAssignmentModal({ client, onClose }: QuickRoutineAss
 
   if (!client) return null
 
-  const canContinue = Boolean(templateId && trainerId && startDate && weeksDuration >= 1 && weeksDuration <= 52)
+  const canContinue = Boolean(sourceKey && trainerId && startDate && weeksDuration >= 1 && weeksDuration <= 52)
   const trainerName = selectedTrainer
     ? selectedTrainer.user.first_name || selectedTrainer.user.email
     : 'Sin seleccionar'
 
   const submit = () => {
     if (!canContinue) return
-    assignment.mutate({
+    const commonPayload = {
       member_id: client.member_id,
       trainer_id: Number(trainerId),
-      template_id: Number(templateId),
       start_date: startDate,
       weeks_duration: weeksDuration,
       confirm_trainer_change: Boolean(client.trainer_id && client.trainer_id !== Number(trainerId)),
-    }, { onSuccess: onClose })
+    }
+    assignment.mutate(sourceType === 'draft'
+      ? { ...commonPayload, source_type: 'draft', plan_id: sourceId }
+      : { ...commonPayload, source_type: 'template', template_id: sourceId }, { onSuccess: onClose })
+  }
+
+  const handleSourceChange = (value: string) => {
+    setSourceKey(value)
+    if (value.startsWith('draft:')) {
+      const draft = drafts.find((item) => item.id === Number(value.split(':')[1]))
+      if (draft) {
+        setStartDate(draft.start_date || localDateIso())
+        setWeeksDuration(draft.weeks_duration || 8)
+      }
+    }
   }
 
   return (
@@ -101,18 +134,22 @@ export function QuickRoutineAssignmentModal({ client, onClose }: QuickRoutineAss
             <div className="grid gap-3 sm:grid-cols-2">
               <Review icon={<UserRound size={18} />} label="Cliente" value={client.member_name} />
               <Review icon={<UserRound size={18} />} label="Entrenador" value={trainerName} />
-              <Review icon={<Dumbbell size={18} />} label="Plantilla" value={selectedTemplate?.nombre || 'Sin seleccionar'} />
+              <Review icon={<Dumbbell size={18} />} label={sourceType === 'draft' ? 'Plan borrador' : 'Plantilla'} value={selectedDraftDetail?.name || selectedTemplate?.nombre || 'Sin seleccionar'} />
               <Review icon={<Calendar size={18} />} label="Inicio y duración" value={`${formatDate(startDate)} · ${weeksDuration} semanas`} />
             </div>
             <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="font-semibold">Contenido que se publicará</p>
-                <Badge variant="info">{selectedTemplate?.dias.length ?? 0} día(s)</Badge>
+                <Badge variant="info">{sourceType === 'draft' ? selectedDraftDetail?.workout_days?.length ?? 0 : selectedTemplate?.dias.length ?? 0} día(s)</Badge>
               </div>
               <div className="mt-3 space-y-2 text-sm text-neutral-600 dark:text-neutral-300">
-                {(selectedTemplate?.dias ?? []).map((day) => (
-                  <p key={day.id}><strong>{day.nombre}:</strong> {day.ejercicios.map((exercise) => exercise.nombre).join(' · ')}</p>
-                ))}
+                {sourceType === 'draft'
+                  ? (selectedDraftDetail?.workout_days ?? []).map((day) => (
+                    <p key={day.id}><strong>{day.name}:</strong> {day.exercises?.map((exercise) => exercise.name).join(' · ') || 'Ejercicios configurados'}</p>
+                  ))
+                  : (selectedTemplate?.dias ?? []).map((day) => (
+                    <p key={day.id}><strong>{day.nombre}:</strong> {day.ejercicios.map((exercise) => exercise.nombre).join(' · ')}</p>
+                  ))}
               </div>
             </div>
             {client.trainer_id && client.trainer_id !== Number(trainerId) ? (
@@ -124,10 +161,17 @@ export function QuickRoutineAssignmentModal({ client, onClose }: QuickRoutineAss
         ) : (
           <div className="space-y-4 p-5">
             <label className="block space-y-1 text-sm">
-              <span className="font-medium">Plantilla</span>
-              <select className="input" value={templateId} onChange={(event) => setTemplateId(event.target.value)} data-testid="quick-routine-template">
-                <option value="">Selecciona una plantilla</option>
-                {templates.map((template) => <option key={template.id} value={template.id}>{template.nombre}</option>)}
+              <span className="font-medium">Plan o plantilla</span>
+              <select className="input" value={sourceKey} onChange={(event) => handleSourceChange(event.target.value)} data-testid="quick-routine-template">
+                <option value="">Selecciona una opción</option>
+                {drafts.length ? (
+                  <optgroup label="Planes borrador de este cliente">
+                    {drafts.map((draft) => <option key={`draft:${draft.id}`} value={`draft:${draft.id}`}>{draft.name}</option>)}
+                  </optgroup>
+                ) : null}
+                <optgroup label="Plantillas generales">
+                  {templates.map((template) => <option key={`template:${template.id}`} value={`template:${template.id}`}>{template.nombre}</option>)}
+                </optgroup>
               </select>
             </label>
             <label className="block space-y-1 text-sm">

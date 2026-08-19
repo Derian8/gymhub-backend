@@ -297,10 +297,12 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'], url_path='assign-template')
     def assign_template(self, request):
-        """Asignación operativa de una plantilla con publicación inmediata o programada."""
+        """Asigna una plantilla o publica un borrador del cliente."""
+        source_type = request.data.get('source_type', 'template')
         member_id = request.data.get('member_id')
         trainer_id = request.data.get('trainer_id')
         template_id = request.data.get('template_id')
+        draft_id = request.data.get('plan_id')
         weeks_duration = request.data.get('weeks_duration', 8)
         start_date_value = request.data.get('start_date')
 
@@ -309,8 +311,12 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
             errors['member_id'] = 'Este campo es requerido.'
         if not trainer_id:
             errors['trainer_id'] = 'Este campo es requerido.'
-        if not template_id:
+        if source_type not in {'template', 'draft'}:
+            errors['source_type'] = 'El origen debe ser template o draft.'
+        if source_type == 'template' and not template_id:
             errors['template_id'] = 'Este campo es requerido.'
+        if source_type == 'draft' and not draft_id:
+            errors['plan_id'] = 'Este campo es requerido.'
         try:
             weeks_duration = int(weeks_duration)
             if not 1 <= weeks_duration <= 52:
@@ -333,12 +339,22 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
             )
         except TrainerProfile.DoesNotExist as exc:
             raise ValidationError({'trainer_id': 'Entrenador activo no encontrado.'}) from exc
-        try:
-            template = PlantillaEntrenamiento.objects.prefetch_related(
-                'dias__ejercicios'
-            ).get(id=template_id, esta_activa=True)
-        except PlantillaEntrenamiento.DoesNotExist as exc:
-            raise ValidationError({'template_id': 'Plantilla activa no encontrada.'}) from exc
+        template = None
+        draft = None
+        if source_type == 'template':
+            try:
+                template = PlantillaEntrenamiento.objects.prefetch_related(
+                    'dias__ejercicios'
+                ).get(id=template_id, esta_activa=True)
+            except PlantillaEntrenamiento.DoesNotExist as exc:
+                raise ValidationError({'template_id': 'Plantilla activa no encontrada.'}) from exc
+        else:
+            try:
+                draft = TrainingPlan.objects.prefetch_related(
+                    'workout_days__exercises'
+                ).get(id=draft_id, member=member, status='draft')
+            except TrainingPlan.DoesNotExist as exc:
+                raise ValidationError({'plan_id': 'Borrador del cliente no encontrado.'}) from exc
 
         if not request.user.is_staff:
             own_trainer = _get_trainer_profile(request.user)
@@ -354,9 +370,14 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
             })
 
         assert_member_training_eligible(member)
-        template_days = list(template.dias.order_by('orden').prefetch_related('ejercicios'))
-        if not template_days or any(not list(day.ejercicios.all()) for day in template_days):
-            raise ValidationError({'template_id': 'La plantilla debe tener días y ejercicios completos.'})
+        if source_type == 'template':
+            source_days = list(template.dias.order_by('orden').prefetch_related('ejercicios'))
+            if not source_days or any(not list(day.ejercicios.all()) for day in source_days):
+                raise ValidationError({'template_id': 'La plantilla debe tener días y ejercicios completos.'})
+        else:
+            source_days = list(draft.workout_days.order_by('order').prefetch_related('exercises'))
+            if not source_days or any(not list(day.exercises.all()) for day in source_days):
+                raise ValidationError({'plan_id': 'El borrador debe tener días y ejercicios completos.'})
 
         today = timezone.localdate()
         active_plan = TrainingPlan.objects.filter(
@@ -396,43 +417,58 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                 TrainingPlan.objects.filter(member=member, status='active').update(
                     status='finished', is_active=False, finished_at=timezone.now(),
                 )
-            plan = TrainingPlan.objects.create(
-                member=member,
-                trainer=trainer,
-                name=f'{template.nombre} — {member.user.first_name or member.user.email}',
-                goal=template.objetivo,
-                start_date=start_date,
-                weeks_duration=weeks_duration,
-                days_per_week=template.dias_por_semana_sugeridos,
-                status=status_value,
-                is_active=status_value == 'active',
-                modo_ejecucion=template.modo_ejecucion,
-                publicado_en=timezone.now(),
-                publicado_por=request.user,
-            )
-            for template_day in template_days:
-                day = WorkoutDay.objects.create(
-                    plan=plan,
-                    name=template_day.nombre,
-                    day_label=template_day.etiqueta_dia,
-                    day_of_week=template_day.dia_semana if template.modo_ejecucion == 'weekly' else None,
-                    order=template_day.orden,
+            if source_type == 'draft':
+                plan = TrainingPlan.objects.select_for_update().get(pk=draft.id)
+                plan.trainer = trainer
+                plan.start_date = start_date
+                plan.end_date = start_date + timedelta(weeks=weeks_duration)
+                plan.weeks_duration = weeks_duration
+                plan.status = status_value
+                plan.is_active = status_value == 'active'
+                plan.publicado_en = timezone.now()
+                plan.publicado_por = request.user
+                plan.save(update_fields=[
+                    'trainer', 'start_date', 'end_date', 'weeks_duration',
+                    'status', 'is_active', 'publicado_en', 'publicado_por',
+                ])
+            else:
+                plan = TrainingPlan.objects.create(
+                    member=member,
+                    trainer=trainer,
+                    name=f'{template.nombre} — {member.user.first_name or member.user.email}',
+                    goal=template.objetivo,
+                    start_date=start_date,
+                    weeks_duration=weeks_duration,
+                    days_per_week=template.dias_por_semana_sugeridos,
+                    status=status_value,
+                    is_active=status_value == 'active',
+                    modo_ejecucion=template.modo_ejecucion,
+                    publicado_en=timezone.now(),
+                    publicado_por=request.user,
                 )
-                for template_exercise in template_day.ejercicios.order_by('orden'):
-                    Exercise.objects.create(
-                        workout_day=day,
-                        catalogo_ejercicio=template_exercise.catalogo_ejercicio,
-                        name=template_exercise.nombre,
-                        muscle_group=template_exercise.grupo_muscular,
-                        exercise_type=template_exercise.tipo_ejercicio,
-                        sets=template_exercise.series,
-                        reps_range=template_exercise.rango_repeticiones,
-                        target_minutes=template_exercise.minutos_objetivo,
-                        weight_suggestion_kg=template_exercise.peso_sugerido_kg,
-                        rest_seconds=template_exercise.descanso_segundos,
-                        technique_notes=template_exercise.notas_tecnicas,
-                        order=template_exercise.orden,
+                for template_day in source_days:
+                    day = WorkoutDay.objects.create(
+                        plan=plan,
+                        name=template_day.nombre,
+                        day_label=template_day.etiqueta_dia,
+                        day_of_week=template_day.dia_semana if template.modo_ejecucion == 'weekly' else None,
+                        order=template_day.orden,
                     )
+                    for template_exercise in template_day.ejercicios.order_by('orden'):
+                        Exercise.objects.create(
+                            workout_day=day,
+                            catalogo_ejercicio=template_exercise.catalogo_ejercicio,
+                            name=template_exercise.nombre,
+                            muscle_group=template_exercise.grupo_muscular,
+                            exercise_type=template_exercise.tipo_ejercicio,
+                            sets=template_exercise.series,
+                            reps_range=template_exercise.rango_repeticiones,
+                            target_minutes=template_exercise.minutos_objetivo,
+                            weight_suggestion_kg=template_exercise.peso_sugerido_kg,
+                            rest_seconds=template_exercise.descanso_segundos,
+                            technique_notes=template_exercise.notas_tecnicas,
+                            order=template_exercise.orden,
+                        )
         return Response(TrainingPlanSerializer(plan).data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['post'], url_path='create-complete')

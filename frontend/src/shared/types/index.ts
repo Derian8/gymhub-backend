@@ -306,14 +306,16 @@ export interface AdminRoutineQueueItem {
   days_until_end?: number
 }
 
-export interface QuickRoutineAssignmentPayload {
+export type QuickRoutineAssignmentPayload = {
   member_id: number
   trainer_id: number
-  template_id: number
   start_date: string
   weeks_duration: number
   confirm_trainer_change: boolean
-}
+} & (
+  | { source_type: 'template'; template_id: number }
+  | { source_type: 'draft'; plan_id: number }
+)
 
 export interface MemberDashboardSummary {
   payment_status: 'paid' | 'pending' | 'late' | null
