@@ -7,7 +7,6 @@ from django.db.models import Q, Case, When, IntegerField, Prefetch
 from django.utils import timezone
 from django.utils.text import slugify
 import secrets
-import string
 from rest_framework import status, viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.exceptions import MethodNotAllowed, PermissionDenied, ValidationError
@@ -304,12 +303,10 @@ class ChangePasswordView(APIView):
         return Response({'message': 'Contraseña actualizada correctamente.'})
 
 
-def _temporary_password():
-    alphabet = string.ascii_letters + string.digits + '!@#$%&*'
-    while True:
-        value = ''.join(secrets.choice(alphabet) for _ in range(16))
-        if any(c.islower() for c in value) and any(c.isupper() for c in value) and any(c.isdigit() for c in value):
-            return value
+def _temporary_password(display_name=''):
+    prefix = ''.join(character for character in display_name if character.isalnum())[:4].capitalize()
+    prefix = (prefix + 'Gym')[:4] or 'GymG'
+    return f'{prefix}-{secrets.randbelow(1_000_000):06d}'
 
 
 def _unique_username(email):
@@ -351,7 +348,7 @@ class MemberViewSet(viewsets.ModelViewSet):
         trainer = data['entrenador']
         plan = data.get('plan_membresia')
 
-        password = _temporary_password()
+        password = _temporary_password(data['nombres'])
         user = User.objects.create_user(
             email=data['correo_electronico'],
             username=_unique_username(data['correo_electronico']),
@@ -682,7 +679,7 @@ class MemberViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='temporary-password')
     def temporary_password(self, request, pk=None):
         member = self.get_object()
-        password = _temporary_password()
+        password = _temporary_password(member.user.first_name)
         member.user.set_password(password)
         member.user.requiere_cambio_contrasena = True
         member.user.is_active = True

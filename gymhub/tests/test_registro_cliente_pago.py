@@ -1,12 +1,22 @@
 from decimal import Decimal
+import re
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework import status
 
+from users.views import _temporary_password
+
 
 User = get_user_model()
+
+
+def test_temporary_password_is_simple_but_unique():
+    passwords = {_temporary_password('Ajmena') for _ in range(20)}
+
+    assert len(passwords) == 20
+    assert all(re.fullmatch(r'[A-Z][a-zA-Z0-9]{3}-\d{6}', password) for password in passwords)
 
 
 @pytest.mark.django_db
