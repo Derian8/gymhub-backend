@@ -167,8 +167,8 @@ export function NewMemberPage() {
           <Field label="Teléfono" required>
             <input className="input-base mt-2 w-full" required value={form.telefono} onChange={(event) => update('telefono', event.target.value)} />
           </Field>
-          <Field label="Fecha de nacimiento">
-            <input className="input-base mt-2 w-full" type="date" value={form.fecha_nacimiento} onChange={(event) => update('fecha_nacimiento', event.target.value)} />
+          <Field label="Fecha de nacimiento" required>
+            <input className="input-base mt-2 w-full" type="date" required value={form.fecha_nacimiento} onChange={(event) => update('fecha_nacimiento', event.target.value)} />
           </Field>
           <Field label="Contacto de emergencia">
             <input className="input-base mt-2 w-full" value={form.contacto_emergencia} onChange={(event) => update('contacto_emergencia', event.target.value)} />

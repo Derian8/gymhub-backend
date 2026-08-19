@@ -378,7 +378,7 @@ class AltaMiembroSerializer(serializers.Serializer):
     apellidos = serializers.CharField(max_length=150)
     correo_electronico = serializers.EmailField()
     telefono = serializers.CharField(max_length=20)
-    fecha_nacimiento = serializers.DateField(required=False, allow_null=True)
+    fecha_nacimiento = serializers.DateField(required=True, allow_null=False)
     contacto_emergencia = serializers.CharField(
         max_length=200,
         required=False,

@@ -303,10 +303,12 @@ class ChangePasswordView(APIView):
         return Response({'message': 'Contraseña actualizada correctamente.'})
 
 
-def _temporary_password(display_name=''):
-    prefix = ''.join(character for character in display_name if character.isalnum())[:4].capitalize()
-    prefix = (prefix + 'Gym')[:4] or 'GymG'
-    return f'{prefix}-{secrets.randbelow(1_000_000):06d}'
+def _temporary_password(last_name, birth_date):
+    first_surname = next((part for part in last_name.strip().split() if part), '')
+    first_surname = ''.join(character for character in first_surname if character.isalnum())
+    if not first_surname or not birth_date:
+        raise ValueError('El primer apellido y la fecha de nacimiento son obligatorios.')
+    return f'{first_surname}{birth_date.year}'
 
 
 def _unique_username(email):
@@ -348,7 +350,7 @@ class MemberViewSet(viewsets.ModelViewSet):
         trainer = data['entrenador']
         plan = data.get('plan_membresia')
 
-        password = _temporary_password(data['nombres'])
+        password = _temporary_password(data['apellidos'], data['fecha_nacimiento'])
         user = User.objects.create_user(
             email=data['correo_electronico'],
             username=_unique_username(data['correo_electronico']),
@@ -679,7 +681,10 @@ class MemberViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='temporary-password')
     def temporary_password(self, request, pk=None):
         member = self.get_object()
-        password = _temporary_password(member.user.first_name)
+        try:
+            password = _temporary_password(member.user.last_name, member.birth_date)
+        except ValueError as exc:
+            raise ValidationError({'fecha_nacimiento': str(exc)}) from exc
         member.user.set_password(password)
         member.user.requiere_cambio_contrasena = True
         member.user.is_active = True

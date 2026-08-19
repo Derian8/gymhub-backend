@@ -1,5 +1,5 @@
+from datetime import date
 from decimal import Decimal
-import re
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -12,11 +12,13 @@ from users.views import _temporary_password
 User = get_user_model()
 
 
-def test_temporary_password_is_simple_but_unique():
-    passwords = {_temporary_password('Ajmena') for _ in range(20)}
+def test_temporary_password_uses_first_surname_and_birth_year():
+    assert _temporary_password('Solano Pérez', date(1998, 4, 12)) == 'Solano1998'
 
-    assert len(passwords) == 20
-    assert all(re.fullmatch(r'[A-Z][a-zA-Z0-9]{3}-\d{6}', password) for password in passwords)
+
+def test_temporary_password_requires_surname_and_birth_date():
+    with pytest.raises(ValueError):
+        _temporary_password('Solano', None)
 
 
 @pytest.mark.django_db
@@ -29,6 +31,7 @@ class TestRegistroClientePago:
             'apellidos': 'Bloqueado',
             'correo_electronico': 'bloqueado@test.com',
             'telefono': '8000-0000',
+            'fecha_nacimiento': '1990-01-01',
             'entrenador': trainer_profile.id,
             'tipo_membresia': 'catalogo',
             'plan_membresia': membership_plan.id,
@@ -51,6 +54,7 @@ class TestRegistroClientePago:
                 'apellidos': 'Solano',
                 'correo_electronico': 'ana.solano@test.com',
                 'telefono': '8888-0000',
+                'fecha_nacimiento': '1990-01-01',
                 'entrenador': trainer_profile.id,
                 'tipo_membresia': 'catalogo',
                 'plan_membresia': membership_plan.id,
@@ -70,7 +74,7 @@ class TestRegistroClientePago:
         assert response.data['payment']['metodo_registrado'] == 'sinpe'
         assert response.data['payment']['payment_reference'] == 'SINPE-1001'
         assert response.data['receipt_url'].endswith('/receipt/')
-        assert response.data['contrasena_temporal']
+        assert response.data['contrasena_temporal'] == 'Solano1990'
 
         member = User.objects.get(email='ana.solano@test.com').memberprofile
         subscription = member.subscriptions.get()
@@ -100,6 +104,7 @@ class TestRegistroClientePago:
                 'apellidos': 'Mora',
                 'correo_electronico': 'luis.mora@test.com',
                 'telefono': '8777-0000',
+                'fecha_nacimiento': '1990-01-01',
                 'entrenador': trainer_profile.id,
                 'tipo_membresia': 'personalizada',
                 'nombre_membresia': 'Convenio estudiantil',
@@ -132,6 +137,7 @@ class TestRegistroClientePago:
                 'apellidos': 'Rojas',
                 'correo_electronico': 'carla.rojas@test.com',
                 'telefono': '8666-0000',
+                'fecha_nacimiento': '1990-01-01',
                 'entrenador': trainer_profile.id,
                 'tipo_membresia': 'catalogo',
                 'plan_membresia': membership_plan.id,
@@ -163,6 +169,7 @@ class TestRegistroClientePago:
                 'apellidos': 'Vargas',
                 'correo_electronico': 'mario.vargas@test.com',
                 'telefono': '8555-0000',
+                'fecha_nacimiento': '1990-01-01',
                 'entrenador': trainer_profile.id,
                 'tipo_membresia': 'catalogo',
                 'plan_membresia': membership_plan.id,
@@ -187,6 +194,7 @@ class TestRegistroClientePago:
                 'apellidos': 'Permitido',
                 'correo_electronico': 'no.permitido@test.com',
                 'telefono': '8444-0000',
+                'fecha_nacimiento': '1990-01-01',
                 'entrenador': trainer_profile.id,
                 'tipo_membresia': 'catalogo',
                 'plan_membresia': membership_plan.id,
@@ -208,6 +216,7 @@ class TestRegistroClientePago:
             'apellidos': 'Campos',
             'correo_electronico': 'eva.campos@test.com',
             'telefono': '8333-0000',
+            'fecha_nacimiento': '1990-01-01',
             'entrenador': trainer_profile.id,
             'tipo_membresia': 'catalogo',
             'plan_membresia': membership_plan.id,
@@ -236,6 +245,7 @@ class TestRegistroClientePago:
                 'apellidos': 'León',
                 'correo_electronico': 'sara.leon@test.com',
                 'telefono': '8222-0000',
+                'fecha_nacimiento': '1990-01-01',
                 'entrenador': trainer_profile.id,
                 'tipo_membresia': 'catalogo',
                 'plan_membresia': membership_plan.id,
