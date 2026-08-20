@@ -9,7 +9,7 @@ let draftDetail: Record<string, unknown> | undefined
 
 vi.mock('../hooks/usePlans', () => ({
   useTrainingTemplatesQuery: () => ({ data: { results: [{ id: 12, nombre: 'Base sencilla', dias: [{ id: 1, nombre: 'Día A', ejercicios: [{ id: 1, nombre: 'Sentadilla' }] }] }] } }),
-  usePlansQuery: () => ({ data: { results: draftResults } }),
+  useReusablePlanSourcesQuery: () => ({ data: { pages: [{ results: draftResults }] } }),
   usePlanDetailQuery: () => ({ data: draftDetail }),
   useQuickRoutineAssignmentMutation: () => ({ mutate, isPending: false }),
 }))

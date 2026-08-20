@@ -4,7 +4,7 @@ import { useMemberDetailQuery, useTrainersQuery } from '@/modules/members/hooks/
 import { Badge } from '@/shared/components/UI'
 import { formatDate } from '@/shared/lib/utils'
 import type { AdminRoutineQueueItem } from '@/shared/types'
-import { usePlanDetailQuery, usePlansQuery, useQuickRoutineAssignmentMutation, useTrainingTemplatesQuery } from '../hooks/usePlans'
+import { usePlanDetailQuery, useQuickRoutineAssignmentMutation, useReusablePlanSourcesQuery, useTrainingTemplatesQuery } from '../hooks/usePlans'
 import { TrainingPlanWizard } from './TrainingPlanWizard'
 
 interface QuickRoutineAssignmentModalProps {
@@ -25,7 +25,8 @@ function nextDate(dateIso?: string) {
 }
 
 const PLAN_STATUS_LABELS: Record<string, string> = {
-  draft: 'Borradores de este cliente',
+  draft: 'Borradores',
+  active: 'Planes activos',
   scheduled: 'Planes programados',
   finished: 'Planes finalizados',
   archived: 'Planes archivados',
@@ -33,7 +34,7 @@ const PLAN_STATUS_LABELS: Record<string, string> = {
 
 export function QuickRoutineAssignmentModal({ client, onClose }: QuickRoutineAssignmentModalProps) {
   const templatesQuery = useTrainingTemplatesQuery(Boolean(client))
-  const plansQuery = usePlansQuery(client ? { status: 'all' } : undefined)
+  const plansQuery = useReusablePlanSourcesQuery(Boolean(client))
   const memberDetailQuery = useMemberDetailQuery(client?.member_id ?? 0)
   const trainersQuery = useTrainersQuery(Boolean(client))
   const assignment = useQuickRoutineAssignmentMutation()
@@ -45,9 +46,7 @@ export function QuickRoutineAssignmentModal({ client, onClose }: QuickRoutineAss
   const [createFromScratch, setCreateFromScratch] = useState(false)
 
   const templates = templatesQuery.data?.results ?? []
-  const reusablePlans = (plansQuery.data?.results ?? []).filter((plan) => (
-    plan.status !== 'active' && (plan.status !== 'draft' || plan.member === client?.member_id)
-  ))
+  const reusablePlans = plansQuery.data?.pages.flatMap((page) => page.results) ?? []
   const trainers = trainersQuery.data ?? []
   const sourceType = sourceKey.startsWith('draft:')
     ? 'draft'
@@ -84,7 +83,7 @@ export function QuickRoutineAssignmentModal({ client, onClose }: QuickRoutineAss
 
   useEffect(() => {
     if (client && !sourceKey) {
-      const firstDraft = reusablePlans.find((plan) => plan.status === 'draft')
+      const firstDraft = reusablePlans.find((plan) => plan.status === 'draft' && plan.member === client.member_id)
       if (firstDraft) setSourceKey(`draft:${firstDraft.id}`)
       else if (reusablePlans.length) setSourceKey(`plan:${reusablePlans[0].id}`)
       else if (templates.length) setSourceKey(`template:${templates[0].id}`)
@@ -188,21 +187,23 @@ export function QuickRoutineAssignmentModal({ client, onClose }: QuickRoutineAss
               <span className="font-medium">Plan o plantilla</span>
               <select className="input" value={sourceKey} onChange={(event) => handleSourceChange(event.target.value)} data-testid="quick-routine-template">
                 <option value="">Selecciona una opción</option>
-                {(() => {
-                  const drafts = reusablePlans.filter((plan) => plan.status === 'draft')
-                  return drafts.length ? (
-                    <optgroup label={PLAN_STATUS_LABELS.draft}>
-                      {drafts.map((plan) => <option key={`draft:${plan.id}`} value={`draft:${plan.id}`}>{plan.name}</option>)}
+                {(['draft', 'active', 'scheduled', 'finished', 'archived'] as const).map((status) => {
+                  const statusPlans = reusablePlans.filter((plan) => plan.status === status)
+                  if (!statusPlans.length) return null
+                  return (
+                    <optgroup key={status} label={PLAN_STATUS_LABELS[status]}>
+                      {statusPlans.map((plan) => {
+                        const isOwnDraft = status === 'draft' && plan.member === client.member_id
+                        const sourcePrefix = isOwnDraft ? 'draft' : 'plan'
+                        return (
+                          <option key={`${sourcePrefix}:${plan.id}`} value={`${sourcePrefix}:${plan.id}`}>
+                            {plan.name}{plan.member_name ? ` · ${plan.member_name}` : ''}
+                          </option>
+                        )
+                      })}
                     </optgroup>
-                  ) : null
-                })()}
-                <optgroup label="Planes reutilizables">
-                  {reusablePlans.filter((plan) => plan.status !== 'draft').map((plan) => (
-                    <option key={`plan:${plan.id}`} value={`plan:${plan.id}`}>
-                      {plan.name}{plan.member_name ? ` · ${plan.member_name}` : ''}
-                    </option>
-                  ))}
-                </optgroup>
+                  )
+                })}
                 <optgroup label="Plantillas generales">
                   {templates.map((template) => <option key={`template:${template.id}`} value={`template:${template.id}`}>{template.nombre}</option>)}
                 </optgroup>

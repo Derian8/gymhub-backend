@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { plansApi } from '../api/plansApi'
 import { QUERY_KEYS } from '@/shared/constants/queryKeys'
@@ -10,6 +10,20 @@ export function usePlansQuery(params?: Record<string, string>) {
   return useQuery({
     queryKey: QUERY_KEYS.PLANS_LIST(params),
     queryFn: () => plansApi.list(params),
+  })
+}
+
+export function useReusablePlanSourcesQuery(enabled = true) {
+  return useInfiniteQuery({
+    queryKey: [...QUERY_KEYS.PLANS, 'reusable-sources'],
+    queryFn: ({ pageParam }) => plansApi.reusableSources(pageParam),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (!lastPage.next) return undefined
+      const page = lastPage.next.match(/[?&]page=(\d+)/)?.[1]
+      return page ? Number(page) : undefined
+    },
+    enabled,
   })
 }
 

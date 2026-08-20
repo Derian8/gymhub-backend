@@ -129,6 +129,30 @@ class TestAdminDashboardOperations:
 
 @pytest.mark.django_db
 class TestQuickRoutineAssignment:
+    def test_admin_lists_all_plan_statuses_as_reusable_sources(
+        self, admin_client, member_profile, trainer_profile,
+    ):
+        from plans.models import TrainingPlan
+
+        statuses = ('draft', 'active', 'scheduled', 'finished', 'archived')
+        plans = [TrainingPlan.objects.create(
+            member=member_profile,
+            trainer=trainer_profile,
+            name=f'Fuente {plan_status}',
+            goal='general',
+            start_date=date.today(),
+            weeks_duration=8,
+            days_per_week=3,
+            status=plan_status,
+            is_active=plan_status == 'active',
+        ) for plan_status in statuses]
+
+        response = admin_client.get('/api/plans/reusable-sources/?page=1')
+
+        assert response.status_code == status.HTTP_200_OK
+        returned_ids = {item['id'] for item in response.data['results']}
+        assert {plan.id for plan in plans}.issubset(returned_ids)
+
     def test_admin_publishes_existing_client_draft_without_copying_it(
         self, admin_client, member_profile, trainer_profile, membership_plan,
     ):

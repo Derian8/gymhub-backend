@@ -295,6 +295,21 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
             'members_without_active_plan': members_qs.exclude(id__in=active_member_ids).count(),
         })
 
+    @action(detail=False, methods=['get'], url_path='reusable-sources')
+    def reusable_sources(self, request):
+        """Lista todos los planes visibles que pueden reutilizarse como fuente."""
+        queryset = TrainingPlan.objects.select_related(
+            'member__user', 'trainer__user',
+        ).prefetch_related('workout_days').order_by('-id')
+        if not request.user.is_staff:
+            if not tiene_perfil_entrenador(request.user):
+                return Response({'count': 0, 'next': None, 'previous': None, 'results': []})
+            queryset = queryset.filter(member__trainer_asignado=_get_trainer_profile(request.user))
+
+        page = self.paginate_queryset(queryset)
+        serializer = self.get_serializer(page, many=True)
+        return self.get_paginated_response(serializer.data)
+
     @action(detail=False, methods=['post'], url_path='assign-template')
     def assign_template(self, request):
         """Asigna una plantilla o publica un borrador del cliente."""
@@ -362,7 +377,7 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                     'member__trainer_asignado',
                 ).prefetch_related(
                     'workout_days__exercises'
-                ).get(id=plan_id, status__in={'scheduled', 'finished', 'archived'})
+                ).get(id=plan_id)
             except TrainingPlan.DoesNotExist as exc:
                 raise ValidationError({'plan_id': 'Plan reutilizable del cliente no encontrado.'}) from exc
 

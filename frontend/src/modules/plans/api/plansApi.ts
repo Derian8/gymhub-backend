@@ -29,6 +29,11 @@ export const plansApi = {
     return data
   },
 
+  reusableSources: async (page = 1): Promise<PaginatedResponse<TrainingPlan>> => {
+    const { data } = await apiClient.get('/api/plans/reusable-sources/', { params: { page } })
+    return data
+  },
+
   detail: async (id: number): Promise<TrainingPlan> => {
     const { data } = await apiClient.get(`/api/plans/${id}/`)
     return data
