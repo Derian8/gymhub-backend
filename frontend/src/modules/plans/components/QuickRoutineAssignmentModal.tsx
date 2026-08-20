@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Calendar, Dumbbell, UserRound, X } from 'lucide-react'
-import { useTrainersQuery } from '@/modules/members/hooks/useMembers'
+import { useMemberDetailQuery, useTrainersQuery } from '@/modules/members/hooks/useMembers'
 import { Badge } from '@/shared/components/UI'
 import { formatDate } from '@/shared/lib/utils'
 import type { AdminRoutineQueueItem } from '@/shared/types'
 import { usePlanDetailQuery, usePlansQuery, useQuickRoutineAssignmentMutation, useTrainingTemplatesQuery } from '../hooks/usePlans'
+import { TrainingPlanWizard } from './TrainingPlanWizard'
 
 interface QuickRoutineAssignmentModalProps {
   client: AdminRoutineQueueItem | null
@@ -32,7 +33,8 @@ const PLAN_STATUS_LABELS: Record<string, string> = {
 
 export function QuickRoutineAssignmentModal({ client, onClose }: QuickRoutineAssignmentModalProps) {
   const templatesQuery = useTrainingTemplatesQuery(Boolean(client))
-  const plansQuery = usePlansQuery(client ? { member: String(client.member_id), status: 'all' } : undefined)
+  const plansQuery = usePlansQuery(client ? { status: 'all' } : undefined)
+  const memberDetailQuery = useMemberDetailQuery(client?.member_id ?? 0)
   const trainersQuery = useTrainersQuery(Boolean(client))
   const assignment = useQuickRoutineAssignmentMutation()
   const [sourceKey, setSourceKey] = useState('')
@@ -40,9 +42,12 @@ export function QuickRoutineAssignmentModal({ client, onClose }: QuickRoutineAss
   const [startDate, setStartDate] = useState(localDateIso())
   const [weeksDuration, setWeeksDuration] = useState(8)
   const [preview, setPreview] = useState(false)
+  const [createFromScratch, setCreateFromScratch] = useState(false)
 
   const templates = templatesQuery.data?.results ?? []
-  const reusablePlans = (plansQuery.data?.results ?? []).filter((plan) => plan.status !== 'active')
+  const reusablePlans = (plansQuery.data?.results ?? []).filter((plan) => (
+    plan.status !== 'active' && (plan.status !== 'draft' || plan.member === client?.member_id)
+  ))
   const trainers = trainersQuery.data ?? []
   const sourceType = sourceKey.startsWith('draft:')
     ? 'draft'
@@ -74,6 +79,7 @@ export function QuickRoutineAssignmentModal({ client, onClose }: QuickRoutineAss
     setStartDate(nextDate(client.end_date))
     setWeeksDuration(8)
     setPreview(false)
+    setCreateFromScratch(false)
   }, [client])
 
   useEffect(() => {
@@ -131,6 +137,7 @@ export function QuickRoutineAssignmentModal({ client, onClose }: QuickRoutineAss
   }
 
   return (
+    <>
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4" role="dialog" aria-modal="true" aria-label="Asignar rutina rápida">
       <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-neutral-200 bg-white shadow-2xl dark:border-neutral-800 dark:bg-neutral-950">
         <div className="flex items-start justify-between border-b border-neutral-200 p-5 dark:border-neutral-800">
@@ -181,15 +188,21 @@ export function QuickRoutineAssignmentModal({ client, onClose }: QuickRoutineAss
               <span className="font-medium">Plan o plantilla</span>
               <select className="input" value={sourceKey} onChange={(event) => handleSourceChange(event.target.value)} data-testid="quick-routine-template">
                 <option value="">Selecciona una opción</option>
-                {(['draft', 'scheduled', 'finished', 'archived'] as const).map((status) => {
-                  const statusPlans = reusablePlans.filter((plan) => plan.status === status)
-                  if (!statusPlans.length) return null
-                  return (
-                    <optgroup key={status} label={PLAN_STATUS_LABELS[status]}>
-                      {statusPlans.map((plan) => <option key={`${status === 'draft' ? 'draft' : 'plan'}:${plan.id}`} value={`${status === 'draft' ? 'draft' : 'plan'}:${plan.id}`}>{plan.name}</option>)}
+                {(() => {
+                  const drafts = reusablePlans.filter((plan) => plan.status === 'draft')
+                  return drafts.length ? (
+                    <optgroup label={PLAN_STATUS_LABELS.draft}>
+                      {drafts.map((plan) => <option key={`draft:${plan.id}`} value={`draft:${plan.id}`}>{plan.name}</option>)}
                     </optgroup>
-                  )
-                })}
+                  ) : null
+                })()}
+                <optgroup label="Planes reutilizables">
+                  {reusablePlans.filter((plan) => plan.status !== 'draft').map((plan) => (
+                    <option key={`plan:${plan.id}`} value={`plan:${plan.id}`}>
+                      {plan.name}{plan.member_name ? ` · ${plan.member_name}` : ''}
+                    </option>
+                  ))}
+                </optgroup>
                 <optgroup label="Plantillas generales">
                   {templates.map((template) => <option key={`template:${template.id}`} value={`template:${template.id}`}>{template.nombre}</option>)}
                 </optgroup>
@@ -218,6 +231,17 @@ export function QuickRoutineAssignmentModal({ client, onClose }: QuickRoutineAss
         )}
 
         <div className="flex flex-wrap justify-end gap-3 border-t border-neutral-200 p-5 dark:border-neutral-800">
+          {!preview ? (
+            <button
+              type="button"
+              className="btn-secondary mr-auto"
+              onClick={() => setCreateFromScratch(true)}
+              disabled={memberDetailQuery.isLoading || !memberDetailQuery.data}
+              data-testid="quick-routine-create-from-scratch"
+            >
+              Crear plan desde cero
+            </button>
+          ) : null}
           {preview ? <button type="button" className="btn-secondary" onClick={() => setPreview(false)}>Editar</button> : null}
           <button type="button" className="btn-secondary" onClick={onClose}>Cancelar</button>
           {!client.can_publish ? (
@@ -232,6 +256,14 @@ export function QuickRoutineAssignmentModal({ client, onClose }: QuickRoutineAss
         </div>
       </div>
     </div>
+    {createFromScratch && memberDetailQuery.data ? (
+      <TrainingPlanWizard
+        open
+        preselectedMember={memberDetailQuery.data}
+        onClose={() => setCreateFromScratch(false)}
+      />
+    ) : null}
+    </>
   )
 }
 

@@ -225,6 +225,72 @@ class TestQuickRoutineAssignment:
         assert source.status == 'finished'
         assert copied.workout_days.first().exercises.first().name == 'Press histórico'
 
+    def test_admin_copies_finished_plan_from_another_client(
+        self, admin_client, member_profile, trainer_profile, membership_plan,
+    ):
+        from django.contrib.auth import get_user_model
+        from plans.models import Exercise, TrainingPlan, WorkoutDay
+        from users.models import MemberProfile
+
+        User = get_user_model()
+        target_user = User.objects.create_user(
+            username='target_client',
+            email='target-client@test.com',
+            password='member123!',
+            role='member',
+            first_name='Cliente',
+            last_name='Destino',
+        )
+        target = MemberProfile.objects.create(
+            user=target_user,
+            trainer_asignado=trainer_profile,
+            membership_plan=membership_plan,
+            is_active=True,
+        )
+        crear_suscripcion_vigente(member_profile, trainer_profile, membership_plan)
+        crear_suscripcion_vigente(target, trainer_profile, membership_plan)
+        source = TrainingPlan.objects.create(
+            member=member_profile,
+            trainer=trainer_profile,
+            name='Plan de otro cliente',
+            goal='endurance',
+            start_date=date.today() - timedelta(weeks=8),
+            weeks_duration=8,
+            days_per_week=3,
+            status='finished',
+            is_active=False,
+        )
+        day = WorkoutDay.objects.create(plan=source, name='Día compartible', day_label='A', order=0)
+        Exercise.objects.create(
+            workout_day=day,
+            name='Circuito base',
+            muscle_group='full_body',
+            sets=3,
+            reps_range='10-12',
+            rest_seconds=60,
+            order=0,
+        )
+
+        response = admin_client.post('/api/plans/assign-template/', {
+            'source_type': 'plan',
+            'plan_id': source.id,
+            'member_id': target.id,
+            'trainer_id': trainer_profile.id,
+            'start_date': date.today().isoformat(),
+            'weeks_duration': 8,
+            'confirm_trainer_change': False,
+        }, format='json')
+
+        assert response.status_code == status.HTTP_201_CREATED
+        copied = TrainingPlan.objects.get(id=response.data['id'])
+        assert copied.member_id == target.id
+        assert copied.trainer_id == trainer_profile.id
+        assert copied.plan_origen_id == source.id
+        assert copied.goal == source.goal
+        assert copied.workout_days.first().exercises.first().name == 'Circuito base'
+        source.refresh_from_db()
+        assert source.status == 'finished'
+
     def test_admin_publishes_template_for_client_without_routine(
         self, admin_client, member_profile, trainer_profile, membership_plan,
     ):

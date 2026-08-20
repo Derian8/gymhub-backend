@@ -15,7 +15,12 @@ vi.mock('../hooks/usePlans', () => ({
 }))
 
 vi.mock('@/modules/members/hooks/useMembers', () => ({
+  useMemberDetailQuery: () => ({ data: { id: 7, full_name: 'Carlos Cliente', user: {}, trainer_asignado: 3 }, isLoading: false }),
   useTrainersQuery: () => ({ data: [{ id: 3, user: { first_name: 'Laura', last_name: 'Trainer', email: 'laura@test.com' } }] }),
+}))
+
+vi.mock('./TrainingPlanWizard', () => ({
+  TrainingPlanWizard: () => <div data-testid="training-plan-wizard" />,
 }))
 
 afterEach(() => { cleanup(); mutate.mockReset(); draftResults = []; draftDetail = undefined })
@@ -108,5 +113,17 @@ describe('QuickRoutineAssignmentModal', () => {
       source_type: 'plan',
       plan_id: 55,
     }), expect.objectContaining({ onSuccess: onClose }))
+  })
+
+  it('opens the complete wizard for a plan created from scratch', () => {
+    const view = renderWithProviders(
+      <QuickRoutineAssignmentModal
+        client={{ member_id: 7, member_name: 'Carlos Cliente', trainer_id: 3, trainer_name: 'Laura Trainer', can_publish: true }}
+        onClose={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(view.getByTestId('quick-routine-create-from-scratch'))
+    expect(view.getByTestId('training-plan-wizard')).toBeInTheDocument()
   })
 })

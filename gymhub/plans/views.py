@@ -358,13 +358,11 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                 raise ValidationError({'plan_id': 'Borrador del cliente no encontrado.'}) from exc
         else:
             try:
-                source_plan = TrainingPlan.objects.prefetch_related(
+                source_plan = TrainingPlan.objects.select_related(
+                    'member__trainer_asignado',
+                ).prefetch_related(
                     'workout_days__exercises'
-                ).get(
-                    id=plan_id,
-                    member=member,
-                    status__in={'scheduled', 'finished', 'archived'},
-                )
+                ).get(id=plan_id, status__in={'scheduled', 'finished', 'archived'})
             except TrainingPlan.DoesNotExist as exc:
                 raise ValidationError({'plan_id': 'Plan reutilizable del cliente no encontrado.'}) from exc
 
@@ -372,6 +370,8 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
             own_trainer = _get_trainer_profile(request.user)
             if trainer.id != own_trainer.id or member.trainer_asignado_id != own_trainer.id:
                 raise PermissionDenied('Solo puedes asignar planes a tus clientes.')
+            if source_type == 'plan' and source_plan.member.trainer_asignado_id != own_trainer.id:
+                raise PermissionDenied('Solo puedes reutilizar planes de tus clientes.')
         elif (
             member.trainer_asignado_id
             and member.trainer_asignado_id != trainer.id
@@ -448,7 +448,7 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                     'status', 'is_active', 'publicado_en', 'publicado_por',
                 ])
             elif source_type == 'plan':
-                if source_plan.status == 'scheduled':
+                if source_plan.status == 'scheduled' and source_plan.member_id == member.id:
                     source_plan.status = 'archived'
                     source_plan.is_active = False
                     source_plan.archived_at = timezone.now()
@@ -465,7 +465,7 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                     is_active=status_value == 'active',
                     level=source_plan.level,
                     notes=source_plan.notes,
-                    numero_version=source_plan.numero_version + 1,
+                    numero_version=(TrainingPlan.objects.filter(member=member).order_by('-numero_version', '-id').values_list('numero_version', flat=True).first() or 0) + 1,
                     plan_origen=source_plan,
                     modo_ejecucion=source_plan.modo_ejecucion,
                     indice_bloque_actual=source_plan.indice_bloque_actual,
