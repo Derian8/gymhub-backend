@@ -126,7 +126,7 @@ export function ProgressPage() {
               <XAxis dataKey="date" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip />
-              <Line type="monotone" dataKey="peso" stroke="#FF3B30" name="Peso (kg)" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="peso" stroke="#FF9500" name="Peso (kg)" strokeWidth={2} dot={{ r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>

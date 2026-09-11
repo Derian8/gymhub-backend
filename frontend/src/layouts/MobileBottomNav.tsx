@@ -107,7 +107,7 @@ export function MobileBottomNav() {
   return (
     <>
       <nav
-        className="mobile-bottom-nav fixed inset-x-3 bottom-3 z-40 flex items-center gap-1 rounded-[1.6rem] border border-neutral-200/80 bg-white/95 p-2 shadow-[0_18px_50px_rgba(15,23,42,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-[#172236]/95 dark:shadow-[0_18px_50px_rgba(0,0,0,0.45)] md:hidden"
+        className="mobile-bottom-nav fixed inset-x-3 bottom-3 z-40 flex items-center gap-1 rounded-[1.6rem] border border-neutral-200/80 bg-white/95 p-2 shadow-[0_18px_50px_rgba(15,23,42,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-neutral-950/95 dark:shadow-[0_18px_50px_rgba(0,0,0,0.55)] md:hidden"
         aria-label="Navegación principal móvil"
         data-testid="mobile-bottom-nav"
       >
@@ -141,7 +141,7 @@ export function MobileBottomNav() {
             onClick={() => setMoreOpen(false)}
           />
           <section
-            className="mobile-more-sheet absolute inset-x-0 bottom-0 rounded-t-[2rem] border-t border-neutral-200 bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-[0_-20px_60px_rgba(15,23,42,0.2)] dark:border-white/10 dark:bg-[#111a2b] dark:shadow-[0_-20px_60px_rgba(0,0,0,0.5)]"
+            className="mobile-more-sheet absolute inset-x-0 bottom-0 rounded-t-[2rem] border-t border-neutral-200 bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-[0_-20px_60px_rgba(15,23,42,0.2)] dark:border-white/10 dark:bg-neutral-950 dark:shadow-[0_-20px_60px_rgba(0,0,0,0.6)]"
             role="dialog"
             aria-modal="true"
             aria-label="Más opciones"

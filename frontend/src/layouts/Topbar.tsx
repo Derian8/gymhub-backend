@@ -28,7 +28,7 @@ export function Topbar({ onMenuClick, sidebarCollapsed }: TopbarProps) {
       data-testid="topbar"
       className={cn(
         'fixed top-0 right-0 h-16 z-30 flex items-center justify-between px-4 gap-4',
-        'bg-white/85 dark:bg-[#0b1120]/85 backdrop-blur-xl border-b border-neutral-200 dark:border-white/10',
+        'bg-white/85 dark:bg-neutral-950/85 backdrop-blur-xl border-b border-neutral-200 dark:border-white/10',
         'transition-all duration-300',
         'left-0',
         sidebarCollapsed ? 'lg:left-16' : 'lg:left-64',
