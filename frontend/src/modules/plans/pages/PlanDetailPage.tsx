@@ -32,7 +32,8 @@ export function PlanDetailPage() {
   const { data: dashboardSummary } = useMemberDashboardQuery(isMember ? user?.memberprofile_id || 0 : 0)
   const deletePlan = useDeletePlanMutation()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const canDelete = !!user && (currentContext === 'instructor' || user.is_staff)
+  const canManagePlan = !!user && (currentContext === 'instructor' || user.is_staff)
+  const canEdit = canManagePlan && (plan?.status === 'active' || plan?.status === 'draft')
 
   useEffect(() => {
     if (deletePlan.isSuccess) {
@@ -71,7 +72,7 @@ export function PlanDetailPage() {
         subtitle={isMember ? 'Así se ve el plan completo que tu trainer publicó para ti.' : GOAL_LABELS[plan.goal] || plan.goal}
         action={
           <div className="flex flex-wrap items-center gap-3">
-            {canDelete && (
+            {canManagePlan && (
               <button
                 type="button"
                 className="btn-danger"
@@ -80,6 +81,15 @@ export function PlanDetailPage() {
               >
                 Borrar plan
               </button>
+            )}
+            {canEdit && (
+              <Link
+                to={`/plans/${plan.id}/edit`}
+                className="btn-secondary"
+                data-testid="edit-plan-btn"
+              >
+                Editar rutina
+              </Link>
             )}
             <Link
               to={`/plans/${plan.id}/today`}

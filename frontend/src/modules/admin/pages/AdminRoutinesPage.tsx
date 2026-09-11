@@ -40,7 +40,7 @@ export function AdminRoutinesPage() {
                   <p className="font-semibold">{plan.member_name || 'Cliente'} · {plan.name}</p>
                   <p className="text-xs text-neutral-500">Finaliza {plan.end_date ? formatDate(plan.end_date) : 'sin fecha'} · {plan.days_per_week} días/semana</p>
                 </div>
-                <div className="flex items-center gap-2"><Badge variant="success">Activa</Badge><Link className="btn-secondary text-sm" to={`/members/${plan.member}`}>Ver cliente</Link></div>
+                <div className="flex items-center gap-2"><Badge variant="success">Activa</Badge><Link className="btn-secondary text-sm" to={`/plans/${plan.id}/edit`}>Editar rutina</Link><Link className="btn-secondary text-sm" to={`/members/${plan.member}`}>Ver cliente</Link></div>
               </div>
             )) : <p className="py-8 text-center text-sm text-neutral-500">No hay rutinas activas.</p>}
           </div>

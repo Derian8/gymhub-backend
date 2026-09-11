@@ -7,6 +7,7 @@ import { CardSkeleton } from '@/shared/components/Skeleton'
 import { SymbolFrame } from '@/shared/components/Brand'
 import { DAY_OF_WEEK_LABELS, MUSCLE_LABELS } from '@/shared/lib/utils'
 import type { Exercise, WorkoutDay } from '@/shared/types'
+import { getResolvedContext, useAuthStore } from '@/shared/store/authStore'
 
 function formatExercisePrescription(exercise: Exercise) {
   if (exercise.exercise_type === 'timed') {
@@ -46,6 +47,10 @@ export function WorkoutDayDetailPage() {
   const dayId = Number(dayIdParam || 0)
   const { data: plan, isLoading: isPlanLoading } = usePlanDetailQuery(planId)
   const { data: day, isLoading: isDayLoading, isError } = useWorkoutDayDetailQuery(dayId)
+  const { user, activeContext } = useAuthStore()
+  const currentContext = getResolvedContext(user, activeContext)
+  const canEdit = !!plan && (plan.status === 'active' || plan.status === 'draft')
+    && (currentContext === 'instructor' || currentContext === 'admin' || !!user?.is_staff)
 
   if (isPlanLoading || isDayLoading) {
     return (
@@ -85,7 +90,16 @@ export function WorkoutDayDetailPage() {
       <PageHeader
         title={`${DAY_OF_WEEK_LABELS[day.day_of_week]} · ${day.name}`}
         subtitle={plan ? `Plan: ${plan.name}` : `Día ${day.day_label}`}
-        action={<Badge variant="info">Día {day.day_label}</Badge>}
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            {canEdit ? (
+              <Link to={`/plans/${day.plan}/edit`} className="btn-secondary" data-testid="edit-workout-day-btn">
+                Editar rutina
+              </Link>
+            ) : null}
+            <Badge variant="info">Día {day.day_label}</Badge>
+          </div>
+        }
       />
 
       <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">

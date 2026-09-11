@@ -17,6 +17,10 @@ vi.mock('@/modules/members/pages/TrainerProgramPage', () => ({
 }))
 
 vi.mock('../hooks/usePlans', () => ({
+  useCreatePlanRevisionMutation: () => ({
+    isPending: false,
+    mutate: vi.fn(),
+  }),
   usePlanDetailQuery: () => ({
     data: {
       id: 12,
