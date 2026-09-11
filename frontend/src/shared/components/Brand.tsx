@@ -25,7 +25,7 @@ export function BrandMark({ size = 'md', className }: BrandMarkProps) {
       <div className="absolute inset-[2px] rounded-[0.75rem] bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-950 dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-950" />
       <div className="absolute -right-1 top-1 h-4 w-4 rounded-full bg-primary/85 blur-[2px]" />
       <div className="relative flex items-center gap-1.5">
-        <span className="block h-4 w-1.5 rounded-full bg-primary shadow-[0_0_14px_rgba(255,149,0,0.45)]" />
+        <span className="block h-4 w-1.5 rounded-full bg-primary shadow-[0_0_14px_rgba(255,59,48,0.4)]" />
         <span className="block h-3 w-1.5 rounded-full bg-white/95" />
       </div>
     </div>
