@@ -4,7 +4,7 @@ import { getAvailableProfiles, useAuthStore } from '@/shared/store/authStore'
 import { homePathForUser } from '@/shared/components/RouteGuards'
 import type { PerfilUsuario } from '@/shared/types'
 import { cn } from '@/shared/lib/utils'
-import { BrandMark, SymbolFrame } from '@/shared/components/Brand'
+import { BrandMark, BrandWordmark, SymbolFrame } from '@/shared/components/Brand'
 import { ThemeToggle } from '@/shared/components/ThemeToggle'
 
 interface TopbarProps {
@@ -28,21 +28,25 @@ export function Topbar({ onMenuClick, sidebarCollapsed }: TopbarProps) {
       data-testid="topbar"
       className={cn(
         'fixed top-0 right-0 h-16 z-30 flex items-center justify-between px-4 gap-4',
-        'bg-white/80 dark:bg-neutral-950/80 backdrop-blur-xl border-b border-neutral-200 dark:border-white/10',
+        'bg-white/85 dark:bg-[#0b1120]/85 backdrop-blur-xl border-b border-neutral-200 dark:border-white/10',
         'transition-all duration-300',
         'left-0',
         sidebarCollapsed ? 'lg:left-16' : 'lg:left-64',
       )}
     >
-      {/* Left: hamburger (mobile) */}
+      <div className="sm:hidden">
+        <BrandWordmark compact />
+      </div>
+
+      {/* Kept for compatibility with the drawer flow; the mobile bottom navigation is the primary entry point. */}
       <button
         onClick={onMenuClick}
-        className="lg:hidden text-neutral-500"
+        className="hidden"
         data-testid="topbar-menu"
+        aria-hidden="true"
+        tabIndex={-1}
       >
-        <SymbolFrame size="sm" className="rounded-xl">
-          <Menu size={18} />
-        </SymbolFrame>
+        <Menu size={18} />
       </button>
 
       {/* Search (desktop) */}

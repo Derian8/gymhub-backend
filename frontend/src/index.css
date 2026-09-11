@@ -16,14 +16,14 @@
   }
 
   .dark {
-    --background: 10 10 10;
+    --background: 11 17 32;
     --foreground: 250 250 250;
-    --card: 18 18 18;
+    --card: 23 34 54;
     --card-foreground: 250 250 250;
-    --border: 38 38 38;
-    --input: 38 38 38;
+    --border: 45 61 84;
+    --input: 45 61 84;
     --ring: 255 59 48;
-    --muted: 23 23 23;
+    --muted: 18 28 45;
     --muted-foreground: 163 163 163;
   }
 
@@ -43,7 +43,7 @@
 
 @layer components {
   .card-dark {
-    @apply bg-neutral-900/50 border border-white/10 backdrop-blur-md rounded-lg;
+    @apply bg-[#172236]/80 border border-white/10 backdrop-blur-md rounded-[1.35rem] shadow-[0_18px_45px_rgba(0,0,0,0.16)];
   }
 
   .card-light {
@@ -51,7 +51,7 @@
   }
 
   .card {
-    @apply bg-white dark:bg-neutral-900/50 border border-neutral-200 dark:border-white/10 shadow-sm dark:shadow-none backdrop-blur-md rounded-[1.25rem];
+    @apply bg-white dark:bg-[#172236]/80 border border-neutral-200 dark:border-white/10 shadow-sm dark:shadow-[0_18px_45px_rgba(0,0,0,0.14)] backdrop-blur-md rounded-[1.35rem];
   }
 
   .input-base {
@@ -83,7 +83,7 @@
   }
 
   .btn-primary {
-    @apply bg-primary text-white font-bold uppercase tracking-widest text-sm rounded-2xl px-6 py-3 hover:bg-primary-hover transition-all duration-200 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
+    @apply bg-primary text-white font-bold uppercase tracking-widest text-sm rounded-2xl px-6 py-3 shadow-[0_10px_24px_rgba(255,59,48,0.2)] hover:bg-primary-hover transition-all duration-200 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
   }
 
   .btn-secondary {

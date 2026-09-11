@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useEffect, useRef } from 'react'
 import { Dumbbell } from 'lucide-react'
 import { TrainerProgramPage } from '@/modules/members/pages/TrainerProgramPage'

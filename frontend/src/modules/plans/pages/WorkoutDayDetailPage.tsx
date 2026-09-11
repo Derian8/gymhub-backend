@@ -50,7 +50,7 @@ export function WorkoutDayDetailPage() {
   const { user, activeContext } = useAuthStore()
   const currentContext = getResolvedContext(user, activeContext)
   const canEdit = !!plan && (plan.status === 'active' || plan.status === 'draft')
-    && (currentContext === 'instructor' || currentContext === 'admin' || !!user?.is_staff)
+    && (currentContext === 'instructor' || currentContext === 'administrador' || !!user?.is_staff)
 
   if (isPlanLoading || isDayLoading) {
     return (
