@@ -55,3 +55,12 @@ MPLCONFIGDIR=/tmp/matplotlib ../../.venv/bin/python generar_grafico_financiero.p
 ## Pendientes antes de entregar
 
 El detalle vigente se mantiene en `AVANCE_PENDIENTES.md`.
+
+El 11 de septiembre de 2026 el equipo confirmó **Pulso** como marca vigente;
+sus recursos están en `../nueva_identidad_visual/`. El informe y los anexos aún
+utilizan GymHub. El equipo confirmó
+`modelo_negocios/Modelo_costos_SaaS_GymHub_regional.docx` como base de costos
+aprobada para Pulso. Está pendiente trasladarla al informe, sincronizar la
+propuesta comercial y adaptar los tres Excel, que conservan datos de plantilla.
+Las mejoras sugeridas se mantienen separadas de los importes aprobados.
+Esta revisión no actualiza el PDF.

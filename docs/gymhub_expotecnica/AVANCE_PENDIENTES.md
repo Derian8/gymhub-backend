@@ -1,6 +1,29 @@
 # Avance Y Pendientes Del Escrito
 
-Última actualización: 13 de agosto de 2026.
+Última actualización: 11 de septiembre de 2026.
+
+## Revisión De Marca Y Documentos Financieros — 11 De Septiembre
+
+- El equipo confirmó Pulso como nombre comercial vigente. La identidad visual
+  está en `../nueva_identidad_visual/`: logo, banner, icono y merchandising, con
+  rojo, negro y blanco y el lema «El ritmo de tu gimnasio en un solo lugar».
+- Queda pendiente trasladar la marca al informe y sus anexos. Esta revisión no
+  modifica el contenido LaTeX ni el PDF vigente, que todavía utilizan GymHub.
+- El equipo confirmó `modelo_negocios/Modelo_costos_SaaS_GymHub_regional.docx`
+  como base de costos aprobada para Pulso. Sus importes son CRC 61 125 fijos y
+  CRC 4 750 o 17 250 variables por gimnasio, con tipo de cambio presupuestario
+  de CRC 500/USD y hora técnica de CRC 5 000. Las observaciones y sugerencias
+  deben distinguirse de los importes aprobados, sin alterarlos automáticamente.
+- Actualizar el informe, que todavía utiliza CRC 62 847 fijos y CRC 3 000
+  variables, a partir de la base aprobada. El Word también propone tarifas de
+  CRC 15 000, 25 000, 45 000 y 70 000; distinguir esa propuesta comercial del
+  piloto y los planes anteriores al sincronizar precios y punto de equilibrio.
+- Los tres Excel conservan datos genéricos. PIEA contiene resultados guardados
+  `#DIV/0!` en GASTOS y PRESUPUESTO; la simulación usa 10 000 unidades a CRC 150.
+  Adaptar ventas a suscripciones activas mensuales y recalcular las fórmulas.
+- Los puntos de equilibrio del Word coinciden aritméticamente con sus supuestos
+  (6, 4, 3 y 2 clientes por plan), pero falta validar consumo, soporte y costos
+  de implementación multiempresa. Separar costo de instalación y precio cobrado.
 
 ## Avance Confirmado
 
