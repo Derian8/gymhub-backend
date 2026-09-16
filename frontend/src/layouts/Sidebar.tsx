@@ -85,14 +85,15 @@ export function Sidebar({ collapsed, mobileOpen, onToggle, onCloseMobile }: Side
         collapsed ? 'lg:w-16' : 'lg:w-64',
       )}
     >
-      <div className="flex items-center justify-between px-4 h-16 border-b border-neutral-200 dark:border-neutral-800">
+      <div className={cn('flex h-16 shrink-0 items-center border-b border-neutral-200 dark:border-neutral-800', compact ? 'flex-col justify-center gap-0.5 px-1' : 'justify-between gap-1 px-3')}>
         {!compact ? <BrandWordmark compact /> : <BrandMark size="sm" className="mx-auto" />}
         <button
           onClick={onToggle}
           data-testid="sidebar-toggle"
+          aria-label={compact ? 'Expandir navegación' : 'Contraer navegación'}
           className={cn(
             'hidden p-1.5 rounded-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 transition-colors lg:inline-flex',
-            compact && 'mx-auto',
+            compact && 'mx-auto p-0.5',
           )}
         >
           {compact ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}

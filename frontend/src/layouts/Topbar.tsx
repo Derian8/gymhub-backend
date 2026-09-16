@@ -34,7 +34,7 @@ export function Topbar({ onMenuClick, sidebarCollapsed }: TopbarProps) {
         sidebarCollapsed ? 'lg:left-16' : 'lg:left-64',
       )}
     >
-      <div className="sm:hidden">
+      <div className="lg:hidden">
         <BrandWordmark compact />
       </div>
 

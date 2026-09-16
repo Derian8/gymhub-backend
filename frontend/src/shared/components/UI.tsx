@@ -1,5 +1,5 @@
 import { cn } from '@/shared/lib/utils'
-import { BrandMark, SymbolFrame } from './Brand'
+import { BrandMark, PulsoDecorativo, SymbolFrame } from './Brand'
 
 interface BadgeProps {
   variant?: 'success' | 'warning' | 'error' | 'info' | 'neutral'
@@ -92,16 +92,19 @@ export function EmptyState({ icon, title, description, action }: EmptyStateProps
 }
 
 interface PageHeaderProps {
+  eyebrow?: string
   title: string
   subtitle?: string
   action?: React.ReactNode
   breadcrumb?: Array<{ label: string; href?: string }>
 }
 
-export function PageHeader({ title, subtitle, action, breadcrumb }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, action, breadcrumb, eyebrow }: PageHeaderProps) {
   return (
-    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
-      <div>
+    <div className="pulso-cabecera flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
+      {eyebrow && <PulsoDecorativo className="pointer-events-none absolute bottom-2 right-0 hidden w-64 text-primary/10 lg:block" />}
+      <div className="relative min-w-0">
+        {eyebrow && <p className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-primary"><span className="h-1.5 w-1.5 rounded-full bg-primary" />{eyebrow}</p>}
         {breadcrumb && (
           <div className="flex items-center gap-1 text-xs text-neutral-500 dark:text-neutral-400 mb-1">
             {breadcrumb.map((item, i) => (
@@ -114,14 +117,14 @@ export function PageHeader({ title, subtitle, action, breadcrumb }: PageHeaderPr
             ))}
           </div>
         )}
-        <h1 className="text-3xl lg:text-4xl font-heading font-bold uppercase tracking-[0.04em] text-neutral-900 dark:text-white">
+        <h1 className="text-3xl lg:text-4xl font-heading font-bold uppercase tracking-tight text-neutral-900 dark:text-white">
           {title}
         </h1>
         {subtitle && (
           <p className="mt-2 max-w-2xl text-sm text-neutral-500 dark:text-neutral-400">{subtitle}</p>
         )}
       </div>
-      {action && <div className="flex-shrink-0">{action}</div>}
+      {action && <div className="max-w-full shrink-0">{action}</div>}
     </div>
   )
 }

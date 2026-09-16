@@ -130,7 +130,7 @@ export function AiChatPage() {
     <div data-testid="ai-chat-page" className="page-enter flex flex-col gap-6">
       <PageHeader
         title={isTrainer ? 'Asistente Inteligente del Trainer' : 'Chat IA'}
-        subtitle={isTrainer ? 'Analiza miembros con datos reales de GymHub y decide el siguiente paso.' : 'Coach personal con contexto real'}
+        subtitle={isTrainer ? 'Analiza miembros con datos reales de PULSO y decide el siguiente paso.' : 'Coach personal con contexto real'}
       />
 
       {(contextError || historyError) && (
@@ -169,7 +169,7 @@ export function AiChatPage() {
               <div className="flex items-center gap-2">
                 <Bot size={18} className="text-primary" />
                 <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                  {context?.mode === 'trainer_member' ? 'Asistente del trainer' : 'GymHub AI'}
+                  {context?.mode === 'trainer_member' ? 'Asistente del trainer' : 'PULSO AI'}
                 </span>
                 {context?.engine_mode === 'deterministic' ? (
                   <Badge variant="info">Asistente contextual</Badge>

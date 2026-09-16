@@ -37,9 +37,10 @@ export function LoginPage() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" data-testid="login-form">
         <div>
-          <label className="label-base block mb-2">Email</label>
+          <label htmlFor="correo-acceso" className="label-base block mb-2">Email</label>
           <input
             {...register('email')}
+            id="correo-acceso"
             type="email"
             placeholder="tu@email.com"
             className="input-base w-full"
@@ -54,10 +55,11 @@ export function LoginPage() {
         </div>
 
         <div>
-          <label className="label-base block mb-2">Contraseña</label>
+          <label htmlFor="clave-acceso" className="label-base block mb-2">Contraseña</label>
           <div className="relative">
             <input
               {...register('password')}
+              id="clave-acceso"
               type={showPassword ? 'text' : 'password'}
               placeholder="••••••••"
               className="input-base w-full pr-10"
@@ -69,6 +71,8 @@ export function LoginPage() {
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
               data-testid="toggle-password"
+              aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              aria-pressed={showPassword}
             >
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
@@ -98,7 +102,7 @@ export function LoginPage() {
       </form>
 
       <p className="mt-6 text-center text-sm text-neutral-500 dark:text-neutral-400">
-        Las cuentas de miembros son creadas por el entrenador.
+        Las cuentas de miembros son creadas por la administración del gimnasio.
       </p>
     </div>
   )

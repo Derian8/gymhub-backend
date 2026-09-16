@@ -14,9 +14,9 @@ export default {
       },
       colors: {
         primary: {
-          DEFAULT: '#FF3B30',
+          DEFAULT: 'rgb(var(--primary) / <alpha-value>)',
           foreground: '#FFFFFF',
-          hover: '#D63025',
+          hover: '#B50016',
         },
         secondary: {
           DEFAULT: '#007AFF',
@@ -28,7 +28,7 @@ export default {
         info: '#007AFF',
       },
       backgroundImage: {
-        'primary-glow': 'radial-gradient(circle at center, rgba(255, 59, 48, 0.15) 0%, transparent 70%)',
+        'primary-glow': 'radial-gradient(circle at center, rgba(217, 0, 24, 0.12) 0%, transparent 70%)',
       },
     },
   },

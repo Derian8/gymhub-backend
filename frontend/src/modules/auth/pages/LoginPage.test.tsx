@@ -50,7 +50,7 @@ describe('LoginPage', () => {
   it('explains that accounts are created by the trainer', () => {
     const { getByText, queryByRole } = renderWithProviders(<LoginPage />)
 
-    expect(getByText('Las cuentas de miembros son creadas por el entrenador.')).toBeInTheDocument()
+    expect(getByText('Las cuentas de miembros son creadas por la administración del gimnasio.')).toBeInTheDocument()
     expect(queryByRole('link', { name: 'Regístrate' })).not.toBeInTheDocument()
   })
 

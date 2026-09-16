@@ -185,7 +185,7 @@ def whatsapp_url(member, full_name):
     if not phone:
         return None
     text = (
-        f'Hola {full_name}, te escribo de GymHub para saber como vas. '
+        f'Hola {full_name}, te escribo de PULSO para saber como vas. '
         'Notamos que no has asistido recientemente y queremos ayudarte a retomar.'
     )
     from urllib.parse import quote

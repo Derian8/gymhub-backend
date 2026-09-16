@@ -16,8 +16,8 @@ export function AdminDashboard() {
   const [routineClient, setRoutineClient] = useState<AdminRoutineQueueItem | null>(null)
 
   return (
-    <div className="page-enter space-y-8" data-testid="admin-dashboard">
-      <PageHeader
+    <div className="pulso-inicio page-enter space-y-8" data-testid="admin-dashboard">
+      <PageHeader eyebrow="Tu gimnasio en movimiento"
         title="Control del gimnasio"
         subtitle="Primero cobros y clientes al día; después rutinas y seguimiento."
       />

@@ -243,7 +243,7 @@ def _build_trainer_assistant_response(member, summary, prescription_status, anal
     if _is_out_of_scope(intent, summary, analysis_context):
         return {
             'content': (
-                'Alcance del asistente: Solo puedo analizar datos registrados en GymHub para este miembro. '
+                'Alcance del asistente: Solo puedo analizar datos registrados en PULSO para este miembro. '
                 f'Datos disponibles ahora: asistencia, membresía, pagos, rutina, progreso y alertas. '
                 f'Datos faltantes: {", ".join(missing) if missing else "ninguno crítico"}.' 
             ),
@@ -301,7 +301,7 @@ def _available_data_sentence(trainer_assistant):
     missing = trainer_assistant.get('missing_data') or []
     if not missing:
         return 'Usé perfil, membresía, pagos, asistencia, rutina, sesiones, progreso y alertas registradas.'
-    return f'Usé los datos disponibles en GymHub. Faltan registros de {", ".join(missing)}.'
+    return f'Usé los datos disponibles en PULSO. Faltan registros de {", ".join(missing)}.'
 
 
 def _status_label(status):
@@ -724,7 +724,7 @@ Insights detectados: {json.dumps(trainer_assistant['detected_insights'], ensure_
 Datos faltantes: {', '.join(trainer_assistant['missing_data']) or 'ninguno'}
 Expediente estructurado: {json.dumps(trainer_assistant['dossier'], ensure_ascii=False, default=str)[:6000]}
 """
-    return f"""Reescribe la respuesta base para GymHub.
+    return f"""Reescribe la respuesta base para PULSO.
 Reglas:
 - Responde en español.
 - No inventes datos.

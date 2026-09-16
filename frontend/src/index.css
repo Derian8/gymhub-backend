@@ -4,25 +4,27 @@
 
 @layer base {
   :root {
+    --primary: 217 0 24;
     --background: 255 255 255;
     --foreground: 10 10 10;
     --card: 245 245 247;
     --card-foreground: 10 10 10;
     --border: 229 229 229;
     --input: 229 229 229;
-    --ring: 255 59 48;
+    --ring: var(--primary);
     --muted: 245 245 245;
     --muted-foreground: 115 115 115;
   }
 
   .dark {
+    --primary: 255 86 102;
     --background: 10 10 10;
     --foreground: 250 250 250;
     --card: 23 23 23;
     --card-foreground: 250 250 250;
     --border: 38 38 38;
     --input: 38 38 38;
-    --ring: 255 59 48;
+    --ring: var(--primary);
     --muted: 23 23 23;
     --muted-foreground: 163 163 163;
   }
@@ -51,19 +53,19 @@
   }
 
   .card {
-    @apply bg-white dark:bg-neutral-900/80 border border-neutral-200 dark:border-white/10 shadow-sm dark:shadow-[0_18px_45px_rgba(0,0,0,0.24)] backdrop-blur-md rounded-[1.35rem];
+    @apply bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.035)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.16)] rounded-2xl;
   }
 
   .input-base {
-    @apply h-12 bg-transparent border-b-2 border-neutral-300 dark:border-neutral-700 focus:border-primary outline-none px-0 transition-all duration-200 text-neutral-900 dark:text-neutral-50 placeholder-neutral-400 dark:placeholder-neutral-600;
+    @apply h-12 bg-transparent border-b-2 border-neutral-300 dark:border-neutral-700 focus:border-primary outline-none px-0 transition-all duration-200 text-neutral-900 dark:text-neutral-50 placeholder-neutral-500 dark:placeholder-neutral-400;
   }
 
   .input {
-    @apply w-full rounded-sm border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 px-3 py-2.5 text-sm text-neutral-900 dark:text-neutral-50 outline-none transition-all duration-200 placeholder-neutral-400 dark:placeholder-neutral-500 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60 disabled:bg-neutral-100 dark:disabled:bg-neutral-900;
+    @apply w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 px-3 py-2.5 text-sm text-neutral-900 dark:text-neutral-50 outline-none transition-all duration-200 placeholder-neutral-400 dark:placeholder-neutral-500 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60 disabled:bg-neutral-100 dark:disabled:bg-neutral-900;
   }
 
   select.input-base {
-    @apply rounded-sm border border-neutral-200 bg-white px-3 py-2.5 text-sm dark:border-neutral-800 dark:bg-neutral-950;
+    @apply rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm dark:border-neutral-800 dark:bg-neutral-950;
   }
 
   .input option,
@@ -79,19 +81,19 @@
   }
 
   .label-base {
-    @apply text-xs uppercase tracking-wider text-neutral-500 dark:text-neutral-400 font-medium;
+    @apply text-[11px] uppercase tracking-[0.12em] text-neutral-500 dark:text-neutral-400 font-medium;
   }
 
   .btn-primary {
-    @apply bg-primary text-white font-bold uppercase tracking-widest text-sm rounded-2xl px-6 py-3 shadow-[0_10px_24px_rgba(255,59,48,0.2)] hover:bg-primary-hover transition-all duration-200 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
+    @apply bg-primary text-white font-semibold tracking-wide text-sm rounded-xl px-6 py-3 shadow-[0_10px_24px_rgba(217,0,24,0.2)] hover:bg-primary-hover transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
   }
 
   .btn-secondary {
-    @apply bg-transparent border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold uppercase tracking-widest text-sm rounded-2xl px-6 py-3 hover:border-primary dark:hover:border-primary hover:text-primary transition-all duration-200;
+    @apply bg-transparent border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 font-semibold tracking-wide text-sm rounded-xl px-6 py-3 hover:border-primary dark:hover:border-primary hover:text-primary transition-all duration-200;
   }
 
   .btn-danger {
-    @apply bg-red-600 text-white font-bold uppercase tracking-widest text-sm rounded-2xl px-6 py-3 hover:bg-red-700 transition-all duration-200 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
+    @apply bg-red-600 text-white font-semibold tracking-wide text-sm rounded-xl px-6 py-3 hover:bg-red-700 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
   }
 
   .sidebar-link {
@@ -99,7 +101,7 @@
   }
 
   .sidebar-link-active {
-    @apply bg-primary/10 text-primary shadow-[inset_0_0_0_1px_rgba(255,59,48,0.12)];
+    @apply bg-primary/10 text-primary shadow-[inset_3px_0_0_rgb(var(--primary))];
   }
 
   .stat-card {
@@ -125,7 +127,7 @@
   }
 
   .option-chip {
-    @apply rounded-sm border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 px-3 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-200 transition-all duration-200;
+    @apply rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 px-3 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-200 transition-all duration-200;
   }
 
   .option-chip:hover {
@@ -183,4 +185,113 @@
   background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.05) 50%, transparent 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
+}
+
+/* Identidad PULSO: los archivos originales se encuadran sin deformarlos. */
+.pulso-logo-placa {
+  flex-shrink: 0;
+  max-width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #fff;
+}
+.pulso-logo-encuadre {
+  position: relative;
+  aspect-ratio: 4.05;
+  overflow: hidden;
+}
+.pulso-logo-encuadre img {
+  position: absolute;
+  width: 127.9%;
+  max-width: none;
+  height: auto;
+  left: -13.25%;
+  top: -126%;
+}
+.pulso-portada {
+  background: radial-gradient(ellipse at 10% 5%, rgba(217, 0, 24, 0.055), transparent 55%), #f7f7f8;
+}
+.dark .pulso-portada {
+  background: radial-gradient(ellipse at 10% 5%, rgba(217, 0, 24, 0.13), transparent 60%), #101012;
+}
+.pulso-aplicacion, .pulso-contenido {
+  background-color: #f6f6f7;
+}
+.pulso-contenido {
+  background-image: radial-gradient(ellipse at 95% 0%, rgba(217, 0, 24, 0.045), transparent 40%);
+}
+.dark .pulso-aplicacion, .dark .pulso-contenido {
+  background-color: #0d0d0f;
+}
+.dark .pulso-contenido {
+  background-image: radial-gradient(ellipse at 95% 0%, rgba(217, 0, 24, 0.075), transparent 42%);
+}
+.pulso-cabecera {
+  position: relative;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgb(var(--border));
+}
+.pulso-cabecera::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 3rem;
+  height: 3px;
+  border-radius: 3px;
+  background: rgb(var(--primary));
+}
+.btn-primary {
+  background-color: #d90018;
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) {
+  background-color: #b50016;
+}
+.stat-card {
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::after {
+  content: '';
+  position: absolute;
+  right: -1.75rem;
+  bottom: -1.75rem;
+  width: 5rem;
+  height: 5rem;
+  border-radius: 50%;
+  border: 10px solid rgb(var(--primary) / 0.045);
+  pointer-events: none;
+}
+.sidebar-link-active svg { color: rgb(var(--primary)); }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid rgb(var(--primary));
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.pulso-inicio > .pulso-cabecera {
+  padding: 1.75rem;
+  border: 1px solid rgb(var(--border));
+  border-radius: 1rem;
+  background: linear-gradient(110deg, #fff 35%, #fff3f4);
+  overflow: hidden;
+}
+.dark .pulso-inicio > .pulso-cabecera {
+  background: linear-gradient(110deg, #18181b 35%, #261316);
+}
+.pulso-inicio > .pulso-cabecera::after {
+  left: 1.75rem;
+  bottom: 0;
+  width: 4rem;
+}
+@media (max-width: 639px) {
+  .pulso-inicio > .pulso-cabecera { padding: 1.25rem; }
 }

@@ -107,7 +107,7 @@ export function MobileBottomNav() {
   return (
     <>
       <nav
-        className="mobile-bottom-nav fixed inset-x-3 bottom-3 z-40 flex items-center gap-1 rounded-[1.6rem] border border-neutral-200/80 bg-white/95 p-2 shadow-[0_18px_50px_rgba(15,23,42,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-neutral-950/95 dark:shadow-[0_18px_50px_rgba(0,0,0,0.55)] md:hidden"
+        className="mobile-bottom-nav fixed inset-x-3 bottom-3 z-40 flex items-center gap-1 rounded-[1.6rem] border border-neutral-200/80 bg-white/95 p-2 shadow-[0_18px_50px_rgba(15,23,42,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-neutral-950/95 dark:shadow-[0_18px_50px_rgba(0,0,0,0.55)] lg:hidden"
         aria-label="Navegación principal móvil"
         data-testid="mobile-bottom-nav"
       >
@@ -133,7 +133,7 @@ export function MobileBottomNav() {
       </nav>
 
       {moreOpen && (
-        <div className="fixed inset-0 z-50 md:hidden" role="presentation">
+        <div className="fixed inset-0 z-50 lg:hidden" role="presentation">
           <button
             type="button"
             className="absolute inset-0 bg-neutral-950/60 backdrop-blur-[2px]"

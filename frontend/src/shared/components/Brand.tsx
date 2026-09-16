@@ -7,28 +7,15 @@ interface BrandMarkProps {
 }
 
 export function BrandMark({ size = 'md', className }: BrandMarkProps) {
-  const sizeClasses = {
-    sm: 'h-8 w-8',
-    md: 'h-10 w-10',
-    lg: 'h-14 w-14',
-  }
-
+  const tamanos = { sm: 'h-8 w-8', md: 'h-10 w-10', lg: 'h-14 w-14' }
   return (
-    <div
-      className={cn(
-        'relative inline-flex items-center justify-center overflow-hidden rounded-[0.9rem] border border-black/10 bg-neutral-950 text-white shadow-[0_12px_30px_rgba(10,10,10,0.16)] dark:border-white/10 dark:bg-neutral-900',
-        sizeClasses[size],
-        className,
-      )}
-      aria-hidden="true"
-    >
-      <div className="absolute inset-[2px] rounded-[0.75rem] bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-950 dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-950" />
-      <div className="absolute -right-1 top-1 h-4 w-4 rounded-full bg-primary/85 blur-[2px]" />
-      <div className="relative flex items-center gap-1.5">
-        <span className="block h-4 w-1.5 rounded-full bg-primary shadow-[0_0_14px_rgba(255,59,48,0.4)]" />
-        <span className="block h-3 w-1.5 rounded-full bg-white/95" />
-      </div>
-    </div>
+    <img
+      src="/marca/pulso-icono.png"
+      alt="PULSO"
+      width={56}
+      height={56}
+      className={cn('shrink-0 rounded-full bg-white object-contain', tamanos[size], className)}
+    />
   )
 }
 
@@ -39,21 +26,26 @@ interface BrandWordmarkProps {
 
 export function BrandWordmark({ compact = false, className }: BrandWordmarkProps) {
   return (
-    <div className={cn('inline-flex items-center gap-3', className)}>
-      <BrandMark size={compact ? 'sm' : 'md'} />
-      <div className="min-w-0">
-        <div className="flex items-baseline gap-2">
-          <span className="font-heading text-xl font-black uppercase tracking-[0.16em] text-neutral-950 dark:text-white">
-            GymHub
-          </span>
+    <div className={cn('inline-flex min-w-0 flex-col items-start gap-3', className)}>
+      <div className={cn('pulso-logo-placa', compact ? 'w-32' : 'w-52')}>
+        <div className="pulso-logo-encuadre">
+          <img src="/marca/pulso-logo.png" alt="PULSO" width={1448} height={1086} />
         </div>
-        {!compact && (
-          <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-neutral-500 dark:text-neutral-400">
-            Performance System
-          </p>
-        )}
       </div>
+      {!compact && (
+        <p className="max-w-xs text-xs font-medium leading-relaxed text-neutral-600 dark:text-neutral-300">
+          El ritmo de tu gimnasio en un solo lugar
+        </p>
+      )}
     </div>
+  )
+}
+
+export function PulsoDecorativo({ className }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 600 160" fill="none" className={className}>
+      <path d="M0 94h180l42-67 43 116 46-91h80l25 42h184" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   )
 }
 

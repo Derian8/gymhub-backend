@@ -10,7 +10,7 @@ export function AppLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   return (
-    <div className="min-h-screen bg-[#f7f8fc] text-neutral-900 dark:bg-neutral-950 dark:text-neutral-50">
+    <div className="pulso-aplicacion min-h-screen text-neutral-900 dark:text-neutral-50">
       {/* Sidebar */}
       <Sidebar
         collapsed={sidebarCollapsed}
@@ -40,8 +40,8 @@ export function AppLayout() {
           sidebarCollapsed={sidebarCollapsed}
         />
 
-        <main className="min-h-screen bg-[#f7f8fc] pt-16 dark:bg-neutral-950">
-          <div className="page-enter px-3 py-4 pb-28 sm:px-4 md:p-6 md:pb-10">
+        <main className="pulso-contenido min-h-screen pt-16">
+          <div className="page-enter mx-auto max-w-[1600px] px-4 py-6 pb-28 sm:px-6 md:p-8 md:pb-28 lg:pb-10">
             <BackendStatusBanner />
             <Outlet />
           </div>

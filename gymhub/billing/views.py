@@ -513,7 +513,7 @@ class PaymentRecordViewSet(viewsets.ReadOnlyModelViewSet):
         pdf = canvas.Canvas(buffer)
         y = 800
         rows = [
-            ((gym_profile.nombre if gym_profile else 'GymHub'), 16),
+            ((gym_profile.nombre if gym_profile else 'PULSO'), 16),
             ('Comprobante interno de pago', 14),
             (f'Comprobante: REC-{record.receipt_issued_at:%Y%m%d}-{record.id}', 10),
             (f'Miembro: {record.schedule.member.user.get_full_name() or record.schedule.member.user.email}', 10),

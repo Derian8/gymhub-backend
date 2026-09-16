@@ -10,8 +10,8 @@ export function TrainerTechnicalDashboard() {
   const { data, isLoading } = useTrainerOverviewQuery()
 
   return (
-    <div className="page-enter space-y-8" data-testid="trainer-dashboard">
-      <PageHeader title={`Hola, ${user?.first_name || 'Entrenador'}`} subtitle="Rutinas, progreso y seguimiento técnico de tus clientes asignados." />
+    <div className="pulso-inicio page-enter space-y-8" data-testid="trainer-dashboard">
+      <PageHeader eyebrow="Entrenamiento con propósito" title={`Hola, ${user?.first_name || 'Entrenador'}`} subtitle="Rutinas, progreso y seguimiento técnico de tus clientes asignados." />
       {isLoading || !data ? <CardSkeleton lines={6} /> : (
         <>
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

@@ -82,7 +82,7 @@ def check_upcoming_payments():
             # Email de recordatorio
             try:
                 send_mail(
-                    subject='Recordatorio de pago — GymHub',
+                    subject='Recordatorio de pago — PULSO',
                     message=f"Hola {member.user.get_full_name() or member.user.email},\n\nTu pago del plan '{plan_name}' vence el {due_date}.",
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[member.user.email],
@@ -226,7 +226,7 @@ def check_overdue_payments():
             # Email al miembro
             try:
                 send_mail(
-                    subject='Pago vencido — GymHub',
+                    subject='Pago vencido — PULSO',
                     message=f"Hola {member.user.get_full_name() or member.user.email},\n\nTu pago del plan '{plan_name}' está vencido hace {days_overdue} días.",
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[member.user.email],

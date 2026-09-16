@@ -369,11 +369,11 @@ class AdminReportExportView(APIView):
 
         data = _datos_reporte(inicio, fin)
         buffer = io.BytesIO()
-        document = SimpleDocTemplate(buffer, pagesize=A4, title='Reporte administrativo GymHub')
+        document = SimpleDocTemplate(buffer, pagesize=A4, title='Reporte administrativo PULSO')
         styles = getSampleStyleSheet()
         perfil = PerfilGimnasio.objects.first()
         story = [
-            Paragraph(perfil.nombre if perfil else 'GymHub', styles['Title']),
+            Paragraph(perfil.nombre if perfil else 'PULSO', styles['Title']),
             Paragraph('Reporte administrativo interno', styles['Heading2']),
             Paragraph(f'Período: {inicio:%d/%m/%Y} al {fin:%d/%m/%Y}', styles['Normal']),
             Spacer(1, 16),

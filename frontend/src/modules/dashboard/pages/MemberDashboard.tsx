@@ -541,8 +541,9 @@ export function MemberDashboard() {
   )
 
   return (
-    <div data-testid="member-dashboard" className="page-enter space-y-6">
+    <div data-testid="member-dashboard" className="pulso-inicio page-enter space-y-6">
       <PageHeader
+        eyebrow="Cada sesión cuenta"
         title={`Hola, ${user?.first_name || 'Atleta'}`}
         subtitle="Tu cabina del gym para seguir el plan exactamente como te lo dejó tu trainer."
       />
