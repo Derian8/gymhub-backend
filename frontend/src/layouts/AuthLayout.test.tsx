@@ -11,7 +11,7 @@ describe('AuthLayout', () => {
     vi.mocked(warmBackend).mockClear()
   })
 
-  it('uses the local gym image for the access cover', () => {
+  it('uses the local gym image with a lateral PULSO banner', () => {
     const { getByTestId } = renderWithProviders(<AuthLayout />)
 
     expect(getByTestId('portada-gimnasio')).toHaveAttribute(
@@ -19,5 +19,6 @@ describe('AuthLayout', () => {
       '/imagenes/portada-gimnasio.png',
     )
     expect(getByTestId('portada-gimnasio')).toHaveAttribute('aria-hidden', 'true')
+    expect(getByTestId('banner-pulso-lateral')).toHaveClass('absolute', 'bottom-10', 'right-10')
   })
 })
