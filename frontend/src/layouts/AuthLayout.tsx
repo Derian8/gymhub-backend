@@ -18,7 +18,14 @@ export function AuthLayout() {
   return (
     <div className="pulso-acceso relative flex min-h-screen bg-white text-neutral-950 dark:bg-neutral-950 dark:text-white">
       <ThemeToggle className="absolute right-5 top-5 z-20 rounded-full border border-neutral-200 bg-white p-3 text-neutral-600 shadow-sm dark:border-white/10 dark:bg-neutral-900 dark:text-neutral-300" />
-      <section className="pulso-portada relative hidden min-w-0 flex-1 flex-col justify-between overflow-hidden p-10 lg:flex xl:p-14">
+      <section className="pulso-portada dark relative hidden min-w-0 flex-1 flex-col justify-between overflow-hidden p-10 text-white lg:flex xl:p-14">
+        <img
+          src="https://images.unsplash.com/photo-1761971975769-97e598bf526b?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200"
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+        />
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-br from-neutral-950/80 to-neutral-950/60" />
         <PulsoDecorativo className="pointer-events-none absolute -right-24 top-20 w-[110%] text-primary/10" />
         <div className="relative z-10">
           <BrandWordmark />

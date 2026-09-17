@@ -209,10 +209,7 @@
   top: -126%;
 }
 .pulso-portada {
-  background: radial-gradient(ellipse at 10% 5%, rgba(217, 0, 24, 0.055), transparent 55%), #f7f7f8;
-}
-.dark .pulso-portada {
-  background: radial-gradient(ellipse at 10% 5%, rgba(217, 0, 24, 0.13), transparent 60%), #101012;
+  background: #101012;
 }
 .pulso-aplicacion, .pulso-contenido {
   background-color: #f6f6f7;

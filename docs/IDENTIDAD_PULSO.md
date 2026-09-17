@@ -9,6 +9,12 @@ encuadra el logo horizontal con CSS y utiliza una superficie blanca para mantene
 su contraste en ambos temas. El icono circular identifica la navegación compacta
 y la pestaña del navegador. El banner original acompaña el acceso.
 
+El panel de acceso en escritorio conserva la fotografía del gimnasio utilizada
+antes de la adaptación a PULSO (Unsplash, `photo-1761971975769-97e598bf526b`).
+La imagen cubre el fondo con un degradado oscuro y texto de alto contraste en
+ambos temas; el formulario mantiene el tema elegido. El panel decorativo sigue
+oculto en pantallas menores de 1024 px.
+
 El rojo de acción es `#D90018`, con `#B50016` al señalar un botón. El texto de
 acento en modo oscuro utiliza `#FF5666` para mejorar la legibilidad. Los colores
 de éxito, advertencia e información mantienen su significado. La tipografía
