@@ -514,6 +514,35 @@ class TestWorkoutSessions:
         assert complete_resp.status_code == status.HTTP_400_BAD_REQUEST
         assert bulk_resp.status_code == status.HTTP_400_BAD_REQUEST
 
+    def test_dual_profile_client_context_cannot_register_another_day(
+        self, member_client, member_user, member_profile, training_plan, workout_day_a
+    ):
+        from users.models import TrainerProfile
+
+        dual_trainer, _ = TrainerProfile.objects.get_or_create(
+            user=member_user,
+            defaults={'specialization': 'Pruebas'},
+        )
+        member_profile.trainer_asignado = dual_trainer
+        member_profile.save(update_fields=['trainer_asignado'])
+        other_day = training_plan.workout_days.exclude(id=workout_day_a.id).get()
+
+        client_response = member_client.post(
+            '/api/workout-sessions/',
+            {'workout_day_id': other_day.id},
+            format='json',
+            HTTP_X_GYMHUB_CONTEXT='cliente',
+        )
+        trainer_response = member_client.post(
+            '/api/workout-sessions/',
+            {'workout_day_id': other_day.id, 'member_id': member_profile.id},
+            format='json',
+        )
+
+        assert client_response.status_code == status.HTTP_400_BAD_REQUEST
+        assert client_response.data['workout_day_id'][0] == 'Solo puedes registrar la rutina programada para hoy.'
+        assert trainer_response.status_code == status.HTTP_201_CREATED
+
     def test_member_can_only_create_the_current_cycle_block(
         self, member_client, training_plan, workout_day_a
     ):

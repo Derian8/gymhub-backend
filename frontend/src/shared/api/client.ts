@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { diagnoseBackendIssue } from './backendStatus'
 import { useBackendStatusStore } from '@/shared/store/backendStatusStore'
 import { useAuthStore } from '@/shared/store/authStore'
+import type { PerfilUsuario } from '@/shared/types'
 
 export const BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 60000)
@@ -38,11 +39,20 @@ async function ensureCsrfCookie(): Promise<void> {
   await csrfRequest
 }
 
+export function adjuntar_contexto_cliente(
+  config: InternalAxiosRequestConfig,
+  contexto: PerfilUsuario | null,
+): InternalAxiosRequestConfig {
+  if (contexto !== 'cliente') return config
+
+  config.params = { ...(config.params || {}), scope: 'self' }
+  config.headers['X-GymHub-Context'] = 'cliente'
+  return config
+}
+
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    if (useAuthStore.getState().activeContext === 'cliente') {
-      config.params = { ...(config.params || {}), scope: 'self' }
-    }
+    adjuntar_contexto_cliente(config, useAuthStore.getState().activeContext)
     const method = config.method?.toLowerCase()
     if (method && !['get', 'head', 'options', 'trace'].includes(method)) {
       await ensureCsrfCookie()

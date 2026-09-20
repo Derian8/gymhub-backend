@@ -20,7 +20,10 @@ def usa_contexto_cliente(request):
     user = getattr(request, 'user', None)
     if not tiene_perfil_cliente(user):
         return False
-    if request.query_params.get('scope') == 'self':
+    if (
+        request.query_params.get('scope') == 'self'
+        or request.headers.get('X-GymHub-Context') == 'cliente'
+    ):
         return True
     return not user.is_staff and not tiene_perfil_entrenador(user)
 
