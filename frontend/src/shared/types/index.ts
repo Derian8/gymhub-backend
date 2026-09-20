@@ -545,6 +545,7 @@ export type MuscleGroup = 'chest' | 'back' | 'lats' | 'shoulders' | 'traps' | 'b
 export type DayLabel = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G'
 export type DayOfWeek = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun'
 export type ExerciseType = 'strength' | 'timed'
+export type WeightSuggestionUnit = 'kg' | 'lb'
 
 export interface GymMachine {
   id: number
@@ -568,6 +569,7 @@ export interface Exercise {
   machine: number | null
   machine_detail?: GymMachine | null
   weight_suggestion_kg: number | null
+  weight_suggestion_unit?: WeightSuggestionUnit
   rest_seconds: number
   technique_notes: string
   order: number
@@ -677,6 +679,7 @@ export interface TrainingTemplateExercise {
   rango_repeticiones: string
   minutos_objetivo: number | null
   peso_sugerido_kg: number | null
+  unidad_peso_sugerido?: WeightSuggestionUnit
   descanso_segundos: number
   notas_tecnicas: string
   orden: number
@@ -779,6 +782,7 @@ export interface ExercisePayload {
   target_minutes: number | null
   machine?: number | null
   weight_suggestion_kg?: number | null
+  weight_suggestion_unit?: WeightSuggestionUnit
   rest_seconds: number
   technique_notes?: string
   order: number

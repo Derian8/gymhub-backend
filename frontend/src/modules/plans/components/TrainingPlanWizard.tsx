@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type React from 'react'
 import { AlertTriangle, Copy, Plus, Trash2, X } from 'lucide-react'
 import { Avatar, Badge } from '@/shared/components/UI'
-import { DAY_OF_WEEK_LABELS, GOAL_LABELS, MUSCLE_GROUP_OPTIONS, formatDate } from '@/shared/lib/utils'
+import { DAY_OF_WEEK_LABELS, GOAL_LABELS, MUSCLE_GROUP_OPTIONS, formatDate, pesoSugeridoEnKg, pesoSugeridoParaMostrar } from '@/shared/lib/utils'
 import { useAssignTrainerMutation, useMembersQuery } from '@/modules/members/hooks/useMembers'
 import { useCatalogExercisesQuery, useCreateCompletePlanMutation, useGymMachinesQuery, useTrainingTemplatesQuery } from '../hooks/usePlans'
 import type {
@@ -16,6 +16,7 @@ import type {
   MuscleGroup,
   TrainingPlanLevel,
   TrainingPlanStatus,
+  WeightSuggestionUnit,
 } from '@/shared/types'
 
 const dayLabels: DayLabel[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
@@ -65,6 +66,7 @@ function emptyExercise(order = 0): Omit<ExercisePayload, 'workout_day'> {
     target_minutes: null,
     machine: null,
     weight_suggestion_kg: null,
+    weight_suggestion_unit: 'kg',
     rest_seconds: 60,
     technique_notes: '',
     order,
@@ -80,6 +82,7 @@ function normalizeExercise(exercise: Omit<ExercisePayload, 'workout_day'>): Omit
       reps_range: '',
       target_minutes: exercise.target_minutes ?? 10,
       weight_suggestion_kg: null,
+      weight_suggestion_unit: exercise.weight_suggestion_unit,
     }
   }
   return {
@@ -219,6 +222,7 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
         target_minutes: exercise.minutos_objetivo,
         machine: null,
         weight_suggestion_kg: exercise.peso_sugerido_kg,
+        weight_suggestion_unit: exercise.unidad_peso_sugerido,
         rest_seconds: exercise.descanso_segundos,
         technique_notes: exercise.notas_tecnicas,
         order: exerciseIndex,
@@ -518,8 +522,28 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
                               ))}
                             </select>
                           </Field>
-                          <Field label="Peso inicial">
-                            <input className="input" type="number" min={0} value={exercise.weight_suggestion_kg ?? ''} onChange={(event) => updateExercise(dayIndex, exerciseIndex, { weight_suggestion_kg: event.target.value ? Number(event.target.value) : null })} disabled={exercise.exercise_type === 'timed'} />
+                          <Field label={`Peso sugerido (${exercise.weight_suggestion_unit})`}>
+                            <input
+                              className="input"
+                              type="number"
+                              min={0}
+                              value={pesoSugeridoParaMostrar(exercise.weight_suggestion_kg, exercise.weight_suggestion_unit) ?? ''}
+                              onChange={(event) => updateExercise(dayIndex, exerciseIndex, {
+                                weight_suggestion_kg: event.target.value ? pesoSugeridoEnKg(Number(event.target.value), exercise.weight_suggestion_unit) : null,
+                              })}
+                              disabled={exercise.exercise_type === 'timed'}
+                            />
+                          </Field>
+                          <Field label="Unidad">
+                            <select
+                              className="input"
+                              value={exercise.weight_suggestion_unit}
+                              onChange={(event) => updateExercise(dayIndex, exerciseIndex, { weight_suggestion_unit: event.target.value as WeightSuggestionUnit })}
+                              disabled={exercise.exercise_type === 'timed'}
+                            >
+                              <option value="kg">kg</option>
+                              <option value="lb">lb</option>
+                            </select>
                           </Field>
                           <Field label="Indicaciones">
                             <input className="input" value={exercise.technique_notes ?? ''} onChange={(event) => updateExercise(dayIndex, exerciseIndex, { technique_notes: event.target.value })} />

@@ -5,7 +5,7 @@ import { usePlanDetailQuery, useWorkoutDayDetailQuery } from '../hooks/usePlans'
 import { Badge, EmptyState, PageHeader } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
 import { SymbolFrame } from '@/shared/components/Brand'
-import { DAY_OF_WEEK_LABELS, MUSCLE_LABELS } from '@/shared/lib/utils'
+import { DAY_OF_WEEK_LABELS, formatPesoSugerido, MUSCLE_LABELS } from '@/shared/lib/utils'
 import type { Exercise, WorkoutDay } from '@/shared/types'
 import { getResolvedContext, useAuthStore } from '@/shared/store/authStore'
 
@@ -14,7 +14,8 @@ function formatExercisePrescription(exercise: Exercise) {
     return `${exercise.target_minutes ?? 0} min`
   }
 
-  const weightLabel = exercise.weight_suggestion_kg ? ` @${exercise.weight_suggestion_kg}kg` : ''
+  const weightLabel = exercise.weight_suggestion_kg != null
+    ? ` @${formatPesoSugerido(exercise.weight_suggestion_kg, exercise.weight_suggestion_unit)}` : ''
   return `${exercise.sets ?? 0}×${exercise.reps_range}${weightLabel}`
 }
 

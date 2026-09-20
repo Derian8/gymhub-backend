@@ -2,7 +2,35 @@ import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { formatDistanceToNow, format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
-import type { MuscleGroup } from '@/shared/types'
+import type { MuscleGroup, WeightSuggestionUnit } from '@/shared/types'
+
+const KILOGRAMOS_POR_LIBRA = 0.45359237
+
+export function pesoSugeridoParaMostrar(
+  pesoKg: number | null | undefined,
+  unidad: WeightSuggestionUnit = 'kg',
+): number | null {
+  if (pesoKg == null) return null
+  const peso = unidad === 'lb' ? pesoKg / KILOGRAMOS_POR_LIBRA : pesoKg
+  return Number(peso.toFixed(2))
+}
+
+export function pesoSugeridoEnKg(
+  peso: number | null | undefined,
+  unidad: WeightSuggestionUnit = 'kg',
+): number | null {
+  if (peso == null) return null
+  return unidad === 'lb' ? peso * KILOGRAMOS_POR_LIBRA : peso
+}
+
+export function formatPesoSugerido(
+  pesoKg: number | null | undefined,
+  unidad: WeightSuggestionUnit = 'kg',
+): string {
+  const peso = pesoSugeridoParaMostrar(pesoKg, unidad)
+  if (peso == null) return 'Libre'
+  return `${new Intl.NumberFormat('es-CR', { maximumFractionDigits: 1 }).format(peso)} ${unidad}`
+}
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

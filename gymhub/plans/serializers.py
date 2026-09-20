@@ -59,7 +59,7 @@ class ExerciseSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'workout_day', 'catalogo_ejercicio', 'catalogo_detalle', 'name', 'muscle_group', 'exercise_type',
             'sets', 'reps_range', 'target_minutes', 'machine', 'machine_detail',
-            'weight_suggestion_kg', 'rest_seconds', 'technique_notes', 'order',
+            'weight_suggestion_kg', 'weight_suggestion_unit', 'rest_seconds', 'technique_notes', 'order',
             'previous_log',
         )
 
@@ -191,6 +191,10 @@ class NestedExerciseInputSerializer(serializers.Serializer):
     target_minutes = serializers.IntegerField(required=False, allow_null=True, min_value=1, max_value=600)
     machine = serializers.IntegerField(required=False, allow_null=True)
     weight_suggestion_kg = serializers.FloatField(required=False, allow_null=True, min_value=0)
+    weight_suggestion_unit = serializers.ChoiceField(
+        choices=Exercise._meta.get_field('weight_suggestion_unit').choices,
+        default='kg',
+    )
     rest_seconds = serializers.IntegerField(default=60, min_value=1, max_value=600)
     technique_notes = serializers.CharField(required=False, allow_blank=True)
     order = serializers.IntegerField(default=0, min_value=0)
@@ -339,7 +343,7 @@ class PlantillaEjercicioSerializer(serializers.ModelSerializer):
         model = PlantillaEjercicio
         fields = (
             'id', 'dia', 'catalogo_ejercicio', 'catalogo_detalle', 'nombre', 'grupo_muscular', 'tipo_ejercicio', 'series',
-            'rango_repeticiones', 'minutos_objetivo', 'peso_sugerido_kg', 'descanso_segundos',
+            'rango_repeticiones', 'minutos_objetivo', 'peso_sugerido_kg', 'unidad_peso_sugerido', 'descanso_segundos',
             'notas_tecnicas', 'orden',
         )
 

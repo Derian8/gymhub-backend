@@ -11,7 +11,7 @@ import {
   descripcionPublicacionPrescripcion,
   type TipoPublicacionPrescripcion,
 } from '@/shared/lib/prescriptionPublication'
-import { MUSCLE_GROUP_OPTIONS, formatDateTime } from '@/shared/lib/utils'
+import { formatPesoSugerido, MUSCLE_GROUP_OPTIONS, formatDateTime, pesoSugeridoEnKg, pesoSugeridoParaMostrar } from '@/shared/lib/utils'
 import { useMemberActivePrescriptionQuery, useMemberDetailQuery, useMemberPrescriptionQuery } from '../hooks/useMembers'
 import {
   useCreateGymMachineMutation,
@@ -48,6 +48,7 @@ import type {
   MuscleGroup,
   TrainingPlanPayload,
   TrainingTemplateUpdatePayload,
+  WeightSuggestionUnit,
 } from '@/shared/types'
 
 const goalOptions: Array<{ value: GoalType; label: string }> = [
@@ -161,13 +162,50 @@ function formatExercisePrescription(exercise: {
   target_minutes: number | null
   rest_seconds: number
   weight_suggestion_kg: number | null
+  weight_suggestion_unit?: WeightSuggestionUnit
 }) {
   if (exercise.exercise_type === 'timed') {
     return `${exercise.target_minutes ?? 0} min · descanso ${exercise.rest_seconds}s`
   }
 
-  const weightLabel = exercise.weight_suggestion_kg != null ? ` · ${exercise.weight_suggestion_kg} kg sugeridos` : ''
+  const weightLabel = exercise.weight_suggestion_kg != null
+    ? ` · ${formatPesoSugerido(exercise.weight_suggestion_kg, exercise.weight_suggestion_unit)} sugeridos` : ''
   return `${exercise.sets ?? 0}x${exercise.reps_range} · descanso ${exercise.rest_seconds}s${weightLabel}`
+}
+
+function SuggestedWeightFields({
+  exercise,
+  onChange,
+}: {
+  exercise: ExercisePayload
+  onChange: (exercise: ExercisePayload) => void
+}) {
+  const unit = exercise.weight_suggestion_unit ?? 'kg'
+
+  return <>
+    <Field label={`Peso sugerido (${unit})`}>
+      <input
+        className="input"
+        type="number"
+        min={0}
+        value={pesoSugeridoParaMostrar(exercise.weight_suggestion_kg, unit) ?? ''}
+        onChange={(event) => onChange({
+          ...exercise,
+          weight_suggestion_kg: event.target.value ? pesoSugeridoEnKg(Number(event.target.value), unit) : null,
+        })}
+      />
+    </Field>
+    <Field label="Unidad">
+      <select
+        className="input"
+        value={unit}
+        onChange={(event) => onChange({ ...exercise, weight_suggestion_unit: event.target.value as WeightSuggestionUnit })}
+      >
+        <option value="kg">kg</option>
+        <option value="lb">lb</option>
+      </select>
+    </Field>
+  </>
 }
 
 type DeleteTarget =
@@ -264,6 +302,7 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
     target_minutes: null,
     machine: null,
     weight_suggestion_kg: null,
+    weight_suggestion_unit: 'kg',
     rest_seconds: 60,
     technique_notes: '',
     order: 0,
@@ -279,6 +318,7 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
     target_minutes: null,
     machine: null,
     weight_suggestion_kg: null,
+    weight_suggestion_unit: 'kg',
     rest_seconds: 60,
     technique_notes: '',
     order: 0,
@@ -560,6 +600,7 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
       reps_range: exercise.reps_range,
       target_minutes: exercise.target_minutes ?? null,
       weight_suggestion_kg: exercise.weight_suggestion_kg ?? null,
+      weight_suggestion_unit: exercise.weight_suggestion_unit ?? 'kg',
       machine: exercise.machine ?? null,
       rest_seconds: exercise.rest_seconds,
       technique_notes: exercise.technique_notes ?? '',
@@ -608,7 +649,7 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
   }
 
   const handleMoveExercise = (
-    day: { id: number; exercises: Array<{ id: number; name: string; muscle_group: MuscleGroup; exercise_type: ExerciseType; sets: number | null; reps_range: string; target_minutes: number | null; weight_suggestion_kg: number | null; rest_seconds: number; technique_notes: string; order: number }> },
+    day: { id: number; exercises: Array<{ id: number; name: string; muscle_group: MuscleGroup; exercise_type: ExerciseType; sets: number | null; reps_range: string; target_minutes: number | null; weight_suggestion_kg: number | null; weight_suggestion_unit?: WeightSuggestionUnit; rest_seconds: number; technique_notes: string; order: number }> },
     exerciseId: number,
     direction: 'up' | 'down',
   ) => {
@@ -635,7 +676,7 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
   }
 
   const handleDuplicateDay = (
-    day: { id: number; name: string; day_label: DayLabel; day_of_week: DayOfWeek; order: number; exercises: Array<{ name: string; muscle_group: MuscleGroup; exercise_type: ExerciseType; sets: number | null; reps_range: string; target_minutes: number | null; machine?: number | null; weight_suggestion_kg: number | null; rest_seconds: number; technique_notes: string; order: number }> },
+    day: { id: number; name: string; day_label: DayLabel; day_of_week: DayOfWeek; order: number; exercises: Array<{ name: string; muscle_group: MuscleGroup; exercise_type: ExerciseType; sets: number | null; reps_range: string; target_minutes: number | null; machine?: number | null; weight_suggestion_kg: number | null; weight_suggestion_unit?: WeightSuggestionUnit; rest_seconds: number; technique_notes: string; order: number }> },
   ) => {
     if (!activePlan || !daysData?.results.length) {
       return
@@ -666,6 +707,7 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
                 target_minutes: exercise.target_minutes ?? null,
                 machine: exercise.machine ?? null,
                 weight_suggestion_kg: exercise.weight_suggestion_kg ?? null,
+                weight_suggestion_unit: exercise.weight_suggestion_unit ?? 'kg',
                 rest_seconds: exercise.rest_seconds,
                 technique_notes: exercise.technique_notes ?? '',
                 order: exercise.order,
@@ -680,7 +722,7 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
 
   const handleDuplicateExercise = (
     day: { id: number; exercises: Array<{ order: number }> },
-    exercise: { name: string; muscle_group: MuscleGroup; exercise_type: ExerciseType; sets: number | null; reps_range: string; target_minutes: number | null; machine?: number | null; weight_suggestion_kg: number | null; rest_seconds: number; technique_notes: string; order: number },
+    exercise: { name: string; muscle_group: MuscleGroup; exercise_type: ExerciseType; sets: number | null; reps_range: string; target_minutes: number | null; machine?: number | null; weight_suggestion_kg: number | null; weight_suggestion_unit?: WeightSuggestionUnit; rest_seconds: number; technique_notes: string; order: number },
   ) => {
     const nextOrder = day.exercises.length ? Math.max(...day.exercises.map((item) => item.order)) + 1 : 0
     createExercise.mutate({
@@ -693,6 +735,7 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
       target_minutes: exercise.target_minutes ?? null,
       machine: exercise.machine ?? null,
       weight_suggestion_kg: exercise.weight_suggestion_kg ?? null,
+      weight_suggestion_unit: exercise.weight_suggestion_unit ?? 'kg',
       rest_seconds: exercise.rest_seconds,
       technique_notes: exercise.technique_notes ?? '',
       order: nextOrder,
@@ -1644,11 +1687,9 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
                                           <input className="input" type="number" min={15} value={editingExerciseForm.rest_seconds} onChange={(e) => setEditingExerciseForm({ ...editingExerciseForm, rest_seconds: Number(e.target.value) })} required />
                                         </Field>
                                         {editingExerciseForm.exercise_type === 'strength' ? (
-                                          <Field label="Peso sugerido (kg)">
-                                            <input className="input" type="number" min={0} value={editingExerciseForm.weight_suggestion_kg ?? ''} onChange={(e) => setEditingExerciseForm({ ...editingExerciseForm, weight_suggestion_kg: e.target.value ? Number(e.target.value) : null })} />
-                                          </Field>
+                                          <SuggestedWeightFields exercise={editingExerciseForm} onChange={setEditingExerciseForm} />
                                         ) : (
-                                          <Field label="Peso sugerido (kg)">
+                                          <Field label="Peso sugerido">
                                             <input className="input" value="No aplica" disabled />
                                           </Field>
                                         )}
@@ -1792,11 +1833,9 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
                                 <input className="input" type="number" min={15} value={exerciseForm.rest_seconds} onChange={(e) => setExerciseForm({ ...exerciseForm, rest_seconds: Number(e.target.value) })} required />
                               </Field>
                               {exerciseForm.exercise_type === 'strength' ? (
-                                <Field label="Peso sugerido (kg)">
-                                  <input className="input" type="number" min={0} value={exerciseForm.weight_suggestion_kg ?? ''} onChange={(e) => setExerciseForm({ ...exerciseForm, weight_suggestion_kg: e.target.value ? Number(e.target.value) : null })} />
-                                </Field>
+                                <SuggestedWeightFields exercise={exerciseForm} onChange={setExerciseForm} />
                               ) : (
-                                <Field label="Peso sugerido (kg)">
+                                <Field label="Peso sugerido">
                                   <input className="input" value="No aplica" disabled />
                                 </Field>
                               )}

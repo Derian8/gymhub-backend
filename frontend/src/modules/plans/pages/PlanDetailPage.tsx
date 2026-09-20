@@ -4,7 +4,7 @@ import { ArrowLeft, Calendar, Dumbbell, NotebookTabs, UserRound } from 'lucide-r
 import { useDeletePlanMutation, usePlanDetailQuery, useTodayWorkoutQuery } from '../hooks/usePlans'
 import { Badge, ConfirmDialog, PageHeader, EmptyState } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
-import { DAY_OF_WEEK_LABELS, GOAL_LABELS, MUSCLE_LABELS } from '@/shared/lib/utils'
+import { DAY_OF_WEEK_LABELS, formatPesoSugerido, GOAL_LABELS, MUSCLE_LABELS } from '@/shared/lib/utils'
 import type { WorkoutDay, Exercise } from '@/shared/types'
 import { getResolvedContext, useAuthStore } from '@/shared/store/authStore'
 import { useMemberActivePrescriptionQuery, useMemberDashboardQuery } from '@/modules/members/hooks/useMembers'
@@ -15,7 +15,8 @@ function formatExercisePrescription(exercise: Exercise) {
     return `${exercise.target_minutes ?? 0} min`
   }
 
-  const weightLabel = exercise.weight_suggestion_kg ? ` @${exercise.weight_suggestion_kg}kg` : ''
+  const weightLabel = exercise.weight_suggestion_kg != null
+    ? ` @${formatPesoSugerido(exercise.weight_suggestion_kg, exercise.weight_suggestion_unit)}` : ''
   return `${exercise.sets ?? 0}×${exercise.reps_range}${weightLabel}`
 }
 

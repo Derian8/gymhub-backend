@@ -65,6 +65,11 @@ EXERCISE_TYPE_CHOICES = [
     ('timed', 'Timed'),
 ]
 
+WEIGHT_SUGGESTION_UNIT_CHOICES = [
+    ('kg', 'Kilogramos'),
+    ('lb', 'Libras'),
+]
+
 PLAN_STATUS_CHOICES = [
     ('draft', 'Borrador'),
     ('active', 'Activo'),
@@ -281,6 +286,11 @@ class Exercise(models.Model):
         null=True, blank=True,
         validators=[MinValueValidator(0)]
     )
+    weight_suggestion_unit = models.CharField(
+        max_length=2,
+        choices=WEIGHT_SUGGESTION_UNIT_CHOICES,
+        default='kg',
+    )
     rest_seconds = models.PositiveIntegerField(
         default=60,
         validators=[MaxValueValidator(600)]
@@ -408,6 +418,11 @@ class PlantillaEjercicio(models.Model):
     peso_sugerido_kg = models.FloatField(
         null=True, blank=True,
         validators=[MinValueValidator(0)]
+    )
+    unidad_peso_sugerido = models.CharField(
+        max_length=2,
+        choices=WEIGHT_SUGGESTION_UNIT_CHOICES,
+        default='kg',
     )
     descanso_segundos = models.PositiveIntegerField(
         default=60,

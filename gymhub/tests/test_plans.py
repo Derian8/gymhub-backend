@@ -36,6 +36,23 @@ def acceso_entrenamiento_vigente(db, request, member_profile, membership_plan, t
 
 @pytest.mark.django_db
 class TestTrainingPlans:
+    def test_trainer_can_assign_weight_suggestion_in_pounds(self, trainer_client, training_plan):
+        training_plan.status = 'draft'
+        training_plan.is_active = False
+        training_plan.save(update_fields=['status', 'is_active'])
+        exercise = training_plan.workout_days.first().exercises.filter(exercise_type='strength').first()
+
+        resp = trainer_client.patch(f'/api/exercises/{exercise.id}/', {
+            'weight_suggestion_kg': 45.359237,
+            'weight_suggestion_unit': 'lb',
+        }, format='json')
+
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        assert resp.data['weight_suggestion_kg'] == pytest.approx(45.359237)
+        assert resp.data['weight_suggestion_unit'] == 'lb'
+        exercise.refresh_from_db()
+        assert exercise.weight_suggestion_unit == 'lb'
+
     def test_trainer_cannot_create_plan_without_membership(
         self, trainer_client, member_profile
     ):

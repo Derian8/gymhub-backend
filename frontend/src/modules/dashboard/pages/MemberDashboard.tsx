@@ -17,7 +17,7 @@ import { useWeeklyPlanQuery, useCreateSessionMutation, useCompleteSessionMutatio
 import { Badge, EmptyState, PageHeader } from '@/shared/components/UI'
 import { StatCardSkeleton } from '@/shared/components/Skeleton'
 import { SymbolFrame } from '@/shared/components/Brand'
-import { cn, DAY_OF_WEEK_LABELS, formatCurrency, formatDate, MUSCLE_LABELS } from '@/shared/lib/utils'
+import { cn, DAY_OF_WEEK_LABELS, formatCurrency, formatDate, formatPesoSugerido, MUSCLE_LABELS } from '@/shared/lib/utils'
 import type { Exercise, ExerciseLogPayload } from '@/shared/types'
 
 interface ExerciseProgressDraft {
@@ -406,7 +406,7 @@ export function MemberDashboard() {
                     />
                     <DashboardMetric
                       label="Peso sugerido"
-                      value={exercise.weight_suggestion_kg != null ? `${exercise.weight_suggestion_kg} kg` : 'Libre'}
+                      value={formatPesoSugerido(exercise.weight_suggestion_kg, exercise.weight_suggestion_unit)}
                     />
                   </div>
 

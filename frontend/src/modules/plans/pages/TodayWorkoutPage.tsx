@@ -6,7 +6,7 @@ import { useTodayWorkoutQuery, useWeeklyPlanQuery, useCreateSessionMutation, use
 import { EmptyState, Badge } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
 import { SymbolFrame } from '@/shared/components/Brand'
-import { DAY_OF_WEEK_LABELS, formatCurrency, formatDate, MUSCLE_LABELS, cn } from '@/shared/lib/utils'
+import { DAY_OF_WEEK_LABELS, formatCurrency, formatDate, formatPesoSugerido, MUSCLE_LABELS, cn } from '@/shared/lib/utils'
 import type { CompleteWorkoutSessionPayload, Exercise, ExerciseLogPayload } from '@/shared/types'
 import { getResolvedContext, useAuthStore } from '@/shared/store/authStore'
 import { useMemberActivePrescriptionQuery, useMemberDashboardQuery } from '@/modules/members/hooks/useMembers'
@@ -1134,7 +1134,7 @@ function SelectedDayDetail({
                 <StaticMetric label="Descanso" value={`${exercise.rest_seconds}s`} />
                 <StaticMetric
                   label="Peso sugerido"
-                  value={exercise.weight_suggestion_kg != null ? `${exercise.weight_suggestion_kg}kg` : 'Libre'}
+                  value={formatPesoSugerido(exercise.weight_suggestion_kg, exercise.weight_suggestion_unit)}
                 />
               </div>
 
@@ -1235,7 +1235,7 @@ function ClientRoutineFlow({
           {esTiempo ? <StaticMetric label="Duración" value={`${actual.target_minutes ?? 0} min`} /> : <><StaticMetric label="Series" value={String(actual.sets ?? 0)} /><StaticMetric label="Repeticiones" value={actual.reps_range} /></>}
           <StaticMetric label="Descanso" value={`${actual.rest_seconds}s`} />
           <StaticMetric label="Equipo" value={actual.machine_detail?.name || 'Ejercicio libre'} />
-          {!esTiempo ? <StaticMetric label="Peso sugerido" value={actual.weight_suggestion_kg ? `${actual.weight_suggestion_kg} kg` : 'Según indicación'} /> : null}
+          {!esTiempo ? <StaticMetric label="Peso sugerido" value={actual.weight_suggestion_kg != null ? formatPesoSugerido(actual.weight_suggestion_kg, actual.weight_suggestion_unit) : 'Según indicación'} /> : null}
         </div>
         {(actual.catalogo_detalle?.instrucciones_es || actual.technique_notes) ? <div className="mt-5 rounded-2xl bg-neutral-50 p-4 text-sm text-neutral-600 dark:bg-neutral-900 dark:text-neutral-300"><p className="font-semibold text-neutral-900 dark:text-white">Cómo hacerlo</p><p className="mt-2">{actual.catalogo_detalle?.instrucciones_es || actual.technique_notes}</p></div> : null}
 
@@ -1310,7 +1310,7 @@ function ExerciseCard({ exercise, log, active, onUpdate }: ExerciseCardProps) {
               <StaticMetric label="Repeticiones" value={exercise.reps_range} />
               <StaticMetric label="Máquina" value={exercise.machine_detail?.name || 'Libre'} />
               <StaticMetric label="Descanso" value={`${exercise.rest_seconds}s`} />
-              <StaticMetric label="Peso sugerido" value={exercise.weight_suggestion_kg ? `${exercise.weight_suggestion_kg}kg` : 'Libre'} />
+              <StaticMetric label="Peso sugerido" value={formatPesoSugerido(exercise.weight_suggestion_kg, exercise.weight_suggestion_unit)} />
             </div>
           )}
           {exercise.technique_notes ? (
