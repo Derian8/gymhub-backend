@@ -478,6 +478,60 @@ class TestTodayWorkout:
 
 @pytest.mark.django_db
 class TestWorkoutSessions:
+    def test_member_cannot_create_session_for_a_non_current_weekly_day(
+        self, member_client, training_plan, workout_day_a
+    ):
+        other_day = training_plan.workout_days.exclude(id=workout_day_a.id).first()
+
+        resp = member_client.post('/api/workout-sessions/', {
+            'workout_day_id': other_day.id,
+        })
+
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'programada para hoy' in resp.data['workout_day_id']
+
+    def test_member_cannot_register_or_complete_a_non_current_session(
+        self, member_client, member_profile, training_plan, workout_day_a
+    ):
+        from progress.models import WorkoutSession
+
+        other_day = training_plan.workout_days.exclude(id=workout_day_a.id).first()
+        session = WorkoutSession.objects.create(member=member_profile, workout_day=other_day)
+        exercise = other_day.exercises.first()
+
+        progress_resp = member_client.post(
+            f'/api/workout-sessions/{session.id}/progreso-ejercicio/',
+            {'exercise_id': exercise.id, 'estado': 'realizado'},
+            format='json',
+        )
+        complete_resp = member_client.patch(f'/api/workout-sessions/{session.id}/complete/', {}, format='json')
+        bulk_resp = member_client.post('/api/exercise-logs/bulk/', {
+            'session_id': session.id,
+            'logs': [{'exercise_id': exercise.id}],
+        }, format='json')
+
+        assert progress_resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert complete_resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert bulk_resp.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_member_can_only_create_the_current_cycle_block(
+        self, member_client, training_plan, workout_day_a
+    ):
+        training_plan.modo_ejecucion = 'cycle'
+        training_plan.indice_bloque_actual = 0
+        training_plan.save(update_fields=['modo_ejecucion', 'indice_bloque_actual'])
+        other_day = training_plan.workout_days.exclude(id=workout_day_a.id).first()
+
+        denied_resp = member_client.post('/api/workout-sessions/', {
+            'workout_day_id': other_day.id,
+        })
+        allowed_resp = member_client.post('/api/workout-sessions/', {
+            'workout_day_id': workout_day_a.id,
+        })
+
+        assert denied_resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert allowed_resp.status_code == status.HTTP_201_CREATED
+
     def test_create_workout_session(self, member_client, member_profile, workout_day_a):
         """POST /api/workout-sessions/ crea sesión."""
         resp = member_client.post('/api/workout-sessions/', {

@@ -31,6 +31,17 @@ def assert_workout_access(member, attendance=None):
     })
 
 
+def assert_client_current_workout_day(workout_day):
+    """Impide que un cliente registre un bloque distinto al vigente."""
+    from plans.views import get_today_workout_day
+
+    current_workout_day = get_today_workout_day(workout_day.plan)
+    if not current_workout_day or current_workout_day.id != workout_day.id:
+        raise ValidationError({
+            'workout_day_id': 'Solo puedes registrar la rutina programada para hoy.',
+        })
+
+
 def completar_sesion(session, datos=None):
     """Completa una sesión bloqueada y avanza el ciclo si corresponde."""
     datos = datos or {}
@@ -225,6 +236,8 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
             raise PermissionDenied('El día de entrenamiento no pertenece al miembro.')
         if workout_day.plan.status != 'active':
             raise ValidationError({'workout_day_id': 'Solo se ejecutan planes publicados.'})
+        if usa_contexto_cliente(request):
+            assert_client_current_workout_day(workout_day)
         if attendance and attendance.member_id != member.id:
             raise ValidationError({'attendance_id': 'La asistencia no corresponde al miembro.'})
         assert_workout_access(member, attendance)
@@ -263,6 +276,8 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
         """PATCH /api/workout-sessions/{id}/complete/"""
         session = self.get_object()
         assert_workout_access(session.member, session.attendance)
+        if usa_contexto_cliente(request):
+            assert_client_current_workout_day(session.workout_day)
         if session.is_completed:
             return Response({'error': 'La sesión ya fue completada.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -274,6 +289,8 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
             session = WorkoutSession.objects.select_for_update().select_related(
                 'workout_day__plan'
             ).get(pk=session.pk)
+            if usa_contexto_cliente(request):
+                assert_client_current_workout_day(session.workout_day)
             if session.is_completed:
                 return Response({'error': 'La sesión ya fue completada.'}, status=status.HTTP_400_BAD_REQUEST)
             if usa_contexto_cliente(request):
@@ -310,6 +327,8 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
         """Registra una decisión simple del cliente para un ejercicio de su sesión."""
         session = self.get_object()
         assert_workout_access(session.member, session.attendance)
+        if usa_contexto_cliente(request):
+            assert_client_current_workout_day(session.workout_day)
         if session.is_completed:
             return Response({'error': 'La sesión ya fue completada.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -325,6 +344,8 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
 
         with transaction.atomic():
             session = WorkoutSession.objects.select_for_update().select_related('workout_day__plan').get(pk=session.pk)
+            if usa_contexto_cliente(request):
+                assert_client_current_workout_day(session.workout_day)
             if session.is_completed:
                 return Response({'error': 'La sesión ya fue completada.'}, status=status.HTTP_400_BAD_REQUEST)
             estado = ser.validated_data['estado']
@@ -386,10 +407,17 @@ class BulkExerciseLogView(APIView):
         if not contexto_cliente and not user_can_manage_member_progress(user, session.member):
             raise PermissionDenied('La sesión no pertenece a un cliente asignado.')
         assert_workout_access(session.member, session.attendance)
+        if contexto_cliente:
+            assert_client_current_workout_day(session.workout_day)
 
         from plans.models import Exercise
 
         with transaction.atomic():
+            session = WorkoutSession.objects.select_for_update().select_related(
+                'workout_day__plan'
+            ).get(pk=session.pk)
+            if contexto_cliente:
+                assert_client_current_workout_day(session.workout_day)
             created_logs = []
             for log_data in logs_data:
                 exercise_id = log_data.pop('exercise_id')
