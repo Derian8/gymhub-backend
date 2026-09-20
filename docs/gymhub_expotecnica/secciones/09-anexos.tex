@@ -10,10 +10,10 @@ las condiciones comerciales definitivas dependen de la validación del piloto.
 \begingroup
 \centering
 \vspace*{0.5cm}
-\makebox[\textwidth][c]{\includegraphics[width=1.08\textwidth]{imagenes/modelo_canvas_gymhub.png}}
-\captionof{figure}{Modelo Canvas vigente de GymHub}
+\input{secciones/canvas-regional}
+\captionof{figure}{Modelo Canvas vigente de Pulso}
 \label{fig:canvas}
-\caption*{\textit{Nota}. Elaboración propia, 2026. Presenta la propuesta vigente; no acredita ventas ni un piloto ejecutado.}
+\caption*{\textit{Nota}. Elaboración propia a partir del escenario financiero preliminar.}
 \par
 \endgroup
 \clearpage
@@ -45,9 +45,9 @@ las condiciones comerciales definitivas dependen de la validación del piloto.
 \begin{minipage}[c]{0.205\textwidth}
 \pasorutacomercial{Suscripción}{Soporte y revisión}{green!8}{green!50!black}
 \end{minipage}
-\caption{Ruta comercial propuesta de GymHub}
+\caption{Ruta comercial propuesta de Pulso}
 \label{fig:ruta-comercial}
-\caption*{\textit{Nota}. Elaboración propia. Representa el proceso previsto; no acredita ventas, piloto ni continuidad ejecutados.}
+\caption*{\textit{Nota}. Elaboración propia. Resume los pasos previstos para ofrecer el servicio.}
 \end{figure}
 
 \subsection{Instrumento de validación}
@@ -79,11 +79,11 @@ A7 & ¿Estaría dispuesto a probar durante cuatro semanas una plataforma con dat
 A8 & Si la plataforma resolviera las funciones seleccionadas, ¿qué rango mensual consideraría razonable? & Rangos desde menos de CRC 7\,500 hasta CRC 40\,000 o más; no pagaría; requiere demostración. \\
 A9 & ¿Qué apoyo sería más importante para adoptar la plataforma? & Selección múltiple de configuración, capacitación, soporte, tutoriales, respaldo y personalización. \\
 A10 & ¿Qué tan importante considera controlar quién accede a datos de miembros, pagos y progreso? & Muy importante, importante, poco importante o no sabe. \\
-A11 & ¿Qué condición tendría que cumplir GymHub para ser útil en su trabajo? & Respuesta abierta opcional. \\
+A11 & ¿Qué condición tendría que cumplir Pulso para ser útil en su trabajo? & Respuesta abierta opcional. \\
 B1 & ¿Con qué frecuencia asiste normalmente al gimnasio? & Menos de una vez; 1--2; 3--4; o 5 o más veces por semana. \\
 B2 & ¿Qué información puede consultar actualmente de forma digital? & Selección múltiple sobre membresía, pagos, asistencia, rutina, progreso, mensajes, ninguna u otra. \\
 B3 & ¿Qué situaciones le generan mayor dificultad? & Selección múltiple sobre vencimientos, pagos, rutina, sesiones, progreso, comunicación u otra. \\
-B4 & ¿Desde qué dispositivo utilizaría GymHub? & Celular, computadora, tableta o no la usaría. \\
+B4 & ¿Desde qué dispositivo utilizaría Pulso? & Celular, computadora, tableta o no la usaría. \\
 B5 & ¿Qué tan útil sería reunir pagos, asistencia, rutina y progreso en un solo lugar? & Escala de 1, nada útil, a 5, muy útil. \\
 B6 & ¿Qué función haría que utilizara una aplicación de un gimnasio? & En la versión aplicada quedó configurada como respuesta abierta y no como categorías comparables. \\
 B7 & ¿Qué haría que utilizara o dejara de utilizar una aplicación de gimnasio? & Respuesta abierta opcional. \\
@@ -93,19 +93,20 @@ B7 & ¿Qué haría que utilizara o dejara de utilizar una aplicación de gimnasi
 
 \subsection{Limitaciones metodológicas de la encuesta}
 
-La muestra fue no probabilística, de conveniencia y con mayor participación de
-miembros que de responsables. Durante el reclutamiento, varios dueños de
-gimnasios rechazaron responder. No se registró el número total de invitaciones ni
-de rechazos, por lo que no se calculó una tasa de respuesta. En consecuencia,
-los resultados describen a las 15 personas participantes y no se generalizan a
-todos los gimnasios de Pérez Zeledón.
+La selección se hizo por acceso a las personas y participación voluntaria,
+sin sorteo; por eso la muestra es no probabilística y por conveniencia.
+Respondieron más miembros que responsables. Varios dueños rechazaron
+participar y no se anotó el total de invitaciones ni de rechazos, por lo que
+no se pudo calcular una tasa de respuesta. Los resultados describen a las
+15 personas consultadas y no se pueden extender a todos los gimnasios de
+Pérez Zeledón.
 
 La versión aplicada en Google Forms presentó dos diferencias frente al
 instrumento previsto: la ruta de miembros no incluyó la pregunta de privacidad y
 una pregunta sobre funciones combinó opciones y respuestas abiertas de forma
-inconsistente. Esos campos se excluyeron de cualquier comparación que el dato no
-permitiera. El archivo original se conserva sin modificaciones y los gráficos se
-producen mediante un script reproducible.
+inconsistente. Por eso se compararon solo las respuestas que podían agruparse
+con claridad. La exportación original se conserva sin cambios y los gráficos
+se generan desde esos datos.
 
 \Needspace{12\baselineskip}
 \subsection{Evidencia técnica disponible}
@@ -128,29 +129,70 @@ Capturas anonimizadas & Planes, facturación y asistencia del entrenador, ademá
 \caption*{\textit{Nota}. Elaboración propia a partir del repositorio al 31 de julio de 2026 \parencite{gymhub_repo}.}
 \end{table}
 
-\subsection{Presupuesto operativo preliminar}\label{ap:presupuesto}
+\Needspace{16\baselineskip}
+\subsection{Capturas de la interfaz de demostración}
 
-El presupuesto se utiliza para explorar la viabilidad mensual de GymHub. Fue
-elaborado por el equipo con montos expresados en colones, una hora de soporte por
-gimnasio y una reserva operativa. No sustituye cotizaciones formales ni incluye
-impuestos, comisiones bancarias, consumo extraordinario de nube o costos de
-formalización todavía no cotizados \parencite{presupuesto_gymhub_2026}.
+Las capturas complementan la descripción técnica del informe y muestran la
+versión del MVP de julio de 2026 con cuentas y datos ficticios.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{imagenes/captura_panel_entrenador.png}
+\caption{Panel de control del entrenador en el MVP}
+\caption*{\textit{Nota}. Captura propia con datos ficticios, 31 de julio de 2026.}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{imagenes/captura_planes_entrenador.png}
+\caption{Listado y gestión de planes de entrenamiento}
+\caption*{\textit{Nota}. Captura propia con datos ficticios, 31 de julio de 2026.}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{imagenes/captura_panel_miembro.png}
+\caption{Panel de seguimiento de un miembro}
+\caption*{\textit{Nota}. Captura propia con datos ficticios, 24 de julio de 2026.}
+\end{figure}
+
+\Needspace{8\baselineskip}
+\subsection{Procedimiento para capturas responsive}
+
+El repositorio incorpora \texttt{frontend/capturar\_anexos.mjs}, que usa
+Playwright y Chromium para capturar el panel y las funciones de planes en
+escritorio, además de los paneles de entrenador y miembro con una ventana de
+390 por 844 píxeles. La ejecución se realiza sobre el entorno de demostración
+con cuentas ficticias y no modifica datos. Las nuevas capturas móviles se
+agregarán a este apéndice después de su ejecución en un equipo con acceso
+continuo al backend de demostración.
+
+\subsection{Trazabilidad del análisis financiero}\label{ap:presupuesto}
+
+Los cálculos del informe son de elaboración propia a partir del escenario
+financiero preliminar. El equipo usó una hoja de cálculo como borrador de
+trabajo; las tablas incluidas aquí presentan los montos y supuestos necesarios
+para revisar la proyección. Antes de ofrecer el servicio se comprobarán los
+precios con cotizaciones y se completarán los costos de impuestos, comisiones,
+formalización y consumo adicional de nube. Las tarifas oficiales y sus
+condiciones se reúnen en la Sección~\ref{sec:fuentes-precios}; cada proveedor
+aparece citado en la bibliografía.
 
 \begin{table}[htbp]
-\caption{Supuestos del presupuesto operativo preliminar}
+\caption{Supuestos principales del análisis financiero de Pulso}
 \begin{tabularx}{\textwidth}{>{\bfseries}p{4.3cm}r X}
 \toprule
-Concepto & CRC mensual & Supuesto \\
+Concepto & Importe o nivel & Supuesto \\
 \midrule
-Infraestructura comercial & 22\,847 & Estimación interna para la operación comercial inicial. \\
-Trabajo general & 30\,000 & Diez horas mensuales a CRC 3\,000. \\
-Reserva operativa & 10\,000 & Dominio, promoción básica y contingencias. \\
-Soporte por gimnasio & 3\,000 & Una hora mensual a CRC 3\,000 por cliente. \\
+Gastos fijos y trabajo valorado & 114\,247,54 & Base mensual del escenario preliminar. \\
+Costo de desarrollo & 198\,735,27 & Trabajo propio valorado; no desembolso inicial. \\
+Liquidez inicial mínima & 40\,000 & Reserva de efectivo proyectada. \\
+Soporte y nube & Variable & Se ajusta por cartera, altas y consumo proyectado. \\
 \midrule
-Costo fijo antes de clientes & 62\,847 & Más el soporte asociado a cada gimnasio activo. \\
+Punto de equilibrio operativo & 6 clientes & Primer resultado mensual positivo en el escenario. \\
 \bottomrule
 \end{tabularx}
-\caption*{\textit{Nota}. Elaboración propia \parencite{presupuesto_gymhub_2026}. Los montos requieren validación con cotizaciones formales antes de la venta.}
+\caption*{\textit{Nota}. Elaboración propia a partir del escenario financiero preliminar. Montos por confirmar antes de la venta.}
 \end{table}
 
 \subsection{Referencias de despliegue demostrativo}

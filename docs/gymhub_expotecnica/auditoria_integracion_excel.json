@@ -1,0 +1,140 @@
+{
+  "metodo": "Valores guardados en Excel; conciliaciones independientes, sin recalcular todas sus fórmulas",
+  "archivos": {
+    "gymhub_expotecnica/modelo_negocios/Analisis_ gym.xlsx": "9031aba2b38b016a34d9978738ae5c5ab6142e47534d544317e8d735d815098a",
+    "evaluacion/plan_negocios.xlsx": "80a338539c9952b60778ad8a2f275d9b0dbf90ed03f4883e015191feeb44ac15"
+  },
+  "criterios": [
+    {
+      "celda": "A28",
+      "indicador": "a.   Explica con solidez qué hace único al negocio y porqué es atractivo."
+    },
+    {
+      "celda": "A29",
+      "indicador": "b.   Describe las actividades clave que la empresa implementa para ofrecer una propuesta de valor."
+    },
+    {
+      "celda": "A30",
+      "indicador": "c.\tEvidencia la identificación de los equipos y recursos necesarios para llevar a cabo las operaciones de la empresa."
+    },
+    {
+      "celda": "A31",
+      "indicador": "d. Describe de forma detallada el producto o servicio propuesto que brindan valor a los clientes."
+    },
+    {
+      "celda": "A32",
+      "indicador": "e.   Detalla cómo los productos o servicios ofrecidos se diferencian de la competencia."
+    },
+    {
+      "celda": "A33",
+      "indicador": "f.    Emplea lenguaje técnico acorde con el nivel académico y el campo del negocio."
+    },
+    {
+      "celda": "A34",
+      "indicador": "g.   Define los canales mediante los cuales hará llegar a los clientes la propuesta de valor."
+    },
+    {
+      "celda": "A35",
+      "indicador": "h.   Caracteriza ampliamente el segmento de clientes (Necesidades - comportamientos - atributos)."
+    },
+    {
+      "celda": "A36",
+      "indicador": "i.   Presenta los elementos diferenciadores que facilitan la decisión de compra del cliente. "
+    },
+    {
+      "celda": "A37",
+      "indicador": "j.   Describe las demandas del segmento de clientes y el seguimiento para asegurar la calidad de los bienes o servicios ofrecidos. "
+    },
+    {
+      "celda": "A38",
+      "indicador": "k.   Presenta las estrategias para el acercamiento al cliente, ya sea durante el proceso de atención o de servicio,"
+    },
+    {
+      "celda": "A39",
+      "indicador": "l.   Presenta datos sobre clientes, tendencias y oportunidades."
+    },
+    {
+      "celda": "A40",
+      "indicador": "m.   Incluye los canales para la distribución del producto hasta el cliente y su promoción, incorporando el uso de nuevas tecnologías. "
+    },
+    {
+      "celda": "A41",
+      "indicador": "n.   Presenta la estructura de costos, gastos e ingresos."
+    },
+    {
+      "celda": "A42",
+      "indicador": "o.    Incluye los canales para la distribución del producto hasta el cliente y su promoción, incorporando el uso de nuevas tecnologías. "
+    },
+    {
+      "celda": "A43",
+      "indicador": "p. Determina el mercado meta y su alineación con la propuesta de valor del negocio."
+    },
+    {
+      "celda": "A44",
+      "indicador": "q.   Presenta el modelo de negocio integrando los nueve módulos básicos que definen la operación de la empresa, según lo expuesto en la fase Institucional."
+    },
+    {
+      "celda": "A45",
+      "indicador": "r.   Presenta el análisis de la viabilidad financiera incluyendo ingresos, costos, gastos y utilidades esperadas."
+    },
+    {
+      "celda": "A46",
+      "indicador": "s. Presenta el análisis de las fuentes de financiamiento y su impacto en la permanencia del negocio."
+    },
+    {
+      "celda": "A47",
+      "indicador": "t.   Evidencia una relación realista entre las proyecciones e indicadores financieros."
+    },
+    {
+      "celda": "A48",
+      "indicador": "u.   Evidencia cumplimiento de la normativa vigente en apego a la forma jurídica, organizacional y seguridad social."
+    },
+    {
+      "celda": "A49",
+      "indicador": "v.    Detalla las alianzas estratégicas y aportes a su propuesta de valor. "
+    },
+    {
+      "celda": "A50",
+      "indicador": "w.  Presenta una organización clara y lógica del documento, en congruencia con la estructura dada en los lineamientos. "
+    },
+    {
+      "celda": "A51",
+      "indicador": "x. Presenta el listado de referencias citadas en el documento, según formato APA vigente."
+    },
+    {
+      "celda": "A52",
+      "indicador": "y. Cumple con el formato establecido."
+    },
+    {
+      "celda": "A53",
+      "indicador": "z. Justifica de forma sólida la viabilidad y pertinencia del negocio."
+    },
+    {
+      "celda": "A54",
+      "indicador": "aa. Identifica la situación de mercado, sociedad o industria que se aborda en la propuesta de negocio."
+    },
+    {
+      "celda": "A55",
+      "indicador": "bb. Argumenta la necesidad o problema que resuelve la propuesta de negocio."
+    }
+  ],
+  "ingresos_anuales": 2780000.0,
+  "resultado_antes_impuestos": 596044.35725,
+  "caja_final": 1666983.56,
+  "recuperacion_economica_mes": 8,
+  "resultado_acumulado": [
+    -365631.1789375,
+    -365083.67306249996,
+    -341021.6567083333,
+    -303445.129875,
+    -242354.09256249998,
+    -181263.05524999998,
+    -96657.5074583333,
+    8962.550812500034,
+    138097.11956250004,
+    267231.6883125,
+    419880.76754166675,
+    596044.35725
+  ],
+  "verificaciones": "Conciliaciones aprobadas"
+}

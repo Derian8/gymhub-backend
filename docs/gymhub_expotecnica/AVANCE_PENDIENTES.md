@@ -1,23 +1,107 @@
 # Avance Y Pendientes Del Escrito
 
-Última actualización: 11 de septiembre de 2026.
+Última actualización: 18 de septiembre de 2026.
+
+## Documento final y referencias de precios — 18 de septiembre
+
+- Se incorporaron seis fuentes oficiales de tarifas con citas dentro del análisis
+  de precios y bibliografía APA: Vercel, Supabase, dominio de Supabase, Workspace,
+  Amazon SES y GPT-4.1 mini. Se precisaron moneda, unidad y condiciones.
+- Se revisaron las 22 entradas y su correspondencia con las citas del informe;
+  se corrigieron metadatos de INEC y Kotler, páginas sin fecha y enlace de Hacienda.
+- Se retiró la referencia BCCR sin cita; CRC 500/USD es un supuesto del equipo.
+- Workspace aparece en dos descripciones del Excel. Su duplicación monetaria
+  requiere desglose; se explica un ajuste condicionado sin alterar el escenario.
+- La reserva de CRC 40000 se denomina propuesta, no mínimo comprobado.
+- Se conservaron íntegros los objetivos y la declaración de IA.
+- Las limitaciones de acceso a MEIC, CCSS y textos legales se registran en
+  CONTROL_FUENTES.md; no se presentan como verificaciones completas.
+- PDF final: 86 páginas; compilación sin citas ni referencias indefinidas y
+  sin desbordamientos horizontales. Se revisaron visualmente las páginas de
+  tarifas y bibliografía y se sincronizaron `main.pdf` y `build/main.pdf`.
+- Conciliaciones del generador aprobadas: ingresos CRC 2780000, resultado
+  CRC 596044,36 y caja CRC 1666983,56.
+- Esta entrega finaliza la edición del documento; no acredita piloto,
+  formalización, inventario, cotizaciones ni nuevas capturas móviles.
+
+## Revisión Editorial Integral — 18 De Septiembre
+
+- Se revisó la redacción de todas las secciones, conclusiones, anexos y notas de
+  tablas con un tono formal y sencillo para undécimo año.
+- Se acortaron repeticiones y se explicaron los conceptos de caja, costo del
+  trabajo, margen y recuperación con los mismos importes del escenario.
+- Se conservaron las secciones, tablas, cifras tabuladas, figuras y objetivos
+  aprobados. La declaración de IA permanece literal por instrucción del usuario;
+  su porcentaje no fue validado en esta revisión.
+- Se retiraron las referencias bibliográficas al Excel financiero y al borrador
+  de costos. Los resultados se identifican como elaboración propia a partir del
+  escenario financiero preliminar. Los archivos de trabajo se conservan.
+- Se actualizaron el generador de tablas y la matriz de rúbrica para mantener
+  este criterio en futuras regeneraciones.
+- Las pruebas y capturas de julio se describen como evidencia de esa versión.
+- PDF revisado: 83 páginas, frente a 89 antes de la edición. Se sincronizan
+  `build/main.pdf` y `main.pdf` como versión vigente.
+- Detalle editorial y pendientes: `AUDITORIA_REDACCION.md`.
+
+## Integración Del Plan De Negocios — 18 De Septiembre
+
+- Se analizaron los 28 indicadores exactos de `../evaluacion/plan_negocios.xlsx`,
+  A28:A55. La matriz anterior no coincidía en el orden; se sustituyó con la
+  correspondencia correcta, conservando el duplicado m/o de la fuente.
+- Se amplió el documento base de 55 páginas con definición y estudio de mercado,
+  inventario, organización, operación y análisis económico-financiero anual.
+- Se citaron ambos Excel mediante BibLaTeX APA. Se incorporaron cuatro gráficas
+  adicionales y tablas reproducibles de clientes, caja, resultados y balance.
+- Se conciliaron ingresos (CRC 2 780 000), resultado antes de impuestos
+  (CRC 596 044,36), caja final (CRC 1 666 983,56) y patrimonio. La recuperación
+  económica simple se proyecta en el mes 8, cargando el desarrollo al mes 1.
+- Se reemplazó en el PDF el Canvas gráfico desactualizado por nueve bloques
+  LaTeX con los importes del Excel; la imagen histórica sigue disponible.
+- El impuesto cero MYPE es un supuesto condicionado, no un beneficio acreditado.
+  La reserva de CRC 40 000 requiere calendario diario para comprobar su mínimo.
+- Pendientes: formalización y seguridad social acreditadas, aliado/piloto,
+  aceptación comercial, capacidad multiempresa, cotizaciones, inventario real
+  y conciliación del rótulo Workspace entre infraestructura y correo/diseño.
+- La cobertura de los indicadores no constituye 84/84 ni calificación del jurado.
+- Compilación regional ampliada: 85 páginas frente a las 55 de la versión base.
+  En esa etapa el PDF se generó en `build/main.pdf`. Desde la revisión editorial,
+  `main.pdf` también se sincroniza como copia vigente de entrega.
+- Se añadió el anexo de capturas de la interfaz del MVP con datos ficticios.
+  Chromium quedó instalado para Playwright y `frontend/capturar_anexos.mjs`
+  quedó preparado para cuatro capturas de escritorio y dos móviles. La ejecución
+  remota sigue pendiente porque el backend de demostración no completó el inicio
+  de sesión dentro del tiempo disponible del contenedor; no se generan imágenes
+  móviles que no correspondan a una vista real de la interfaz.
+
+## Adaptación Regional — 17 De Septiembre
+
+- El informe se reestructuró como Plan de negocios regional y adopta la marca
+  Pulso. GymHub se conserva únicamente como nombre de la versión de desarrollo
+  anterior.
+- La fuente financiera del informe es `modelo_negocios/Analisis_ gym.xlsx`.
+  Se incorporaron sus supuestos de Starter CRC 15 000, Pro Gym CRC 25 000,
+  14 gimnasios activos al cierre del año uno, ingresos de CRC 2 780 000 y
+  equilibrio operativo desde seis clientes.
+- La gráfica reproducible de punto de equilibrio se sincronizó con los
+  escenarios de cuatro a ocho clientes. Todas las cifras se presentan como
+  proyecciones y no como ventas, contratos ni piloto ejecutado.
 
 ## Revisión De Marca Y Documentos Financieros — 11 De Septiembre
 
 - El equipo confirmó Pulso como nombre comercial vigente. La identidad visual
   está en `../nueva_identidad_visual/`: logo, banner, icono y merchandising, con
   rojo, negro y blanco y el lema «El ritmo de tu gimnasio en un solo lugar».
-- Queda pendiente trasladar la marca al informe y sus anexos. Esta revisión no
-  modifica el contenido LaTeX ni el PDF vigente, que todavía utilizan GymHub.
+- La marca ya fue trasladada al informe y sus anexos; GymHub se conserva solo
+  cuando es necesario explicar el nombre histórico de la versión inicial.
 - El equipo confirmó `modelo_negocios/Modelo_costos_SaaS_GymHub_regional.docx`
   como base de costos aprobada para Pulso. Sus importes son CRC 61 125 fijos y
   CRC 4 750 o 17 250 variables por gimnasio, con tipo de cambio presupuestario
   de CRC 500/USD y hora técnica de CRC 5 000. Las observaciones y sugerencias
   deben distinguirse de los importes aprobados, sin alterarlos automáticamente.
-- Actualizar el informe, que todavía utiliza CRC 62 847 fijos y CRC 3 000
-  variables, a partir de la base aprobada. El Word también propone tarifas de
-  CRC 15 000, 25 000, 45 000 y 70 000; distinguir esa propuesta comercial del
-  piloto y los planes anteriores al sincronizar precios y punto de equilibrio.
+- El informe utiliza el escenario consolidado del Excel: Starter CRC 15 000,
+  Pro Gym CRC 25 000 y equilibrio operativo desde seis clientes. El documento
+  de costos anterior permanece como antecedente, no como fuente de las cifras
+  proyectadas vigentes.
 - Los tres Excel conservan datos genéricos. PIEA contiene resultados guardados
   `#DIV/0!` en GASTOS y PRESUPUESTO; la simulación usa 10 000 unidades a CRC 150.
   Adaptar ventas a suscripciones activas mensuales y recalcular las fórmulas.
@@ -52,11 +136,13 @@
   promoción, posicionamiento e indicadores iniciales.
 - Seguimiento de calidad definido para incorporación, operación, continuidad y
   cierre del piloto.
-- Piloto de cuatro semanas definido en CRC 15 000, seguido por planes de
-  CRC 30 000, CRC 45 000 y CRC 60 000 según uso y acompañamiento requerido.
-- Costos de desarrollo, operación, trabajo y soporte incluidos en la proyección.
-- Punto de equilibrio establecido en 3 gimnasios Básico o 2 gimnasios Gestión.
-- Meta comercial inicial definida en 3 gimnasios durante los primeros 6 meses.
+- Escenario comercial proyectado con Starter de CRC 15 000 y Pro Gym de
+  CRC 25 000; no se presenta como piloto, venta, contrato ni cartera real.
+- Costos de desarrollo, operación, trabajo valorado y soporte incluidos en la
+  proyección financiera de referencia.
+- Punto de equilibrio operativo proyectado desde 6 clientes activos.
+- Escenario anual proyectado con 14 gimnasios activos al cierre del primer año,
+  sin presentarlo como meta comercial alcanzada.
 - Encuesta cerrada con 15 respuestas válidas: 5 responsables y 10 miembros.
 - Periodo, composición, rechazo de propietarios, limitaciones y diferencias del
   formulario aplicado documentados.

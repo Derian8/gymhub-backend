@@ -1,86 +1,65 @@
 \section*{Resumen ejecutivo}
 \addcontentsline{toc}{section}{Resumen ejecutivo}
 
-GymHub es un sistema en línea para que los gimnasios organicen miembros,
-membresías, pagos, asistencia, planes de entrenamiento y progreso. El problema
-principal es tener la información repartida entre cuadernos, hojas de cálculo y
-otras aplicaciones. Se creó un producto mínimo viable con dos roles: entrenador
-y miembro.
+Pulso reúne membresías, pagos, asistencia, entrenamiento y progreso en una plataforma web. El prototipo documentado incluye entrenador y miembro. Se consultó a quince participantes: cinco responsables y diez miembros.
 
-La propuesta se revisó mediante una encuesta a cinco responsables y diez
-miembros adultos relacionados con gimnasios. Cuatro responsables mencionaron
-dificultades con cobros o pagos. Nueve miembros indicaron que no consultan
-información del gimnasio en formato digital. Los diez calificaron con 4 o 5 la
-idea de reunir pagos, asistencia, rutina y progreso en un solo lugar.
+Se propone una suscripción mensual (SaaS): Starter, hasta 80 miembros e identidad visual básica, por CRC 15\,000; Pro Gym, hasta 200 y configuración ampliada, por CRC 25\,000; Premium, hasta 500 y mayor configuración, por CRC 45\,000; Enterprise, más de 500, desde CRC 70\,000. Los dos últimos podrían requerir diseño propio, atención dedicada y base de datos independiente; necesitan validación y cotización.
 
-El modelo propone una demostración y un piloto de cuatro semanas por
-CRC 15\,000. Después se plantean suscripciones según el uso y el acompañamiento
-requerido. La proyección interna cubre los costos mensuales con tres planes
-Básico o dos planes Gestión. Estos resultados no son ventas reales. Los precios,
-el piloto y el uso con datos de un gimnasio todavía deben validarse antes de
-ofrecer el servicio comercialmente.
+La proyección con Starter y Pro Gym termina con 14 gimnasios. Parte de cinco contrataciones y cubre la operación con una más: un Starter y cinco Pro Gym generan CRC 140\,000 frente a CRC 122\,891 de costos, dejando CRC 17\,109. Conseguir esos clientes y sostener los precios requiere pruebas comerciales.
 
 \Needspace{9\baselineskip}
 \section{Justificación}
 
 \subsection{Problema y necesidad identificada}
 
-La administración de un gimnasio exige mantener información actualizada sobre
-personas usuarias, vigencia de membresías, pagos, ingreso a las instalaciones,
-planes asignados y seguimiento del entrenamiento. Cuando esas tareas se
-resuelven con registros separados, se incrementa la posibilidad de duplicar
-datos, perder trazabilidad o dedicar tiempo a buscar información. La necesidad
-que atiende GymHub consiste en disponer de una fuente centralizada que permita
-consultar el estado administrativo y deportivo de cada miembro según su rol.
+Administrar un gimnasio requiere saber quién tiene una membresía vigente,
+cuáles pagos están pendientes y qué entrenamiento sigue cada miembro. Si esta
+información se guarda en registros separados, resulta más difícil encontrarla
+y mantenerla al día. Pulso busca reunirla en un solo lugar, con acceso según
+las funciones de cada persona.
 
-La consulta a responsables mostró una operación heterogénea: dos mencionaron
+Los responsables consultados utilizan distintas herramientas: dos mencionaron
 cuadernos o formularios, dos Excel o Google Sheets, dos software especializado,
 dos sistemas internos y uno WhatsApp; cada persona podía seleccionar varias
-opciones. No se encontró un único método dominante, pero sí coexistencia de
-herramientas. Cuatro de cinco responsables señalaron cobros y pagos pendientes
-como una dificultad. Este resultado respalda el problema administrativo en la
-muestra consultada, sin demostrar su frecuencia en todos los gimnasios de Pérez
-Zeledón.
+opciones. Cuatro de cinco responsables señalaron dificultades con los cobros y
+pagos pendientes. Estas respuestas ayudan a definir el problema que atiende
+Pulso, aunque solo describen los casos consultados en Pérez Zeledón.
 
 \subsection{Oportunidad detectada}
 
-La digitalización puede integrar procesos y facilitar el acceso a información
-para tomar decisiones. No obstante, una herramienta compleja puede resultar tan
-poco útil como la ausencia de una solución cuando añade trabajo a la operación.
-GymHub busca reducir esa fricción mediante una interfaz adaptable,
-incorporación guiada y crecimiento por módulos.
+Una plataforma digital puede facilitar la consulta de información y las tareas
+diarias del gimnasio. Para que resulte útil, también debe ser fácil de aprender.
+Por eso Pulso propone pantallas adaptables al celular y la computadora, ayuda
+durante la configuración y funciones organizadas por tarea.
 
-La oportunidad comercial se concentra primero en dueños y administradores,
-porque son quienes deciden la contratación. Entrenadores y miembros son usuarios
-del sistema y determinan que la plataforma se use de manera constante. Esta
-separación evita confundir al comprador con todos los beneficiarios. Como señal
-de utilidad, nueve de los diez miembros otorgaron la calificación máxima de 5 y
-uno calificó con 4 la integración de pagos, asistencia, rutina y progreso.
+La oferta se dirige primero a dueños y administradores, quienes deciden la
+contratación. También debe ser útil para entrenadores y miembros, que la usarán
+en sus actividades diarias. En la encuesta, nueve de los diez miembros dieron
+la calificación máxima de 5 y uno calificó con 4 la idea de reunir pagos,
+asistencia, rutina y progreso.
 
 \subsection{Contexto social, económico, tecnológico y ambiental}
 
 En el ámbito social, una gestión ordenada puede ofrecer mayor claridad sobre
-rutinas, asistencia y estado de la membresía. GymHub no garantiza resultados
+rutinas, asistencia y estado de la membresía. Pulso no garantiza resultados
 físicos ni reemplaza el acompañamiento profesional; organiza información para
 que las personas autorizadas puedan dar seguimiento.
 
-En el ámbito económico, GymHub ayuda a mantener visibles los pagos pendientes,
+En el ámbito económico, Pulso ayuda a mantener visibles los pagos pendientes,
 las membresías próximas a vencer y la actividad de los miembros. Esto permite que
 la administración concentre su tiempo en atender el gimnasio en vez de revisar
 registros separados. Durante el piloto se medirá el tiempo empleado antes y
-después de utilizar la plataforma para convertir este beneficio en un indicador
-propio.
+después de utilizar la plataforma para comprobar si facilita esas tareas.
 
-En el ámbito tecnológico, el proyecto combina una aplicación web, una API, una
-base de datos relacional, autenticación por roles, tareas programadas y servicios
-de nube. La arquitectura permite demostrar el concepto sin comprar servidores,
-pero los planes gratuitos actuales sostienen únicamente la demostración y no
-equivalen a infraestructura comercial con respaldo y soporte.
+En el ámbito tecnológico, el proyecto utiliza una aplicación web, una base de
+datos y una API que comunica las pantallas con el servidor. Los permisos
+dependen del rol de cada usuario. Los servicios de nube permiten demostrar el
+sistema sin comprar servidores. Para atender clientes será necesario ampliar
+la capacidad y preparar respaldos y soporte.
 
-En el ámbito ambiental, el uso de registros digitales puede disminuir formularios
-impresos. No se afirma un ahorro ambiental cuantificado porque el proyecto no ha
-medido consumo de papel ni la huella de los servicios de nube. El beneficio se
-presenta como potencial y sujeto a comprobación.
+En el ámbito ambiental, los registros digitales podrían reducir el uso de
+formularios impresos. Todavía falta medir cuánto papel se sustituiría y qué
+consumo generan los servicios de nube.
 
 \subsection{Pertinencia del modelo de suscripción}
 
@@ -94,29 +73,28 @@ responsables solicitaron ver una demostración antes de elegir una tarifa; por
 esta razón, la estrategia comercial comienza mostrando el producto y su
 utilidad, no solamente presentando un precio.
 
-\section{Objetivos del modelo de negocio}
+\section{Objetivos del plan de negocios}
 
 \subsection{Objetivo general}
 
-Desarrollar GymHub como sistema integral de gestión administrativa y deportiva
-en línea para gimnasios.
+Desarrollar Pulso como una plataforma web de gestión administrativa y deportiva
+para gimnasios, como solución para la digitalización, organización y control de
+sus procesos.
 
 \subsection{Objetivos específicos}
 
 \begin{enumerate}
-  \item Analizar las necesidades administrativas y deportivas de los gimnasios para orientar la propuesta de valor de GymHub.
+  \item Analizar las necesidades administrativas y deportivas de las personas vinculadas a gimnasios en una muestra de quince participantes, como insumo para la propuesta de valor de Pulso.
 
-  \item Desarrollar las funciones de GymHub para gestionar membresías, pagos, asistencia, planes de entrenamiento y progreso.
+  \item Desarrollar las funciones de Pulso para gestionar membresías, pagos, asistencia, planes de entrenamiento y progreso.
 
-  \item Definir un modelo de suscripción para la prestación del servicio en línea de GymHub.
+  \item Definir un modelo de suscripción para la prestación del servicio en línea de Pulso.
 
-  \item Evaluar la viabilidad inicial de GymHub mediante la estimación de costos, ingresos y punto de equilibrio.
+  \item Evaluar la viabilidad inicial de Pulso mediante la estimación de costos, ingresos y punto de equilibrio.
 \end{enumerate}
 
-Los objetivos siguen una secuencia de trabajo: análisis de necesidades,
-desarrollo de funciones, definición del modelo de suscripción y evaluación de
-viabilidad. La escalabilidad y la sostenibilidad se analizan mediante el modelo
-de suscripción, los escenarios de crecimiento, los costos y el punto de equilibrio.
-Los resultados de encuesta se presentan como evidencia descriptiva de la muestra,
-con cantidades absolutas, fecha y limitaciones. No se generalizan a todos los
-gimnasios del cantón.
+El trabajo parte de las necesidades consultadas, continúa con el desarrollo de
+funciones y plantea una suscripción para cubrir los costos del servicio. La
+proyección financiera permite estudiar cuánto tendría que crecer Pulso para
+mantenerse. La encuesta orienta estas decisiones dentro de los límites de sus
+quince participantes.

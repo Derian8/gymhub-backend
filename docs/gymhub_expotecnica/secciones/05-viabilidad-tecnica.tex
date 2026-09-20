@@ -2,25 +2,23 @@
 
 \subsection{Arquitectura implementada}
 
-GymHub se construyó con una arquitectura web modular para separar la interfaz, las
-reglas del negocio y el almacenamiento de datos. La interfaz utiliza React y
+Pulso se organizó en tres partes: las pantallas, el servidor que procesa las
+acciones y la base de datos. Las pantallas utilizan React y
 TypeScript; React facilita organizar las pantallas mediante componentes
 reutilizables \parencite{react2026}. El backend emplea Django 5.1 y Django REST
 Framework para los modelos, la autenticación, la validación y la API
 \parencite{django51,drf315}. PostgreSQL almacena los datos en Supabase.
 
-Las tareas asíncronas futuras se modelan con Celery y Redis. Una cola de tareas separa
-el envío del trabajo de su ejecución por procesos worker
-\parencite{celery2026}. En el entorno local esos procesos se orquestan con Docker
-Compose; en la demostración publicada en Vercel no están desplegados como procesos
-persistentes. Estos componentes no forman parte del recorrido comercial que se
-demuestra en la versión publicada.
+Para tareas en segundo plano se prepararon Celery y Redis. Estas herramientas
+permiten enviar un trabajo a una cola y ejecutarlo por separado
+\parencite{celery2026}. En el equipo de desarrollo se ejecutan con Docker
+Compose. Su funcionamiento continuo está pendiente en la demostración de Vercel.
 
 \begin{table}[htbp]
-\caption{Tecnologías utilizadas en GymHub}
+\caption{Tecnologías utilizadas en Pulso}
 \begin{tabularx}{\textwidth}{>{\bfseries}p{3cm}p{4cm}X}
 \toprule
-Capa & Tecnología & Uso en GymHub \\
+Capa & Tecnología & Uso en Pulso \\
 \midrule
 Frontend & React 18, TypeScript, Vite 5 & SPA responsive, rutas, formularios y vistas por rol. \\
 Interfaz & Tailwind CSS, Recharts, Lucide & Estilos, gráficos e iconografía. \\
@@ -33,24 +31,23 @@ Despliegue & Vercel y Docker & Demo pública y entornos reproducibles. \\
 Pruebas & Pytest, Vitest y Playwright & Reglas backend, componentes y flujos de navegador. \\
 \bottomrule
 \end{tabularx}
-\caption*{\textit{Nota}. Elaboración propia a partir del desarrollo de GymHub \parencite{gymhub_repo}.}
+\caption*{\textit{Nota}. Elaboración propia a partir del desarrollo de Pulso \parencite{gymhub_repo}.}
 \end{table}
 
 \subsection{Módulos funcionales}
 
-El MVP define dos roles de acceso: entrenador y miembro. El entrenador concentra
-la operación del gimnasio en los recorridos de miembros, planes de entrenamiento,
-asistencia y facturación. El miembro consulta su membresía, ejecuta el programa
-publicado por su entrenador y registra asistencia y progreso. No existe un tercer
-rol administrativo independiente en la versión actual.
+La versión documentada en las pruebas y capturas de julio de 2026 tiene dos
+roles: entrenador y miembro. El entrenador gestiona miembros, rutinas,
+asistencia y facturación. El miembro consulta su membresía y sigue el programa
+asignado. En esa versión, la administración se realiza desde el rol entrenador.
 
 Los planes de entrenamiento y la facturación se mantienen como procesos
 separados. En la pestaña Planes, el entrenador crea la rutina, selecciona al
 miembro, configura días y ejercicios, resuelve conflictos con un plan activo y
 publica el programa. En Facturación se crea o renueva la membresía comercial, se
 define precio y recurrencia, se registra el pago y se controla la vigencia o la
-mora. Una membresía habilita el acceso comercial, pero no sustituye ni crea la
-prescripción deportiva.
+mora. La membresía define la vigencia del servicio del gimnasio; la rutina
+indica qué ejercicios debe realizar el miembro.
 
 \begin{longtable}{>{\bfseries}p{3.1cm}p{7.3cm}p{3.8cm}}
 \caption{Estado de los módulos del MVP}\label{tab:modulos}\\
@@ -75,14 +72,11 @@ Perfil & Consulta y actualización de los datos permitidos de la cuenta. & Funci
 
 \subsection{Evidencia de funcionamiento}
 
-Los principales recorridos de GymHub se comprobaron mediante pruebas automatizadas
-del backend, componentes de la interfaz y recorridos completos en navegador. Las
-pruebas forman parte del control de calidad porque permiten descubrir errores
-antes de que afecten a la persona usuaria. Entre los
-flujos comprobados se encuentran el inicio de sesión por rol, la gestión de
-miembros, la activación de membresías, el registro de pagos, la asistencia, los
-planes de entrenamiento y el seguimiento del progreso. El inventario detallado
-de casos se presenta en los apéndices.
+Las pruebas revisaron el servidor, las pantallas y tareas completas desde el
+navegador. Se comprobaron el inicio de sesión, el registro de miembros, la
+activación de membresías, los pagos, la asistencia, las rutinas y el progreso.
+Estas revisiones ayudan a encontrar errores antes de una demostración. Los
+conteos y la fecha de las pruebas se presentan en los apéndices.
 
 La interfaz, la API y su documentación cuentan con despliegues de demostración.
 Durante la exposición se mostrará al jurado, con datos ficticios, el recorrido
@@ -98,7 +92,7 @@ se limita a pantallas que coinciden con el alcance vigente.
 \caption*{\textit{Nota}. Captura propia del MVP con cuentas y datos ficticios, 31 de julio de 2026.}
 \end{figure}
 
-La Figura~\ref{fig:planes-entrenador} evidencia que la rutina se crea, asigna,
+La Figura~\ref{fig:planes-entrenador} muestra cómo la rutina se crea, asigna,
 configura, finaliza o archiva desde Planes. La existencia de un plan deportivo
 no implica que el miembro tenga una membresía comercial vigente.
 
@@ -110,10 +104,9 @@ no implica que el miembro tenga una membresía comercial vigente.
 \caption*{\textit{Nota}. Captura propia del MVP con cuentas y datos ficticios, 31 de julio de 2026.}
 \end{figure}
 
-La Figura~\ref{fig:facturacion-entrenador} muestra el recorrido comercial
-separado: membresía por miembro, suscripción, precio, vencimiento, estado de pago
-y registro de cobros. La pantalla no se presenta como contabilidad ni como
-procesamiento bancario automático.
+La Figura~\ref{fig:facturacion-entrenador} muestra la membresía de cada miembro,
+su precio, vencimiento y pagos registrados. Los cobros se anotan en el sistema;
+el procesamiento bancario y la contabilidad quedan fuera de esta función.
 
 \begin{figure}[htbp]
 \centering
@@ -135,16 +128,16 @@ físico.
 \caption*{\textit{Nota}. Captura propia del MVP con una cuenta y datos ficticios, 24 de julio de 2026.}
 \end{figure}
 
-La Figura~\ref{fig:panel-miembro} evidencia la consulta de membresía,
-entrenamiento del día, prescripción y progreso desde una vista separada por rol.
+La Figura~\ref{fig:panel-miembro} muestra la consulta de membresía,
+entrenamiento del día, indicaciones del entrenador y progreso.
 
 \subsection{Seguridad y privacidad}
 
 El prototipo usa permisos por rol, cookies HTTP-only para JWT, controles CORS y
 CSRF, y configuración separada por ambiente. Django incluye mecanismos para
 autenticación, autorización y seguridad web \parencite{django51}. La existencia
-de estos mecanismos no elimina la necesidad de revisión, actualización de
-dependencias, rotación de secretos, copias de seguridad y respuesta a incidentes.
+de estos mecanismos se complementa con revisiones, actualizaciones, cambios de
+claves y copias de seguridad.
 
 El tratamiento de los datos de identidad, pagos, asistencia y progreso se regirá
 por su finalidad, el consentimiento y el acceso autorizado. La Ley n.º 8968
@@ -164,5 +157,5 @@ Para crecer a varios clientes, cada gimnasio tendrá una entidad propia asociada
 con sus miembros, entrenadores y registros. Las consultas y
 permisos se limitarán al gimnasio autenticado. Esta separación también permitirá
 configurar nombre, logo y colores, y obtener el conteo de membresías activas que
-determina el plan comercial. Estas mejoras forman una ruta de crecimiento
-definida a partir del MVP actual.
+determina el plan comercial. Estas mejoras deben completarse antes de atender
+varios gimnasios con datos reales en un mismo servicio.

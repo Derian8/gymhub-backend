@@ -1,127 +1,38 @@
-# Plan de cumplimiento — ExpoTEC-12 (plan de negocios)
+# Análisis de los 28 indicadores del plan de negocios
 
-Fecha de revisión: 13 de agosto de 2026.
+Actualizado: 18 de septiembre de 2026.
 
-## Propósito y criterio de uso
+Fuente rectora: `../evaluacion/plan_negocios.xlsx`, hoja `ExpoTEC-12 Doc escri plan nego `, A28:A55. Esta matriz sustituye la correspondencia anterior, cuyo orden no coincidía con el Excel suministrado. La escala es de 0 a 3, máximo 84 puntos; el archivo contiene marcas de 3 que no se atribuyen como calificación real de Pulso. Los indicadores m y o son duplicados en la fuente.
 
-Este documento convierte la rúbrica oficial **ExpoTEC-12, Evaluación del
-Documento Escrito del Plan de Negocios**, en un control de trabajo para GymHub.
-La fuente normativa es el Apéndice M (páginas 179--187) de
-`Lineamientos técnicos-administrativos ExpoTECNICA 2026 vers final.pdf`.
+La cobertura documental no equivale a cumplimiento acreditado. En particular, u requiere formalización verificable y v una alianza comercial documentada; j, r y t conservan validaciones pendientes.
 
-La rúbrica contiene 28 indicadores, con un máximo de 3 puntos cada uno: **84
-puntos**. Alcanzar el 100 % en esta matriz significa que cada indicador tiene
-evidencia completa, verificable y actualizada en el informe. No es una
-calificación oficial: el puntaje final solo lo asigna el CTR.
-
-Estado de la revisión:
-
-- **Cubierto en el modelo actual:** hay evidencia reutilizable, pero deberá
-  conservarse y ordenarse en el plan.
-- **Parcial:** existe una base, pero hace falta evidencia, precisión o un
-  apartado explícito para poder aspirar a 3/3.
-- **Pendiente:** no existe todavía evidencia suficiente en el escrito actual.
-
-El informe vigente es un **modelo de negocio institucional**. Por eso este plan
-no declara 84/84 ni asigna puntos hipotéticos: identifica el trabajo necesario
-para convertirlo en el plan regional/nacional evaluable por ExpoTEC-12.
-
-## Matriz de validación de los 28 indicadores
-
-| Indicador | Estado actual | Evidencia existente | Falta para aspirar a 3/3 |
-|---|---|---|---|
-| a. Negocio único y atractivo | Cubierto | Idea de negocio y propuesta de valor. | Mantener la comparación actualizada y relacionarla con el mercado meta. |
-| b. Actividades clave | Cubierto | Canvas: actividades clave. | Describir responsable, frecuencia y recursos de cada actividad en el plan. |
-| c. Equipos y recursos para operar | Parcial | Arquitectura, tecnologías y aportes en especie. | Crear inventario operativo con cantidad, costo, propiedad, renovación y capacidad. |
-| d. Producto o servicio y valor | Cubierto | Servicio, módulos del MVP y propuesta de valor. | Incluir alcance comercial, límites y condiciones del servicio contratado. |
-| e. Diferenciación frente a competencia | Cubierto | Tabla de alternativas y competencia. | Actualizar rivales/precios con investigación comprobable antes de entrega regional. |
-| f. Lenguaje técnico apropiado | Cubierto | Redacción técnica y glosario contextual. | Revisión final de términos, siglas y ortografía por tutor. |
-| g. Canales de entrega de valor | Cubierto | Canales, ruta comercial y soporte. | Documentar el canal definitivo, responsable y tiempos de atención. |
-| h. Segmento de clientes | Cubierto | Segmentos, encuesta y necesidades. | Respaldar el perfil del comprador con entrevistas/demostraciones adicionales. |
-| i. Elementos que facilitan la compra | Cubierto | Prueba piloto, precios y acompañamiento. | Registrar evidencia de la reacción de compradores a la oferta. |
-| j. Demandas y seguimiento de calidad | Parcial | Diseño del piloto, incidencias e indicadores. | Ejecutar el piloto y anexar resultados, métricas, mejoras y decisión de continuidad. |
-| k. Estrategias de acercamiento y servicio | Cubierto | Mercadeo, canales y relaciones con clientes. | Calendarizar acciones, responsables, costo y métricas de conversión. |
-| l. Clientes, tendencias y oportunidades | Parcial | Encuesta exploratoria, INEC y MEIC. | Ampliar datos de mercado sin generalizar la muestra; conservar fuente, fecha y método. |
-| m. Distribución, promoción y nuevas tecnologías | Cubierto | Sistema en línea, demostración, WhatsApp y correo. | Añadir plan promocional con presupuesto, calendario e indicadores. |
-| n. Mercado meta alineado a la propuesta | Parcial | Segmentos iniciales de Pérez Zeledón. | Definir tamaño alcanzable, criterios de selección y estimación sustentada de demanda. |
-| o. Canvas con los nueve módulos | Cubierto | Desarrollo y apéndice del Canvas. | Revalidar costos, ingresos, alianzas y segmentos tras el piloto. |
-| p. Viabilidad financiera | Parcial | Costos, ingresos, punto de equilibrio y flujo de seis meses. | Sustituir supuestos críticos por cotizaciones y aceptación real de precios; presentar utilidad esperada por escenario. |
-| q. Fuentes de financiamiento y permanencia | Parcial | Aportes estudiantiles y capital operativo. | Comparar alternativas de financiamiento, sus condiciones, riesgo y efecto en flujo de caja. |
-| r. Proyecciones e indicadores financieros realistas | Parcial | Escenarios, flujo y recuperación condicionada. | Validar precios/costos, justificar supuestos y reconciliar todos los cuadros financieros. |
-| s. Normativa, forma jurídica y seguridad social | Parcial | Referencias al RUT, CCSS y condición de edad. | Definir ruta de formalización, requisitos, responsables, costos, fechas y evidencia de consulta legal/contable. |
-| t. Alianzas estratégicas y aportes | Pendiente | Alianza piloto declarada como pendiente. | Conseguir al menos una carta o aceptación voluntaria; identificar aporte, compromiso, vigencia y alternativa si no continúa. |
-| u. Viabilidad y pertinencia | Parcial | Justificación, riesgos, prototipo y proyecciones. | Integrar una conclusión de viabilidad basada en evidencia validada, no solo proyecciones. |
-| v. Situación de mercado, sociedad o industria | Cubierto | Antecedentes, INEC, MEIC y situación de industria. | Actualizar datos y fecha de consulta antes de entregar. |
-| w. Necesidad o problema resuelto | Cubierto | Problema, necesidad, encuesta y propuesta. | Confirmar el problema con evidencia del piloto. |
-| x. Impacto social, económico, tecnológico o ambiental | Parcial | Contexto e impacto esperado. | Definir indicadores medibles, línea base, responsable y evidencia posterior al piloto. |
-| y. Objetivos: viabilidad, escalabilidad y sostenibilidad | Cubierto | Objetivos y análisis de crecimiento. | Añadir metas comerciales con fecha, indicador, valor objetivo y responsable. |
-| z. Organización lógica del documento | Pendiente | Orden actual del modelo institucional. | Reestructurar como plan: definición, estudio de mercado, técnico, organizacional, inversión/financiamiento, análisis económico y financiero. |
-| aa. Referencias APA vigentes | Cubierto | BibLaTeX APA 7 y control de fuentes. | Auditoría final: toda tabla, cifra y afirmación externa debe tener cita completa y vigente. |
-| bb. Formato establecido | Parcial | Carta, márgenes, fuente, interlineado y paginación implementados. | Adaptar portada y título a «Plan de negocios», revisar PDF final contra cada requisito y legibilidad de tablas/figuras. |
-
-## Ruta de trabajo hacia el 100 %
-
-### Fase 1 — Convertir el modelo institucional en plan de negocios
-
-1. Conservar el modelo de negocio aprobado y crear la estructura regional/nacional.
-2. Añadir capítulos explícitos: definición del negocio, estudio de mercado,
-   estudio técnico, estudio organizacional, inversión y financiamiento,
-   análisis económico y análisis financiero.
-3. Reubicar el Canvas y la evidencia existente en los capítulos pertinentes,
-   sin duplicar ni cambiar hechos comprobados.
-4. Cambiar la portada, la tabla de contenido y los anexos para identificar el
-   documento como **Plan de negocios**.
-
-**Indicadores que cierra principalmente:** z y bb; además facilita verificar
-b--d, g, k, m--r y y.
-
-### Fase 2 — Completar información de operación, mercado y organización
-
-1. Elaborar un inventario de recursos y equipos con costo, propiedad, vida útil
-   y responsable (c).
-2. Definir el mercado meta con criterios de inclusión, estimación justificable
-   de alcance y demanda por escenarios (l y n).
-3. Crear el plan de mercadeo operativo: calendario, presupuesto, canal,
-   responsable, meta y métrica (k y m).
-4. Documentar estructura organizacional, cargos, funciones, personal requerido
-   y sistemas de información.
-5. Diseñar la ruta de formalización: figura jurídica a evaluar, RUT, CCSS,
-   obligaciones, costo, asesoría y condición aplicable a personas menores de
-   edad (s).
-
-### Fase 3 — Validar comercial y financieramente
-
-1. Conseguir consentimiento/aceptación de un gimnasio para demostración o
-   piloto, respetando los requisitos que indique el CTR.
-2. Ejecutar el piloto y registrar fecha, participantes autorizados, tareas,
-   incidencias, tiempo de uso, satisfacción, intención de continuidad y mejoras
-   aplicadas (i, j, t, u y w).
-3. Obtener cotizaciones fechadas para infraestructura, dominio, promoción,
-   formalización y cualquier costo relevante.
-4. Validar disposición de pago; luego actualizar precios, demanda, flujo de
-   caja, punto de equilibrio, utilidad, capital operativo y recuperación de
-   inversión (p, q y r).
-5. Formalizar alianzas: aporte de cada parte, responsable, vigencia, evidencia
-   escrita y plan alterno (t).
-
-### Fase 4 — Medir impacto y realizar control final
-
-1. Definir para cada impacto un indicador, línea base, meta, fuente, fecha y
-   responsable. Ejemplos: tiempo administrativo, errores de registro,
-   continuidad de membresías o uso de papel (x).
-2. Repetir la matriz anterior con enlaces a páginas, tablas, anexos y evidencia
-   externa. Un indicador solo se marca «listo para 3/3» si la evidencia puede
-   ser localizada por el CTR.
-3. Revisar que cifras, fechas, precios y supuestos coincidan en todo el PDF.
-4. Ejecutar la revisión de APA y formato; compilar el documento y revisar cada
-   tabla, figura y anexo en el PDF resultante.
-
-## Condición para declarar preparación al 100 %
-
-Antes de solicitar la revisión del CTR, los 28 renglones deben estar marcados
-como cubiertos con evidencia concreta. En particular, no pueden permanecer
-pendientes la alianza/piloto (t), la ejecución de control de calidad (j), la
-formalización (s), la validación financiera (p--r), la medición de impacto (x)
-ni la estructura específica del plan (z). El equipo debe adjuntar la evidencia
-en anexos o citarla de manera localizable en el texto, sin presentar proyecciones
-o intenciones como resultados reales.
+| Celda e indicador exacto | Ubicación y desarrollo | Evidencia pendiente o límite |
+|---|---|---|
+| A28: a. Explica con solidez qué hace único al negocio y porqué es atractivo. | Idea, antecedentes y definición del negocio: Conexión de gestión administrativa y deportiva, acceso móvil y acompañamiento. | La preferencia frente a competidores debe comprobarse en demostraciones. |
+| A29: b. Describe las actividades clave que la empresa implementa para ofrecer una propuesta de valor. | Canvas y estudio técnico de operación: Investigación, desarrollo, pruebas, incorporación y soporte con responsables y registros. | La frecuencia y capacidad de soporte se contrastarán con uso real. |
+| A30: c. Evidencia la identificación de los equipos y recursos necesarios para llevar a cabo las operaciones de la empresa. | Inventario operativo: Equipo físico, conectividad, infraestructura, trabajo y sus costos presupuestados. | Falta completar el inventario y las cotizaciones; revisar si Workspace se contó dos veces. |
+| A31: d. Describe de forma detallada el producto o servicio propuesto que brindan valor a los clientes. | Servicio ofrecido y módulos funcionales: Miembros, membresías, pagos, asistencia, rutinas y progreso, con capturas del prototipo. | Aislamiento multiempresa y personalización siguen como desarrollo posterior. |
+| A32: e. Detalla cómo los productos o servicios ofrecidos se diferencian de la competencia. | Alternativas actuales y decisión de compra: Comparación de papel, hojas de cálculo, mensajería y plataformas; foco en tareas concretas. | No se afirma exclusividad ni superioridad comprobada frente a todo competidor. |
+| A33: f. Emplea lenguaje técnico acorde con el nivel académico y el campo del negocio. | Arquitectura y conceptos financieros: Se explican SaaS, roles, MRR, margen, liquidez, costos y recuperación. | El equipo debe poder explicar estos conceptos durante la exposición. |
+| A34: g. Define los canales mediante los cuales hará llegar a los clientes la propuesta de valor. | Canvas y plan de promoción: Contacto y demostración para venta; acceso web para entrega; mensajería para soporte. | Falta probar qué canales consiguen contrataciones. |
+| A35: h. Caracteriza ampliamente el segmento de clientes (Necesidades - comportamientos - atributos). | Cliente, usuario y mercado alcanzable: Comprador y beneficiarios diferenciados; atributos, dispositivos y necesidades de la muestra. | Solo cinco responsables y diez miembros; muestra no probabilística. |
+| A36: i. Presenta los elementos diferenciadores que facilitan la decisión de compra del cliente. | Competencia y decisión de compra: Demostración, alcance explícito, precio y acompañamiento de incorporación. | Falta conocer la respuesta de posibles compradores. |
+| A37: j. Describe las demandas del segmento de clientes y el seguimiento para asegurar la calidad de los bienes o servicios ofrecidos. | Calidad y diseño del piloto: Seguimiento por tarea, duración, éxito, errores, incidentes y revisión semanal. | El piloto permitirá medir las mejoras; sigue pendiente. |
+| A38: k. Presenta las estrategias para el acercamiento al cliente, ya sea durante el proceso de atención o de servicio, | Calendario comercial: Contacto inicial, demostración, seguimiento y soporte con recursos del presupuesto. | El calendario es propuesto y requiere registro de ejecución. |
+| A39: l. Presenta datos sobre clientes, tendencias y oportunidades. | Antecedentes y estudio de mercado: Datos de encuesta y contexto documentado de digitalización; oportunidad de centralizar tareas. | No existe censo local ni estimación representativa de demanda. |
+| A40: m. Incluye los canales para la distribución del producto hasta el cliente y su promoción, incorporando el uso de nuevas tecnologías. | Promoción, distribución y permanencia: Página, contenido demostrativo, contacto directo y distribución digital del servicio. | El criterio o solicita lo mismo; ambos remiten a esta explicación. |
+| A41: n. Presenta la estructura de costos, gastos e ingresos. | Costos y proyección anual: Se distinguen costos fijos, variables, trabajo, instalación, desarrollo e ingresos mensuales. | Falta confirmar precios y completar los gastos pendientes. |
+| A42: o. Incluye los canales para la distribución del producto hasta el cliente y su promoción, incorporando el uso de nuevas tecnologías. | Promoción, distribución y permanencia: Acceso web, demostraciones y canales digitales de promoción y atención. | Repite el criterio m de la rúbrica. |
+| A43: p. Determina el mercado meta y su alineación con la propuesta de valor del negocio. | Comprador, usuario y mercado alcanzable: Gimnasios con necesidad administrativa, conectividad y responsable de decisión. | Diez prospectos y cinco altas son hipótesis, no mercado cuantificado. |
+| A44: q. Presenta el modelo de negocio integrando los nueve módulos básicos que definen la operación de la empresa, según lo expuesto en la fase Institucional. | Desarrollo del Canvas y apéndice visual: Nueve módulos: segmentos, valor, canales, relaciones, ingresos, recursos, actividades, alianzas y costos. | Alianzas comerciales y aceptación de tarifas siguen por validar. |
+| A45: r. Presenta el análisis de la viabilidad financiera incluyendo ingresos, costos, gastos y utilidades esperadas. | Análisis económico anual: Tablas de ingresos, gastos, caja y balance, con explicación del margen y la recuperación. | Resultados previstos antes de impuestos; falta comprobarlos durante la operación. |
+| A46: s. Presenta el análisis de las fuentes de financiamiento y su impacto en la permanencia del negocio. | Financiamiento y permanencia: Aporte propio y trabajo; comparación con reinversión, crédito y capital externo. | Sin préstamo ni inversión externa confirmados; depende de disponibilidad del equipo. |
+| A47: t. Evidencia una relación realista entre las proyecciones e indicadores financieros. | Relaciones financieras y sensibilidad: Relación entre clientes, ingresos y costos; cambios si baja el ingreso o sube el gasto. | Revisar el trabajo sin pago y los impuestos antes de operar. |
+| A48: u. Evidencia cumplimiento de la normativa vigente en apego a la forma jurídica, organizacional y seguridad social. | Forma jurídica y evidencia de formalización: Trámites por consultar y pasos para registrar el negocio. | Inscripciones y afiliaciones pendientes. |
+| A49: v. Detalla las alianzas estratégicas y aportes a su propuesta de valor. | Alianzas y continuidad: Tutor confirmado; gimnasio potencial con aportes y condiciones; proveedores diferenciados. | No hay alianza comercial documentada ni aceptación de piloto. |
+| A50: w. Presenta una organización clara y lógica del documento, en congruencia con la estructura dada en los lineamientos. | Orden del informe e índice: Base institucional más definición, mercado, técnica, organización, inversión y evaluación anual. | Verificar el PDF completo y su correspondencia con lineamientos. |
+| A51: x. Presenta el listado de referencias citadas en el documento, según formato APA vigente. | Citas, notas de fuente y referencias: Fuentes consultadas citadas en APA y cálculos propios identificados en tablas y figuras. | La proyección financiera es elaboración propia; sus supuestos necesitan comprobación. |
+| A52: y. Cumple con el formato establecido. | Portada y maquetación: Carta, márgenes de 2,54 cm, cuerpo de 12 puntos, interlineado y numeración. | Control visual de tablas, figuras y referencias en el PDF final. |
+| A53: z. Justifica de forma sólida la viabilidad y pertinencia del negocio. | Justificación y conclusión financiera: Necesidad observada, prototipo y escenario con margen de 21,44 por ciento antes de impuestos. | La viabilidad comercial está condicionada a piloto, capacidad y aceptación de precio. |
+| A54: aa. Identifica la situación de mercado, sociedad o industria que se aborda en la propuesta de negocio. | Situación del mercado e industria: Gestión dispersa y contexto de digitalización con fuentes y muestra identificadas. | No se extrapola al total de establecimientos de Pérez Zeledón. |
+| A55: bb. Argumenta la necesidad o problema que resuelve la propuesta de negocio. | Problema, encuesta y propuesta de valor: Dificultades de cobro, vigencia y seguimiento vinculadas con funciones concretas. | El efecto de la solución requiere comparación de tareas durante el piloto. |

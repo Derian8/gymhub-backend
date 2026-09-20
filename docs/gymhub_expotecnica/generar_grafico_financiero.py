@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Genera una figura reproducible de los escenarios financieros de GymHub."""
+"""Genera una figura reproducible del punto de equilibrio de Pulso."""
 
 from __future__ import annotations
 
@@ -106,7 +106,7 @@ def main() -> None:
         for borde in ("top", "right", "left"):
             eje.spines[borde].set_visible(False)
 
-    figura.suptitle("Escenarios mensuales de viabilidad de GymHub", x=0.03, ha="left", fontweight="bold")
+    figura.suptitle("Punto de equilibrio operativo de Pulso", x=0.03, ha="left", fontweight="bold")
     figura.tight_layout()
     figura.savefig(SALIDA, dpi=220, bbox_inches="tight", facecolor="white")
 

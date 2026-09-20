@@ -1,0 +1,120 @@
+\section{Estudio técnico de operación y organización}
+\label{sec:organizacion}
+
+\subsection{Recursos, localización y capacidad}
+
+Las capturas anteriores muestran el prototipo. Para ofrecerlo como servicio se
+necesitan equipos disponibles, atención a consultas, respaldos y separación de
+datos entre gimnasios. La siguiente tabla reúne esos recursos y su costo
+previsto.
+
+\begin{longtable}{p{3cm}p{3.2cm}p{4cm}p{3.7cm}}
+\caption{Inventario operativo propuesto y tratamiento económico}\\
+\toprule Recurso & Uso y cantidad funcional & Costo o tratamiento & Control pendiente \\
+\midrule\endfirsthead
+\toprule Recurso & Uso y cantidad funcional & Costo o tratamiento & Control pendiente \\
+\midrule\endhead
+Computadora y teléfono & Al menos un puesto de desarrollo y un dispositivo móvil de prueba. & Equipos disponibles como aportes en especie; sin compra nueva presupuestada. & Inventario físico, propietario, estado y reposición. \\
+Conexión y espacio & Área de trabajo con internet y energía; operación remota inicial. & Aporte disponible; no se modela alquiler comercial. & Disponibilidad, respaldo de conexión y costo incremental. \\
+Infraestructura digital & Aplicación, base de datos, dominio y servicios de ejecución. & CRC 58\,125 mensuales presupuestados. & Detallar proveedores y revisar gastos repetidos en correo y diseño. \\
+Correo y diseño & Comunicación y materiales de presentación. & CRC 6\,000 mensuales presupuestados. & Revisar si Workspace ya está incluido en infraestructura. \\
+Desarrollo comercial & 96 horas: aislamiento, autenticación, personalización, tareas y pruebas. & CRC 198\,735,27 de trabajo valorado. & Validar alcance, tiempo y pruebas antes de incorporar varias empresas. \\
+Soporte & 0,5 horas por gimnasio al mes como supuesto base. & CRC 1\,035,08 por gimnasio de trabajo aportado. & Contrastar contra horas reales e incidencias. \\
+\bottomrule
+\end{longtable}
+{\small\textit{Nota}. Elaboración propia a partir del escenario financiero
+preliminar. Falta completar el inventario de equipos y confirmar los precios.}
+
+Trabajar desde Pérez Zeledón facilita las visitas y las demostraciones.
+Se propone comenzar de forma remota con el espacio y los equipos disponibles,
+por lo que no se presupuesta alquiler. Antes de iniciar se revisará la
+disponibilidad de internet, energía y equipos.
+
+El presupuesto utiliza un tipo de cambio de CRC 500 por dólar y una referencia
+horaria de CRC 496\,838,17 divididos entre 30 días y ocho horas, equivalente a
+CRC 2\,070,16. Son referencias elegidas para estimar el trabajo y los servicios
+en dólares. Se revisarán con precios y condiciones reales antes de contratar.
+
+\subsection{Proceso de prestación y control de calidad}
+
+La atención comienza con una conversación sobre las necesidades del gimnasio.
+Después se realiza la demostración, se acuerda la prueba y se configura el
+sistema. Durante el uso se dará seguimiento para decidir si conviene continuar.
+Antes de cargar información se revisarán los permisos y se probará que los
+registros se guardan y recuperan correctamente. Para atender varios gimnasios
+también se comprobará que cada uno acceda solo a sus propios datos.
+
+La compra de servicios de nube se revisará antes de contratar: finalidad,
+costo, límite de uso y dependencia operativa. Se mantendrá un inventario de
+cuentas y renovaciones. El almacenamiento digital se controlará por consumo,
+retención y respaldo; no se trata como inventario físico de mercancías. Una
+incidencia se registrará con fecha, función afectada, prioridad y responsable,
+evitando almacenar contraseñas o información sensible en la bitácora.
+
+\subsection{Estructura funcional, cargos y personal}
+
+Derian Acuña Rojas e Ignacio Masis Cascante compartirán el desarrollo, la
+atención y las decisiones del proyecto. El docente tutor, Andrés Mena Abarca,
+brinda orientación académica. La tabla distribuye las tareas que asumiría el
+equipo al iniciar el servicio.
+
+\begin{table}[htbp]
+\caption{Organización funcional propuesta}
+\begin{tabularx}{\textwidth}{p{3.2cm}X X}
+\toprule Función & Responsabilidad & Registro de seguimiento \\
+\midrule
+Coordinación compartida & Priorizar alcance, autorizar gastos y revisar riesgos. & Acuerdos del equipo y cierre mensual. \\
+Desarrollo y calidad & Mantener aplicación, pruebas, datos y despliegue. & Repositorio, incidencias y evidencia de verificación. \\
+Mercadeo y atención & Contactar, demostrar, incorporar y atender consultas. & Registro de prospectos, altas, bajas y soporte. \\
+Control económico & Conciliar cobros, gastos, horas y presupuesto. & Libro financiero y comprobantes verificables. \\
+Revisión académica & Orientar el informe y la presentación del proyecto. & Observaciones del tutor. \\
+\bottomrule
+\end{tabularx}
+\caption*{\fuentepropia}
+\end{table}
+
+Las funciones técnicas y comerciales se distribuyen entre los dos integrantes;
+no representan cuatro puestos adicionales. El modelo no contempla contratación
+asalariada: valora el trabajo propio sin pagarlo y no lo registra como deuda.
+El perfil requerido combina desarrollo web, pruebas, documentación, comunicación
+con clientes y control básico del presupuesto. La necesidad de contratar
+personal surgirá cuando las horas reales superen la disponibilidad acordada;
+ese cambio exige incorporar remuneración y obligaciones aplicables al escenario.
+
+\subsection{Sistema de información para dirigir el negocio}
+
+El equipo llevará registros de contactos, pruebas, contrataciones,
+cancelaciones, comprobantes y horas de trabajo. Cada mes comparará los cobros
+y gastos con el presupuesto, junto con el uso de nube y el tiempo de soporte.
+La información comercial tendrá acceso restringido y se mantendrá separada
+de los datos de los miembros.
+
+Cada cambio indicará quién lo registró, cuándo y con qué comprobante.
+Los informes públicos usarán resultados agrupados y datos ficticios. Antes de
+trabajar con información real se probará la recuperación de una copia de
+seguridad.
+
+\subsection{Forma jurídica y evidencia de formalización}
+
+Pulso está en etapa de proyecto estudiantil y todavía no cuenta con documentos
+de constitución, inscripción o afiliación. Estos trámites forman parte de los
+requisitos que deben revisarse antes de operar comercialmente y de la evidencia
+solicitada por la rúbrica \parencite{rubrica_plan_negocios_2026}.
+
+Con orientación profesional, el equipo revisará si conviene operar como
+persona física o constituir una empresa. También consultará cómo pueden
+participar los integrantes y qué trámites tributarios, municipales y de
+seguridad social corresponden. Se anotarán los costos y requisitos para
+incorporarlos al presupuesto y completar la formalización.
+
+\subsection{Alianzas y continuidad}
+
+Además de la tutoría académica, se buscará un gimnasio dispuesto a realizar
+la prueba. Su responsable aportaría tiempo y comentarios sobre las tareas;
+el equipo de Pulso ofrecería configuración y soporte. El acuerdo indicaría la
+duración, el uso permitido de la información y cómo terminar la prueba.
+
+Mientras se consigue ese gimnasio, continuarán las demostraciones con datos
+ficticios. El equipo revisará los motivos de rechazo para mejorar la oferta.
+Los proveedores de tecnología seguirán aportando los servicios de alojamiento
+y datos necesarios para la demostración.

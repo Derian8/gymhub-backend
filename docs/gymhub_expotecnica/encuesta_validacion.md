@@ -1,4 +1,4 @@
-# Encuesta de validación de GymHub
+# Encuesta de validación de Pulso
 
 Instrumento de referencia utilizado para construir el formulario de Google Forms.
 La aplicación cerró el 24 de julio de 2026 con 15 respuestas válidas: cinco de
@@ -14,7 +14,7 @@ que no fue recolectada.
 
 ## Configuración recomendada
 
-- Título del formulario: `Validación de la plataforma GymHub`.
+- Título del formulario: `Validación de la plataforma Pulso`.
 - No recopilar automáticamente correos electrónicos.
 - No solicitar nombres, teléfonos, diagnósticos ni datos físicos.
 - Restringir la participación a personas de 18 años o más.
@@ -24,7 +24,7 @@ que no fue recolectada.
 
 ## Texto de presentación y consentimiento
 
-> GymHub es un proyecto estudiantil de ExpoTÉCNICA 2026 orientado a organizar la
+> Pulso es un proyecto estudiantil de ExpoTÉCNICA 2026 orientado a organizar la
 > gestión administrativa y el seguimiento deportivo de gimnasios. Esta encuesta
 > busca conocer necesidades y opiniones para mejorar el prototipo. La
 > participación es voluntaria, anónima y toma aproximadamente cinco minutos. No
@@ -135,7 +135,7 @@ que no fue recolectada.
 ### A11 — Comentario abierto
 
 - Tipo: párrafo, opcional.
-- Pregunta: `¿Qué condición tendría que cumplir GymHub para que fuera útil en su trabajo?`
+- Pregunta: `¿Qué condición tendría que cumplir Pulso para que fuera útil en su trabajo?`
 
 ## Ruta B — Miembros adultos de gimnasios
 
@@ -193,7 +193,7 @@ que no fue recolectada.
 ## Mensaje final
 
 > Gracias por participar. Las respuestas se utilizarán de forma agregada para
-> mejorar el modelo de negocio y el prototipo GymHub. Completar esta encuesta no
+> mejorar el modelo de negocio y el prototipo Pulso. Completar esta encuesta no
 > implica contratar, pagar ni participar automáticamente en una prueba.
 
 ## Plan de análisis
