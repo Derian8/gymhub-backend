@@ -109,7 +109,7 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
     days_per_week: 3,
     notes: '',
     status: 'draft' as TrainingPlanStatus,
-    modo_ejecucion: 'cycle' as 'weekly' | 'cycle',
+    modo_ejecucion: 'weekly' as 'weekly' | 'cycle',
   })
   const [days, setDays] = useState<WizardDay[]>([])
   const catalogoQuery = useCatalogExercisesQuery({ search: '' }, open)
@@ -205,12 +205,12 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
       name: current.name || template.nombre,
       goal: template.objetivo,
       days_per_week: template.dias_por_semana_sugeridos,
-      modo_ejecucion: template.modo_ejecucion ?? 'cycle',
+      modo_ejecucion: 'weekly',
     }))
     setDays(template.dias.map((day, index) => ({
       name: day.nombre,
       day_label: day.etiqueta_dia,
-      day_of_week: template.modo_ejecucion === 'weekly' ? (day.dia_semana ?? weekdays[index % weekdays.length].value) : null,
+      day_of_week: day.dia_semana ?? weekdays[index % weekdays.length].value,
       order: index,
       exercises: day.ejercicios.map((exercise, exerciseIndex) => normalizeExercise({
         name: exercise.nombre,
@@ -392,12 +392,6 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
               <Field label="Días por semana">
                 <input className="input" type="number" min={1} max={7} value={form.days_per_week} onChange={(event) => setForm({ ...form, days_per_week: Number(event.target.value) || 1 })} />
               </Field>
-              <Field label="Ejecución">
-                <select className="input" value={form.modo_ejecucion} onChange={(event) => setForm({ ...form, modo_ejecucion: event.target.value as 'weekly' | 'cycle' })}>
-                  <option value="cycle">Ciclo flexible A → B → C</option>
-                  <option value="weekly">Días fijos de semana</option>
-                </select>
-              </Field>
             </div>
             <Field label="Notas generales">
               <textarea className="input min-h-24" value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} />
@@ -442,13 +436,11 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
                           {dayLabels.map((label) => <option key={label} value={label}>{label}</option>)}
                         </select>
                       </Field>
-                      {form.modo_ejecucion === 'weekly' && (
-                        <Field label="Día real">
-                          <select className="input" value={day.day_of_week ?? ''} onChange={(event) => setDays((current) => current.map((item, index) => index === dayIndex ? { ...item, day_of_week: event.target.value as DayOfWeek } : item))}>
-                            {weekdays.map((weekday) => <option key={weekday.value} value={weekday.value}>{weekday.label}</option>)}
-                          </select>
-                        </Field>
-                      )}
+                      <Field label="Día real">
+                        <select className="input" value={day.day_of_week ?? ''} onChange={(event) => setDays((current) => current.map((item, index) => index === dayIndex ? { ...item, day_of_week: event.target.value as DayOfWeek } : item))}>
+                          {weekdays.map((weekday) => <option key={weekday.value} value={weekday.value}>{weekday.label}</option>)}
+                        </select>
+                      </Field>
                       <div className="flex items-end gap-2">
                         <button type="button" className="btn-secondary" onClick={() => duplicateDay(day)}><Copy size={16} /> Duplicar</button>
                         <button type="button" className="btn-danger" onClick={() => setDays((current) => current.filter((_, index) => index !== dayIndex))}><Trash2 size={16} /></button>

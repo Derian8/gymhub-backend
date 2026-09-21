@@ -29,14 +29,9 @@ from users.views import _get_trainer_profile
 
 
 def get_today_workout_day(plan):
-    """Resuelve el bloque semanal o el siguiente bloque del ciclo."""
+    """Resuelve únicamente el bloque asignado al día local actual."""
     if not plan:
         return None
-    if plan.modo_ejecucion == 'cycle':
-        days = list(plan.workout_days.order_by('order', 'id'))
-        if not days:
-            return None
-        return days[plan.indice_bloque_actual % len(days)]
     weekday = timezone.localdate().strftime('%a').lower()[:3]
     return plan.workout_days.filter(day_of_week=weekday).order_by('order', 'id').first()
 

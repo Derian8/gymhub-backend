@@ -540,14 +540,14 @@ class TestWorkoutSessions:
         )
 
         assert client_response.status_code == status.HTTP_400_BAD_REQUEST
-        assert client_response.data['workout_day_id'][0] == 'Solo puedes registrar la rutina programada para hoy.'
+        assert client_response.data['workout_day_id'] == 'Solo puedes registrar la rutina programada para hoy.'
         assert trainer_response.status_code == status.HTTP_201_CREATED
 
-    def test_member_can_only_create_the_current_cycle_block(
+    def test_member_cycle_plan_still_uses_the_current_calendar_day(
         self, member_client, training_plan, workout_day_a
     ):
         training_plan.modo_ejecucion = 'cycle'
-        training_plan.indice_bloque_actual = 0
+        training_plan.indice_bloque_actual = 1
         training_plan.save(update_fields=['modo_ejecucion', 'indice_bloque_actual'])
         other_day = training_plan.workout_days.exclude(id=workout_day_a.id).first()
 
@@ -560,6 +560,20 @@ class TestWorkoutSessions:
 
         assert denied_resp.status_code == status.HTTP_400_BAD_REQUEST
         assert allowed_resp.status_code == status.HTTP_201_CREATED
+
+    def test_member_cannot_start_a_cycle_block_without_a_calendar_day(
+        self, member_client, training_plan, workout_day_a
+    ):
+        training_plan.modo_ejecucion = 'cycle'
+        training_plan.save(update_fields=['modo_ejecucion'])
+        workout_day_a.day_of_week = None
+        workout_day_a.save(update_fields=['day_of_week'])
+
+        resp = member_client.post('/api/workout-sessions/', {
+            'workout_day_id': workout_day_a.id,
+        })
+
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_create_workout_session(self, member_client, member_profile, workout_day_a):
         """POST /api/workout-sessions/ crea sesión."""
