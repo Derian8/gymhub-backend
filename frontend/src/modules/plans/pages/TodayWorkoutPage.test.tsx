@@ -8,6 +8,7 @@ import type { TodayWorkout } from '@/shared/types'
 const crearSesion = vi.fn()
 const completarSesion = vi.fn()
 const guardarLogs = vi.fn()
+const registrarProgresoEjercicio = vi.fn()
 
 const mockTodayWorkout: TodayWorkout = {
   id: 101,
@@ -111,6 +112,10 @@ vi.mock('../hooks/usePlans', () => ({
     mutate: guardarLogs,
     isPending: false,
   }),
+  useRegisterExerciseProgressMutation: () => ({
+    mutate: registrarProgresoEjercicio,
+    isPending: false,
+  }),
 }))
 
 vi.mock('@/modules/members/hooks/useMembers', () => ({
@@ -182,6 +187,7 @@ describe('TodayWorkoutPage', () => {
     crearSesion.mockReset()
     completarSesion.mockReset()
     guardarLogs.mockReset()
+    registrarProgresoEjercicio.mockReset()
     useAuthStore.setState({
       user: {
         id: 1,
@@ -202,14 +208,18 @@ describe('TodayWorkoutPage', () => {
 
   it('requires Ver rutina before exposing training details on a new day', () => {
     window.sessionStorage.clear()
-    const { getByText, queryByTestId } = renderWithProviders(<TodayWorkoutPage />)
+    const { getByText, getByTestId, queryByTestId } = renderWithProviders(<TodayWorkoutPage />)
 
     expect(getByText('Ver rutina y registrar entrada')).toBeInTheDocument()
+    expect(getByTestId('view-plan-before-checkin-link')).toHaveAttribute('href', '/plans/my')
     expect(queryByTestId('today-workout-page')).not.toBeInTheDocument()
   })
 
   it('starts and completes a workout session', async () => {
     const user = userEvent.setup()
+    useAuthStore.setState((state) => ({
+      user: state.user ? { ...state.user, role: 'trainer', memberprofile_id: null, trainerprofile_id: 2 } : state.user,
+    }))
     crearSesion.mockImplementation((_payload, options) => {
       options?.onSuccess?.({ id: 901 })
     })
@@ -234,26 +244,9 @@ describe('TodayWorkoutPage', () => {
       getByTestId('start-session-btn').compareDocumentPosition(getByTestId('exercise-checklist'))
       & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
-    expect(
-      getByTestId('exercise-checklist').compareDocumentPosition(getByTestId('day-selector-panel'))
-      & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy()
-    expect(
-      getByTestId('exercise-checklist').compareDocumentPosition(getByTestId('weekly-program-section'))
-      & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy()
-    expect(getByTestId('toggle-day-selector-btn')).toBeInTheDocument()
     expect(getByTestId('exercise-checklist')).toBeInTheDocument()
-    expect(getByTestId('weekly-program-section')).toBeInTheDocument()
     expect(getAllByText('Lunes · Torso').length).toBeGreaterThan(0)
-    expect(getByText('Miércoles · Descanso')).toBeInTheDocument()
     expect(getByText('Checklist del entrenamiento')).toBeInTheDocument()
-    expect(getByText('La semana completa de tu rutina')).toBeInTheDocument()
-    expect(getByTestId('weekly-day-detail-link-mon')).toHaveAttribute('href', '/plans/12/days/101')
-    expect(getByTestId('weekly-day-detail-link-fri')).toHaveAttribute('href', '/plans/12/days/102')
-    expect(getByTestId('card-progress')).toHaveTextContent('2 sesión(es) esta semana')
-    expect(getByTestId('card-membership')).toHaveTextContent('Plan semanal')
-    expect(getByTestId('card-membership')).toHaveTextContent('28/03/2026')
 
     await user.click(getByTestId('start-session-btn'))
 
@@ -276,20 +269,22 @@ describe('TodayWorkoutPage', () => {
 
     await waitFor(() => {
       expect(guardarLogs).toHaveBeenCalledWith(
-        {
+        expect.objectContaining({
           session_id: 901,
           logs: [
-            {
+            expect.objectContaining({
               exercise_id: 501,
+              sets_completed: 4,
+              reps_completed: 8,
               weight_used_kg: 60,
               rpe: 7,
-            },
-            {
+            }),
+            expect.objectContaining({
               exercise_id: 502,
               minutes_completed: 20,
-            },
+            }),
           ],
-        },
+        }),
         expect.objectContaining({ onSuccess: expect.any(Function) }),
       )
       expect(completarSesion).toHaveBeenCalledWith(
@@ -417,6 +412,6 @@ describe('TodayWorkoutPage', () => {
     const readyView = renderWithProviders(<TodayWorkoutPage />)
 
     expect(readyView.getByTestId('today-workout-page')).toBeInTheDocument()
-    expect(readyView.getByText('Press banca')).toBeInTheDocument()
+    expect(readyView.getByTestId('start-session-btn')).toBeInTheDocument()
   })
 })

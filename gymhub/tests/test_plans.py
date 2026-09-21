@@ -478,6 +478,27 @@ class TestTodayWorkout:
 
 @pytest.mark.django_db
 class TestWorkoutSessions:
+    def test_member_can_consult_other_days_without_checking_in(
+        self, member_client, member_profile, training_plan, workout_day_a
+    ):
+        from attendance.models import Attendance
+
+        Attendance.objects.filter(member=member_profile).delete()
+        other_day = training_plan.workout_days.exclude(id=workout_day_a.id).get()
+
+        plan_response = member_client.get(f'/api/plans/{training_plan.id}/')
+        day_response = member_client.get(f'/api/workout-days/{other_day.id}/')
+        exercise_response = member_client.get(f'/api/exercises/?plan={training_plan.id}')
+        start_response = member_client.post('/api/workout-sessions/', {
+            'workout_day_id': workout_day_a.id,
+        })
+
+        assert plan_response.status_code == status.HTTP_200_OK
+        assert day_response.status_code == status.HTTP_200_OK
+        assert exercise_response.status_code == status.HTTP_200_OK
+        assert start_response.status_code == status.HTTP_403_FORBIDDEN
+        assert start_response.data['reason'] == 'entry_required'
+
     def test_member_cannot_create_session_for_a_non_current_weekly_day(
         self, member_client, training_plan, workout_day_a
     ):

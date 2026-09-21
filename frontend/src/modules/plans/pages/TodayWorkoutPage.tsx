@@ -376,6 +376,9 @@ function TodayWorkoutPageContent() {
             {openRoutine.isPending ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} />}
             {openRoutine.isPending ? 'Validando acceso…' : 'Ver rutina y registrar entrada'}
           </button>
+          <Link to="/plans/my" className="btn-secondary mx-auto mt-3 px-6 py-2" data-testid="view-plan-before-checkin-link">
+            Ver mi rutina semanal
+          </Link>
         </section>
       </div>
     )

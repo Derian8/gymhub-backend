@@ -54,20 +54,6 @@ def assert_member_training_eligible(member):
         })
 
 
-def assert_member_routine_visible(member):
-    assert_member_training_eligible(member)
-    from attendance.models import Attendance
-
-    if not Attendance.objects.filter(
-        member=member,
-        attendance_date=timezone.localdate(),
-    ).exists():
-        raise PermissionDenied({
-            'error': 'Registra tu entrada con “Ver rutina” antes de consultar el entrenamiento.',
-            'reason': 'entry_required',
-        })
-
-
 class TrainingPlanViewSet(viewsets.ModelViewSet):
     serializer_class = TrainingPlanSerializer
     lookup_value_regex = r'\d+'
@@ -79,7 +65,7 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
         goal_filter = self.request.query_params.get('goal')
         search = (self.request.query_params.get('search') or '').strip()
         if usa_contexto_cliente(self.request):
-            assert_member_routine_visible(user.memberprofile)
+            assert_member_training_eligible(user.memberprofile)
             return TrainingPlan.objects.filter(member__user=user, status='active')
         queryset = TrainingPlan.objects.select_related('member__user', 'trainer__user').prefetch_related('workout_days').all()
         if not user.is_staff and tiene_perfil_entrenador(user):
@@ -764,7 +750,7 @@ class WorkoutDayViewSet(viewsets.ModelViewSet):
         user = self.request.user
         plan_id = self.request.query_params.get('plan')
         if usa_contexto_cliente(self.request):
-            assert_member_routine_visible(user.memberprofile)
+            assert_member_training_eligible(user.memberprofile)
             queryset = WorkoutDay.objects.filter(plan__member__user=user, plan__status='active')
             if plan_id:
                 queryset = queryset.filter(plan_id=plan_id)
@@ -842,7 +828,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if usa_contexto_cliente(self.request):
-            assert_member_routine_visible(user.memberprofile)
+            assert_member_training_eligible(user.memberprofile)
             return Exercise.objects.filter(
                 workout_day__plan__member__user=user,
                 workout_day__plan__status='active',
