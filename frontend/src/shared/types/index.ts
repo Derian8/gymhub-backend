@@ -830,7 +830,10 @@ export interface CatalogExercise {
   imagen_url: string
   animacion_url: string
   atribucion_media: string
+  version_origen: string
   esta_activo: boolean
+  grupo_muscular_plan?: MuscleGroup | ''
+  maquina_recomendada?: number | null
 }
 
 export interface WeeklyWorkoutStatus {

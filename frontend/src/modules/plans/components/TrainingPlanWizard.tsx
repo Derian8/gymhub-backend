@@ -461,6 +461,8 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
                                 updateExercise(dayIndex, exerciseIndex, item ? {
                                   catalogo_ejercicio: item.id,
                                   name: item.nombre,
+                                  muscle_group: item.grupo_muscular_plan || exercise.muscle_group,
+                                  machine: item.maquina_recomendada ?? null,
                                   technique_notes: item.instrucciones_es,
                                 } : { catalogo_ejercicio: null })
                               }}

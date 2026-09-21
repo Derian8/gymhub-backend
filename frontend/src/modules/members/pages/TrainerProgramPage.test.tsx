@@ -521,6 +521,7 @@ describe('TrainerProgramPage', () => {
 
     expect(createExerciseMutate).toHaveBeenCalledWith({
       workout_day: 301,
+      catalogo_ejercicio: null,
       name: 'Bici estatica',
       muscle_group: 'cardio',
       exercise_type: 'timed',
@@ -529,6 +530,7 @@ describe('TrainerProgramPage', () => {
       target_minutes: 20,
       machine: null,
       weight_suggestion_kg: null,
+      weight_suggestion_unit: 'kg',
       rest_seconds: 60,
       technique_notes: '',
       order: 2,

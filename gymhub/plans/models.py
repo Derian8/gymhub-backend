@@ -100,6 +100,14 @@ class CatalogoEjercicio(models.Model):
     equipo = models.CharField(max_length=100, blank=True)
     musculo_objetivo = models.CharField(max_length=120, blank=True)
     grupo_muscular = models.CharField(max_length=120, blank=True)
+    grupo_muscular_plan = models.CharField(
+        max_length=20, choices=MUSCLE_GROUP_CHOICES, blank=True,
+        help_text='Grupo muscular que se preselecciona al añadirlo a un plan.',
+    )
+    maquina_recomendada = models.ForeignKey(
+        'GymMachine', null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='ejercicios_recomendados',
+    )
     musculos_secundarios = models.JSONField(default=list, blank=True)
     instrucciones_es = models.TextField(blank=True)
     pasos_es = models.JSONField(default=list, blank=True)

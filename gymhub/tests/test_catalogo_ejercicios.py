@@ -28,6 +28,23 @@ def test_trainer_can_search_spanish_exercise_catalog(trainer_client):
 
 
 @pytest.mark.django_db
+def test_catalogo_base_incluye_ejercicios_y_maquinas_comunes(trainer_client):
+    from plans.models import CatalogoEjercicio, GymMachine
+
+    response = trainer_client.get('/api/catalogo-ejercicios/', {'search': 'press plano'})
+
+    assert response.status_code == 200
+    exercise = next(item for item in response.data['results'] if item['nombre'] == 'Press plano')
+    assert exercise['grupo_muscular_plan'] == 'chest'
+    assert exercise['maquina_recomendada'] is not None
+    assert GymMachine.objects.filter(name='Prensa 45°', is_active=True).exists()
+    assert CatalogoEjercicio.objects.filter(
+        identificador_origen='gymhub-base:plancha-isometrica',
+        maquina_recomendada__isnull=True,
+    ).exists()
+
+
+@pytest.mark.django_db
 def test_importer_accepts_repdb_spanish_schema(tmp_path):
     from plans.models import CatalogoEjercicio
 

@@ -15,6 +15,7 @@ class CatalogoEjercicioSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'identificador_origen', 'nombre', 'categoria', 'parte_cuerpo',
             'equipo', 'musculo_objetivo', 'grupo_muscular', 'musculos_secundarios',
+            'grupo_muscular_plan', 'maquina_recomendada',
             'instrucciones_es', 'pasos_es', 'imagen_url', 'animacion_url',
             'atribucion_media', 'version_origen', 'esta_activo',
         )

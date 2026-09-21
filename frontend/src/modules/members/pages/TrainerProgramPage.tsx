@@ -25,6 +25,7 @@ import {
   useDeletePlanMutation,
   useDeleteWorkoutDayMutation,
   useGymMachinesQuery,
+  useCatalogExercisesQuery,
   usePlansQuery,
   usePublishPlanMutation,
   useRefreshTrainingTemplateMutation,
@@ -45,6 +46,7 @@ import type {
   ExerciseType,
   GoalType,
   GymMachine,
+  CatalogExercise,
   MuscleGroup,
   TrainingPlanPayload,
   TrainingTemplateUpdatePayload,
@@ -58,6 +60,18 @@ const goalOptions: Array<{ value: GoalType; label: string }> = [
   { value: 'flexibility', label: 'Movilidad' },
   { value: 'general', label: 'General' },
 ]
+
+function aplicarEjercicioCatalogo(formulario: ExercisePayload, ejercicio: CatalogExercise | null): ExercisePayload {
+  if (!ejercicio) return { ...formulario, catalogo_ejercicio: null }
+  return {
+    ...formulario,
+    catalogo_ejercicio: ejercicio.id,
+    name: ejercicio.nombre,
+    muscle_group: ejercicio.grupo_muscular_plan || formulario.muscle_group,
+    machine: ejercicio.maquina_recomendada ?? null,
+    technique_notes: ejercicio.instrucciones_es || formulario.technique_notes,
+  }
+}
 
 const goalLabels: Record<string, string> = {
   fat_loss: 'Perdida de peso',
@@ -294,6 +308,7 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
   })
   const [exerciseForm, setExerciseForm] = useState<ExercisePayload>({
     workout_day: 0,
+    catalogo_ejercicio: null,
     name: '',
     muscle_group: 'full_body',
     exercise_type: 'strength',
@@ -310,6 +325,7 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
   const [editingExerciseId, setEditingExerciseId] = useState<number | null>(null)
   const [editingExerciseForm, setEditingExerciseForm] = useState<ExercisePayload>({
     workout_day: 0,
+    catalogo_ejercicio: null,
     name: '',
     muscle_group: 'full_body',
     exercise_type: 'strength',
@@ -371,6 +387,7 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
   }, [trainingTemplates, trainingTemplateGoalFilter, trainingTemplateRiskFilter])
 
   const gymMachines = gymMachinesData?.results ?? []
+  const catalogoEjercicios = useCatalogExercisesQuery({ search: '' }).data?.results ?? []
 
   const selectedTrainingTemplate = useMemo(
     () => filteredTrainingTemplates.find((template) => template.id === selectedTrainingTemplateId) ?? filteredTrainingTemplates[0] ?? null,
@@ -552,6 +569,7 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
     })
     setExerciseForm((current) => buildExercisePayloadByType({
       ...current,
+      catalogo_ejercicio: null,
       name: '',
       target_minutes: current.exercise_type === 'timed' ? current.target_minutes ?? 10 : null,
       weight_suggestion_kg: null,
@@ -593,6 +611,7 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
     setEditingExerciseId(exercise.id)
     setEditingExerciseForm({
       workout_day: exercise.workout_day,
+      catalogo_ejercicio: exercise.catalogo_ejercicio ?? null,
       name: exercise.name,
       muscle_group: exercise.muscle_group,
       exercise_type: exercise.exercise_type,
@@ -1631,6 +1650,16 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
                                         <Field label="Nombre del ejercicio">
                                           <input className="input" value={editingExerciseForm.name} onChange={(e) => setEditingExerciseForm({ ...editingExerciseForm, name: e.target.value })} required />
                                         </Field>
+                                        <Field label="Ejercicio del catálogo">
+                                          <select
+                                            className="input"
+                                            value={editingExerciseForm.catalogo_ejercicio ?? ''}
+                                            onChange={(event) => setEditingExerciseForm(aplicarEjercicioCatalogo(editingExerciseForm, catalogoEjercicios.find((item) => item.id === Number(event.target.value)) ?? null))}
+                                          >
+                                            <option value="">Ejercicio manual</option>
+                                            {catalogoEjercicios.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
+                                          </select>
+                                        </Field>
                                         <Field label="Tipo de ejercicio">
                                           <OptionGroup
                                             value={editingExerciseForm.exercise_type}
@@ -1782,6 +1811,16 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
                               </div>
                               <Field label="Nombre del ejercicio">
                                 <input className="input" value={exerciseForm.name} onChange={(e) => setExerciseForm({ ...exerciseForm, name: e.target.value })} required />
+                              </Field>
+                              <Field label="Ejercicio del catálogo">
+                                <select
+                                  className="input"
+                                  value={exerciseForm.catalogo_ejercicio ?? ''}
+                                  onChange={(event) => setExerciseForm(aplicarEjercicioCatalogo(exerciseForm, catalogoEjercicios.find((item) => item.id === Number(event.target.value)) ?? null))}
+                                >
+                                  <option value="">Ejercicio manual</option>
+                                  {catalogoEjercicios.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
+                                </select>
                               </Field>
                               <Field label="Tipo de ejercicio">
                                 <OptionGroup

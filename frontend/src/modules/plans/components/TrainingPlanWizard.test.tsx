@@ -21,7 +21,26 @@ vi.mock('../hooks/usePlans', () => ({
     isLoading: false,
   }),
   useTrainingTemplatesQuery: () => ({ data: { results: [] } }),
-  useCatalogExercisesQuery: () => ({ data: { results: [] }, isLoading: false }),
+  useCatalogExercisesQuery: () => ({ data: { results: [{
+    id: 20,
+    identificador_origen: 'gymhub-base:prensa',
+    nombre: 'Prensa',
+    categoria: 'fuerza',
+    parte_cuerpo: 'Piernas',
+    equipo: 'Prensa 45°',
+    musculo_objetivo: 'Piernas',
+    grupo_muscular: 'Piernas',
+    musculos_secundarios: [],
+    instrucciones_es: 'Baja con control.',
+    pasos_es: [],
+    imagen_url: '',
+    animacion_url: '',
+    atribucion_media: 'Catálogo base GymHub',
+    version_origen: 'GymHub/base-1',
+    esta_activo: true,
+    grupo_muscular_plan: 'quadriceps',
+    maquina_recomendada: 1,
+  }] }, isLoading: false }),
 }))
 
 vi.mock('@/modules/members/hooks/useMembers', () => ({
@@ -107,6 +126,22 @@ describe('TrainingPlanWizard', () => {
       }),
       expect.any(Object),
     )
+  })
+
+  it('prefills the recommended machine and muscle group from the catalog', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<TrainingPlanWizard open onClose={vi.fn()} />)
+
+    await user.click(screen.getByTestId('select-plan-member-10'))
+    await user.click(screen.getByRole('button', { name: /continuar/i }))
+    await user.type(screen.getByTestId('wizard-plan-name'), 'Piernas')
+    await user.click(screen.getByRole('button', { name: /continuar/i }))
+    await user.click(screen.getByTestId('wizard-add-day'))
+    await user.selectOptions(screen.getByLabelText('Catálogo en español'), '20')
+
+    expect(screen.getByLabelText('Ejercicio')).toHaveValue('Prensa')
+    expect(screen.getByLabelText('Grupo')).toHaveValue('quadriceps')
+    expect(screen.getByTestId('wizard-exercise-machine-0-0')).toHaveValue('1')
   })
 
   it('requires assigning an unassigned member before continuing', async () => {
