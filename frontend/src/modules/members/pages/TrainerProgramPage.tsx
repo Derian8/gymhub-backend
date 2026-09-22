@@ -261,6 +261,7 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
     && daysData.results.every((day) => day.exercises.length > 0),
   )
   const { data: gymMachinesData } = useGymMachinesQuery()
+  const catalogoQuery = useCatalogExercisesQuery({ search: '' })
   const trainingTemplates = useMemo(
     () => trainingTemplatesData?.results ?? [],
     [trainingTemplatesData],
@@ -323,6 +324,7 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
     order: 0,
   })
   const [editingExerciseId, setEditingExerciseId] = useState<number | null>(null)
+  const [catalogoSearch, setCatalogoSearch] = useState('')
   const [editingExerciseForm, setEditingExerciseForm] = useState<ExercisePayload>({
     workout_day: 0,
     catalogo_ejercicio: null,
@@ -386,8 +388,11 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
     })
   }, [trainingTemplates, trainingTemplateGoalFilter, trainingTemplateRiskFilter])
 
-  const gymMachines = gymMachinesData?.results ?? []
-  const catalogoEjercicios = useCatalogExercisesQuery({ search: '' }).data?.results ?? []
+  const gymMachines = useMemo(() => (gymMachinesData?.results ?? [])
+    .sort((a, b) => Number(!!b.es_catalogo_base) - Number(!!a.es_catalogo_base) || a.name.localeCompare(b.name)), [gymMachinesData])
+  const catalogoEjercicios = useMemo(() => (catalogoQuery.data?.results ?? [])
+    .filter((item) => item.nombre.toLocaleLowerCase().includes(catalogoSearch.toLocaleLowerCase()))
+    .sort((a, b) => Number(!!b.es_catalogo_base) - Number(!!a.es_catalogo_base) || a.nombre.localeCompare(b.nombre)), [catalogoQuery.data, catalogoSearch])
 
   const selectedTrainingTemplate = useMemo(
     () => filteredTrainingTemplates.find((template) => template.id === selectedTrainingTemplateId) ?? filteredTrainingTemplates[0] ?? null,
@@ -1651,13 +1656,20 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
                                           <input className="input" value={editingExerciseForm.name} onChange={(e) => setEditingExerciseForm({ ...editingExerciseForm, name: e.target.value })} required />
                                         </Field>
                                         <Field label="Ejercicio del catálogo">
+                                          <input
+                                            className="input mb-2"
+                                            placeholder="Buscar ejercicio"
+                                            value={catalogoSearch}
+                                            onChange={(event) => setCatalogoSearch(event.target.value)}
+                                            aria-label="Buscar ejercicios del catálogo"
+                                          />
                                           <select
                                             className="input"
                                             value={editingExerciseForm.catalogo_ejercicio ?? ''}
                                             onChange={(event) => setEditingExerciseForm(aplicarEjercicioCatalogo(editingExerciseForm, catalogoEjercicios.find((item) => item.id === Number(event.target.value)) ?? null))}
                                           >
                                             <option value="">Ejercicio manual</option>
-                                            {catalogoEjercicios.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
+                                            {catalogoEjercicios.map((item) => <option key={item.id} value={item.id}>{item.es_catalogo_base ? `Común · ${item.nombre}` : item.nombre}</option>)}
                                           </select>
                                         </Field>
                                         <Field label="Tipo de ejercicio">
@@ -1813,13 +1825,20 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
                                 <input className="input" value={exerciseForm.name} onChange={(e) => setExerciseForm({ ...exerciseForm, name: e.target.value })} required />
                               </Field>
                               <Field label="Ejercicio del catálogo">
+                                <input
+                                  className="input mb-2"
+                                  placeholder="Buscar ejercicio"
+                                  value={catalogoSearch}
+                                  onChange={(event) => setCatalogoSearch(event.target.value)}
+                                  aria-label="Buscar ejercicios del catálogo"
+                                />
                                 <select
                                   className="input"
                                   value={exerciseForm.catalogo_ejercicio ?? ''}
                                   onChange={(event) => setExerciseForm(aplicarEjercicioCatalogo(exerciseForm, catalogoEjercicios.find((item) => item.id === Number(event.target.value)) ?? null))}
                                 >
                                   <option value="">Ejercicio manual</option>
-                                  {catalogoEjercicios.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
+                                  {catalogoEjercicios.map((item) => <option key={item.id} value={item.id}>{item.es_catalogo_base ? `Común · ${item.nombre}` : item.nombre}</option>)}
                                 </select>
                               </Field>
                               <Field label="Tipo de ejercicio">

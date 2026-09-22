@@ -45,6 +45,19 @@ def test_catalogo_base_incluye_ejercicios_y_maquinas_comunes(trainer_client):
 
 
 @pytest.mark.django_db
+def test_catalogo_base_se_entrega_completo_sin_paginacion_oculta(trainer_client):
+    ejercicios = trainer_client.get('/api/catalogo-ejercicios/', {'base': 'true'})
+    maquinas = trainer_client.get('/api/gym-machines/', {'base': 'true'})
+
+    assert ejercicios.status_code == 200
+    assert maquinas.status_code == 200
+    assert ejercicios.data['count'] == 25
+    assert len(ejercicios.data['results']) == 25
+    assert maquinas.data['count'] == 20
+    assert len(maquinas.data['results']) == 20
+
+
+@pytest.mark.django_db
 def test_importer_accepts_repdb_spanish_schema(tmp_path):
     from plans.models import CatalogoEjercicio
 

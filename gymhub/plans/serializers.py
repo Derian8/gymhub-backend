@@ -18,13 +18,14 @@ class CatalogoEjercicioSerializer(serializers.ModelSerializer):
             'grupo_muscular_plan', 'maquina_recomendada',
             'instrucciones_es', 'pasos_es', 'imagen_url', 'animacion_url',
             'atribucion_media', 'version_origen', 'esta_activo',
+            'es_catalogo_base',
         )
 
 
 class GymMachineSerializer(serializers.ModelSerializer):
     class Meta:
         model = GymMachine
-        fields = ('id', 'name', 'category', 'notes', 'is_active')
+        fields = ('id', 'name', 'category', 'notes', 'is_active', 'es_catalogo_base')
 
 
 class ExerciseSerializer(serializers.ModelSerializer):

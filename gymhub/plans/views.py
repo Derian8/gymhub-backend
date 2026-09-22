@@ -8,6 +8,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 
 from .models import (
     TrainingPlan, WorkoutDay, Exercise, GymMachine,
@@ -26,6 +27,11 @@ from users.permissions import (
 )
 from users.models import MemberProfile, TrainerProfile
 from users.views import _get_trainer_profile
+
+
+class CatalogPagination(PageNumberPagination):
+    page_size = 500
+    max_page_size = 500
 
 
 def get_today_workout_day(plan):
@@ -794,9 +800,12 @@ class WorkoutDayViewSet(viewsets.ModelViewSet):
 
 class GymMachineViewSet(viewsets.ModelViewSet):
     serializer_class = GymMachineSerializer
+    pagination_class = CatalogPagination
 
     def get_queryset(self):
         queryset = GymMachine.objects.all()
+        if self.request.query_params.get('base') == 'true':
+            queryset = queryset.filter(es_catalogo_base=True)
         if usa_contexto_cliente(self.request):
             return queryset.filter(is_active=True)
         return queryset
@@ -1020,9 +1029,12 @@ class PlantillaEntrenamientoViewSet(viewsets.ModelViewSet):
 class CatalogoEjercicioViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = CatalogoEjercicioSerializer
     permission_classes = [IsAuthenticated, IsTrainer]
+    pagination_class = CatalogPagination
 
     def get_queryset(self):
         queryset = CatalogoEjercicio.objects.filter(esta_activo=True)
+        if self.request.query_params.get('base') == 'true':
+            queryset = queryset.filter(es_catalogo_base=True)
         search = (self.request.query_params.get('search') or '').strip()
         for field in ('categoria', 'equipo', 'parte_cuerpo'):
             value = self.request.query_params.get(field)

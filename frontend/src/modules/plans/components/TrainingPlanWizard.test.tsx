@@ -137,7 +137,7 @@ describe('TrainingPlanWizard', () => {
     await user.type(screen.getByTestId('wizard-plan-name'), 'Piernas')
     await user.click(screen.getByRole('button', { name: /continuar/i }))
     await user.click(screen.getByTestId('wizard-add-day'))
-    await user.selectOptions(screen.getByLabelText('Catálogo en español'), '20')
+    await user.selectOptions(screen.getByTestId('wizard-catalog-select-0-0'), '20')
 
     expect(screen.getByLabelText('Ejercicio')).toHaveValue('Prensa')
     expect(screen.getByLabelText('Grupo')).toHaveValue('quadriceps')

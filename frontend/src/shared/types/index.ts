@@ -553,6 +553,7 @@ export interface GymMachine {
   category: string
   notes: string
   is_active: boolean
+  es_catalogo_base?: boolean
 }
 
 export interface Exercise {
@@ -832,6 +833,7 @@ export interface CatalogExercise {
   atribucion_media: string
   version_origen: string
   esta_activo: boolean
+  es_catalogo_base?: boolean
   grupo_muscular_plan?: MuscleGroup | ''
   maquina_recomendada?: number | null
 }

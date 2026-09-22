@@ -112,6 +112,7 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
     modo_ejecucion: 'weekly' as 'weekly' | 'cycle',
   })
   const [days, setDays] = useState<WizardDay[]>([])
+  const [catalogoSearch, setCatalogoSearch] = useState('')
   const catalogoQuery = useCatalogExercisesQuery({ search: '' }, open)
   const membersQuery = useMembersQuery({ assignment: 'available', search, ordering: 'prescripcion' }, open)
   const gymMachinesQuery = useGymMachinesQuery(open)
@@ -140,7 +141,12 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
   const filteredMembers = membersQuery.data?.results ?? []
   const assignedMembers = filteredMembers.filter((member) => member.trainer_asignado != null)
   const unassignedMembers = filteredMembers.filter((member) => member.trainer_asignado == null)
-  const activeMachines = (gymMachinesQuery.data?.results ?? []).filter((machine) => machine.is_active)
+  const activeMachines = (gymMachinesQuery.data?.results ?? [])
+    .filter((machine) => machine.is_active)
+    .sort((a, b) => Number(!!b.es_catalogo_base) - Number(!!a.es_catalogo_base) || a.name.localeCompare(b.name))
+  const catalogoEjercicios = (catalogoQuery.data?.results ?? [])
+    .filter((catalogo) => catalogo.nombre.toLocaleLowerCase().includes(catalogoSearch.toLocaleLowerCase()))
+    .sort((a, b) => Number(!!b.es_catalogo_base) - Number(!!a.es_catalogo_base) || a.nombre.localeCompare(b.nombre))
   const exercisesWithMachine = days.reduce((total, day) => total + day.exercises.filter((exercise) => !!exercise.machine).length, 0)
 
   const activeFiltersText = useMemo(() => search.trim() ? `Búsqueda activa: ${search.trim()}` : '', [search])
@@ -453,11 +459,19 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
                             <input className="input" value={exercise.name} onChange={(event) => updateExercise(dayIndex, exerciseIndex, { name: event.target.value })} />
                           </Field>
                           <Field label="Catálogo en español">
+                            <input
+                              className="input mb-2"
+                              placeholder="Buscar ejercicio"
+                              value={catalogoSearch}
+                              onChange={(event) => setCatalogoSearch(event.target.value)}
+                              data-testid="wizard-catalog-search"
+                            />
                             <select
                               className="input"
+                              data-testid={`wizard-catalog-select-${dayIndex}-${exerciseIndex}`}
                               value={exercise.catalogo_ejercicio ?? ''}
                               onChange={(event) => {
-                                const item = (catalogoQuery.data?.results ?? []).find((catalogo) => catalogo.id === Number(event.target.value))
+                                const item = catalogoEjercicios.find((catalogo) => catalogo.id === Number(event.target.value))
                                 updateExercise(dayIndex, exerciseIndex, item ? {
                                   catalogo_ejercicio: item.id,
                                   name: item.nombre,
@@ -468,8 +482,8 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
                               }}
                             >
                               <option value="">Ejercicio manual</option>
-                              {(catalogoQuery.data?.results ?? []).map((catalogo) => (
-                                <option key={catalogo.id} value={catalogo.id}>{catalogo.nombre}</option>
+                              {catalogoEjercicios.map((catalogo) => (
+                                <option key={catalogo.id} value={catalogo.id}>{catalogo.es_catalogo_base ? `Común · ${catalogo.nombre}` : catalogo.nombre}</option>
                               ))}
                             </select>
                           </Field>

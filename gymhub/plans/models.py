@@ -116,6 +116,7 @@ class CatalogoEjercicio(models.Model):
     atribucion_media = models.CharField(max_length=255, blank=True)
     version_origen = models.CharField(max_length=80, blank=True)
     esta_activo = models.BooleanField(default=True)
+    es_catalogo_base = models.BooleanField(default=False)
     importado_en = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -240,6 +241,7 @@ class GymMachine(models.Model):
     category = models.CharField(max_length=120, blank=True)
     notes = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
+    es_catalogo_base = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
