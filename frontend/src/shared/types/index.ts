@@ -561,6 +561,8 @@ export interface Exercise {
   workout_day: number
   catalogo_ejercicio?: number | null
   catalogo_detalle?: CatalogExercise | null
+  imagen_referencia_url?: string
+  imagen_visual_url?: string
   name: string
   muscle_group: MuscleGroup
   exercise_type: ExerciseType
@@ -775,6 +777,7 @@ export interface WorkoutDayPayload {
 export interface ExercisePayload {
   workout_day: number
   catalogo_ejercicio?: number | null
+  imagen_referencia_url?: string
   name: string
   muscle_group: MuscleGroup
   exercise_type: ExerciseType

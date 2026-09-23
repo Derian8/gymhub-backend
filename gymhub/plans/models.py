@@ -261,6 +261,10 @@ class Exercise(models.Model):
         CatalogoEjercicio, null=True, blank=True, on_delete=models.SET_NULL,
         related_name='prescripciones',
     )
+    imagen_referencia_url = models.URLField(
+        blank=True,
+        help_text='Referencia visual HTTPS proporcionada por el trainer para ejercicios personalizados.',
+    )
     name = models.CharField(max_length=200)
     muscle_group = models.CharField(max_length=20, choices=MUSCLE_GROUP_CHOICES)
     exercise_type = models.CharField(

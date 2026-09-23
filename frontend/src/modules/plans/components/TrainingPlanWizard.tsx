@@ -58,6 +58,8 @@ function addWeeks(dateIso: string, weeks: number) {
 
 function emptyExercise(order = 0): Omit<ExercisePayload, 'workout_day'> {
   return {
+    catalogo_ejercicio: null,
+    imagen_referencia_url: '',
     name: '',
     muscle_group: 'full_body',
     exercise_type: 'strength',
@@ -477,6 +479,7 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
                                   name: item.nombre,
                                   muscle_group: item.grupo_muscular_plan || exercise.muscle_group,
                                   machine: item.maquina_recomendada ?? null,
+                                  imagen_referencia_url: '',
                                   technique_notes: item.instrucciones_es,
                                 } : { catalogo_ejercicio: null })
                               }}
@@ -529,6 +532,9 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
                                 </option>
                               ))}
                             </select>
+                          </Field>
+                          <Field label="Imagen de referencia (URL HTTPS)">
+                            <input className="input" type="url" placeholder="https://..." value={exercise.imagen_referencia_url ?? ''} onChange={(event) => updateExercise(dayIndex, exerciseIndex, { imagen_referencia_url: event.target.value })} />
                           </Field>
                           <Field label={`Peso sugerido (${exercise.weight_suggestion_unit})`}>
                             <input

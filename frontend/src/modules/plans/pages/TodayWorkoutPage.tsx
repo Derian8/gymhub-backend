@@ -1106,7 +1106,7 @@ function SelectedDayDetail({
         {workoutDay.exercises.length ? (
           workoutDay.exercises.map((exercise) => (
             (() => {
-              const mediaUrl = exercise.catalogo_detalle?.animacion_url || exercise.catalogo_detalle?.imagen_url
+              const mediaUrl = exercise.imagen_visual_url || exercise.catalogo_detalle?.animacion_url || exercise.catalogo_detalle?.imagen_url
               return <div
               key={exercise.id}
               className="rounded-[1.25rem] border border-neutral-200 bg-neutral-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/60"
@@ -1198,7 +1198,7 @@ function ClientRoutineFlow({
   const porcentaje = exercises.length ? Math.round((resueltos / exercises.length) * 100) : 0
 
   if (!actual) return null
-  const mediaUrl = actual.catalogo_detalle?.animacion_url || actual.catalogo_detalle?.imagen_url
+  const mediaUrl = actual.imagen_visual_url || actual.catalogo_detalle?.animacion_url || actual.catalogo_detalle?.imagen_url
   const esTiempo = actual.exercise_type === 'timed'
 
   return (
@@ -1255,7 +1255,7 @@ function ClientRoutineFlow({
 
 function ExerciseCard({ exercise, log, active, onUpdate }: ExerciseCardProps) {
   const isTimed = exercise.exercise_type === 'timed'
-  const mediaUrl = exercise.catalogo_detalle?.animacion_url || exercise.catalogo_detalle?.imagen_url
+  const mediaUrl = exercise.imagen_visual_url || exercise.catalogo_detalle?.animacion_url || exercise.catalogo_detalle?.imagen_url
 
   return (
     <div

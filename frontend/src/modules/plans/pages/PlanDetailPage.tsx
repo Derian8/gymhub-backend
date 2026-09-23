@@ -234,7 +234,7 @@ function WorkoutDayCard({ day, planId }: { day: WorkoutDay; planId: number }) {
 }
 
 function ExerciseRow({ exercise }: { exercise: Exercise }) {
-  const mediaUrl = exercise.catalogo_detalle?.animacion_url || exercise.catalogo_detalle?.imagen_url
+  const mediaUrl = exercise.imagen_visual_url || exercise.catalogo_detalle?.animacion_url || exercise.catalogo_detalle?.imagen_url
 
   return (
     <div className="flex items-center gap-3 border-b border-neutral-100 py-2.5 dark:border-neutral-800/50 last:border-0">

@@ -37,11 +37,38 @@ def test_catalogo_base_incluye_ejercicios_y_maquinas_comunes(trainer_client):
     exercise = next(item for item in response.data['results'] if item['nombre'] == 'Press plano')
     assert exercise['grupo_muscular_plan'] == 'chest'
     assert exercise['maquina_recomendada'] is not None
+    assert exercise['imagen_url'].startswith('https://')
     assert GymMachine.objects.filter(name='Prensa 45°', is_active=True).exists()
     assert CatalogoEjercicio.objects.filter(
         identificador_origen='gymhub-base:plancha-isometrica',
         maquina_recomendada__isnull=True,
     ).exists()
+
+
+@pytest.mark.django_db
+def test_ejercicio_manual_requiere_referencia_visual_y_catalogo_aporta_imagen(workout_day_a):
+    from plans.models import CatalogoEjercicio
+    from plans.serializers import ExerciseSerializer
+
+    catalogo = CatalogoEjercicio.objects.get(identificador_origen='gymhub-base:prensa')
+    datos = {
+        'workout_day': workout_day_a.id,
+        'name': 'Ejercicio personalizado',
+        'muscle_group': 'legs',
+        'exercise_type': 'strength',
+        'sets': 3,
+        'reps_range': '10',
+        'rest_seconds': 60,
+        'order': 0,
+    }
+    manual = ExerciseSerializer(data=datos)
+    con_catalogo = ExerciseSerializer(data={**datos, 'catalogo_ejercicio': catalogo.id})
+    con_url = ExerciseSerializer(data={**datos, 'imagen_referencia_url': 'https://ejemplo.test/guia.webp'})
+
+    assert not manual.is_valid()
+    assert 'imagen_referencia_url' in manual.errors
+    assert con_catalogo.is_valid(), con_catalogo.errors
+    assert con_url.is_valid(), con_url.errors
 
 
 @pytest.mark.django_db

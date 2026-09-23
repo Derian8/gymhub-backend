@@ -182,7 +182,7 @@ function AnalysisCard({ icon, label, value }: { icon: ReactNode; label: string; 
 }
 
 function ExerciseDetailCard({ exercise, index }: { exercise: Exercise; index: number }) {
-  const mediaUrl = exercise.catalogo_detalle?.animacion_url || exercise.catalogo_detalle?.imagen_url
+  const mediaUrl = exercise.imagen_visual_url || exercise.catalogo_detalle?.animacion_url || exercise.catalogo_detalle?.imagen_url
 
   return (
     <article className="rounded-2xl border border-neutral-200 bg-white/70 p-4 dark:border-neutral-800 dark:bg-neutral-900/50" data-testid={`day-exercise-${exercise.id}`}>

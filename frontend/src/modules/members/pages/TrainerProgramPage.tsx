@@ -66,6 +66,7 @@ function aplicarEjercicioCatalogo(formulario: ExercisePayload, ejercicio: Catalo
   return {
     ...formulario,
     catalogo_ejercicio: ejercicio.id,
+    imagen_referencia_url: '',
     name: ejercicio.nombre,
     muscle_group: ejercicio.grupo_muscular_plan || formulario.muscle_group,
     machine: ejercicio.maquina_recomendada ?? null,
@@ -310,6 +311,7 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
   const [exerciseForm, setExerciseForm] = useState<ExercisePayload>({
     workout_day: 0,
     catalogo_ejercicio: null,
+    imagen_referencia_url: '',
     name: '',
     muscle_group: 'full_body',
     exercise_type: 'strength',
@@ -328,6 +330,7 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
   const [editingExerciseForm, setEditingExerciseForm] = useState<ExercisePayload>({
     workout_day: 0,
     catalogo_ejercicio: null,
+    imagen_referencia_url: '',
     name: '',
     muscle_group: 'full_body',
     exercise_type: 'strength',
@@ -575,6 +578,7 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
     setExerciseForm((current) => buildExercisePayloadByType({
       ...current,
       catalogo_ejercicio: null,
+      imagen_referencia_url: '',
       name: '',
       target_minutes: current.exercise_type === 'timed' ? current.target_minutes ?? 10 : null,
       weight_suggestion_kg: null,
@@ -617,6 +621,7 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
     setEditingExerciseForm({
       workout_day: exercise.workout_day,
       catalogo_ejercicio: exercise.catalogo_ejercicio ?? null,
+      imagen_referencia_url: exercise.imagen_referencia_url ?? '',
       name: exercise.name,
       muscle_group: exercise.muscle_group,
       exercise_type: exercise.exercise_type,
@@ -1683,6 +1688,9 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
                                             disabled={editingExerciseForm.muscle_group === 'cardio'}
                                           />
                                         </Field>
+                                        <Field label="Imagen de referencia (URL HTTPS)">
+                                          <input className="input" type="url" placeholder="https://..." value={editingExerciseForm.imagen_referencia_url ?? ''} onChange={(e) => setEditingExerciseForm({ ...editingExerciseForm, imagen_referencia_url: e.target.value })} />
+                                        </Field>
                                         <Field label="Grupo muscular">
                                           <OptionGroup
                                             value={editingExerciseForm.muscle_group}
@@ -1761,6 +1769,9 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
                                           ) : null}
                                           {exercise.technique_notes ? (
                                             <p className="mt-1 text-sm text-neutral-500">{exercise.technique_notes}</p>
+                                          ) : null}
+                                          {!exercise.imagen_visual_url ? (
+                                            <p className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-300">Sin guía visual: edita este ejercicio y selecciona catálogo o agrega una URL HTTPS.</p>
                                           ) : null}
                                         </div>
                                         <div className="flex flex-wrap items-center gap-2">
@@ -1851,6 +1862,9 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
                                   ]}
                                   disabled={exerciseForm.muscle_group === 'cardio'}
                                 />
+                              </Field>
+                              <Field label="Imagen de referencia (URL HTTPS)">
+                                <input className="input" type="url" placeholder="https://..." value={exerciseForm.imagen_referencia_url ?? ''} onChange={(e) => setExerciseForm({ ...exerciseForm, imagen_referencia_url: e.target.value })} />
                               </Field>
                               <Field label="Grupo muscular">
                                 <OptionGroup

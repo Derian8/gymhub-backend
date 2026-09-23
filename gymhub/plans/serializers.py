@@ -32,6 +32,7 @@ class ExerciseSerializer(serializers.ModelSerializer):
     machine_detail = GymMachineSerializer(source='machine', read_only=True)
     catalogo_detalle = CatalogoEjercicioSerializer(source='catalogo_ejercicio', read_only=True)
     previous_log = serializers.SerializerMethodField()
+    imagen_visual_url = serializers.SerializerMethodField()
 
     def validate(self, attrs):
         exercise_type = attrs.get('exercise_type', getattr(self.instance, 'exercise_type', 'strength'))
@@ -54,7 +55,25 @@ class ExerciseSerializer(serializers.ModelSerializer):
             if target_minutes is not None:
                 raise serializers.ValidationError({'target_minutes': 'Los ejercicios de fuerza no usan minutos objetivo.'})
 
+        actualiza_referencia = any(field in attrs for field in ('name', 'catalogo_ejercicio', 'imagen_referencia_url'))
+        catalogo = attrs.get('catalogo_ejercicio', getattr(self.instance, 'catalogo_ejercicio', None))
+        imagen_personalizada = attrs.get('imagen_referencia_url', getattr(self.instance, 'imagen_referencia_url', ''))
+        if isinstance(catalogo, int):
+            tiene_imagen_catalogo = CatalogoEjercicio.objects.filter(id=catalogo).exclude(imagen_url='').exists()
+        else:
+            tiene_imagen_catalogo = bool(catalogo and (catalogo.animacion_url or catalogo.imagen_url))
+        if actualiza_referencia and not imagen_personalizada and not (
+            tiene_imagen_catalogo
+        ):
+            raise serializers.ValidationError({
+                'imagen_referencia_url': 'Selecciona un ejercicio del catálogo con imagen o indica una URL HTTPS de referencia.',
+            })
         return attrs
+
+    def validate_imagen_referencia_url(self, value):
+        if value and not value.startswith('https://'):
+            raise serializers.ValidationError('La imagen de referencia debe usar una URL HTTPS.')
+        return value
 
     class Meta:
         model = Exercise
@@ -62,8 +81,15 @@ class ExerciseSerializer(serializers.ModelSerializer):
             'id', 'workout_day', 'catalogo_ejercicio', 'catalogo_detalle', 'name', 'muscle_group', 'exercise_type',
             'sets', 'reps_range', 'target_minutes', 'machine', 'machine_detail',
             'weight_suggestion_kg', 'weight_suggestion_unit', 'rest_seconds', 'technique_notes', 'order',
-            'previous_log',
+            'imagen_referencia_url', 'imagen_visual_url', 'previous_log',
         )
+
+    def get_imagen_visual_url(self, obj):
+        if obj.imagen_referencia_url:
+            return obj.imagen_referencia_url
+        if obj.catalogo_ejercicio:
+            return obj.catalogo_ejercicio.animacion_url or obj.catalogo_ejercicio.imagen_url
+        return ''
 
     def get_previous_log(self, obj):
         member = self.context.get('member')
@@ -185,6 +211,7 @@ class TrainingPlanSerializer(serializers.ModelSerializer):
 
 class NestedExerciseInputSerializer(serializers.Serializer):
     catalogo_ejercicio = serializers.IntegerField(required=False, allow_null=True)
+    imagen_referencia_url = serializers.URLField(required=False, allow_blank=True)
     name = serializers.CharField(max_length=200)
     muscle_group = serializers.ChoiceField(choices=Exercise._meta.get_field('muscle_group').choices)
     exercise_type = serializers.ChoiceField(choices=Exercise._meta.get_field('exercise_type').choices, default='strength')
@@ -202,7 +229,19 @@ class NestedExerciseInputSerializer(serializers.Serializer):
     order = serializers.IntegerField(default=0, min_value=0)
 
     def validate(self, attrs):
-        return ExerciseSerializer().validate(attrs)
+        attrs = ExerciseSerializer().validate(attrs)
+        image_url = attrs.get('imagen_referencia_url', '')
+        if image_url and not image_url.startswith('https://'):
+            raise serializers.ValidationError({'imagen_referencia_url': 'La imagen de referencia debe usar una URL HTTPS.'})
+        catalogo_id = attrs.get('catalogo_ejercicio')
+        tiene_imagen_catalogo = bool(catalogo_id) and CatalogoEjercicio.objects.filter(
+            id=catalogo_id,
+        ).exclude(imagen_url='').exists()
+        if not image_url and not tiene_imagen_catalogo:
+            raise serializers.ValidationError({
+                'imagen_referencia_url': 'Selecciona un ejercicio del catálogo con imagen o indica una URL HTTPS de referencia.',
+            })
+        return attrs
 
 
 class NestedWorkoutDayInputSerializer(serializers.Serializer):

@@ -181,7 +181,7 @@ export function PlansPage() {
                       {day.exercises.length ? (
                         <div className="mt-3 space-y-2">
                           {day.exercises.slice(0, 4).map((exercise) => {
-                            const mediaUrl = exercise.catalogo_detalle?.animacion_url || exercise.catalogo_detalle?.imagen_url
+                            const mediaUrl = exercise.imagen_visual_url || exercise.catalogo_detalle?.animacion_url || exercise.catalogo_detalle?.imagen_url
                             return (
                               <div key={exercise.id} className="flex items-center gap-3 rounded-xl bg-neutral-50 p-2.5 dark:bg-neutral-900/70">
                                 {mediaUrl ? (

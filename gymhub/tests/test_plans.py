@@ -236,6 +236,7 @@ class TestTrainingPlans:
                 'order': 0,
                 'exercises': [{
                     'name': 'Press banca',
+                    'imagen_referencia_url': 'https://ejemplo.test/press-banca.webp',
                     'muscle_group': 'chest',
                     'exercise_type': 'strength',
                     'sets': 3,
