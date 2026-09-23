@@ -98,7 +98,7 @@ describe('WorkoutDayDetailPage', () => {
     expect(getByText('Plan del día exacto')).toBeInTheDocument()
     expect(getByText('Press banca')).toBeInTheDocument()
     expect(getByText('Bici estatica')).toBeInTheDocument()
-    expect(getByText('4×8-10 @60kg')).toBeInTheDocument()
+    expect(getByText('4×8-10 @60 kg')).toBeInTheDocument()
     expect(getByText('20 min')).toBeInTheDocument()
     expect(getByText('90s')).toBeInTheDocument()
     expect(getByText('Pecho · Smith')).toBeInTheDocument()
