@@ -2,6 +2,16 @@
 
 Última actualización: 18 de septiembre de 2026.
 
+## Evidencia técnica local — 23 de septiembre
+
+- Se actualizó la descripción de roles del informe: administrador, instructor y
+  cliente se distinguen según las pantallas y permisos actuales.
+- Se incorporó una captura reproducible de la gestión de planes del instructor,
+  generada localmente con datos ficticios. El capturador conserva los recorridos
+  de administración, cliente y móvil para completarlos antes de la entrega.
+- El informe se recompiló sin referencias visuales inexistentes; `main.pdf` y
+  `build/main.pdf` quedan sincronizados con 83 páginas.
+
 ## Documento final y referencias de precios — 18 de septiembre
 
 - Se incorporaron seis fuentes oficiales de tarifas con citas dentro del análisis

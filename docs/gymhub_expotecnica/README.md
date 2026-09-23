@@ -111,3 +111,10 @@ citadas en el texto. `CONTROL_FUENTES.md` documenta qué se verificó y los
 límites de acceso. El escenario financiero conserva sus importes y detalla
 la conciliación pendiente de Workspace. La declaración de IA y los objetivos
 permanecen sin cambios.
+
+## Evidencia técnica actualizada
+
+La versión regional incorpora una captura local reproducible de la gestión de
+planes del instructor, generada el 23 de septiembre de 2026 con datos ficticios.
+El capturador mantiene preparados los recorridos de administración, cliente y
+móvil para completarlos antes de la entrega.
