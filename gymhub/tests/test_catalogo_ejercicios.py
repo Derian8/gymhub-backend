@@ -16,6 +16,7 @@ def test_trainer_can_search_spanish_exercise_catalog(trainer_client):
         equipo='peso corporal',
         instrucciones_es='Eleva el torso de forma controlada.',
         pasos_es=['Acuéstate.', 'Eleva el torso.', 'Baja lentamente.'],
+        imagen_url='https://exercise-dataset.com/images/flat/abdominal-crunch-peak.webp',
     )
 
     response = trainer_client.get('/api/catalogo-ejercicios/', {'search': 'abdominal'})
@@ -25,6 +26,20 @@ def test_trainer_can_search_spanish_exercise_catalog(trainer_client):
     assert exercise['nombre'] == 'Abdominal parcial'
     assert exercise['instrucciones_es']
     assert len(exercise['pasos_es']) == 3
+
+
+@pytest.mark.django_db
+def test_catalogo_no_ofrece_ejercicios_sin_referencia_visual(trainer_client):
+    from plans.models import CatalogoEjercicio
+
+    CatalogoEjercicio.objects.create(
+        identificador_origen='sin-imagen', nombre='Ejercicio pendiente', esta_activo=True,
+    )
+
+    response = trainer_client.get('/api/catalogo-ejercicios/', {'search': 'pendiente'})
+
+    assert response.status_code == 200
+    assert response.data['count'] == 0
 
 
 @pytest.mark.django_db

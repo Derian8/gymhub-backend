@@ -675,6 +675,7 @@ export interface TrainingTemplateExercise {
   dia: number
   catalogo_ejercicio?: number | null
   catalogo_detalle?: CatalogExercise | null
+  imagen_referencia_url?: string
   nombre: string
   grupo_muscular: MuscleGroup
   tipo_ejercicio: ExerciseType

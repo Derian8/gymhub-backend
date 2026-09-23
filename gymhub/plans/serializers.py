@@ -59,7 +59,7 @@ class ExerciseSerializer(serializers.ModelSerializer):
         catalogo = attrs.get('catalogo_ejercicio', getattr(self.instance, 'catalogo_ejercicio', None))
         imagen_personalizada = attrs.get('imagen_referencia_url', getattr(self.instance, 'imagen_referencia_url', ''))
         if isinstance(catalogo, int):
-            tiene_imagen_catalogo = CatalogoEjercicio.objects.filter(id=catalogo).exclude(imagen_url='').exists()
+            tiene_imagen_catalogo = CatalogoEjercicio.objects.filter(id=catalogo).exclude(imagen_url='', animacion_url='').exists()
         else:
             tiene_imagen_catalogo = bool(catalogo and (catalogo.animacion_url or catalogo.imagen_url))
         if actualiza_referencia and not imagen_personalizada and not (
@@ -236,7 +236,7 @@ class NestedExerciseInputSerializer(serializers.Serializer):
         catalogo_id = attrs.get('catalogo_ejercicio')
         tiene_imagen_catalogo = bool(catalogo_id) and CatalogoEjercicio.objects.filter(
             id=catalogo_id,
-        ).exclude(imagen_url='').exists()
+        ).exclude(imagen_url='', animacion_url='').exists()
         if not image_url and not tiene_imagen_catalogo:
             raise serializers.ValidationError({
                 'imagen_referencia_url': 'Selecciona un ejercicio del catálogo con imagen o indica una URL HTTPS de referencia.',
@@ -385,7 +385,7 @@ class PlantillaEjercicioSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'dia', 'catalogo_ejercicio', 'catalogo_detalle', 'nombre', 'grupo_muscular', 'tipo_ejercicio', 'series',
             'rango_repeticiones', 'minutos_objetivo', 'peso_sugerido_kg', 'unidad_peso_sugerido', 'descanso_segundos',
-            'notas_tecnicas', 'orden',
+            'notas_tecnicas', 'orden', 'imagen_referencia_url',
         )
 
 

@@ -404,6 +404,7 @@ class PlantillaEjercicio(models.Model):
         CatalogoEjercicio, null=True, blank=True, on_delete=models.SET_NULL,
         related_name='plantillas_ejercicios',
     )
+    imagen_referencia_url = models.URLField(blank=True)
     nombre = models.CharField(max_length=200)
     grupo_muscular = models.CharField(max_length=20, choices=MUSCLE_GROUP_CHOICES)
     tipo_ejercicio = models.CharField(

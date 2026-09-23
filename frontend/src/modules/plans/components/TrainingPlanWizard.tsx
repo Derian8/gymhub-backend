@@ -223,6 +223,7 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
       exercises: day.ejercicios.map((exercise, exerciseIndex) => normalizeExercise({
         name: exercise.nombre,
         catalogo_ejercicio: exercise.catalogo_ejercicio ?? null,
+        imagen_referencia_url: exercise.imagen_referencia_url ?? '',
         muscle_group: exercise.grupo_muscular,
         exercise_type: exercise.tipo_ejercicio,
         sets: exercise.series,

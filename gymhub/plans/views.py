@@ -249,6 +249,7 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                     PlantillaEjercicio.objects.create(
                         dia=template_day,
                         catalogo_ejercicio=exercise.catalogo_ejercicio,
+                        imagen_referencia_url=exercise.imagen_referencia_url,
                         nombre=exercise.name,
                         grupo_muscular=exercise.muscle_group,
                         tipo_ejercicio=exercise.exercise_type,
@@ -487,6 +488,7 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                         Exercise.objects.create(
                             workout_day=day,
                             catalogo_ejercicio=source_exercise.catalogo_ejercicio,
+                            imagen_referencia_url=source_exercise.imagen_referencia_url,
                             name=source_exercise.name,
                             muscle_group=source_exercise.muscle_group,
                             exercise_type=source_exercise.exercise_type,
@@ -527,6 +529,7 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                         Exercise.objects.create(
                             workout_day=day,
                             catalogo_ejercicio=template_exercise.catalogo_ejercicio,
+                            imagen_referencia_url=template_exercise.imagen_referencia_url,
                             name=template_exercise.nombre,
                             muscle_group=template_exercise.grupo_muscular,
                             exercise_type=template_exercise.tipo_ejercicio,
@@ -623,6 +626,7 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                     Exercise.objects.create(
                         workout_day=day,
                         catalogo_ejercicio=exercise.catalogo_ejercicio,
+                        imagen_referencia_url=exercise.imagen_referencia_url,
                         name=exercise.name,
                         muscle_group=exercise.muscle_group,
                         exercise_type=exercise.exercise_type,
@@ -714,6 +718,7 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                     Exercise.objects.create(
                         workout_day=day,
                         catalogo_ejercicio=source_exercise.catalogo_ejercicio,
+                        imagen_referencia_url=source_exercise.imagen_referencia_url,
                         name=source_exercise.name,
                         muscle_group=source_exercise.muscle_group,
                         exercise_type=source_exercise.exercise_type,
@@ -942,6 +947,7 @@ class PlantillaEntrenamientoViewSet(viewsets.ModelViewSet):
                     PlantillaEjercicio.objects.create(
                         dia=template_day,
                         catalogo_ejercicio=exercise.catalogo_ejercicio,
+                        imagen_referencia_url=exercise.imagen_referencia_url,
                         nombre=exercise.name,
                         grupo_muscular=exercise.muscle_group,
                         tipo_ejercicio=exercise.exercise_type,
@@ -1010,6 +1016,7 @@ class PlantillaEntrenamientoViewSet(viewsets.ModelViewSet):
                     Exercise.objects.create(
                         workout_day=day,
                         catalogo_ejercicio=template_exercise.catalogo_ejercicio,
+                        imagen_referencia_url=template_exercise.imagen_referencia_url,
                         name=template_exercise.nombre,
                         muscle_group=template_exercise.grupo_muscular,
                         exercise_type=template_exercise.tipo_ejercicio,
@@ -1032,7 +1039,7 @@ class CatalogoEjercicioViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = CatalogPagination
 
     def get_queryset(self):
-        queryset = CatalogoEjercicio.objects.filter(esta_activo=True)
+        queryset = CatalogoEjercicio.objects.filter(esta_activo=True).exclude(imagen_url='', animacion_url='')
         if self.request.query_params.get('base') == 'true':
             queryset = queryset.filter(es_catalogo_base=True)
         search = (self.request.query_params.get('search') or '').strip()
