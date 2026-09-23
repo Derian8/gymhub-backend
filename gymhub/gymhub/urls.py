@@ -6,6 +6,8 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, Sp
 from charts.views import ChartOverviewView, ChartView
 from .health_views import LiveHealthView, ReadyHealthView
 
+handler500 = 'gymhub.api_errors.api_server_error'
+
 urlpatterns = [
     path('admin/', admin.site.urls),
 

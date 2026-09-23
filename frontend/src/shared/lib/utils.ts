@@ -180,7 +180,12 @@ export function extractApiError(error: unknown): string {
     const response = (error as { response?: { data?: unknown } }).response
     if (response?.data) {
       const data = response.data as Record<string, unknown>
-      if (typeof data === 'string') return data
+      if (typeof data === 'string') {
+        if (/<(?:!doctype|html|head|body)\b/i.test(data)) {
+          return 'El servidor no pudo procesar la solicitud. Intenta nuevamente o contacta al administrador.'
+        }
+        return data
+      }
       const values = Object.values(data).flat()
       if (values.length > 0) return String(values[0])
     }

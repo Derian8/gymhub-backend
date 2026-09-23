@@ -558,8 +558,24 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
         trainer_profile = self._assert_member_allowed(member)
         start_date = data['start_date']
         end_date = data['end_date']
+        status_value = data['status']
+        conflict_strategy = data.get('conflict_strategy', 'keep')
 
         with transaction.atomic():
+            active_plan = TrainingPlan.objects.select_for_update().filter(
+                member=member,
+                status='active',
+            ).order_by('-numero_version', '-id').first()
+            if status_value == 'active' and active_plan and conflict_strategy != 'replace_active':
+                raise ValidationError({
+                    'conflict_strategy': 'Este miembro ya tiene una rutina activa. Confirma su reemplazo para activar la nueva.',
+                })
+            if status_value == 'active' and active_plan:
+                active_plan.status = 'finished'
+                active_plan.is_active = False
+                active_plan.finished_at = timezone.now()
+                active_plan.save(update_fields=['status', 'is_active', 'finished_at', 'end_date'])
+
             plan = TrainingPlan.objects.create(
                 member=member,
                 trainer=trainer_profile,
@@ -569,18 +585,41 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                 end_date=end_date,
                 weeks_duration=data['weeks_duration'],
                 days_per_week=data['days_per_week'],
-                status='draft',
+                status=status_value,
                 level=data.get('level', 'intermediate'),
                 notes=data.get('notes', ''),
                 modo_ejecucion=data.get('modo_ejecucion', 'weekly'),
+                numero_version=(active_plan.numero_version + 1 if status_value == 'active' and active_plan else 1),
+                publicado_en=timezone.now() if status_value in {'active', 'scheduled'} else None,
+                publicado_por=request.user if status_value in {'active', 'scheduled'} else None,
             )
             for day_data in data.get('days', []):
-                exercises = day_data.pop('exercises', [])
-                day = WorkoutDay.objects.create(plan=plan, **day_data)
+                exercises = day_data.get('exercises', [])
+                day = WorkoutDay.objects.create(
+                    plan=plan,
+                    name=day_data['name'],
+                    day_label=day_data['day_label'],
+                    day_of_week=day_data.get('day_of_week'),
+                    order=day_data.get('order', 0),
+                )
                 for exercise_data in exercises:
-                    machine_id = exercise_data.pop('machine', None)
-                    catalogo_id = exercise_data.pop('catalogo_ejercicio', None)
-                    Exercise.objects.create(workout_day=day, machine_id=machine_id, catalogo_ejercicio_id=catalogo_id, **exercise_data)
+                    Exercise.objects.create(
+                        workout_day=day,
+                        machine_id=exercise_data.get('machine'),
+                        catalogo_ejercicio_id=exercise_data.get('catalogo_ejercicio'),
+                        imagen_referencia_url=exercise_data.get('imagen_referencia_url', ''),
+                        name=exercise_data['name'],
+                        muscle_group=exercise_data['muscle_group'],
+                        exercise_type=exercise_data.get('exercise_type', 'strength'),
+                        sets=exercise_data.get('sets'),
+                        reps_range=exercise_data.get('reps_range', ''),
+                        target_minutes=exercise_data.get('target_minutes'),
+                        weight_suggestion_kg=exercise_data.get('weight_suggestion_kg'),
+                        weight_suggestion_unit=exercise_data.get('weight_suggestion_unit', 'kg'),
+                        rest_seconds=exercise_data.get('rest_seconds', 60),
+                        technique_notes=exercise_data.get('technique_notes', ''),
+                        order=exercise_data.get('order', 0),
+                    )
 
         return Response(TrainingPlanSerializer(plan).data, status=status.HTTP_201_CREATED)
 

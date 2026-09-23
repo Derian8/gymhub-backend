@@ -69,18 +69,18 @@ function TodayWorkoutPageContent() {
     data: activePrescription,
     isLoading: isLoadingPrescription,
     isError: isPrescriptionError,
-  } = useMemberActivePrescriptionQuery(isMember ? memberId : 0, !isMember || routineAccessGranted)
+  } = useMemberActivePrescriptionQuery(isMember ? memberId : 0, !!memberId)
   const planId = requestedPlanId || activePrescription?.plan_activo?.id || 0
   const {
     data,
     isLoading: isLoadingTodayWorkout,
     isError: isTodayWorkoutError,
-  } = useTodayWorkoutQuery(planId, !isMember || routineAccessGranted)
+  } = useTodayWorkoutQuery(planId, !!planId)
   const {
     data: weeklyView,
     isLoading: isLoadingWeeklyView,
     isError: isWeeklyViewError,
-  } = useWeeklyPlanQuery(planId, !isMember || routineAccessGranted)
+  } = useWeeklyPlanQuery(planId, !!planId)
   const { data: dashboardSummary } = useMemberDashboardQuery(isMember ? memberId : 0)
   const { mutate: createSession, isPending: isCreating } = useCreateSessionMutation()
   const { mutate: completeSession, isPending: isCompleting } = useCompleteSessionMutation()
@@ -202,6 +202,17 @@ function TodayWorkoutPageContent() {
         },
       },
     )
+  }
+
+  const handleRoutineEntryAndStart = () => {
+    if (!workoutDay || openRoutine.isPending) return
+    openRoutine.mutate(undefined, {
+      onSuccess: () => {
+        window.sessionStorage.setItem(routineEntryKey, 'granted')
+        setRoutineAccessGranted(true)
+        handleStartSession()
+      },
+    })
   }
 
   const handleCompleteSession = () => {
@@ -348,41 +359,6 @@ function TodayWorkoutPageContent() {
   useEffect(() => {
     setIsDaySelectorOpen(mostrarFallbackSemanal)
   }, [mostrarFallbackSemanal])
-
-  if (isMember && !routineAccessGranted) {
-    const errorData = (openRoutine.error as { response?: { data?: { message?: string; days_overdue?: number } } } | null)?.response?.data
-    return (
-      <div className="page-enter mx-auto max-w-3xl">
-        <section className="rounded-[2rem] border border-primary/20 bg-white p-8 text-center shadow-sm dark:bg-neutral-950">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary"><Dumbbell size={30} /></div>
-          <p className="label-base mt-6">Tu llegada al gimnasio</p>
-          <h1 className="mt-2 text-4xl font-heading font-black text-neutral-900 dark:text-white">Ver rutina</h1>
-          <p className="mx-auto mt-3 max-w-xl text-sm text-neutral-500">Validaremos tu membresía y registraremos la entrada de hoy antes de mostrar el entrenamiento.</p>
-          {errorData && (
-            <div className="mx-auto mt-5 max-w-xl rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-700 dark:text-red-300">
-              {errorData.message || 'Tu acceso está bloqueado. Contacta al administrador.'}
-              {errorData.days_overdue ? ` Mora registrada: ${errorData.days_overdue} días.` : ''}
-            </div>
-          )}
-          <button
-            type="button"
-            className="btn-primary mx-auto mt-7 px-8 py-3"
-            disabled={openRoutine.isPending}
-            onClick={() => openRoutine.mutate(undefined, { onSuccess: () => {
-              window.sessionStorage.setItem(routineEntryKey, 'granted')
-              setRoutineAccessGranted(true)
-            } })}
-          >
-            {openRoutine.isPending ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} />}
-            {openRoutine.isPending ? 'Validando acceso…' : 'Ver rutina y registrar entrada'}
-          </button>
-          <Link to="/plans/my" className="btn-secondary mx-auto mt-3 px-6 py-2" data-testid="view-plan-before-checkin-link">
-            Ver mi rutina semanal
-          </Link>
-        </section>
-      </div>
-    )
-  }
 
   if (isInitialLoading) {
     return (
@@ -535,13 +511,13 @@ function TodayWorkoutPageContent() {
                   </div>
                 ) : null}
                 <button
-                  onClick={handleStartSession}
-                  disabled={isCreating}
+                  onClick={isMember && !routineAccessGranted ? handleRoutineEntryAndStart : handleStartSession}
+                  disabled={isCreating || openRoutine.isPending}
                   className="btn-primary flex w-full items-center justify-center gap-2 py-4 text-base"
                   data-testid="start-session-btn"
                 >
-                  {isCreating ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
-                  {isCreating ? 'Iniciando...' : isMember ? 'Iniciar rutina' : 'Registrar entrenamiento'}
+                  {isCreating || openRoutine.isPending ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
+                  {isCreating ? 'Iniciando...' : openRoutine.isPending ? 'Registrando entrada...' : isMember && !routineAccessGranted ? 'Registrar entrada e iniciar rutina' : isMember ? 'Iniciar rutina' : 'Registrar entrenamiento'}
                 </button>
               </div>
             ) : (

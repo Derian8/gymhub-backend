@@ -598,20 +598,11 @@ class MemberViewSet(viewsets.ModelViewSet):
         member = self.get_object()
         if usa_contexto_cliente(request):
             from billing.services import membership_access
-            from attendance.models import Attendance
             access = membership_access(member)
             if not access['allowed']:
                 raise PermissionDenied({
                     'error': 'Tu acceso está bloqueado. Contacta al administrador.',
                     'reason': access['reason'],
-                })
-            if not Attendance.objects.filter(
-                member=member,
-                attendance_date=timezone.localdate(),
-            ).exists():
-                raise PermissionDenied({
-                    'error': 'Pulsa “Ver rutina” para registrar tu entrada.',
-                    'reason': 'entry_required',
                 })
         return Response(get_active_prescription(member))
 

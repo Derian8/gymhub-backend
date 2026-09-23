@@ -234,6 +234,15 @@ class NestedExerciseInputSerializer(serializers.Serializer):
         if image_url and not image_url.startswith('https://'):
             raise serializers.ValidationError({'imagen_referencia_url': 'La imagen de referencia debe usar una URL HTTPS.'})
         catalogo_id = attrs.get('catalogo_ejercicio')
+        if catalogo_id and not CatalogoEjercicio.objects.filter(id=catalogo_id).exists():
+            raise serializers.ValidationError({
+                'catalogo_ejercicio': 'El ejercicio seleccionado ya no existe en el catálogo.',
+            })
+        machine_id = attrs.get('machine')
+        if machine_id and not GymMachine.objects.filter(id=machine_id).exists():
+            raise serializers.ValidationError({
+                'machine': 'La máquina seleccionada ya no existe en el catálogo del gimnasio.',
+            })
         tiene_imagen_catalogo = bool(catalogo_id) and CatalogoEjercicio.objects.filter(
             id=catalogo_id,
         ).exclude(imagen_url='', animacion_url='').exists()
@@ -283,6 +292,12 @@ class CompleteTrainingPlanSerializer(serializers.Serializer):
             len(day_weekdays) != len(attrs.get('days', [])) or len(day_weekdays) != len(set(day_weekdays))
         ):
             raise serializers.ValidationError({'days': 'No puedes repetir el mismo día real de la semana dentro del plan.'})
+        if attrs.get('status') in {'active', 'scheduled'}:
+            days = attrs.get('days', [])
+            if not days or any(not day.get('exercises') for day in days):
+                raise serializers.ValidationError({
+                    'days': 'Agrega al menos un ejercicio en cada día antes de activar o programar la rutina.',
+                })
         return attrs
 
 

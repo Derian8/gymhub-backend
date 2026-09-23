@@ -72,11 +72,11 @@ class TestFlujoDemoPorRoles:
     ):
         crear_membresia_activa(member_profile, trainer_profile, membership_plan)
 
-        blocked = member_client.get(f'/api/members/{member_profile.id}/active-prescription/')
+        visible_before_entry = member_client.get(f'/api/members/{member_profile.id}/active-prescription/')
         opened = member_client.post('/api/member/ver-rutina/', {}, format='json')
         visible = member_client.get(f'/api/members/{member_profile.id}/active-prescription/')
 
-        assert blocked.status_code == status.HTTP_403_FORBIDDEN
+        assert visible_before_entry.status_code == status.HTTP_200_OK
         assert opened.status_code == status.HTTP_201_CREATED
         assert opened.data['attendance_created'] is True
         assert opened.data['prescription']['plan_activo']['id'] == training_plan.id

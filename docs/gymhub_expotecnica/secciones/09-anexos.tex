@@ -123,7 +123,7 @@ Pruebas frontend & Suite automatizada de componentes, pantallas y permisos por c
 Pruebas E2E & Recorridos de instructor y cliente en Playwright. & Se ejecuta antes de la captura \\
 Frontend público & Despliegue demostrativo en Vercel. & Disponible \\
 Backend y API & Despliegue y documentación OpenAPI. & Disponible \\
-Capturas anonimizadas & Gestión de planes del instructor, con datos ficticios. & Disponible \\
+Capturas anonimizadas & Panel administrativo, gestión de planes del instructor y panel del cliente, con datos ficticios. & Disponible \\
 \bottomrule
 \end{tabularx}
 \caption*{\textit{Nota}. Elaboración propia a partir del repositorio y de la versión local de demostración al 23 de septiembre de 2026 \parencite{gymhub_repo}.}
@@ -137,8 +137,15 @@ versión local comprobada para la etapa regional, con cuentas y datos ficticios.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.92\textwidth]{imagenes/captura_actual_planes_instructor.png}
-\caption{Gestión de planes de entrenamiento por el instructor}
+\includegraphics[width=0.92\textwidth]{imagenes/captura_actual_panel_administrador.png}
+\caption{Panel de control administrativo}
+\caption*{\textit{Nota}. Captura propia de la versión local de demostración con datos ficticios, 23 de septiembre de 2026.}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{imagenes/captura_actual_panel_cliente.png}
+\caption{Panel de seguimiento del cliente}
 \caption*{\textit{Nota}. Captura propia de la versión local de demostración con datos ficticios, 23 de septiembre de 2026.}
 \end{figure}
 
@@ -148,10 +155,8 @@ versión local comprobada para la etapa regional, con cuentas y datos ficticios.
 El repositorio incorpora \texttt{frontend/capturar\_anexos.mjs}, que usa
 Playwright y Chromium para capturar las funciones de administración, instructor
 y cliente en escritorio, además de vistas móviles. Esta actualización incorpora
-las capturas comprobadas de administración e instructor; el recorrido visual
-del cliente y las vistas móviles se repetirán antes de la entrega si el entorno
-local está disponible. La ejecución usa cuentas y datos ficticios; no emplea
-datos de gimnasios ni modifica el despliegue público.
+una vista representativa de cada interfaz. La ejecución usa cuentas y datos
+ficticios; no emplea datos de gimnasios ni modifica el despliegue público.
 
 \subsection{Trazabilidad del análisis financiero}\label{ap:presupuesto}
 

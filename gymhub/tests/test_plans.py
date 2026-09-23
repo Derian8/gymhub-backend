@@ -280,7 +280,7 @@ class TestTrainingPlans:
         assert resp.status_code == status.HTTP_400_BAD_REQUEST
         assert 'end_date' in resp.data
 
-    def test_complete_plan_always_starts_as_draft(self, trainer_client, training_plan):
+    def test_complete_plan_activates_and_replaces_current_plan(self, trainer_client, training_plan):
         resp = trainer_client.post('/api/plans/create-complete/', {
             'member': training_plan.member_id,
             'name': 'Nuevo activo',
@@ -290,12 +290,31 @@ class TestTrainingPlans:
             'days_per_week': 3,
             'status': 'active',
             'level': 'intermediate',
-            'conflict_strategy': 'keep',
-            'days': [],
+            'conflict_strategy': 'replace_active',
+            'days': [{
+                'name': 'Torso',
+                'day_label': 'A',
+                'day_of_week': 'mon',
+                'order': 0,
+                'exercises': [{
+                    'name': 'Press banca',
+                    'imagen_referencia_url': 'https://ejemplo.test/press-banca.webp',
+                    'muscle_group': 'chest',
+                    'exercise_type': 'strength',
+                    'sets': 3,
+                    'reps_range': '8-10',
+                    'rest_seconds': 90,
+                    'order': 0,
+                }],
+            }],
         }, format='json')
 
         assert resp.status_code == status.HTTP_201_CREATED
-        assert resp.data['status'] == 'draft'
+        assert resp.data['status'] == 'active'
+        assert resp.data['is_active'] is True
+        training_plan.refresh_from_db()
+        assert training_plan.status == 'finished'
+        assert training_plan.is_active is False
 
     def test_complete_draft_does_not_replace_active_plan(self, trainer_client, training_plan):
         from plans.models import TrainingPlan
@@ -307,7 +326,7 @@ class TestTrainingPlans:
             'start_date': '2026-07-13',
             'weeks_duration': 4,
             'days_per_week': 3,
-            'status': 'active',
+            'status': 'draft',
             'level': 'intermediate',
             'conflict_strategy': 'replace_active',
             'days': [],
@@ -320,6 +339,35 @@ class TestTrainingPlans:
         created = TrainingPlan.objects.get(id=resp.data['id'])
         assert created.status == 'draft'
         assert created.is_active is False
+
+    def test_complete_plan_rejects_missing_nested_machine_without_creating_plan(self, trainer_client, member_profile):
+        from plans.models import TrainingPlan
+
+        before = TrainingPlan.objects.count()
+        resp = trainer_client.post('/api/plans/create-complete/', {
+            'member': member_profile.id,
+            'name': 'Máquina eliminada',
+            'goal': 'general',
+            'start_date': '2026-07-13',
+            'status': 'draft',
+            'days': [{
+                'name': 'Torso',
+                'day_label': 'A',
+                'day_of_week': 'mon',
+                'exercises': [{
+                    'name': 'Press banca',
+                    'imagen_referencia_url': 'https://ejemplo.test/press-banca.webp',
+                    'muscle_group': 'chest',
+                    'sets': 3,
+                    'reps_range': '8-10',
+                    'machine': 999999,
+                }],
+            }],
+        }, format='json')
+
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'machine' in resp.data['days'][0]['exercises'][0]
+        assert TrainingPlan.objects.count() == before
 
     def test_complete_plan_is_atomic_when_nested_exercise_invalid(self, trainer_client, member_profile):
         from plans.models import TrainingPlan
@@ -499,6 +547,21 @@ class TestWorkoutSessions:
         assert exercise_response.status_code == status.HTTP_200_OK
         assert start_response.status_code == status.HTTP_403_FORBIDDEN
         assert start_response.data['reason'] == 'entry_required'
+
+    def test_member_can_review_active_prescription_without_checking_in(
+        self, member_client, member_profile, training_plan
+    ):
+        from attendance.models import Attendance
+
+        Attendance.objects.filter(member=member_profile).delete()
+
+        response = member_client.get(
+            f'/api/members/{training_plan.member_id}/active-prescription/'
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['plan_activo']['id'] == training_plan.id
+        assert response.data['entrenamiento_hoy'] is not None
 
     def test_member_cannot_create_session_for_a_non_current_weekly_day(
         self, member_client, training_plan, workout_day_a

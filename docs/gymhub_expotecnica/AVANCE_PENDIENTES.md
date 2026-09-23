@@ -204,8 +204,9 @@
 
 ## Pendientes De Validación Y Negocio
 
-- Habilitar un canal de contacto voluntario separado de la encuesta y seleccionar
-  un gimnasio interesado en una demostración o piloto.
+- Pit Bull Gym (Mollejones) se registra como aliado para la prueba inicial;
+  obtener una constancia escrita y coordinar el inicio del piloto. Mantener
+  separado este acercamiento de las respuestas anónimas de la encuesta.
 - Ejecutar o documentar la demostración y medir adopción, incidencias, tiempo de
   tareas e intención de continuidad.
 - Sustituir la hipótesis de precios regulares por evidencia de aceptación o

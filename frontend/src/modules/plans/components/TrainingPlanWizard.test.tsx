@@ -144,6 +144,25 @@ describe('TrainingPlanWizard', () => {
     expect(screen.getByTestId('wizard-exercise-machine-0-0')).toHaveValue('1')
   })
 
+  it('activates the plan immediately when the activation action is chosen', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<TrainingPlanWizard open onClose={vi.fn()} />)
+
+    await user.click(screen.getByTestId('select-plan-member-10'))
+    await user.click(screen.getByRole('button', { name: /continuar/i }))
+    await user.type(screen.getByTestId('wizard-plan-name'), 'Plan activo')
+    await user.click(screen.getByRole('button', { name: /continuar/i }))
+    await user.click(screen.getByTestId('wizard-add-day'))
+    await user.type(screen.getByLabelText('Ejercicio'), 'Press banca')
+    await user.click(screen.getByRole('button', { name: /continuar/i }))
+    await user.click(screen.getByRole('button', { name: /guardar y activar/i }))
+
+    expect(createCompletePlanMutate).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'active', conflict_strategy: 'replace_active' }),
+      expect.any(Object),
+    )
+  })
+
   it('requires assigning an unassigned member before continuing', async () => {
     const user = userEvent.setup()
 

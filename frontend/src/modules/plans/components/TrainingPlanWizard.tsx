@@ -100,7 +100,6 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
   const [step, setStep] = useState(preselectedMember ? 2 : 1)
   const [search, setSearch] = useState('')
   const [selectedMember, setSelectedMember] = useState<MemberProfile | null>(preselectedMember ?? null)
-  const [conflictStrategy, setConflictStrategy] = useState<CompleteTrainingPlanPayload['conflict_strategy']>('keep')
   const [form, setForm] = useState({
     name: '',
     goal: 'general' as GoalType,
@@ -138,7 +137,7 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
   const hasActivePlan = selectedMember?.tiene_plan_activo
   const selectedMemberIsUnassigned = !!selectedMember && selectedMember.trainer_asignado == null
   const totalExercises = days.reduce((total, day) => total + day.exercises.length, 0)
-  const canContinueMember = !!selectedMember && !selectedMemberIsUnassigned && (!hasActivePlan || conflictStrategy !== 'keep' || form.status !== 'active')
+  const canContinueMember = !!selectedMember && !selectedMemberIsUnassigned
   const canSave = !!selectedMember && form.name.trim().length > 0 && days.every((day) => day.name.trim() && day.exercises.every((exercise) => exercise.name.trim()))
   const filteredMembers = membersQuery.data?.results ?? []
   const assignedMembers = filteredMembers.filter((member) => member.trainer_asignado != null)
@@ -240,7 +239,7 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
     setStep(3)
   }
 
-  const submit = (_status: TrainingPlanStatus) => {
+  const submit = (status: TrainingPlanStatus) => {
     if (!selectedMember || !canSave) return
     createCompletePlan.mutate({
       member: selectedMember.id,
@@ -251,10 +250,10 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
       weeks_duration: form.weeks_duration,
       days_per_week: form.days_per_week,
       modo_ejecucion: form.modo_ejecucion,
-      status: 'draft',
+      status,
       level: form.level,
       notes: form.notes,
-      conflict_strategy: 'keep',
+      conflict_strategy: status === 'active' ? 'replace_active' : status === 'scheduled' ? 'schedule_after_active' : 'keep',
       days,
     }, {
       onSuccess: (plan) => {
@@ -356,11 +355,9 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
                 {hasActivePlan ? (
                   <div className="mt-3 rounded-sm border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100">
                     <div className="mb-2 flex items-center gap-2 font-semibold"><AlertTriangle size={16} /> Este miembro ya tiene un plan activo.</div>
-                    <select className="input" value={conflictStrategy} onChange={(event) => setConflictStrategy(event.target.value as CompleteTrainingPlanPayload['conflict_strategy'])}>
-                      <option value="keep">Cancelar operación activa</option>
-                      <option value="replace_active">Reemplazar al iniciar el nuevo plan</option>
-                      <option value="schedule_after_active">Programar el nuevo plan para después</option>
-                    </select>
+                    <p>{form.status === 'scheduled'
+                      ? 'Al programarla, la rutina vigente seguirá activa hasta la fecha de inicio.'
+                      : 'Al activarla, la rutina vigente se finalizará de inmediato.'}</p>
                   </div>
                 ) : null}
               </div>
@@ -618,7 +615,9 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
             ) : (
               <>
                 <button type="button" className="btn-secondary" disabled={!canSave || createCompletePlan.isPending} onClick={() => submit('draft')}>Guardar como borrador</button>
-                <button type="button" className="btn-primary" disabled={!canSave || createCompletePlan.isPending || (hasActivePlan && conflictStrategy === 'keep')} onClick={() => submit(form.status === 'scheduled' ? 'scheduled' : 'active')}>Guardar y activar</button>
+                <button type="button" className="btn-primary" disabled={!canSave || createCompletePlan.isPending} onClick={() => submit(form.status === 'scheduled' ? 'scheduled' : 'active')}>
+                  {form.status === 'scheduled' ? 'Guardar y programar' : 'Guardar y activar'}
+                </button>
               </>
             )}
           </div>

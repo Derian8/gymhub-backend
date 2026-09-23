@@ -206,13 +206,13 @@ describe('TodayWorkoutPage', () => {
     })
   })
 
-  it('requires Ver rutina before exposing training details on a new day', () => {
+  it('shows training details before check-in and requires entry to start', () => {
     window.sessionStorage.clear()
-    const { getByText, getByTestId, queryByTestId } = renderWithProviders(<TodayWorkoutPage />)
+    const { getByTestId, queryByText } = renderWithProviders(<TodayWorkoutPage />)
 
-    expect(getByText('Ver rutina y registrar entrada')).toBeInTheDocument()
-    expect(getByTestId('view-plan-before-checkin-link')).toHaveAttribute('href', '/plans/my')
-    expect(queryByTestId('today-workout-page')).not.toBeInTheDocument()
+    expect(getByTestId('today-workout-page')).toBeInTheDocument()
+    expect(getByTestId('start-session-btn')).toHaveTextContent('Registrar entrada e iniciar rutina')
+    expect(queryByText('Ver rutina y registrar entrada')).not.toBeInTheDocument()
   })
 
   it('starts and completes a workout session', async () => {
