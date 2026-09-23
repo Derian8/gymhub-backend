@@ -118,54 +118,53 @@ se generan desde esos datos.
 Evidencia & Descripción & Estado \\
 \midrule
 Repositorio & Código frontend, backend, infraestructura y documentación. & Disponible \\
-Pruebas backend & 21 archivos con 214 funciones; una selección de 104 pruebas de planes, facturación, membresías y asistencia fue aprobada. & Disponible \\
-Pruebas frontend & 32 archivos con 106 casos aprobados. & Disponible \\
-Pruebas E2E & Dos especificaciones Playwright. & Disponible \\
+Pruebas backend & Suite automatizada de reglas de negocio, permisos y recorridos de miembros, planes, facturación y asistencia. & Se ejecuta antes de la captura \\
+Pruebas frontend & Suite automatizada de componentes, pantallas y permisos por contexto. & Se ejecuta antes de la captura \\
+Pruebas E2E & Recorridos de instructor y cliente en Playwright. & Se ejecuta antes de la captura \\
 Frontend público & Despliegue demostrativo en Vercel. & Disponible \\
 Backend y API & Despliegue y documentación OpenAPI. & Disponible \\
-Capturas anonimizadas & Planes, facturación y asistencia del entrenador, además del panel de miembro, con datos ficticios y alcance vigente. & Disponible \\
+Capturas anonimizadas & Administración, facturación, asistencia, planes del instructor y experiencia del cliente en escritorio y móvil, con datos ficticios. & Disponible \\
 \bottomrule
 \end{tabularx}
-\caption*{\textit{Nota}. Elaboración propia a partir del repositorio al 31 de julio de 2026 \parencite{gymhub_repo}.}
+\caption*{\textit{Nota}. Elaboración propia a partir del repositorio y de la versión local de demostración al 23 de septiembre de 2026 \parencite{gymhub_repo}.}
 \end{table}
 
 \Needspace{16\baselineskip}
 \subsection{Capturas de la interfaz de demostración}
 
 Las capturas complementan la descripción técnica del informe y muestran la
-versión del MVP de julio de 2026 con cuentas y datos ficticios.
+versión local comprobada para la etapa regional, con cuentas y datos ficticios.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.92\textwidth]{imagenes/captura_panel_entrenador.png}
-\caption{Panel de control del entrenador en el MVP}
-\caption*{\textit{Nota}. Captura propia con datos ficticios, 31 de julio de 2026.}
+\includegraphics[width=0.92\textwidth]{imagenes/captura_actual_panel_administrador.png}
+\caption{Panel de control administrativo}
+\caption*{\textit{Nota}. Captura propia de la versión local de demostración con datos ficticios, 23 de septiembre de 2026.}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.92\textwidth]{imagenes/captura_planes_entrenador.png}
-\caption{Listado y gestión de planes de entrenamiento}
-\caption*{\textit{Nota}. Captura propia con datos ficticios, 31 de julio de 2026.}
+\includegraphics[width=0.92\textwidth]{imagenes/captura_actual_movil_instructor.png}
+\caption{Panel móvil del instructor}
+\caption*{\textit{Nota}. Captura propia de la versión local de demostración con datos ficticios, 23 de septiembre de 2026.}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.92\textwidth]{imagenes/captura_panel_miembro.png}
-\caption{Panel de seguimiento de un miembro}
-\caption*{\textit{Nota}. Captura propia con datos ficticios, 24 de julio de 2026.}
+\includegraphics[width=0.92\textwidth]{imagenes/captura_actual_movil_miembro.png}
+\caption{Panel móvil del cliente}
+\caption*{\textit{Nota}. Captura propia de la versión local de demostración con datos ficticios, 23 de septiembre de 2026.}
 \end{figure}
 
 \Needspace{8\baselineskip}
 \subsection{Procedimiento para capturas responsive}
 
 El repositorio incorpora \texttt{frontend/capturar\_anexos.mjs}, que usa
-Playwright y Chromium para capturar el panel y las funciones de planes en
-escritorio, además de los paneles de entrenador y miembro con una ventana de
-390 por 844 píxeles. La ejecución se realiza sobre el entorno de demostración
-con cuentas ficticias y no modifica datos. Las nuevas capturas móviles se
-agregarán a este apéndice después de su ejecución en un equipo con acceso
-continuo al backend de demostración.
+Playwright y Chromium para capturar las funciones de administración, instructor
+y cliente en escritorio, además de los paneles móvil de instructor y cliente
+con una ventana de 390 por 844 píxeles. La ejecución se realiza sobre un entorno
+local temporal con cuentas y datos ficticios; no usa datos de gimnasios ni
+modifica el despliegue público.
 
 \subsection{Trazabilidad del análisis financiero}\label{ap:presupuesto}
 

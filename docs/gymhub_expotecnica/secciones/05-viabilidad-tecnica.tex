@@ -36,10 +36,12 @@ Pruebas & Pytest, Vitest y Playwright & Reglas backend, componentes y flujos de 
 
 \subsection{Módulos funcionales}
 
-La versión documentada en las pruebas y capturas de julio de 2026 tiene dos
-roles: entrenador y miembro. El entrenador gestiona miembros, rutinas,
-asistencia y facturación. El miembro consulta su membresía y sigue el programa
-asignado. En esa versión, la administración se realiza desde el rol entrenador.
+La versión preparada para la etapa regional distingue tres contextos de acceso:
+administrador, instructor y cliente. El administrador controla clientes, pagos y
+asistencia; el instructor trabaja con los clientes asignados y sus planes de
+entrenamiento; y el cliente consulta su membresía y sigue el programa asignado.
+Una misma cuenta de demostración puede cambiar de contexto cuando tiene los
+perfiles autorizados, sin que esto modifique los permisos de cada función.
 
 Los planes de entrenamiento y la facturación se mantienen como procesos
 separados. En la pestaña Planes, el entrenador crea la rutina, selecciona al
@@ -59,15 +61,15 @@ Módulo & Capacidad observable & Estado y límite \\
 Módulo & Capacidad observable & Estado y límite \\
 \midrule
 \endhead
-Autenticación & Inicio, cierre, renovación y acceso por rol. & Funcional; requiere operación segura de secretos y cookies. \\
-Miembros & Registro, consulta, activación y relación con un entrenador. & Funcional en el MVP; los datos pertenecen a cuentas individuales. \\
-Planes de entrenamiento & Creación y asignación desde Planes; días, ejercicios, estados y entrenamiento del día. & Funcional; separado de la membresía comercial. \\
-Asistencia & Check-in e historial condicionado por el estado de la membresía. & Funcional; el ingreso físico automatizado es futuro. \\
+Autenticación y contextos & Inicio, cierre, renovación y acceso de administrador, instructor o cliente. & Funcional; requiere operación segura de secretos y cookies. \\
+Clientes & Registro, consulta, activación y relación con un instructor. & Administrador e instructor autorizado; los datos pertenecen a cuentas individuales. \\
+Planes de entrenamiento & Creación y asignación desde Planes; días, ejercicios, estados y entrenamiento del día. & Instructor autorizado; separado de la membresía comercial. \\
+Asistencia & Check-in e historial condicionado por el estado de la membresía. & Administrador y cliente según la tarea; el ingreso físico automatizado es futuro. \\
 Progreso & Sesiones, registros de ejercicios y métricas básicas. & Funcional en el nivel del MVP. \\
-Facturación & Catálogo de membresías, altas, renovaciones, pagos, vencimientos y mora. & Funcional como control operativo; no es contabilidad ni pasarela bancaria. \\
+Facturación & Catálogo de membresías, altas, renovaciones, pagos, vencimientos y mora. & Administrador controla la operación; el cliente consulta su membresía. No es contabilidad ni pasarela bancaria. \\
 Perfil & Consulta y actualización de los datos permitidos de la cuenta. & Funcional según el rol autenticado. \\
 \bottomrule
-\caption*{\textit{Nota}. Estado funcional comprobado por el equipo, julio de 2026.}
+\caption*{\textit{Nota}. Estado funcional comprobado por el equipo en la versión local de demostración, 23 de septiembre de 2026.}
 \end{longtable}
 
 \subsection{Evidencia de funcionamiento}
@@ -80,56 +82,57 @@ conteos y la fecha de las pruebas se presentan en los apéndices.
 
 La interfaz, la API y su documentación cuentan con despliegues de demostración.
 Durante la exposición se mostrará al jurado, con datos ficticios, el recorrido
-del entrenador desde el registro de un miembro hasta la creación de su plan, la
-activación de su membresía, el pago y la asistencia. La evidencia visual incluida
-se limita a pantallas que coinciden con el alcance vigente.
+del administrador para pagos y asistencia, el del instructor para configurar un
+plan y el del cliente para seguir la rutina. La evidencia visual incluida se
+limita a pantallas que coinciden con el alcance vigente.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.92\textwidth]{imagenes/captura_planes_entrenador.png}
-\caption{Gestión de planes de entrenamiento por el entrenador}
-\label{fig:planes-entrenador}
-\caption*{\textit{Nota}. Captura propia del MVP con cuentas y datos ficticios, 31 de julio de 2026.}
+\includegraphics[width=0.92\textwidth]{imagenes/captura_actual_planes_instructor.png}
+\caption{Configuración de un plan de entrenamiento por el instructor}
+\label{fig:planes-instructor}
+\caption*{\textit{Nota}. Captura propia de la versión local de demostración con datos ficticios, 23 de septiembre de 2026.}
 \end{figure}
 
-La Figura~\ref{fig:planes-entrenador} muestra cómo la rutina se crea, asigna,
+La Figura~\ref{fig:planes-instructor} muestra cómo la rutina se crea, asigna,
 configura, finaliza o archiva desde Planes. La existencia de un plan deportivo
 no implica que el miembro tenga una membresía comercial vigente.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.92\textwidth]{imagenes/captura_facturacion_entrenador.png}
+\includegraphics[width=0.92\textwidth]{imagenes/captura_actual_facturacion_administrador.png}
 \caption{Cartera de membresías y pagos en Facturación}
-\label{fig:facturacion-entrenador}
-\caption*{\textit{Nota}. Captura propia del MVP con cuentas y datos ficticios, 31 de julio de 2026.}
+\label{fig:facturacion-administrador}
+\caption*{\textit{Nota}. Captura propia de la versión local de demostración con datos ficticios, 23 de septiembre de 2026.}
 \end{figure}
 
-La Figura~\ref{fig:facturacion-entrenador} muestra la membresía de cada miembro,
+La Figura~\ref{fig:facturacion-administrador} muestra la membresía de cada miembro,
 su precio, vencimiento y pagos registrados. Los cobros se anotan en el sistema;
 el procesamiento bancario y la contabilidad quedan fuera de esta función.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.92\textwidth]{imagenes/captura_asistencia_entrenador.png}
-\caption{Consulta de asistencia desde el rol entrenador}
-\label{fig:asistencia-entrenador}
-\caption*{\textit{Nota}. Captura propia del MVP con cuentas y datos ficticios, 31 de julio de 2026.}
+\includegraphics[width=0.92\textwidth]{imagenes/captura_actual_asistencia_administrador.png}
+\caption{Consulta de asistencia desde el rol administrador}
+\label{fig:asistencia-administrador}
+\caption*{\textit{Nota}. Captura propia de la versión local de demostración con datos ficticios, 23 de septiembre de 2026.}
 \end{figure}
 
-La Figura~\ref{fig:asistencia-entrenador} muestra la consulta por fecha y miembro.
+La Figura~\ref{fig:asistencia-administrador} muestra la consulta por fecha y miembro.
 El MVP registra check-in e historial; no controla por sí solo una puerta o torno
 físico.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.92\textwidth]{imagenes/captura_panel_miembro.png}
-\caption{Panel de seguimiento para miembro}
-\label{fig:panel-miembro}
-\caption*{\textit{Nota}. Captura propia del MVP con una cuenta y datos ficticios, 24 de julio de 2026.}
+\includegraphics[width=0.92\textwidth]{imagenes/captura_actual_rutina_miembro.png}
+\caption{Rutina guiada para cliente}
+\label{fig:rutina-miembro}
+\caption*{\textit{Nota}. Captura propia de la versión local de demostración con datos ficticios, 23 de septiembre de 2026.}
 \end{figure}
 
-La Figura~\ref{fig:panel-miembro} muestra la consulta de membresía,
-entrenamiento del día, indicaciones del entrenador y progreso.
+La Figura~\ref{fig:rutina-miembro} muestra el entrenamiento del día y las
+decisiones guiadas disponibles para el cliente. La membresía, las indicaciones
+del instructor y el progreso se consultan desde sus apartados correspondientes.
 
 \subsection{Seguridad y privacidad}
 
