@@ -4,7 +4,7 @@ import { plansApi } from '../api/plansApi'
 import { QUERY_KEYS } from '@/shared/constants/queryKeys'
 import { extractApiError } from '@/shared/lib/utils'
 import type { CompleteTrainingPlanPayload, CompleteWorkoutSessionPayload, ExerciseProgressPayload, QuickRoutineAssignmentPayload } from '@/shared/types'
-import type { ExercisePayload, TrainingPlanPayload, TrainingTemplateUpdatePayload, WorkoutDayPayload } from '@/shared/types'
+import type { DuplicateWorkoutDayPayload, ExercisePayload, TrainingPlanPayload, TrainingTemplateUpdatePayload, WorkoutDayPayload } from '@/shared/types'
 
 export function usePlansQuery(params?: Record<string, string>) {
   return useQuery({
@@ -278,6 +278,26 @@ export function useCreateWorkoutDayMutation(planId?: number, memberId?: number) 
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_DETAIL(planId) })
       }
       toast.success('Día agregado al plan activo del member')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
+  })
+}
+
+export function useDuplicateWorkoutDayMutation(planId?: number, memberId?: number) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: DuplicateWorkoutDayPayload }) =>
+      plansApi.duplicateWorkoutDay(id, payload),
+    onSuccess: (day) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WORKOUT_DAYS })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WORKOUT_DAYS_BY_PLAN(day.plan) })
+      if (planId) queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_DETAIL(planId) })
+      if (memberId) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_PROGRAM(memberId) })
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_ACTIVE_PRESCRIPTION(memberId) })
+      }
+      toast.success('Bloque duplicado con todos sus ejercicios')
     },
     onError: (error) => toast.error(extractApiError(error)),
   })

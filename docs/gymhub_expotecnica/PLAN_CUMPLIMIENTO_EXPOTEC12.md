@@ -1,10 +1,10 @@
 # Análisis de los 28 indicadores del plan de negocios
 
-Actualizado: 18 de septiembre de 2026.
+Actualizado: 23 de septiembre de 2026.
 
 Fuente rectora: `../evaluacion/plan_negocios.xlsx`, hoja `ExpoTEC-12 Doc escri plan nego `, A28:A55. Esta matriz sustituye la correspondencia anterior, cuyo orden no coincidía con el Excel suministrado. La escala es de 0 a 3, máximo 84 puntos; el archivo contiene marcas de 3 que no se atribuyen como calificación real de Pulso. Los indicadores m y o son duplicados en la fuente.
 
-La cobertura documental no equivale a cumplimiento acreditado. En particular, u requiere formalización verificable y v una alianza comercial documentada; j, r y t conservan validaciones pendientes.
+La cobertura documental no equivale a cumplimiento acreditado. En particular, u requiere formalización verificable y v requiere respaldar documentalmente la alianza y concretar la prueba; j, r y t conservan validaciones pendientes.
 
 | Celda e indicador exacto | Ubicación y desarrollo | Evidencia pendiente o límite |
 |---|---|---|
@@ -24,12 +24,12 @@ La cobertura documental no equivale a cumplimiento acreditado. En particular, u 
 | A41: n. Presenta la estructura de costos, gastos e ingresos. | Costos y proyección anual: Se distinguen costos fijos, variables, trabajo, instalación, desarrollo e ingresos mensuales. | Falta confirmar precios y completar los gastos pendientes. |
 | A42: o. Incluye los canales para la distribución del producto hasta el cliente y su promoción, incorporando el uso de nuevas tecnologías. | Promoción, distribución y permanencia: Acceso web, demostraciones y canales digitales de promoción y atención. | Repite el criterio m de la rúbrica. |
 | A43: p. Determina el mercado meta y su alineación con la propuesta de valor del negocio. | Comprador, usuario y mercado alcanzable: Gimnasios con necesidad administrativa, conectividad y responsable de decisión. | Diez prospectos y cinco altas son hipótesis, no mercado cuantificado. |
-| A44: q. Presenta el modelo de negocio integrando los nueve módulos básicos que definen la operación de la empresa, según lo expuesto en la fase Institucional. | Desarrollo del Canvas y apéndice visual: Nueve módulos: segmentos, valor, canales, relaciones, ingresos, recursos, actividades, alianzas y costos. | Alianzas comerciales y aceptación de tarifas siguen por validar. |
+| A44: q. Presenta el modelo de negocio integrando los nueve módulos básicos que definen la operación de la empresa, según lo expuesto en la fase Institucional. | Desarrollo del Canvas y apéndice visual: Nueve módulos: segmentos, valor, canales, relaciones, ingresos, recursos, actividades, alianzas y costos; incluye a Pit Bull Gym como aliado para la validación inicial. | La ejecución del piloto y la validación de tarifas siguen pendientes. |
 | A45: r. Presenta el análisis de la viabilidad financiera incluyendo ingresos, costos, gastos y utilidades esperadas. | Análisis económico anual: Tablas de ingresos, gastos, caja y balance, con explicación del margen y la recuperación. | Resultados previstos antes de impuestos; falta comprobarlos durante la operación. |
 | A46: s. Presenta el análisis de las fuentes de financiamiento y su impacto en la permanencia del negocio. | Financiamiento y permanencia: Aporte propio y trabajo; comparación con reinversión, crédito y capital externo. | Sin préstamo ni inversión externa confirmados; depende de disponibilidad del equipo. |
 | A47: t. Evidencia una relación realista entre las proyecciones e indicadores financieros. | Relaciones financieras y sensibilidad: Relación entre clientes, ingresos y costos; cambios si baja el ingreso o sube el gasto. | Revisar el trabajo sin pago y los impuestos antes de operar. |
 | A48: u. Evidencia cumplimiento de la normativa vigente en apego a la forma jurídica, organizacional y seguridad social. | Forma jurídica y evidencia de formalización: Trámites por consultar y pasos para registrar el negocio. | Inscripciones y afiliaciones pendientes. |
-| A49: v. Detalla las alianzas estratégicas y aportes a su propuesta de valor. | Alianzas y continuidad: Tutor confirmado; gimnasio potencial con aportes y condiciones; proveedores diferenciados. | No hay alianza comercial documentada ni aceptación de piloto. |
+| A49: v. Detalla las alianzas estratégicas y aportes a su propuesta de valor. | Alianzas y continuidad: Tutor confirmado; Pit Bull Gym como aliado para la prueba inicial; proveedores diferenciados. | La constancia escrita de la alianza y la ejecución de la prueba inicial siguen pendientes. |
 | A50: w. Presenta una organización clara y lógica del documento, en congruencia con la estructura dada en los lineamientos. | Orden del informe e índice: Base institucional más definición, mercado, técnica, organización, inversión y evaluación anual. | Verificar el PDF completo y su correspondencia con lineamientos. |
 | A51: x. Presenta el listado de referencias citadas en el documento, según formato APA vigente. | Citas, notas de fuente y referencias: Fuentes consultadas citadas en APA y cálculos propios identificados en tablas y figuras. | La proyección financiera es elaboración propia; sus supuestos necesitan comprobación. |
 | A52: y. Cumple con el formato establecido. | Portada y maquetación: Carta, márgenes de 2,54 cm, cuerpo de 12 puntos, interlineado y numeración. | Control visual de tablas, figuras y referencias en el PDF final. |

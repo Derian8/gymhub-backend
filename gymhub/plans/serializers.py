@@ -261,6 +261,16 @@ class NestedWorkoutDayInputSerializer(serializers.Serializer):
     exercises = NestedExerciseInputSerializer(many=True, required=False)
 
 
+class DuplicateWorkoutDaySerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=200)
+    day_label = serializers.ChoiceField(choices=WorkoutDay._meta.get_field('day_label').choices)
+    day_of_week = serializers.ChoiceField(
+        choices=WorkoutDay._meta.get_field('day_of_week').choices,
+        required=False,
+        allow_null=True,
+    )
+
+
 class CompleteTrainingPlanSerializer(serializers.Serializer):
     member = serializers.IntegerField()
     name = serializers.CharField(max_length=200)

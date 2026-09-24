@@ -1040,6 +1040,37 @@ class TestWeeklyView:
 
 @pytest.mark.django_db
 class TestWorkoutDayWeekdayValidation:
+    def test_trainer_can_duplicate_full_day_to_available_weekday(self, trainer_client, training_plan):
+        source = training_plan.workout_days.order_by('order').first()
+        source_exercises = list(source.exercises.order_by('order'))
+        occupied = set(training_plan.workout_days.values_list('day_of_week', flat=True))
+        target_weekday = next(day for day in ('mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun') if day not in occupied)
+
+        resp = trainer_client.post(f'/api/workout-days/{source.id}/duplicate/', {
+            'name': 'Viernes fuerza',
+            'day_label': 'G',
+            'day_of_week': target_weekday,
+        }, format='json')
+
+        assert resp.status_code == status.HTTP_201_CREATED
+        assert resp.data['name'] == 'Viernes fuerza'
+        assert resp.data['day_of_week'] == target_weekday
+        assert len(resp.data['exercises']) == len(source_exercises)
+        assert [item['name'] for item in resp.data['exercises']] == [item.name for item in source_exercises]
+
+    def test_duplicate_day_rejects_occupied_weekday_without_partial_copy(self, trainer_client, training_plan):
+        source = training_plan.workout_days.order_by('order').first()
+        before = training_plan.workout_days.count()
+
+        resp = trainer_client.post(f'/api/workout-days/{source.id}/duplicate/', {
+            'name': 'Duplicado inválido',
+            'day_label': 'G',
+            'day_of_week': source.day_of_week,
+        }, format='json')
+
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert training_plan.workout_days.count() == before
+
     def test_trainer_cannot_duplicate_weekday_in_same_plan(self, trainer_client, training_plan):
         existing_day = training_plan.workout_days.order_by('order').first()
         assert existing_day is not None

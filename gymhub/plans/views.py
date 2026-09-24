@@ -18,6 +18,7 @@ from .serializers import (
     TrainingPlanSerializer, WorkoutDaySerializer,
     ExerciseSerializer, TodayWorkoutSerializer, PlantillaEntrenamientoSerializer,
     CompleteTrainingPlanSerializer,
+    DuplicateWorkoutDaySerializer,
     GymMachineSerializer, CatalogoEjercicioSerializer,
 )
 from users.permissions import (
@@ -836,8 +837,63 @@ class WorkoutDayViewSet(viewsets.ModelViewSet):
         assert_member_training_eligible(instance.plan.member)
         instance.delete()
 
+    @action(detail=True, methods=['post'], url_path='duplicate')
+    def duplicate(self, request, pk=None):
+        source = self.get_object()
+        plan = source.plan
+        assert_plan_editable(plan)
+        self._assert_plan_editor_allowed(plan)
+        assert_member_training_eligible(plan.member)
+
+        serializer = DuplicateWorkoutDaySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        target_weekday = data.get('day_of_week')
+        if plan.modo_ejecucion == 'weekly':
+            if not target_weekday:
+                raise ValidationError({'day_of_week': 'Selecciona el día de la semana para la copia.'})
+            if plan.workout_days.filter(day_of_week=target_weekday).exists():
+                raise ValidationError({'day_of_week': 'Ya existe un bloque asignado para este día de la semana.'})
+        else:
+            target_weekday = None
+
+        with transaction.atomic():
+            duplicated = WorkoutDay.objects.create(
+                plan=plan,
+                name=data['name'],
+                day_label=data['day_label'],
+                day_of_week=target_weekday,
+                order=(plan.workout_days.order_by('-order').values_list('order', flat=True).first() or 0) + 1,
+            )
+            for exercise in source.exercises.order_by('order'):
+                Exercise.objects.create(
+                    workout_day=duplicated,
+                    catalogo_ejercicio=exercise.catalogo_ejercicio,
+                    imagen_referencia_url=exercise.imagen_referencia_url,
+                    name=exercise.name,
+                    muscle_group=exercise.muscle_group,
+                    exercise_type=exercise.exercise_type,
+                    sets=exercise.sets,
+                    reps_range=exercise.reps_range,
+                    target_minutes=exercise.target_minutes,
+                    machine=exercise.machine,
+                    weight_suggestion_kg=exercise.weight_suggestion_kg,
+                    weight_suggestion_unit=exercise.weight_suggestion_unit,
+                    rest_seconds=exercise.rest_seconds,
+                    technique_notes=exercise.technique_notes,
+                    order=exercise.order,
+                )
+        return Response(WorkoutDaySerializer(duplicated).data, status=status.HTTP_201_CREATED)
+
+    def _assert_plan_editor_allowed(self, plan):
+        if self.request.user.is_staff:
+            return
+        trainer_profile = _get_trainer_profile(self.request.user)
+        if plan.member.trainer_asignado_id != trainer_profile.id:
+            raise PermissionDenied('Solo puedes editar días de clientes asignados.')
+
     def get_permissions(self):
-        if self.action in ('create', 'update', 'partial_update', 'destroy'):
+        if self.action in ('create', 'update', 'partial_update', 'destroy', 'duplicate'):
             return [IsAuthenticated(), IsTrainer()]
         return [IsAuthenticated()]
 

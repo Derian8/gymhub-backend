@@ -775,6 +775,12 @@ export interface WorkoutDayPayload {
   order: number
 }
 
+export interface DuplicateWorkoutDayPayload {
+  name: string
+  day_label: DayLabel
+  day_of_week?: DayOfWeek | null
+}
+
 export interface ExercisePayload {
   workout_day: number
   catalogo_ejercicio?: number | null

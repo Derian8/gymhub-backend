@@ -7,6 +7,7 @@ const deletePlanMutate = vi.fn()
 const deleteDayMutate = vi.fn()
 const deleteExerciseMutate = vi.fn()
 const createDayMutate = vi.fn()
+const duplicateDayMutate = vi.fn()
 const createExerciseMutate = vi.fn()
 const updateDayMutate = vi.fn()
 const updateExerciseMutate = vi.fn()
@@ -253,6 +254,7 @@ vi.mock('@/modules/plans/hooks/usePlans', () => ({
   usePublishPlanMutation: () => ({ mutate: vi.fn(), isPending: false, isSuccess: false }),
   useDeletePlanMutation: () => ({ mutate: deletePlanMutate, isPending: false, isSuccess: false }),
   useCreateWorkoutDayMutation: () => ({ mutate: createDayMutate, isPending: false, isSuccess: false }),
+  useDuplicateWorkoutDayMutation: () => ({ mutate: duplicateDayMutate, isPending: false }),
   useUpdateWorkoutDayMutation: () => ({ mutate: updateDayMutate, isPending: false, isSuccess: false }),
   useDeleteWorkoutDayMutation: () => ({ mutate: deleteDayMutate, isPending: false, isSuccess: false }),
   useCreateExerciseMutation: () => ({ mutate: createExerciseMutate, isPending: false, isSuccess: false }),
@@ -277,6 +279,7 @@ describe('TrainerProgramPage', () => {
     deleteDayMutate.mockReset()
     deleteExerciseMutate.mockReset()
     createDayMutate.mockReset()
+    duplicateDayMutate.mockReset()
     createExerciseMutate.mockReset()
     updateDayMutate.mockReset()
     updateExerciseMutate.mockReset()
@@ -449,7 +452,7 @@ describe('TrainerProgramPage', () => {
     )
   })
 
-  it('lets the trainer duplicate an exercise and a full workout day', () => {
+  it('lets the trainer duplicate an exercise and a full workout day to another weekday', () => {
     const { getByTestId } = renderWithProviders(<TrainerProgramPage />, {
       route: '/members/15/program',
       path: '/members/:id/program',
@@ -466,34 +469,20 @@ describe('TrainerProgramPage', () => {
     )
 
     fireEvent.click(getByTestId('duplicate-day-301'))
+    fireEvent.change(getByTestId('duplicate-day-weekday'), { target: { value: 'fri' } })
+    fireEvent.change(getByTestId('duplicate-day-name'), { target: { value: 'Pierna viernes' } })
+    fireEvent.submit(getByTestId('duplicate-day-form'))
 
-    expect(createDayMutate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        plan: 101,
-        name: 'Pierna y core (copia)',
-        order: 2,
-      }),
+    expect(duplicateDayMutate).toHaveBeenCalledWith(
+      {
+        id: 301,
+        payload: {
+          name: 'Pierna viernes',
+          day_label: 'C',
+          day_of_week: 'fri',
+        },
+      },
       expect.objectContaining({ onSuccess: expect.any(Function) }),
-    )
-
-    const createDayOnSuccess = createDayMutate.mock.calls[0][1].onSuccess as (day: { id: number }) => void
-    act(() => {
-      createDayOnSuccess({ id: 999 })
-    })
-
-    expect(createExerciseMutate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        workout_day: 999,
-        name: 'Sentadilla (copia)',
-        order: 0,
-      }),
-    )
-    expect(createExerciseMutate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        workout_day: 999,
-        name: 'Peso muerto rumano (copia)',
-        order: 1,
-      }),
     )
   })
 
@@ -536,5 +525,25 @@ describe('TrainerProgramPage', () => {
       technique_notes: '',
       order: 2,
     })
+  })
+
+  it('lets trainers choose pounds for a strength exercise while preserving kilograms in the payload', () => {
+    const { getByTestId } = renderWithProviders(<TrainerProgramPage />, {
+      route: '/members/15/program',
+      path: '/members/:id/program',
+    })
+
+    const addExerciseForm = getByTestId('add-exercise-inline-button').closest('form')
+    expect(addExerciseForm).not.toBeNull()
+    const formScope = within(addExerciseForm as HTMLFormElement)
+
+    fireEvent.change(formScope.getByTestId('suggested-weight-unit'), { target: { value: 'lb' } })
+    fireEvent.change(formScope.getByTestId('suggested-weight-value'), { target: { value: '100' } })
+    fireEvent.click(getByTestId('add-exercise-inline-button'))
+
+    expect(createExerciseMutate).toHaveBeenCalledWith(expect.objectContaining({
+      weight_suggestion_kg: expect.closeTo(45.359237),
+      weight_suggestion_unit: 'lb',
+    }))
   })
 })

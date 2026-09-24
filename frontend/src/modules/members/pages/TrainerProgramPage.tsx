@@ -19,6 +19,7 @@ import {
   useCreateExerciseMutation,
   useCreatePlanMutation,
   useCreateWorkoutDayMutation,
+  useDuplicateWorkoutDayMutation,
   useDeleteGymMachineMutation,
   useDeleteTrainingTemplateMutation,
   useDeleteExerciseMutation,
@@ -197,30 +198,34 @@ function SuggestedWeightFields({
 }) {
   const unit = exercise.weight_suggestion_unit ?? 'kg'
 
-  return <>
-    <Field label={`Peso sugerido (${unit})`}>
-      <input
-        className="input"
-        type="number"
-        min={0}
-        value={pesoSugeridoParaMostrar(exercise.weight_suggestion_kg, unit) ?? ''}
-        onChange={(event) => onChange({
-          ...exercise,
-          weight_suggestion_kg: event.target.value ? pesoSugeridoEnKg(Number(event.target.value), unit) : null,
-        })}
-      />
-    </Field>
-    <Field label="Unidad">
-      <select
-        className="input"
-        value={unit}
-        onChange={(event) => onChange({ ...exercise, weight_suggestion_unit: event.target.value as WeightSuggestionUnit })}
-      >
-        <option value="kg">kg</option>
-        <option value="lb">lb</option>
-      </select>
-    </Field>
-  </>
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-3 md:col-span-2">
+      <Field label={`Peso sugerido (${unit})`}>
+        <input
+          className="input"
+          type="number"
+          min={0}
+          value={pesoSugeridoParaMostrar(exercise.weight_suggestion_kg, unit) ?? ''}
+          onChange={(event) => onChange({
+            ...exercise,
+            weight_suggestion_kg: event.target.value ? pesoSugeridoEnKg(Number(event.target.value), unit) : null,
+          })}
+          data-testid="suggested-weight-value"
+        />
+      </Field>
+      <Field label="Unidad">
+        <select
+          className="input"
+          value={unit}
+          onChange={(event) => onChange({ ...exercise, weight_suggestion_unit: event.target.value as WeightSuggestionUnit })}
+          data-testid="suggested-weight-unit"
+        >
+          <option value="kg">kg</option>
+          <option value="lb">lb</option>
+        </select>
+      </Field>
+    </div>
+  )
 }
 
 type DeleteTarget =
@@ -362,11 +367,18 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
   const [refreshTemplateId, setRefreshTemplateId] = useState<number | null>(null)
   const [createPlanWizardOpen, setCreatePlanWizardOpen] = useState(false)
+  const [duplicateDaySource, setDuplicateDaySource] = useState<{ id: number; name: string } | null>(null)
+  const [duplicateDayForm, setDuplicateDayForm] = useState({
+    name: '',
+    day_label: 'A' as DayLabel,
+    day_of_week: 'mon' as DayOfWeek,
+  })
 
   const createPlan = useCreatePlanMutation()
   const updatePlan = useUpdatePlanMutation()
   const deletePlan = useDeletePlanMutation()
   const createWorkoutDay = useCreateWorkoutDayMutation(activePlan?.id, memberId)
+  const duplicateWorkoutDay = useDuplicateWorkoutDayMutation(activePlan?.id, memberId)
   const updateWorkoutDay = useUpdateWorkoutDayMutation(activePlan?.id, memberId)
   const deleteWorkoutDay = useDeleteWorkoutDayMutation(activePlan?.id, memberId)
   const createExercise = useCreateExerciseMutation(memberId)
@@ -704,48 +716,29 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
     toast.success('Orden de ejercicios actualizado')
   }
 
-  const handleDuplicateDay = (
-    day: { id: number; name: string; day_label: DayLabel; day_of_week: DayOfWeek; order: number; exercises: Array<{ name: string; muscle_group: MuscleGroup; exercise_type: ExerciseType; sets: number | null; reps_range: string; target_minutes: number | null; machine?: number | null; weight_suggestion_kg: number | null; weight_suggestion_unit?: WeightSuggestionUnit; rest_seconds: number; technique_notes: string; order: number }> },
-  ) => {
-    if (!activePlan || !daysData?.results.length) {
+  const openDuplicateDay = (day: { id: number; name: string }) => {
+    if (!daysData?.results.length) return
+    const usedWeekdays = new Set(daysData.results.map((item) => item.day_of_week))
+    const availableWeekday = dayOfWeekOptions.find((option) => !usedWeekdays.has(option.value))?.value
+    const usedLabels = new Set(daysData.results.map((item) => item.day_label))
+    const availableLabel = dayOptions.find((label) => !usedLabels.has(label)) ?? dayOptions[0]
+    if (!availableWeekday) {
+      toast.error('No hay días semanales disponibles para duplicar este bloque.')
       return
     }
-    const duplicatedDayOrder = Math.max(...daysData.results.map((item) => item.order)) + 1
+    setDuplicateDaySource({ id: day.id, name: day.name })
+    setDuplicateDayForm({ name: `${day.name} (copia)`, day_label: availableLabel, day_of_week: availableWeekday as DayOfWeek })
+  }
 
-    createWorkoutDay.mutate(
-      {
-        plan: activePlan.id,
-        name: `${day.name} (copia)`,
-        day_label: day.day_label,
-        day_of_week: day.day_of_week,
-        order: duplicatedDayOrder,
-      },
-      {
-        onSuccess: (newDay) => {
-          day.exercises
-            .slice()
-            .sort((a, b) => a.order - b.order)
-            .forEach((exercise) => {
-              createExercise.mutate({
-                workout_day: newDay.id,
-                name: `${exercise.name} (copia)`,
-                muscle_group: exercise.muscle_group,
-                exercise_type: exercise.exercise_type,
-                sets: exercise.sets,
-                reps_range: exercise.reps_range,
-                target_minutes: exercise.target_minutes ?? null,
-                machine: exercise.machine ?? null,
-                weight_suggestion_kg: exercise.weight_suggestion_kg ?? null,
-                weight_suggestion_unit: exercise.weight_suggestion_unit ?? 'kg',
-                rest_seconds: exercise.rest_seconds,
-                technique_notes: exercise.technique_notes ?? '',
-                order: exercise.order,
-              })
-            })
-          setSelectedWorkoutDayId(newDay.id)
-          toast.success('Dia duplicado con sus ejercicios')
-        },
-      },
+  const handleDuplicateDay = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!duplicateDaySource) return
+    duplicateWorkoutDay.mutate(
+      { id: duplicateDaySource.id, payload: duplicateDayForm },
+      { onSuccess: (day) => {
+        setSelectedWorkoutDayId(day.id)
+        setDuplicateDaySource(null)
+      } },
     )
   }
 
@@ -1597,8 +1590,8 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
                             <button
                               type="button"
                               className="text-xs font-semibold uppercase tracking-wide text-neutral-700 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white"
-                              onClick={() => handleDuplicateDay(day)}
-                              disabled={createWorkoutDay.isPending || createExercise.isPending}
+                              onClick={() => openDuplicateDay(day)}
+                              disabled={duplicateWorkoutDay.isPending}
                               data-testid={`duplicate-day-${day.id}`}
                             >
                               Duplicar bloque
@@ -1945,6 +1938,35 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
         onConfirm={handleConfirmRefreshTemplate}
         data-testid="refresh-template-confirm-dialog"
       />
+
+      {duplicateDaySource ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/70 p-4">
+          <form className="w-full max-w-lg space-y-4 rounded-sm border border-neutral-200 bg-white p-6 shadow-xl dark:border-neutral-800 dark:bg-neutral-950" onSubmit={handleDuplicateDay} data-testid="duplicate-day-form">
+            <div>
+              <p className="label-base">Duplicar bloque</p>
+              <h2 className="font-heading text-xl font-bold text-neutral-900 dark:text-white">Copia de {duplicateDaySource.name}</h2>
+              <p className="mt-1 text-sm text-neutral-500">Elige dónde se aplicará la copia completa con todos sus ejercicios.</p>
+            </div>
+            <Field label="Día destino">
+              <select className="input" value={duplicateDayForm.day_of_week} onChange={(event) => setDuplicateDayForm({ ...duplicateDayForm, day_of_week: event.target.value as DayOfWeek })} data-testid="duplicate-day-weekday">
+                {dayOfWeekOptions.filter((option) => !daysData?.results.some((day) => day.day_of_week === option.value)).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
+            </Field>
+            <Field label="Nombre del bloque">
+              <input className="input" value={duplicateDayForm.name} onChange={(event) => setDuplicateDayForm({ ...duplicateDayForm, name: event.target.value })} required data-testid="duplicate-day-name" />
+            </Field>
+            <Field label="Etiqueta del día">
+              <select className="input" value={duplicateDayForm.day_label} onChange={(event) => setDuplicateDayForm({ ...duplicateDayForm, day_label: event.target.value as DayLabel })} data-testid="duplicate-day-label">
+                {dayOptions.filter((label) => !daysData?.results.some((day) => day.day_label === label)).map((label) => <option key={label} value={label}>Día {label}</option>)}
+              </select>
+            </Field>
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" className="btn-secondary" onClick={() => setDuplicateDaySource(null)}>Cancelar</button>
+              <button type="submit" className="btn-primary" disabled={duplicateWorkoutDay.isPending}>{duplicateWorkoutDay.isPending ? 'Duplicando…' : 'Duplicar bloque'}</button>
+            </div>
+          </form>
+        </div>
+      ) : null}
 
       <ConfirmDialog
         open={deleteTarget !== null}

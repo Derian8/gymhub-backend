@@ -15,6 +15,7 @@ import type {
   TrainingPlanPayload,
   TrainingTemplateUpdatePayload,
   WorkoutDayPayload,
+  DuplicateWorkoutDayPayload,
   ExercisePayload,
   TrainingTemplate,
   CompleteTrainingPlanPayload,
@@ -140,6 +141,11 @@ export const plansApi = {
 
   updateWorkoutDay: async (id: number, payload: Partial<WorkoutDayPayload>): Promise<WorkoutDay> => {
     const { data } = await apiClient.patch(`/api/workout-days/${id}/`, payload)
+    return data
+  },
+
+  duplicateWorkoutDay: async (id: number, payload: DuplicateWorkoutDayPayload): Promise<WorkoutDay> => {
+    const { data } = await apiClient.post(`/api/workout-days/${id}/duplicate/`, payload)
     return data
   },
 
