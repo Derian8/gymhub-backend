@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Activity, ArrowLeft, CalendarClock, CheckCircle, Dumbbell, Flame, Loader2, NotebookTabs, Play, Target } from 'lucide-react'
+import { ArrowLeft, CalendarClock, CheckCircle, Dumbbell, Flame, Loader2, NotebookTabs, Play, Target } from 'lucide-react'
 
 import { useTodayWorkoutQuery, useWeeklyPlanQuery, useCreateSessionMutation, useCompleteSessionMutation, useBulkExerciseLogsMutation, useRegisterExerciseProgressMutation } from '../hooks/usePlans'
 import { EmptyState, Badge } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
 import { SymbolFrame } from '@/shared/components/Brand'
-import { DAY_OF_WEEK_LABELS, formatCurrency, formatDate, formatPesoSugerido, MUSCLE_LABELS, cn } from '@/shared/lib/utils'
+import { DAY_OF_WEEK_LABELS, formatDate, formatPesoSugerido, MUSCLE_LABELS, cn } from '@/shared/lib/utils'
 import type { CompleteWorkoutSessionPayload, Exercise, ExerciseLogPayload } from '@/shared/types'
 import { getResolvedContext, useAuthStore } from '@/shared/store/authStore'
 import { useMemberActivePrescriptionQuery, useMemberDashboardQuery } from '@/modules/members/hooks/useMembers'
@@ -406,9 +406,6 @@ function TodayWorkoutPageContent() {
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link to="/plans/my" className="btn-secondary">Ver mi plan</Link>
-            <Link to="/dashboard/member" className="text-sm font-medium text-neutral-500 transition-colors hover:text-primary self-center">
-              Ir al resumen
-            </Link>
           </div>
         </section>
 
@@ -428,45 +425,6 @@ function TodayWorkoutPageContent() {
           <ArrowLeft size={16} />
           Volver al plan
         </Link>
-      ) : null}
-
-      {isMember ? (
-        <section
-          className="rounded-[1.75rem] border border-primary/25 bg-primary/5 p-5 shadow-sm dark:border-primary/20 dark:bg-primary/10"
-          data-testid="today-membership-spotlight"
-        >
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <SymbolFrame size="md" tone={dashboardSummary?.payment_status === 'late' ? 'danger' : dashboardSummary?.payment_status === 'paid' ? 'success' : 'warning'}>
-                <CalendarClock size={18} />
-              </SymbolFrame>
-              <div>
-                <p className="label-base">Mi membresía</p>
-                <h2 className="font-heading text-2xl font-black text-neutral-900 dark:text-white">
-                  {dashboardSummary?.membership_plan_name || 'Sin membresía asignada'}
-                </h2>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <Badge variant={dashboardSummary?.payment_status === 'paid' ? 'success' : dashboardSummary?.payment_status === 'late' ? 'error' : 'warning'}>
-                    {dashboardSummary?.payment_status === 'paid' ? 'Vigente' : dashboardSummary?.payment_status === 'late' ? 'Vencida' : 'Pendiente'}
-                  </Badge>
-                  <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">
-                    {dashboardSummary?.membership_agreed_price ? formatCurrency(dashboardSummary.membership_agreed_price) : 'Precio pendiente'}
-                  </span>
-                </div>
-                <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-300">
-                  {dashboardSummary?.days_overdue != null
-                    ? `${dashboardSummary.days_overdue} día(s) vencida. Regulariza tu pago para mantener acceso.`
-                    : dashboardSummary?.days_until_due != null
-                      ? `${dashboardSummary.days_until_due} día(s) restantes antes del vencimiento.`
-                      : 'Revisa el detalle completo de tu estado comercial.'}
-                </p>
-              </div>
-            </div>
-            <Link to="/membership" className="btn-primary" data-testid="today-membership-link">
-              Ver mi membresía
-            </Link>
-          </div>
-        </section>
       ) : null}
 
       <section
@@ -535,6 +493,49 @@ function TodayWorkoutPageContent() {
         ) : null}
       </section>
 
+      {isMember ? (
+        <section
+          className="rounded-[1.75rem] border border-primary/25 bg-primary/5 p-5 shadow-sm dark:border-primary/20 dark:bg-primary/10"
+          data-testid="today-membership-spotlight"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <SymbolFrame size="md" tone={dashboardSummary?.payment_status === 'late' ? 'danger' : dashboardSummary?.payment_status === 'paid' ? 'success' : 'warning'}>
+                <CalendarClock size={18} />
+              </SymbolFrame>
+              <div>
+                <p className="label-base">Membresía actual</p>
+                <h2 className="font-heading text-2xl font-black text-neutral-900 dark:text-white">
+                  {dashboardSummary?.membership_plan_name || 'Sin membresía asignada'}
+                </h2>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <Badge variant={dashboardSummary?.payment_status === 'paid' ? 'success' : dashboardSummary?.payment_status === 'late' ? 'error' : 'warning'}>
+                    {dashboardSummary?.payment_status === 'paid' ? 'Vigente' : dashboardSummary?.payment_status === 'late' ? 'Vencida' : 'Pendiente'}
+                  </Badge>
+                  <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+                    {dashboardSummary?.membership_access_allowed ? 'Acceso permitido' : 'Acceso requiere revisión'}
+                  </span>
+                </div>
+                <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-300">
+                  {dashboardSummary?.membership_expires_at
+                    ? `Vence el ${formatDate(dashboardSummary.membership_expires_at)}.`
+                    : 'Fecha de vencimiento no disponible.'}
+                  {' '}
+                  {dashboardSummary?.days_overdue != null
+                    ? `${dashboardSummary.days_overdue} día(s) vencida.`
+                    : dashboardSummary?.days_until_due != null
+                      ? `${dashboardSummary.days_until_due} día(s) restantes.`
+                      : ''}
+                </p>
+              </div>
+            </div>
+            <Link to="/membership" className="btn-primary" data-testid="today-membership-link">
+              Ver mi membresía
+            </Link>
+          </div>
+        </section>
+      ) : null}
+
       {!mostrarFallbackSemanal ? (
         isMember && sessionStarted ? (
           <ClientRoutineFlow
@@ -558,14 +559,6 @@ function TodayWorkoutPageContent() {
                 Cada ejercicio ya trae máquina, prescripción, descanso y peso sugerido para que no tengas que salir de esta pantalla.
               </p>
             </div>
-            {isMember ? (
-              <Link
-                to="/dashboard/member"
-                className="text-sm font-medium text-neutral-500 transition-colors hover:text-primary"
-              >
-                Ir al resumen
-              </Link>
-            ) : null}
           </div>
 
           <div className="space-y-4">
@@ -785,59 +778,6 @@ function TodayWorkoutPageContent() {
         </section>
       ) : null}
 
-      {isMember ? (
-        <section className="space-y-4 border-t border-neutral-200 pt-8 dark:border-neutral-800" data-testid="member-essential-summary">
-          <div>
-            <p className="label-base">Tu seguimiento</p>
-            <h2 className="text-xl font-heading font-bold text-neutral-900 dark:text-white">
-              Progreso y membresía
-            </h2>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <SupportCard
-              title="Progreso"
-              icon={<Activity size={18} className="text-primary" />}
-              to="/progress"
-              testId="card-progress"
-            >
-              <p className="text-sm font-semibold text-neutral-900 dark:text-white">
-                {dashboardSummary?.weekly_sessions_done || 0} sesión(es) esta semana
-              </p>
-              <p className="text-xs text-neutral-500">
-                {dashboardSummary?.cumplimiento_semanal ?? 0}% de cumplimiento del plan semanal.
-              </p>
-            </SupportCard>
-
-            <div className="rounded-[1.5rem] border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950" data-testid="card-membership">
-              <div className="mb-3 flex items-center gap-3">
-                <SymbolFrame size="sm" tone="default" className="rounded-xl">
-                  <CalendarClock size={18} />
-                </SymbolFrame>
-                <div>
-                  <p className="text-sm font-semibold text-neutral-900 dark:text-white">Membresía actual</p>
-                  <p className="text-xs text-neutral-500">{dashboardSummary?.membership_plan_name || 'Sin plan asignado'}</p>
-                </div>
-              </div>
-              <Badge variant={dashboardSummary?.payment_status === 'paid' ? 'success' : dashboardSummary?.payment_status === 'late' ? 'error' : 'warning'}>
-                {dashboardSummary?.payment_status === 'paid' ? 'Vigente' : dashboardSummary?.payment_status === 'late' ? 'Vencida' : 'Pendiente'}
-              </Badge>
-              <p className="mt-3 text-sm font-semibold text-neutral-900 dark:text-white">
-                {dashboardSummary?.membership_expires_at
-                  ? `Vence el ${formatDate(dashboardSummary.membership_expires_at)}`
-                  : 'Fecha de vencimiento no disponible'}
-              </p>
-              <p className="mt-1 text-xs text-neutral-500">
-                {dashboardSummary?.days_overdue != null
-                  ? `${dashboardSummary.days_overdue} día(s) vencida`
-                  : dashboardSummary?.days_until_due != null
-                    ? `${dashboardSummary.days_until_due} día(s) restantes`
-                    : 'Sin aviso de vencimiento pendiente.'}
-              </p>
-            </div>
-          </div>
-        </section>
-      ) : null}
     </div>
   )
 }
@@ -856,7 +796,7 @@ function MemberTrainingFallback() {
   const currentContext = getResolvedContext(user, activeContext)
 
   useEffect(() => {
-    const target = currentContext === 'cliente' ? '/dashboard/member' : '/plans'
+    const target = currentContext === 'cliente' ? '/plans/my' : '/plans'
     const timer = window.setTimeout(() => {
       navigate(target, { replace: true, state: { trainingFallback: true } })
     }, 250)
@@ -875,7 +815,7 @@ function MemberTrainingFallback() {
           Estamos abriendo una vista más estable para que no te quedes con la pantalla en negro.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
-          <Link to={currentContext === 'cliente' ? '/dashboard/member' : '/plans'} className="btn-secondary">
+          <Link to={currentContext === 'cliente' ? '/plans/my' : '/plans'} className="btn-secondary">
             Ir ahora
           </Link>
         </div>
@@ -913,36 +853,6 @@ function InlinePill({ icon, label }: { icon: React.ReactNode; label: string }) {
       {icon}
       <span>{label}</span>
     </div>
-  )
-}
-
-function SupportCard({
-  title,
-  icon,
-  to,
-  testId,
-  children,
-}: {
-  title: string
-  icon: React.ReactNode
-  to: string
-  testId: string
-  children: React.ReactNode
-}) {
-  return (
-    <Link
-      to={to}
-      className="block rounded-[1.5rem] border border-neutral-200 bg-white p-5 shadow-sm transition-colors hover:border-primary/30 dark:border-neutral-800 dark:bg-neutral-950"
-      data-testid={testId}
-    >
-      <div className="mb-3 flex items-center gap-3">
-        <SymbolFrame size="sm" tone="default" className="rounded-xl">
-          {icon}
-        </SymbolFrame>
-        <p className="text-sm font-semibold text-neutral-900 dark:text-white">{title}</p>
-      </div>
-      {children}
-    </Link>
   )
 }
 

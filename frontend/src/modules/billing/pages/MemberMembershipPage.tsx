@@ -186,8 +186,8 @@ export function MemberMembershipPage() {
       </section>
 
       <div className="flex flex-wrap gap-3">
-        <Link to="/dashboard/member" className="btn-secondary">
-          Volver al dashboard
+        <Link to="/today" className="btn-secondary">
+          Volver a mi rutina
         </Link>
         <Link to="/profile" className="btn-secondary">
           Ver mi perfil

@@ -53,7 +53,7 @@ const mobileNavigation = {
   },
   cliente: {
     primary: [
-      { label: 'Inicio', to: '/dashboard/member', icon: <Home size={19} /> },
+      { label: 'Inicio', to: '/today', icon: <Home size={19} /> },
       { label: 'Hoy', to: '/today', icon: <Dumbbell size={19} /> },
       { label: 'Membresía', to: '/membership', icon: <CreditCard size={19} /> },
       { label: 'Mi plan', to: '/plans/my', icon: <NotebookTabs size={19} /> },

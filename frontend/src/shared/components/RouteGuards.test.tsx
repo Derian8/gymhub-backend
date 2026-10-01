@@ -1,6 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
 import { renderWithProviders } from '@/test/utils'
-import { ProtectedRoute, PublicRoute } from './RouteGuards'
+import { homePathForUser, ProtectedRoute, PublicRoute } from './RouteGuards'
 import { useAuthStore } from '@/shared/store/authStore'
 
 describe('RouteGuards', () => {
@@ -61,12 +61,26 @@ describe('RouteGuards', () => {
             </ProtectedRoute>
           )}
         />
-        <Route path="/dashboard/member" element={<div>Dashboard de cliente</div>} />
+        <Route path="/today" element={<div>Entrenamiento de hoy</div>} />
       </Routes>,
       { route: '/trainer' },
     )
 
-    expect(getByText('Dashboard de cliente')).toBeInTheDocument()
+    expect(getByText('Entrenamiento de hoy')).toBeInTheDocument()
+  })
+
+  it('uses today as the home route for members', () => {
+    expect(homePathForUser({
+      id: 1,
+      email: 'member@test.com',
+      username: 'member',
+      first_name: 'Member',
+      last_name: 'User',
+      role: 'member',
+      is_staff: false,
+      memberprofile_id: 10,
+      trainerprofile_id: null,
+    })).toBe('/today')
   })
 
   it('redirects authenticated trainer away from public route', () => {

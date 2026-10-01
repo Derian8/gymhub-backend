@@ -15,7 +15,6 @@ import { ChangePasswordPage } from '@/modules/auth/pages/ChangePasswordPage'
 
 // Dashboards
 import { TrainerTechnicalDashboard } from '@/modules/dashboard/pages/TrainerTechnicalDashboard'
-import { MemberDashboard } from '@/modules/dashboard/pages/MemberDashboard'
 import { AdminDashboard } from '@/modules/admin/pages/AdminDashboard'
 import { ReportsPage } from '@/modules/admin/pages/ReportsPage'
 import { AdminRoutinesPage } from '@/modules/admin/pages/AdminRoutinesPage'
@@ -158,7 +157,7 @@ function App() {
           path="/dashboard/member"
           element={
             <ProtectedRoute requiredRole="member">
-              <MemberDashboard />
+              <Navigate to="/today" replace />
             </ProtectedRoute>
           }
         />

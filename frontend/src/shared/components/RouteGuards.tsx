@@ -11,12 +11,12 @@ interface ProtectedRouteProps {
 
 export function homePathForUser(user: User, context?: PerfilUsuario | null) {
   const selected = context || user.contexto_predeterminado
-  if (selected === 'cliente') return '/dashboard/member'
+  if (selected === 'cliente') return '/today'
   if (selected === 'instructor') return '/dashboard/trainer'
   if (selected === 'administrador') return '/dashboard/admin'
   if (user.is_staff) return '/dashboard/admin'
   if (user.trainerprofile_id || user.role === 'trainer') return '/dashboard/trainer'
-  return '/dashboard/member'
+  return '/today'
 }
 
 export function ProtectedRoute({ children, requiredRole = 'any' }: ProtectedRouteProps) {

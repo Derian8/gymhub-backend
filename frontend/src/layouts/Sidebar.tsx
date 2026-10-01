@@ -44,7 +44,7 @@ const trainerStageTwoNav: NavItem[] = [
 ]
 
 const memberNav: NavItem[] = [
-  { label: 'Inicio', icon: <LayoutDashboard size={18} />, to: '/dashboard/member' },
+  { label: 'Inicio', icon: <LayoutDashboard size={18} />, to: '/today' },
   { label: 'Hoy', icon: <Dumbbell size={18} />, to: '/today' },
   { label: 'Mi membresía', icon: <CreditCard size={18} />, to: '/membership' },
 ]

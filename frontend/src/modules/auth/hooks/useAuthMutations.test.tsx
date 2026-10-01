@@ -54,7 +54,6 @@ function renderMutation(ui: ReactElement, route = '/login') {
           <Route path="/login" element={ui} />
           <Route path="/today" element={<div>Entrenamiento de hoy</div>} />
           <Route path="/membership" element={<div>Mi membresía</div>} />
-          <Route path="/dashboard/member" element={<div>Dashboard Member</div>} />
           <Route path="/dashboard/trainer" element={<div>Dashboard Trainer</div>} />
           <Route path="/logout" element={ui} />
         </Routes>
@@ -151,7 +150,7 @@ describe('useAuthMutations', () => {
     await waitFor(() => {
       expect(useAuthStore.getState().isAuthenticated).toBe(true)
       expect(useAuthStore.getState().user?.role).toBe('member')
-      expect(navegarMock).toHaveBeenCalledWith('/dashboard/member')
+      expect(navegarMock).toHaveBeenCalledWith('/today')
     })
   })
 
@@ -176,7 +175,7 @@ describe('useAuthMutations', () => {
     await waitFor(() => {
       expect(useAuthStore.getState().isAuthenticated).toBe(true)
       expect(useAuthStore.getState().user?.email).toBe('new.member@test.com')
-      expect(navegarMock).toHaveBeenCalledWith('/dashboard/member')
+      expect(navegarMock).toHaveBeenCalledWith('/today')
     })
   })
 

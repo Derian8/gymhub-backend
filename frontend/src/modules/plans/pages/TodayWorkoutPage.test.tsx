@@ -296,16 +296,18 @@ describe('TodayWorkoutPage', () => {
     expect(queryByTestId('complete-session-btn')).not.toBeInTheDocument()
   })
 
-  it('shows the member membership spotlight before workout details', () => {
+  it('shows the member membership summary after the workout action', () => {
     const { getByTestId } = renderWithProviders(<TodayWorkoutPage />)
 
-    expect(getByTestId('today-membership-spotlight')).toHaveTextContent('Mi membresía')
+    expect(getByTestId('today-membership-spotlight')).toHaveTextContent('Membresía actual')
     expect(getByTestId('today-membership-spotlight')).toHaveTextContent('Plan semanal')
     expect(getByTestId('today-membership-spotlight')).toHaveTextContent('Pendiente')
-    expect(getByTestId('today-membership-spotlight')).toHaveTextContent('₡15 000')
+    expect(getByTestId('today-membership-spotlight')).toHaveTextContent('Acceso permitido')
+    expect(getByTestId('today-membership-spotlight')).toHaveTextContent('Vence el 28/03/2026')
+    expect(getByTestId('today-membership-spotlight')).toHaveTextContent('2 día(s) restantes')
     expect(getByTestId('today-membership-link')).toHaveAttribute('href', '/membership')
     expect(
-      getByTestId('today-membership-spotlight').compareDocumentPosition(getByTestId('workout-primary'))
+      getByTestId('workout-primary').compareDocumentPosition(getByTestId('today-membership-spotlight'))
       & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
   })
