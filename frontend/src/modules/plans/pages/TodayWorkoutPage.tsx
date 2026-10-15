@@ -429,19 +429,25 @@ function TodayWorkoutPageContent() {
 
       <section
         data-testid="workout-primary"
-        className="rounded-[1.75rem] border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
+        className="relative overflow-hidden rounded-[1.75rem] border border-primary/25 bg-white p-6 shadow-[0_18px_45px_rgba(217,0,24,0.08)] dark:border-primary/20 dark:bg-neutral-950 md:p-8"
       >
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="label-base">Bloque del día</p>
-            <h1 className="text-3xl font-heading font-black text-neutral-900 dark:text-white">
+        <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-primary/10 blur-3xl dark:bg-primary/15" />
+        <div className="relative flex flex-wrap items-start justify-between gap-4">
+          <div className="flex min-w-0 items-start gap-4">
+            <SymbolFrame size="lg" tone="primary" className="h-14 w-14 rounded-2xl">
+              <Dumbbell size={25} />
+            </SymbolFrame>
+            <div>
+              <p className="label-base text-primary">Tu rutina de hoy</p>
+              <h1 className="mt-1 text-4xl font-heading font-black leading-none text-neutral-900 dark:text-white md:text-5xl">
               {tituloPrincipal}
-            </h1>
-            <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
-              {mostrarFallbackSemanal
-                ? 'Tu home sigue siendo entrenamiento. Como hoy no hay bloque asignado, aquí te dejamos visible toda tu semana para que mantengas el orden del plan.'
-                : 'Entra, sigue este bloque y marca lo que realmente hiciste durante la sesión.'}
-            </p>
+              </h1>
+              <p className="mt-3 max-w-xl text-sm text-neutral-600 dark:text-neutral-300">
+                {mostrarFallbackSemanal
+                  ? 'Hoy no hay bloque asignado. Mantén visible tu semana para seguir el orden del plan.'
+                  : 'Tu siguiente paso está aquí: registra tu entrada y sigue la rutina que preparó tu trainer.'}
+              </p>
+            </div>
           </div>
           <Badge variant={sessionCompletedToday ? 'success' : sessionStarted ? 'success' : mostrarFallbackSemanal ? 'warning' : 'info'}>
             {sessionCompletedToday ? 'Completado hoy' : sessionStarted ? 'Sesión activa' : mostrarFallbackSemanal ? 'Sin bloque hoy' : 'Bloque listo'}
@@ -449,7 +455,7 @@ function TodayWorkoutPageContent() {
         </div>
 
         {!mostrarFallbackSemanal ? (
-          <div className="mt-6">
+          <div className="relative mt-7">
             {sessionCompletedToday ? (
               <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
                 <SymbolFrame size="sm" tone="success">
@@ -463,6 +469,13 @@ function TodayWorkoutPageContent() {
             ) : !sessionStarted ? (
               <div className="space-y-4">
                 {isMember ? (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3" data-testid="today-workout-summary">
+                    <HeroMetric label="Ejercicios" value={`${ejercicios}`} />
+                    <HeroMetric label="Plan activo" value={activePrescription?.plan_activo?.name || 'Asignado'} />
+                    <HeroMetric label="Trainer" value={activePrescription?.trainer?.nombre || 'Asignado'} className="col-span-2 sm:col-span-1" />
+                  </div>
+                ) : null}
+                {isMember ? (
                   <div className="rounded-2xl border border-neutral-200 bg-neutral-50/80 p-4 text-sm text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900/60 dark:text-neutral-300">
                     <p className="label-base mb-2">Antes de comenzar</p>
                     <p>{workoutDay?.descripcion_general || 'Sigue cada ejercicio a tu ritmo. Podrás marcarlo como realizado u omitirlo con un toque.'}</p>
@@ -471,7 +484,7 @@ function TodayWorkoutPageContent() {
                 <button
                   onClick={isMember && !routineAccessGranted ? handleRoutineEntryAndStart : handleStartSession}
                   disabled={isCreating || openRoutine.isPending}
-                  className="btn-primary flex w-full items-center justify-center gap-2 py-4 text-base"
+                  className="btn-primary flex w-full items-center justify-center gap-2 py-4 text-base sm:w-auto sm:min-w-[22rem]"
                   data-testid="start-session-btn"
                 >
                   {isCreating || openRoutine.isPending ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
@@ -852,6 +865,15 @@ function InlinePill({ icon, label }: { icon: React.ReactNode; label: string }) {
     <div className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white/85 px-3 py-1.5 text-sm text-neutral-700 shadow-sm dark:border-neutral-800 dark:bg-neutral-900/80 dark:text-neutral-200">
       {icon}
       <span>{label}</span>
+    </div>
+  )
+}
+
+function HeroMetric({ label, value, className }: { label: string; value: string; className?: string }) {
+  return (
+    <div className={cn('rounded-2xl border border-neutral-200 bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-neutral-900/70', className)}>
+      <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-neutral-500 dark:text-neutral-400">{label}</p>
+      <p className="mt-1 truncate font-heading text-lg font-bold text-neutral-900 dark:text-white" title={value}>{value}</p>
     </div>
   )
 }
