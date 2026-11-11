@@ -8,8 +8,6 @@ services:
     dockerfilePath: ./gymhub/Dockerfile
     autoDeployTrigger: 'off'
     healthCheckPath: /health/ready/
-    maxShutdownDelaySeconds: 60
-    preDeployCommand: python manage.py migrate --noinput
     envVars:
       - key: DJANGO_SECRET_KEY
         generateValue: true
