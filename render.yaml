@@ -32,11 +32,11 @@ services:
       - key: USE_S3_STORAGE
         value: 'False'
       - key: ALLOWED_HOSTS
-        value: .onrender.com,proyectoappgym-frontend.vercel.app
+        value: .onrender.com,api.pulsocr.me
       - key: CORS_ALLOWED_ORIGINS
-        value: https://proyectoappgym-frontend.vercel.app
+        value: https://pulsocr.me,https://www.pulsocr.me,https://proyectoappgym-frontend.vercel.app
       - key: CSRF_TRUSTED_ORIGINS
-        value: https://proyectoappgym-frontend.vercel.app
+        value: https://pulsocr.me,https://www.pulsocr.me,https://proyectoappgym-frontend.vercel.app
       - key: AUTH_COOKIE_SECURE
         value: 'True'
       - key: AUTH_COOKIE_SAMESITE
