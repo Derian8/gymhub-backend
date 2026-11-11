@@ -14,19 +14,19 @@
   "rewrites": [
     {
       "source": "/auth/(.*)",
-      "destination": "https://proyectoappgym-backend.vercel.app/auth/$1"
+      "destination": "https://gymhub-api-feria.onrender.com/auth/$1"
     },
     {
       "source": "/api/(.*)",
-      "destination": "https://proyectoappgym-backend.vercel.app/api/$1"
+      "destination": "https://gymhub-api-feria.onrender.com/api/$1"
     },
     {
       "source": "/health/(.*)",
-      "destination": "https://proyectoappgym-backend.vercel.app/health/$1"
+      "destination": "https://gymhub-api-feria.onrender.com/health/$1"
     },
     {
       "source": "/media/(.*)",
-      "destination": "https://proyectoappgym-backend.vercel.app/media/$1"
+      "destination": "https://gymhub-api-feria.onrender.com/media/$1"
     },
     {
       "source": "/(.*)",

@@ -1,6 +1,7 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.utils import timezone
+from datetime import datetime
 from rest_framework.exceptions import MethodNotAllowed, PermissionDenied, ValidationError
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -171,18 +172,39 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if usa_contexto_cliente(self.request):
-            return WorkoutSession.objects.filter(member__user=user)
+            queryset = WorkoutSession.objects.filter(member__user=user).select_related('workout_day__plan').prefetch_related('exercise_logs__exercise')
+            return self._filter_month(queryset)
         member_id = self.request.query_params.get('member_id')
         queryset = WorkoutSession.objects.select_related(
             'member__trainer_asignado', 'workout_day__plan'
         )
         if user.is_staff:
-            return queryset.filter(member_id=member_id) if member_id else queryset
+            queryset = queryset.filter(member_id=member_id) if member_id else queryset
+            return self._filter_month(queryset)
         try:
             queryset = queryset.filter(member__trainer_asignado=user.trainerprofile)
-            return queryset.filter(member_id=member_id) if member_id else queryset
+            queryset = queryset.filter(member_id=member_id) if member_id else queryset
+            return self._filter_month(queryset)
         except ObjectDoesNotExist:
             return WorkoutSession.objects.none()
+
+    def _filter_month(self, queryset):
+        month_value = self.request.query_params.get('month')
+        if not month_value:
+            return queryset
+        try:
+            month_start = datetime.strptime(month_value, '%Y-%m').replace(day=1)
+            if month_start.strftime('%Y-%m') != month_value:
+                raise ValueError
+        except ValueError as exc:
+            raise ValidationError({'month': 'Usa el formato YYYY-MM.'}) from exc
+        if month_start.month == 12:
+            next_month = month_start.replace(year=month_start.year + 1, month=1)
+        else:
+            next_month = month_start.replace(month=month_start.month + 1)
+        start = timezone.make_aware(month_start, timezone.get_current_timezone())
+        end = timezone.make_aware(next_month, timezone.get_current_timezone())
+        return queryset.filter(started_at__gte=start, started_at__lt=end)
 
     def create(self, request, *args, **kwargs):
         input_ser = CreateWorkoutSessionSerializer(data=request.data)

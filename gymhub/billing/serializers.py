@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from users.validators import validate_image_upload
 from .models import MembershipPlan, MemberSubscription, PaymentSchedule, PaymentRecord, PaymentMethod, PaymentInstruction, SeguimientoCobro
 from .services import default_grace_days, membership_access, membership_summary, refresh_membership_status
 from users.permissions import tiene_perfil_entrenador
@@ -220,6 +221,12 @@ class PaymentRecordSerializer(serializers.ModelSerializer):
 
 
 class PaymentInstructionSerializer(serializers.ModelSerializer):
+    qr_image = serializers.ImageField(
+        required=False,
+        allow_null=True,
+        validators=[validate_image_upload],
+    )
+
     class Meta:
         model = PaymentInstruction
         fields = ('id', 'plan', 'title', 'steps_text', 'bank_info', 'qr_image')

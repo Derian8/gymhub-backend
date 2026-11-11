@@ -17,6 +17,7 @@ class CatalogoEjercicioSerializer(serializers.ModelSerializer):
             'equipo', 'musculo_objetivo', 'grupo_muscular', 'musculos_secundarios',
             'grupo_muscular_plan', 'maquina_recomendada',
             'instrucciones_es', 'pasos_es', 'imagen_url', 'animacion_url',
+            'video_url',
             'atribucion_media', 'version_origen', 'esta_activo',
             'es_catalogo_base',
         )
@@ -33,6 +34,8 @@ class ExerciseSerializer(serializers.ModelSerializer):
     catalogo_detalle = CatalogoEjercicioSerializer(source='catalogo_ejercicio', read_only=True)
     previous_log = serializers.SerializerMethodField()
     imagen_visual_url = serializers.SerializerMethodField()
+    video_display_url = serializers.SerializerMethodField()
+    video_pendiente = serializers.SerializerMethodField()
 
     def validate(self, attrs):
         exercise_type = attrs.get('exercise_type', getattr(self.instance, 'exercise_type', 'strength'))
@@ -68,11 +71,19 @@ class ExerciseSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({
                 'imagen_referencia_url': 'Selecciona un ejercicio del catálogo con imagen o indica una URL HTTPS de referencia.',
             })
+        video_url = attrs.get('video_url', getattr(self.instance, 'video_url', ''))
+        if video_url and not (video_url.startswith('https://www.youtube.com/') or video_url.startswith('https://youtu.be/')):
+            raise serializers.ValidationError({'video_url': 'El video debe ser un enlace HTTPS de YouTube.'})
         return attrs
 
     def validate_imagen_referencia_url(self, value):
         if value and not value.startswith('https://'):
             raise serializers.ValidationError('La imagen de referencia debe usar una URL HTTPS.')
+        return value
+
+    def validate_video_url(self, value):
+        if value and not (value.startswith('https://www.youtube.com/') or value.startswith('https://youtu.be/')):
+            raise serializers.ValidationError('El video debe ser un enlace HTTPS de YouTube.')
         return value
 
     class Meta:
@@ -82,6 +93,7 @@ class ExerciseSerializer(serializers.ModelSerializer):
             'sets', 'reps_range', 'target_minutes', 'machine', 'machine_detail',
             'weight_suggestion_kg', 'weight_suggestion_unit', 'rest_seconds', 'technique_notes', 'order',
             'imagen_referencia_url', 'imagen_visual_url', 'previous_log',
+            'video_url', 'video_display_url', 'video_pendiente',
         )
 
     def get_imagen_visual_url(self, obj):
@@ -90,6 +102,14 @@ class ExerciseSerializer(serializers.ModelSerializer):
         if obj.catalogo_ejercicio:
             return obj.catalogo_ejercicio.animacion_url or obj.catalogo_ejercicio.imagen_url
         return ''
+
+    def get_video_display_url(self, obj):
+        if obj.catalogo_ejercicio and obj.catalogo_ejercicio.video_url:
+            return obj.catalogo_ejercicio.video_url
+        return obj.video_url
+
+    def get_video_pendiente(self, obj):
+        return not bool(self.get_video_display_url(obj))
 
     def get_previous_log(self, obj):
         member = self.context.get('member')

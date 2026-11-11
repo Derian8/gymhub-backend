@@ -37,6 +37,7 @@ import { CheckInPage } from '@/modules/attendance/pages/CheckInPage'
 
 // Progress
 import { ProgressPage } from '@/modules/progress/pages/ProgressPage'
+import { WorkoutHistoryPage } from '@/modules/progress/pages/WorkoutHistoryPage'
 
 // Billing
 import { BillingPage } from '@/modules/billing/pages/BillingPage'
@@ -209,6 +210,7 @@ function App() {
         {/* Progress */}
         <Route path="/progress" element={<ProgressPage />} />
         <Route path="/sessions" element={<ProgressPage />} />
+        <Route path="/history" element={<ProtectedRoute requiredRole="member"><WorkoutHistoryPage /></ProtectedRoute>} />
 
         {/* Billing */}
         <Route path="/billing" element={<ProtectedRoute requiredRole="admin"><BillingPage /></ProtectedRoute>} />

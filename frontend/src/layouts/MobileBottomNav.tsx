@@ -10,7 +10,6 @@ import {
   Home,
   LogOut,
   MoreHorizontal,
-  NotebookTabs,
   ShieldCheck,
   User,
   Users,
@@ -54,14 +53,11 @@ const mobileNavigation = {
   cliente: {
     primary: [
       { label: 'Inicio', to: '/today', icon: <Home size={19} /> },
-      { label: 'Hoy', to: '/today', icon: <Dumbbell size={19} /> },
-      { label: 'Membresía', to: '/membership', icon: <CreditCard size={19} /> },
-      { label: 'Mi plan', to: '/plans/my', icon: <NotebookTabs size={19} /> },
+      { label: 'Ejercicios', to: '/plans/my', icon: <Dumbbell size={19} /> },
+      { label: 'Historial', to: '/history', icon: <ClipboardList size={19} /> },
+      { label: 'Perfil', to: '/profile', icon: <User size={19} /> },
     ],
-    secondary: [
-      { label: 'Progreso', to: '/progress', icon: <Activity size={18} /> },
-      { label: 'Historial', to: '/records', icon: <ClipboardList size={18} /> },
-    ],
+    secondary: [],
   },
 } satisfies Record<string, { primary: MobileNavItem[]; secondary: MobileNavItem[] }>
 
@@ -114,7 +110,7 @@ export function MobileBottomNav() {
         {navigation.primary.map((item) => (
           <MobileNavLink key={item.to} item={item} compact />
         ))}
-        <button
+        {hasSecondaryItems ? <button
           type="button"
           onClick={() => setMoreOpen(true)}
           className={cn(
@@ -129,7 +125,7 @@ export function MobileBottomNav() {
         >
           <MoreHorizontal size={19} />
           <span>Más</span>
-        </button>
+        </button> : null}
       </nav>
 
       {moreOpen && (

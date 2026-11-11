@@ -22,6 +22,8 @@ export function useMembersQuery(params?: MembersParams, enabled = true) {
     queryKey: QUERY_KEYS.MEMBERS_LIST(params as Record<string, string>),
     queryFn: () => membersApi.list(params),
     enabled,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   })
 }
 
@@ -54,6 +56,8 @@ export function useMemberDetailQuery(id: number) {
     queryKey: QUERY_KEYS.MEMBER_DETAIL(id),
     queryFn: () => membersApi.detail(id),
     enabled: !!id,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   })
 }
 
@@ -62,6 +66,8 @@ export function useMemberDashboardQuery(id: number) {
     queryKey: QUERY_KEYS.MEMBER_DASHBOARD(id),
     queryFn: () => membersApi.dashboardSummary(id),
     enabled: !!id,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   })
 }
 
@@ -69,7 +75,9 @@ export function useTrainerOverviewQuery() {
   return useQuery({
     queryKey: QUERY_KEYS.TRAINER_OVERVIEW,
     queryFn: membersApi.trainerOverview,
+    staleTime: 30_000,
     refetchInterval: 60_000,
+    refetchOnWindowFocus: false,
   })
 }
 
@@ -94,6 +102,8 @@ export function useTrainersQuery(enabled = true) {
     queryKey: QUERY_KEYS.TRAINERS,
     queryFn: membersApi.trainers,
     enabled,
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
   })
 }
 

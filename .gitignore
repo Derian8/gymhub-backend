@@ -3,6 +3,10 @@
 !.env.example
 !.env.prod.example
 !.env.staging.example
+.secrets/
+
+# APK de terceros usados como evidencia local; no versionar los binarios.
+docs/ingenieria_inversa/interval_timer/apks/**/*.apk
 
 __pycache__/
 *.py[cod]

@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, Clock, Dumbbell, NotebookTabs, Target } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { usePlanDetailQuery, useWorkoutDayDetailQuery } from '../hooks/usePlans'
+import { ExerciseVideo } from '../components/ExerciseVideo'
 import { Badge, EmptyState, PageHeader } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
 import { SymbolFrame } from '@/shared/components/Brand'
@@ -226,6 +227,7 @@ function ExerciseDetailCard({ exercise, index }: { exercise: Exercise; index: nu
           )}
         </div>
       ) : null}
+      <ExerciseVideo url={exercise.video_display_url} pending={exercise.video_pendiente} />
     </article>
   )
 }

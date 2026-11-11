@@ -147,9 +147,16 @@ En Vercel, `gymhub/vercel.json` invoca diariamente `/api/internal/daily-membersh
 
 ## Consideraciones De Despliegue
 - `render.yaml` declara web Django, worker Celery, Beat y Render Key Value en Oregon.
+- El Blueprint genera `CRON_SECRET` para proteger el mantenimiento interno diario; no lo copies al frontend ni lo publiques.
+- La cuenta de estudiante no garantiza créditos ni elimina la verificación de pago de Render. Si no hay presupuesto, conserva Vercel + Supabase como despliegue activo y no agregues tarjeta solo para intentar crear el Blueprint.
+- El servicio web, el worker y Beat comparten las credenciales de Supabase Storage definidas en `gymhub-api`; así las tareas asíncronas no vuelven a almacenamiento efímero.
 - Render usa el Session Pooler de Supabase (`5432`); `6543` se reserva para serverless.
 - El predeploy aplica migraciones y `auditar_esquema` valida tablas y columnas.
 - Con `USE_S3_STORAGE=True`, media vive en el bucket privado `gymhub-media` y usa URLs firmadas.
+- En Render, activa `USE_S3_STORAGE=True` en `gymhub-api` y verifica que el bucket sea privado antes de subir fotos, logos, QR o gráficos.
+- La API limita las imágenes subidas a 5 MB y valida que sean JPG, PNG o WebP reales antes de enviarlas al almacenamiento.
+- Las consultas de miembros y panel del frontend reutilizan respuestas durante 30 segundos y desactivan refetch por foco; las mutaciones invalidan esas consultas para mantener la información actualizada sin multiplicar llamadas a la API.
+- Antes de cambiar el frontend a `api.pulsocr.me`, valida la API directamente y conserva el rewrite de Vercel como plan de reversión.
 - El flujo Docker local usa `runserver` para recarga rápida.
 - El flujo `--prod` usa Gunicorn en backend y Nginx para servir el frontend compilado.
 - La base de datos es Supabase PostgreSQL en todos los entornos; los compose no crean un contenedor PostgreSQL local.

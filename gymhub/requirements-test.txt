@@ -1,0 +1,6 @@
+-r requirements-prod.txt
+pytest>=7.4,<8.0
+pytest-django>=4.7,<5.0
+factory-boy>=3.3,<4.0
+freezegun>=1.4,<2.0
+pytest-mock>=3.12,<4.0

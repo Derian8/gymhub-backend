@@ -1,0 +1,602 @@
+[
+  {
+    "ruta": "INFORME.md",
+    "bytes": 7890,
+    "sha256": "f2e7b1f0bc6e9dc1a743f976cbe5bbe07d5221fe86fc88834b1d74d34a3f1d28"
+  },
+  {
+    "ruta": "abs_detalle/screen.png",
+    "bytes": 564615,
+    "sha256": "4da886a8308804c6a548e8fd48626df1bd3e8c2a90ea12e25d76780935f3116d"
+  },
+  {
+    "ruta": "abs_detalle/ui.xml",
+    "bytes": 18942,
+    "sha256": "8ecbc7d8e6494e7ab59b8a62608db779f6180df6050955cb72492df382dcc816"
+  },
+  {
+    "ruta": "abs_lista_1/screen.png",
+    "bytes": 174131,
+    "sha256": "9aea80b2ce3faf98f5d743d56be1a3ce774f5bffe51191aeedbb0e509bbada73"
+  },
+  {
+    "ruta": "abs_lista_1/ui.xml",
+    "bytes": 20801,
+    "sha256": "05c57f1b20b366269a9585753a51c93c15462579e20b1fd2839c8531191242a6"
+  },
+  {
+    "ruta": "abs_lista_2/screen.png",
+    "bytes": 172992,
+    "sha256": "b4775e6259be4fd90451f35d0790e6befd0971875ef6e2aac7e5dfbbdfb449e1"
+  },
+  {
+    "ruta": "abs_lista_2/ui.xml",
+    "bytes": 20799,
+    "sha256": "d5425a315312a84c588ae422904f9c53beb10497bc88d6e8a0b001c9381db422"
+  },
+  {
+    "ruta": "agregar_ejercicio/screen.png",
+    "bytes": 118016,
+    "sha256": "9d0f216e4cb73873d7bc4f90f07173a42d06a01f70fec2ea08e113f244ca56db"
+  },
+  {
+    "ruta": "agregar_ejercicio/ui.xml",
+    "bytes": 20836,
+    "sha256": "66904ccdbc54184b06c0b00b858ceab01d8d06cba32200d70dc44ffdaa3fe64d"
+  },
+  {
+    "ruta": "ajustes/screen.png",
+    "bytes": 262450,
+    "sha256": "81021fd8936300116d33db5d9dd302ba82e8ea9b412924961fa1f35d91bb3768"
+  },
+  {
+    "ruta": "ajustes/ui.xml",
+    "bytes": 30283,
+    "sha256": "8380407631f75a1adf6e841a982d5567655fa68f2a18e4ee7768be0720257d13"
+  },
+  {
+    "ruta": "ajustes_2/screen.png",
+    "bytes": 165457,
+    "sha256": "a83c14c476b8080bebd94a1a699625e5dc2d47258f28f4fc434da3994a7353cc"
+  },
+  {
+    "ruta": "ajustes_2/ui.xml",
+    "bytes": 29810,
+    "sha256": "824b8f28cc32657d17477adc8dbc13689745e1f0d28ff5b6fff38f9b5832c91f"
+  },
+  {
+    "ruta": "cancelar_borrador/screen.png",
+    "bytes": 135146,
+    "sha256": "67f7254c4948b52c0d9e8b6fbf63a280f704ea1542d6487ac0f31decfa10cff6"
+  },
+  {
+    "ruta": "cancelar_borrador/ui.xml",
+    "bytes": 17747,
+    "sha256": "33cdb490f6c73de1e687ac5b4d09d6596e92bfe85c91a5c186fcdd9d96e2bafe"
+  },
+  {
+    "ruta": "candidatos_codigo.json",
+    "bytes": 144420,
+    "sha256": "190cf4d538890b6825a8855682bcc1c09dc59da926879299b8da35b027595fd8"
+  },
+  {
+    "ruta": "catalogo_2/screen.png",
+    "bytes": 932107,
+    "sha256": "57d34357779c07c24d74e6d9dd1a6a4f18d5746327ad6cfc27157990beed7274"
+  },
+  {
+    "ruta": "catalogo_2/ui.xml",
+    "bytes": 25829,
+    "sha256": "73e9d3324d6242bc7624aa123729aabb24194310eadb0dce0b377523d4b05860"
+  },
+  {
+    "ruta": "constructor/screen.png",
+    "bytes": 931925,
+    "sha256": "24840fd15f2df5ca03c2f4ad0f7594574105378c509f1d15c141da7ae57f25e2"
+  },
+  {
+    "ruta": "constructor/ui.xml",
+    "bytes": 25829,
+    "sha256": "73e9d3324d6242bc7624aa123729aabb24194310eadb0dce0b377523d4b05860"
+  },
+  {
+    "ruta": "constructor_actual/screen.png",
+    "bytes": 972618,
+    "sha256": "5a7904d5e556e19bdcda39c0af3f7dba271719f9b21e727f36ff47c6fbd20cf1"
+  },
+  {
+    "ruta": "constructor_actual/ui.xml",
+    "bytes": 25829,
+    "sha256": "73e9d3324d6242bc7624aa123729aabb24194310eadb0dce0b377523d4b05860"
+  },
+  {
+    "ruta": "crear_rutina/screen.png",
+    "bytes": 115142,
+    "sha256": "5679f4917ce62e0b79b64307982c052430a159b1a92795104529ce8beb68f838"
+  },
+  {
+    "ruta": "crear_rutina/ui.xml",
+    "bytes": 14320,
+    "sha256": "50d4a61c43fa9950724bc5ab7b160578d65e1001e2391cc92bb4b64f080f4a49"
+  },
+  {
+    "ruta": "dead_bug/screen.png",
+    "bytes": 594896,
+    "sha256": "06b5dc806a3bbeffa58f8fe71b9e7d2ad1ac74500a8f1af4bea62d1d1b27709e"
+  },
+  {
+    "ruta": "dead_bug/ui.xml",
+    "bytes": 10810,
+    "sha256": "c3af7094acf5cdc1c339f37218f35797b3068eddc47a88510451eccb42460d49"
+  },
+  {
+    "ruta": "evidencia_paquete.json",
+    "bytes": 1891,
+    "sha256": "a5bac80e5fba087bd3c018b3febaeb64a5e9341bfc708306a62a20c6acbb6434"
+  },
+  {
+    "ruta": "evidencia_rea.json",
+    "bytes": 3171739,
+    "sha256": "cbbc2257b9e8540667b98680c3184895bf7d02cb1ecf1b23f501804149dbf1b1"
+  },
+  {
+    "ruta": "guardar_rutina_dialogo/screen.png",
+    "bytes": 185470,
+    "sha256": "2717ddac3c0a9c490441b91cd39b58a1c16b6e6f2895a2baf8d5ce882ee162bf"
+  },
+  {
+    "ruta": "guardar_rutina_dialogo/ui.xml",
+    "bytes": 7288,
+    "sha256": "60b8d1b49a4c6ce975377914ad3233c183804132c56d1ede37ff72d4c9dd8ce8"
+  },
+  {
+    "ruta": "hiit/screen.png",
+    "bytes": 1472268,
+    "sha256": "7d34249e9187682cd084dbd26e20d243556130442bc1626d095028f7954fde44"
+  },
+  {
+    "ruta": "hiit/ui.xml",
+    "bytes": 15523,
+    "sha256": "8d6b1d41273acadb55264ca1e8d7ceeea15cba900dbc121cabb8f9c937abad05"
+  },
+  {
+    "ruta": "hiit_ejecucion/screen.png",
+    "bytes": 93624,
+    "sha256": "2770f00626ffdd4d3c682d9be909b2a33b2c5c8cce4a7d5f97154eb869fc9229"
+  },
+  {
+    "ruta": "hiit_ejecucion/ui.xml",
+    "bytes": 8579,
+    "sha256": "31457f2628c7d680b3f76f67311f8380ebacffa3c4ccb5ae943000c23b4ff5f2"
+  },
+  {
+    "ruta": "hiit_ejercicios/screen.png",
+    "bytes": 176609,
+    "sha256": "30c02d0900da285642d1494e330815ce05179063e22789468c031cf369aa1d6c"
+  },
+  {
+    "ruta": "hiit_ejercicios/ui.xml",
+    "bytes": 22528,
+    "sha256": "97d8187a6917fe22db29f3f4b9cbfeb447f987f46858d8c519e547cecbaba1a1"
+  },
+  {
+    "ruta": "hiit_lista_1/screen.png",
+    "bytes": 168887,
+    "sha256": "cdbc3725f29e8a9afd2724bdde606a6642d633ca96cb01e783a993d60b03d764"
+  },
+  {
+    "ruta": "hiit_lista_1/ui.xml",
+    "bytes": 22677,
+    "sha256": "dc5e8789b3db03b67fd68ee4d0fb2da16658ecfbf67468cdc328bee9be8b0aa0"
+  },
+  {
+    "ruta": "hiit_lista_2/screen.png",
+    "bytes": 166064,
+    "sha256": "0305094faf9f88445f19034a4dbf0380aab994ad2807f230bcdb984bcdfee22a"
+  },
+  {
+    "ruta": "hiit_lista_2/ui.xml",
+    "bytes": 23233,
+    "sha256": "c49d60f071973496d14fa559f8d0b448c6874339c75fbd96983b6ed3072946e2"
+  },
+  {
+    "ruta": "hiit_pausa/screen.png",
+    "bytes": 112910,
+    "sha256": "e4423bcac8b8c026712bb5d88a548998cc9bc1ca2b9f341d06d18a919e4b2602"
+  },
+  {
+    "ruta": "hiit_pausa/ui.xml",
+    "bytes": 8588,
+    "sha256": "afa3f388afbd2cbc0d9c0376b6db0b5c177c10cd1211b6084eeba62cddc7ad62"
+  },
+  {
+    "ruta": "historial/screen.png",
+    "bytes": 243923,
+    "sha256": "b177b5cf5b3ee53f695b63aaeaf92b49edac0c1d949d1c893094be8073b74ecf"
+  },
+  {
+    "ruta": "historial/ui.xml",
+    "bytes": 57444,
+    "sha256": "36344006c65a2728bbafd0f87e58e5125f3980e769ab965be6902db859db84de"
+  },
+  {
+    "ruta": "lower_body/screen.png",
+    "bytes": 1091787,
+    "sha256": "97270fe610901fd72fa141037cb1e69e84e098ba72c14ddffc79aa489ee4d654"
+  },
+  {
+    "ruta": "lower_body/ui.xml",
+    "bytes": 15146,
+    "sha256": "01e599d95b37782c8074c1c4fb48298402ac962eb55333fb8e3f33ba21a292c0"
+  },
+  {
+    "ruta": "lower_lista_1/screen.png",
+    "bytes": 180456,
+    "sha256": "16ed2f1dd708e8fa9b1cd78035e8b666aab45e65ab2d83ebcdaab8cef0b3bbe5"
+  },
+  {
+    "ruta": "lower_lista_1/ui.xml",
+    "bytes": 22332,
+    "sha256": "b1afe018fb6428052bab41474fef0422867823f6792836d6db624d15b115ff89"
+  },
+  {
+    "ruta": "lower_lista_2/screen.png",
+    "bytes": 175162,
+    "sha256": "7a0bd0132174d602207dcc78e7ab1afae65a6f34444c579dadc3a04bd260c4ee"
+  },
+  {
+    "ruta": "lower_lista_2/ui.xml",
+    "bytes": 21743,
+    "sha256": "eaff20ffec30519c0ba637597d36de1f9c5fe0e21f6808b893353bda8fd3b523"
+  },
+  {
+    "ruta": "menu_workouts/screen.png",
+    "bytes": 1852011,
+    "sha256": "aa4bb042487316fa22cd3f9ac40d3f596ad141d69637e41106eeb1c09a072706"
+  },
+  {
+    "ruta": "menu_workouts/ui.xml",
+    "bytes": 33766,
+    "sha256": "a93c932853b6730b4139fdf6cb8054ee4e2f15df5dee0b51fc957ff31ef0fb04"
+  },
+  {
+    "ruta": "menu_workouts_actual/screen.png",
+    "bytes": 41365,
+    "sha256": "d424ba902083179cb9cdb2236acff3181a43dc18b8689f2b8acce0733a244984"
+  },
+  {
+    "ruta": "menu_workouts_actual/ui.xml",
+    "bytes": 33766,
+    "sha256": "a93c932853b6730b4139fdf6cb8054ee4e2f15df5dee0b51fc957ff31ef0fb04"
+  },
+  {
+    "ruta": "pantalla_principal/screen.png",
+    "bytes": 254840,
+    "sha256": "e7d2d253906a5b552a6f1fa6cc8c005e775bb08e0d370a406219ced0ea1e333b"
+  },
+  {
+    "ruta": "recursos.json",
+    "bytes": 7201,
+    "sha256": "cd9001512174138fc3ae9b372eecb91752ee188ae441ae27640c87300e9c9093"
+  },
+  {
+    "ruta": "regreso_workouts/screen.png",
+    "bytes": 151212,
+    "sha256": "ce7d0777dcd8f208cf1034d24024cd0a9f5e303d36c8277246ab65b6f49d5cc3"
+  },
+  {
+    "ruta": "regreso_workouts/ui.xml",
+    "bytes": 5421,
+    "sha256": "f3242f9062c7c0e974cb0696a2fd9fdb64d7e8e28449217ce88af5ec7c01177d"
+  },
+  {
+    "ruta": "rutina_borrador_con_ejercicio/screen.png",
+    "bytes": 135320,
+    "sha256": "b26b9fd76bb93dce30a0c89aeedde79c64b1a44af49f05f307b1fbee1c7b016b"
+  },
+  {
+    "ruta": "rutina_borrador_con_ejercicio/ui.xml",
+    "bytes": 17747,
+    "sha256": "33cdb490f6c73de1e687ac5b4d09d6596e92bfe85c91a5c186fcdd9d96e2bafe"
+  },
+  {
+    "ruta": "salida_editor/screen.png",
+    "bytes": 931925,
+    "sha256": "24840fd15f2df5ca03c2f4ad0f7594574105378c509f1d15c141da7ae57f25e2"
+  },
+  {
+    "ruta": "salida_editor/ui.xml",
+    "bytes": 25829,
+    "sha256": "73e9d3324d6242bc7624aa123729aabb24194310eadb0dce0b377523d4b05860"
+  },
+  {
+    "ruta": "salir_sesion/screen.png",
+    "bytes": 132197,
+    "sha256": "a750f73f1f712eb7b8731736b0569c345f184dda95d5d7315680fcb9d5832bb6"
+  },
+  {
+    "ruta": "salir_sesion/ui.xml",
+    "bytes": 5840,
+    "sha256": "a73e3e2aa500df21f4e0fd002f5de64cfeece5818b047a88b669957fee26d1f6"
+  },
+  {
+    "ruta": "screen.png",
+    "bytes": 176890,
+    "sha256": "1887059d74ce66fb83d731a0e7a933467ef5fe9c7c5bfa1871d52858c4939334"
+  },
+  {
+    "ruta": "selector_tiempo/screen.png",
+    "bytes": 116683,
+    "sha256": "7726aabdd3921c400dd2028fb56979e811cd90ed4ad464576aa19381122cdcfd"
+  },
+  {
+    "ruta": "selector_tiempo/ui.xml",
+    "bytes": 9479,
+    "sha256": "4cdcc74d9dfb93264846b409f53e9d17f4b44dc28e945e9d5dbef1e3f718cb1b"
+  },
+  {
+    "ruta": "upper_body/screen.png",
+    "bytes": 885206,
+    "sha256": "554395ad606a803277800fc40afdc4b125207ff33b4ad5da018f6dd9ba79adf8"
+  },
+  {
+    "ruta": "upper_body/ui.xml",
+    "bytes": 15501,
+    "sha256": "dcd1fdca7234886341f46bb0fec8def64c522a97af3a0a140bcef475e41f33c2"
+  },
+  {
+    "ruta": "upper_body_ejercicios/screen.png",
+    "bytes": 174065,
+    "sha256": "902a60479d5bba7979bbc1e08360597f6aa2cd5f039cbda130e8a5f43743bb3f"
+  },
+  {
+    "ruta": "upper_body_ejercicios/ui.xml",
+    "bytes": 21378,
+    "sha256": "700690a904b82345fae7f1132ad60ecb2299536010d53a4dace3ace151c99aff"
+  },
+  {
+    "ruta": "upper_lista_1/screen.png",
+    "bytes": 169481,
+    "sha256": "af9029041cb5b7e796a2adcdbc377138e2386d6ed2ad2c84403eb5ee04773c98"
+  },
+  {
+    "ruta": "upper_lista_1/ui.xml",
+    "bytes": 21886,
+    "sha256": "5deaf8a4f1368c67d35dc68de6c0539205a390173158575ddcfcfeb9e4827b6f"
+  },
+  {
+    "ruta": "upper_lista_2/screen.png",
+    "bytes": 174482,
+    "sha256": "413e5a25e79fa448f325980e49c470cb13450336bbc20778bfbdb2d516ed34bc"
+  },
+  {
+    "ruta": "upper_lista_2/ui.xml",
+    "bytes": 20991,
+    "sha256": "05b780a97806a4ed94cbd36413c69b9b0aaa5fa1457d284526e6be1b8db922b0"
+  },
+  {
+    "ruta": "videos/bird_dog/screen.png",
+    "bytes": 748176,
+    "sha256": "e4d0a0d6b900d80964171d9fbf4040e06dc918f2b906584b0fed499e8f519169"
+  },
+  {
+    "ruta": "videos/bird_dog/ui.xml",
+    "bytes": 10810,
+    "sha256": "b40ab2d02215ce3dca06cde15fa7b8deec73ee2856604bf2d8a5f21f4b3e9ba0"
+  },
+  {
+    "ruta": "videos/cobras/screen.png",
+    "bytes": 1047274,
+    "sha256": "bda000728fe2818702ed5435b738a510b34be8bde3128069bb0e10ac614a08a9"
+  },
+  {
+    "ruta": "videos/cobras/ui.xml",
+    "bytes": 10808,
+    "sha256": "ddcfe1bcd220468b2538e38ce476b84b0eccae4415369320937c9a13c4155b14"
+  },
+  {
+    "ruta": "videos/crunches/screen.png",
+    "bytes": 602510,
+    "sha256": "86fcc1f2cb7dd053dec16d78f527e9614727fe823de84ace3ba337c8fce8f7fc"
+  },
+  {
+    "ruta": "videos/crunches/ui.xml",
+    "bytes": 10810,
+    "sha256": "f08fc51704216dc88a041388951476899e44a152b18a118ac2c6684cd8e00ac5"
+  },
+  {
+    "ruta": "videos/dead_bug/screen.png",
+    "bytes": 595501,
+    "sha256": "ec3bff9328d12420a159a484518b1a94a7be9440098afc6e94d98c728bd9586b"
+  },
+  {
+    "ruta": "videos/dead_bug/ui.xml",
+    "bytes": 10810,
+    "sha256": "c3af7094acf5cdc1c339f37218f35797b3068eddc47a88510451eccb42460d49"
+  },
+  {
+    "ruta": "videos/donkey_kicks_left/screen.png",
+    "bytes": 674112,
+    "sha256": "46315133a0924347cbe834d94df2e6ad1781d631749ed5b8ec28e68058fb1f30"
+  },
+  {
+    "ruta": "videos/donkey_kicks_left/ui.xml",
+    "bytes": 10819,
+    "sha256": "576ed3caccd659679e89548ac3f2eae5257e540e420d6d0552ec28f60fd9e9a2"
+  },
+  {
+    "ruta": "videos/donkey_kicks_right/screen.png",
+    "bytes": 676127,
+    "sha256": "8b37aade1b4164c0afe78e0045ebf27ef09aa838c46d13f519b48eed8d0ad4d0"
+  },
+  {
+    "ruta": "videos/donkey_kicks_right/ui.xml",
+    "bytes": 10820,
+    "sha256": "72e2dabb5bab02ddb59758d352c128b86b9c8bbcde4c04b304eaea199c37c59e"
+  },
+  {
+    "ruta": "videos/flutter_kicks/screen.png",
+    "bytes": 603160,
+    "sha256": "ee9d73d68f70885ca7ca5a98dd9b2aa39215c7af9cf1ac1b161f742f5e7e5d12"
+  },
+  {
+    "ruta": "videos/flutter_kicks/ui.xml",
+    "bytes": 10815,
+    "sha256": "e659fd1403051ea0170a848c7b19995f410b85a7d4ec75ef61f529c0768158fa"
+  },
+  {
+    "ruta": "videos/glute_kickback_left/screen.png",
+    "bytes": 677751,
+    "sha256": "a160468d345aec18991d3434ab2703801208e2b2f38b4c663d23b79152c317c2"
+  },
+  {
+    "ruta": "videos/glute_kickback_left/ui.xml",
+    "bytes": 10821,
+    "sha256": "9aafea0051daa1ca72c85ba7b6984906f25db4ef89e892ba31bcc2e4c79594ab"
+  },
+  {
+    "ruta": "videos/glute_kickback_right/screen.png",
+    "bytes": 659086,
+    "sha256": "444694fba5381720887cda3bf44f5f8b327d8cba1a50b4af0e5ba2099c9cb850"
+  },
+  {
+    "ruta": "videos/glute_kickback_right/ui.xml",
+    "bytes": 10822,
+    "sha256": "5eb1b8e2e11c0199aaea2761fb25dd6f965ef60af84b2be4b68611adbc4b160e"
+  },
+  {
+    "ruta": "videos/high_stepping/screen.png",
+    "bytes": 964014,
+    "sha256": "2dd1537409ae689698ff74282be3701986ea25cb20a7a32f4d978c2638022e33"
+  },
+  {
+    "ruta": "videos/high_stepping/ui.xml",
+    "bytes": 10815,
+    "sha256": "ef5469f453c9cbc03e2498326e8290f4aacd75e18a1ab47a2a17ee7d24c6d763"
+  },
+  {
+    "ruta": "videos/knee_push_ups/screen.png",
+    "bytes": 795934,
+    "sha256": "0ab2eaad5dd9d1e9c8446daf0abfbeb2cbfc320cf28d2282249e2c9065f33f66"
+  },
+  {
+    "ruta": "videos/knee_push_ups/ui.xml",
+    "bytes": 10815,
+    "sha256": "afe75d4b0b44e498d3fc23eb052eadde65e313893b793228adb1f31d18807cda"
+  },
+  {
+    "ruta": "videos/mountain_climber/screen.png",
+    "bytes": 693527,
+    "sha256": "72f2b0f1f1f0966d212ebd09f6d818a1edfcb165e0eadedfc0a947c3d3a5e99c"
+  },
+  {
+    "ruta": "videos/mountain_climber/ui.xml",
+    "bytes": 10818,
+    "sha256": "8c8aadc59dff39fc95bd277553b0216a28148df49f888c6d5e8f571980c34e7c"
+  },
+  {
+    "ruta": "videos/plank_leg_up/screen.png",
+    "bytes": 712364,
+    "sha256": "3d8240b5e036c52f6b8f46d1ebe4a7094a50af9997ce67eab8bee47cfb988e24"
+  },
+  {
+    "ruta": "videos/plank_leg_up/ui.xml",
+    "bytes": 10814,
+    "sha256": "ca040ba3182f97a4d8f626e28ddc89fa99260d44173e0004c5de89e831f95ee7"
+  },
+  {
+    "ruta": "videos/reverse_crunches/screen.png",
+    "bytes": 683173,
+    "sha256": "6707c2031e1333abe39e5122f9aa1c75dfdb5f71965aba93abf74a3ea79f9d27"
+  },
+  {
+    "ruta": "videos/reverse_crunches/ui.xml",
+    "bytes": 10818,
+    "sha256": "ea229f5d0a9b064c314a96065042833672560b745ce4e3c6a0928912b045c062"
+  },
+  {
+    "ruta": "videos/reverse_crunches_with_leg_raised/screen.png",
+    "bytes": 547194,
+    "sha256": "8f77d00650ab5ce573d56c9b19ee4d1f15cc17356fc9ed1e5313ef3fb513b73f"
+  },
+  {
+    "ruta": "videos/reverse_crunches_with_leg_raised/ui.xml",
+    "bytes": 10835,
+    "sha256": "4c161a29e002005670867607ef08e0e3cd76e3299ce276bb66d84521973e4fc5"
+  },
+  {
+    "ruta": "videos/squats/screen.png",
+    "bytes": 636170,
+    "sha256": "571de9709282c71e577f2ae5711a7dd68c0d6c3023452524ad6819aace3535e2"
+  },
+  {
+    "ruta": "videos/squats/ui.xml",
+    "bytes": 10808,
+    "sha256": "0e5c159f5e39671a4c08376db56d60c30e82c400e5217afbd1ced6393b74c3ee"
+  },
+  {
+    "ruta": "videos/superman/screen.png",
+    "bytes": 541814,
+    "sha256": "e9741bc796ba64f17bdf4df82147774c003ee2e1a0bc0bcf0c86b54f47bccdde"
+  },
+  {
+    "ruta": "videos/superman/ui.xml",
+    "bytes": 10810,
+    "sha256": "4837bf730ba8e91d0161097372631658eebef0f25050be5cf917012f34908889"
+  },
+  {
+    "ruta": "videos/tricep_dips/screen.png",
+    "bytes": 1006309,
+    "sha256": "b0d4f9c2e51f8e609f3e3806c225e62c2c99b45c57ceebec03b4575a8a908f3e"
+  },
+  {
+    "ruta": "videos/tricep_dips/ui.xml",
+    "bytes": 10813,
+    "sha256": "090a8af58cfe582c3a40d8bb5fd652b8c0101771f63e4b4322496d6ecc69896e"
+  },
+  {
+    "ruta": "videos/v_crunch/screen.png",
+    "bytes": 556906,
+    "sha256": "3596d67211355f24d3f9eaf9f54657e918b4eba05525be86c8644459b07e1ef1"
+  },
+  {
+    "ruta": "videos/v_crunch/ui.xml",
+    "bytes": 10810,
+    "sha256": "cd7364ce602d4f5579d811ae28218bb3fe88bfc22ac8286a21d8c6305b7ce258"
+  },
+  {
+    "ruta": "videos_revisados.json",
+    "bytes": 4596,
+    "sha256": "ab4b21f9afe4c6a0eed01f1b9e00b523163f4b27e88580f84924706f0ca73df4"
+  },
+  {
+    "ruta": "workouts/screen.png",
+    "bytes": 255781,
+    "sha256": "abfcd2b5c2042199e3527391cfe56ced2ca8e1d558da45efcf3f4baf5cf8ee5d"
+  },
+  {
+    "ruta": "workouts/ui.xml",
+    "bytes": 33766,
+    "sha256": "a93c932853b6730b4139fdf6cb8054ee4e2f15df5dee0b51fc957ff31ef0fb04"
+  },
+  {
+    "ruta": "workouts_final/screen.png",
+    "bytes": 932544,
+    "sha256": "3a2d5d8bc960e630ee78ef71de6184cbc3c64af412ce01f08e89a9029324f98f"
+  },
+  {
+    "ruta": "workouts_final/ui.xml",
+    "bytes": 25829,
+    "sha256": "73e9d3324d6242bc7624aa123729aabb24194310eadb0dce0b377523d4b05860"
+  },
+  {
+    "ruta": "workouts_usuario/screen.png",
+    "bytes": 883630,
+    "sha256": "1312b42cbc7bf19879cdccc0ba8b0b9384a1f38c0eaa4b7f75c03206c1608b71"
+  },
+  {
+    "ruta": "workouts_usuario/ui.xml",
+    "bytes": 26609,
+    "sha256": "ebab6be5eb8e2dba65134af642505c705eb01ed715ec430abef3f376065463e2"
+  }
+]

@@ -68,6 +68,7 @@ function aplicarEjercicioCatalogo(formulario: ExercisePayload, ejercicio: Catalo
     ...formulario,
     catalogo_ejercicio: ejercicio.id,
     imagen_referencia_url: '',
+    video_url: '',
     name: ejercicio.nombre,
     muscle_group: ejercicio.grupo_muscular_plan || formulario.muscle_group,
     machine: ejercicio.maquina_recomendada ?? null,
@@ -317,6 +318,7 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
     workout_day: 0,
     catalogo_ejercicio: null,
     imagen_referencia_url: '',
+    video_url: '',
     name: '',
     muscle_group: 'full_body',
     exercise_type: 'strength',
@@ -634,6 +636,7 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
       workout_day: exercise.workout_day,
       catalogo_ejercicio: exercise.catalogo_ejercicio ?? null,
       imagen_referencia_url: exercise.imagen_referencia_url ?? '',
+      video_url: exercise.video_url ?? '',
       name: exercise.name,
       muscle_group: exercise.muscle_group,
       exercise_type: exercise.exercise_type,
@@ -1684,6 +1687,9 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
                                         <Field label="Imagen de referencia (URL HTTPS)">
                                           <input className="input" type="url" placeholder="https://..." value={editingExerciseForm.imagen_referencia_url ?? ''} onChange={(e) => setEditingExerciseForm({ ...editingExerciseForm, imagen_referencia_url: e.target.value })} />
                                         </Field>
+                                        <Field label="Video de YouTube (solo si falta video base)">
+                                          <input className="input" type="url" placeholder="https://youtu.be/..." value={editingExerciseForm.video_url ?? ''} onChange={(e) => setEditingExerciseForm({ ...editingExerciseForm, video_url: e.target.value })} />
+                                        </Field>
                                         <Field label="Grupo muscular">
                                           <OptionGroup
                                             value={editingExerciseForm.muscle_group}
@@ -1858,6 +1864,9 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
                               </Field>
                               <Field label="Imagen de referencia (URL HTTPS)">
                                 <input className="input" type="url" placeholder="https://..." value={exerciseForm.imagen_referencia_url ?? ''} onChange={(e) => setExerciseForm({ ...exerciseForm, imagen_referencia_url: e.target.value })} />
+                              </Field>
+                              <Field label="Video de YouTube (solo si falta video base)">
+                                <input className="input" type="url" placeholder="https://youtu.be/..." value={exerciseForm.video_url ?? ''} onChange={(e) => setExerciseForm({ ...exerciseForm, video_url: e.target.value })} />
                               </Field>
                               <Field label="Grupo muscular">
                                 <OptionGroup

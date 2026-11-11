@@ -113,6 +113,7 @@ class CatalogoEjercicio(models.Model):
     pasos_es = models.JSONField(default=list, blank=True)
     imagen_url = models.URLField(blank=True)
     animacion_url = models.URLField(blank=True)
+    video_url = models.URLField(blank=True, help_text='Video HTTPS de YouTube para demostración del ejercicio.')
     atribucion_media = models.CharField(max_length=255, blank=True)
     version_origen = models.CharField(max_length=80, blank=True)
     esta_activo = models.BooleanField(default=True)
@@ -265,6 +266,7 @@ class Exercise(models.Model):
         blank=True,
         help_text='Referencia visual HTTPS proporcionada por el trainer para ejercicios personalizados.',
     )
+    video_url = models.URLField(blank=True, help_text='Enlace de YouTube para ejercicios sin video base.')
     name = models.CharField(max_length=200)
     muscle_group = models.CharField(max_length=20, choices=MUSCLE_GROUP_CHOICES)
     exercise_type = models.CharField(

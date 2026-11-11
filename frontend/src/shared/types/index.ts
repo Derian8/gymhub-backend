@@ -563,6 +563,9 @@ export interface Exercise {
   catalogo_detalle?: CatalogExercise | null
   imagen_referencia_url?: string
   imagen_visual_url?: string
+  video_url?: string
+  video_display_url?: string
+  video_pendiente?: boolean
   name: string
   muscle_group: MuscleGroup
   exercise_type: ExerciseType
@@ -785,6 +788,7 @@ export interface ExercisePayload {
   workout_day: number
   catalogo_ejercicio?: number | null
   imagen_referencia_url?: string
+  video_url?: string
   name: string
   muscle_group: MuscleGroup
   exercise_type: ExerciseType
@@ -840,6 +844,7 @@ export interface CatalogExercise {
   pasos_es: string[]
   imagen_url: string
   animacion_url: string
+  video_url?: string
   atribucion_media: string
   version_origen: string
   esta_activo: boolean
@@ -910,12 +915,15 @@ export interface WorkoutSession {
   overall_feeling: number | null
   trainer_notes: string
   exercise_logs?: ExerciseLog[]
+  workout_day_name?: string
+  plan_name?: string
 }
 
 export interface ExerciseLog {
   id: number
   session: number
   exercise: number
+  exercise_name?: string
   sets_completed: number
   reps_completed: number
   minutes_completed: number | null

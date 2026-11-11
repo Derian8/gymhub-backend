@@ -16,6 +16,7 @@ from .models import (
 from .services import get_member_prescription_status, get_member_risk_snapshot
 from billing.models import MembershipPlan
 from billing.services import current_member_membership, membership_access, refresh_membership_status
+from .validators import validate_image_upload
 
 User = get_user_model()
 
@@ -165,6 +166,11 @@ class MeUpdateSerializer(serializers.ModelSerializer):
 
 
 class MemberProfileSerializer(serializers.ModelSerializer):
+    photo = serializers.ImageField(
+        required=False,
+        allow_null=True,
+        validators=[validate_image_upload],
+    )
     user = UserSerializer(read_only=True)
     email = serializers.EmailField(source='user.email', read_only=True)
     full_name = serializers.SerializerMethodField()
@@ -374,6 +380,11 @@ class TrainerProfileSerializer(serializers.ModelSerializer):
 
 
 class PerfilGimnasioSerializer(serializers.ModelSerializer):
+    logo = serializers.ImageField(
+        required=False,
+        allow_null=True,
+        validators=[validate_image_upload],
+    )
     class Meta:
         model = PerfilGimnasio
         fields = (

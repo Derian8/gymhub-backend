@@ -12,27 +12,54 @@ services:
       timeout: 3s
       retries: 5
 
+  migrate:
+    build:
+      context: ./gymhub
+    container_name: gym-migrate
+    command: python manage.py migrate --noinput
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: "no"
+
+  collectstatic:
+    build:
+      context: ./gymhub
+    container_name: gym-collectstatic
+    command: python manage.py collectstatic --noinput
+    env_file:
+      - .env
+    volumes:
+      - static_data:/app/staticfiles
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: "no"
+
   backend:
     build:
       context: ./gymhub
     container_name: gym-backend
     working_dir: /app
-    command: >
-      sh -c "python manage.py migrate --noinput &&
-             python manage.py collectstatic --noinput &&
-             gunicorn gymhub.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120"
+    command: ["gunicorn", "gymhub.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-"]
     env_file:
       - .env
     volumes:
       - media_data:/app/media
-      - static_data:/app/staticfiles
+      - static_data:/app/staticfiles:ro
     ports:
       - "8000:8000"
     depends_on:
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      collectstatic:
+        condition: service_completed_successfully
     healthcheck:
-      test: ["CMD-SHELL", "python manage.py check >/dev/null 2>&1"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/live/', timeout=3)"]
       interval: 20s
       timeout: 10s
       retries: 5
@@ -50,6 +77,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "celery -A gymhub inspect ping -d celery@$$(hostname) >/dev/null 2>&1 || exit 1"]
       interval: 20s
@@ -67,8 +96,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      backend:
-        condition: service_started
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'celery.*beat' >/dev/null 2>&1 || exit 1"]
       interval: 20s
@@ -87,7 +116,7 @@ services:
       - "3000:80"
     depends_on:
       backend:
-        condition: service_started
+        condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:

@@ -1,0 +1,352 @@
+[
+  {
+    "apk": "base.apk",
+    "name": "assets/com/appsflyer/internal/5276b86fb7955bac-",
+    "bytes": 6768
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/com/appsflyer/internal/78c4e91f807dd5d4b-",
+    "bytes": 13350
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/com/appsflyer/internal/86679d682b789861d-",
+    "bytes": 3972
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/com/appsflyer/internal/a97d5ead9486e553a-",
+    "bytes": 7542
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/dark/bird-dog-exercise.lottie",
+    "bytes": 7816
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/dark/cobra-stretch-exercise.lottie",
+    "bytes": 11206
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/dark/crunch-exercise.lottie",
+    "bytes": 8315
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/dark/dead-bug-exercise.lottie",
+    "bytes": 8629
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/dark/donkey-kicks-left-exercise.lottie",
+    "bytes": 7258
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/dark/donkey-kicks-right-exercise.lottie",
+    "bytes": 7749
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/dark/flutter-kicks-exercise.lottie",
+    "bytes": 7936
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/dark/glute-kick-back-exercise.lottie",
+    "bytes": 8937
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/dark/high-knees-exercise.lottie",
+    "bytes": 8934
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/dark/knee-push-ups-exercise.lottie",
+    "bytes": 8005
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/dark/mountain-climber-exercise.lottie",
+    "bytes": 7717
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/dark/plank-leg-up-exercise.lottie",
+    "bytes": 9325
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/dark/rest.lottie",
+    "bytes": 3097
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/dark/reverse-crunch-exercise.lottie",
+    "bytes": 7289
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/dark/reverse-crunch-leg-raised-exercise.lottie",
+    "bytes": 8151
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/dark/squats-exercise.lottie",
+    "bytes": 7640
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/dark/superman-exercise.lottie",
+    "bytes": 9822
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/dark/tricep-dip-exercise.lottie",
+    "bytes": 13561
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/dark/v-crunch-exercise.lottie",
+    "bytes": 7497
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/dexopt/baseline.prof",
+    "bytes": 32530
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/dexopt/baseline.profm",
+    "bytes": 2264
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/fyb_iframe_endcard_tmpl.html",
+    "bytes": 520
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/fyb_static_endcard_tmpl.html",
+    "bytes": 3350
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/ia_js_load_monitor.txt",
+    "bytes": 968
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/ia_mraid_bridge.txt",
+    "bytes": 28630
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/light/bird-dog-exercise.lottie",
+    "bytes": 7819
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/light/cobra-stretch-exercise.lottie",
+    "bytes": 11229
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/light/crunch-exercise.lottie",
+    "bytes": 8323
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/light/dead-bug-exercise.lottie",
+    "bytes": 8637
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/light/donkey-kicks-left-exercise.lottie",
+    "bytes": 7248
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/light/donkey-kicks-right-exercise.lottie",
+    "bytes": 7747
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/light/flutter-kicks-exercise.lottie",
+    "bytes": 7951
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/light/glute-kick-back-exercise.lottie",
+    "bytes": 8926
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/light/high-knees-exercise.lottie",
+    "bytes": 8947
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/light/knee-push-ups-exercise.lottie",
+    "bytes": 8022
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/light/mountain-climber-exercise.lottie",
+    "bytes": 7723
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/light/plank-leg-up-exercise.lottie",
+    "bytes": 9302
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/light/rest.lottie",
+    "bytes": 3107
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/light/reverse-crunch-exercise.lottie",
+    "bytes": 7286
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/light/reverse-crunch-leg-raised-exercise.lottie",
+    "bytes": 8154
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/light/squats-exercise.lottie",
+    "bytes": 7648
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/light/superman-exercise.lottie",
+    "bytes": 9836
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/light/tricep-dip-exercise.lottie",
+    "bytes": 13579
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/light/v-crunch-exercise.lottie",
+    "bytes": 7502
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/sounds/birds.mp3",
+    "bytes": 37798
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/sounds/bonk.mp3",
+    "bytes": 5542
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/sounds/boxing_bell.mp3",
+    "bytes": 26854
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/sounds/cash_machine.mp3",
+    "bytes": 11014
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/sounds/eight_bit_level_up.mp3",
+    "bytes": 8422
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/sounds/frog_double.mp3",
+    "bytes": 8422
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/sounds/magic_fairytale.mp3",
+    "bytes": 25414
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/sounds/notification_1.mp3",
+    "bytes": 10438
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/sounds/notification_2.mp3",
+    "bytes": 12454
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/sounds/progress_finish.ogg",
+    "bytes": 12830
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/sounds/progress_last_second.wav",
+    "bytes": 3046
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/sounds/progress_rest.ogg",
+    "bytes": 6219
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/sounds/progress_work.ogg",
+    "bytes": 6185
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/sounds/small_bell.mp3",
+    "bytes": 10150
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/sounds/triumph.mp3",
+    "bytes": 40678
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/sounds/water_drop.mp3",
+    "bytes": 2374
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/sounds/whistle_short.mp3",
+    "bytes": 9862
+  },
+  {
+    "apk": "base.apk",
+    "name": "assets/sounds/wild_west.mp3",
+    "bytes": 78406
+  },
+  {
+    "apk": "base.apk",
+    "name": "res/raw/ayp_youtube_player.html",
+    "bytes": 5360
+  },
+  {
+    "apk": "base.apk",
+    "name": "res/raw/inmobi_omid_js.js",
+    "bytes": 45692
+  },
+  {
+    "apk": "split_ads.apk",
+    "name": "assets/audience_network/classes.dex",
+    "bytes": 57076
+  },
+  {
+    "apk": "split_ads.apk",
+    "name": "assets/audience_network/classes2.dex",
+    "bytes": 5237600
+  }
+]

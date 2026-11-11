@@ -1,0 +1,52 @@
+{
+  "evidence_id": "ev_7f542e5178c89fffd56a4d18fdee8431bc5f0b8d0bc3322dff5b6176cbf1acec",
+  "subject": null,
+  "provider": {
+    "id": "adb",
+    "name": "Android Debug Bridge",
+    "version": "37.0.1-15733141"
+  },
+  "analysis_profile": null,
+  "predicate_type": "rea.analysis",
+  "operation": "inspect_adb_package",
+  "parameters": {
+    "serial": "J7Y5DYOBZL95IJAQ",
+    "package": "com.interval.timer.workout.tabata.hiit.free"
+  },
+  "raw_result": null,
+  "normalized_result": {
+    "client": {
+      "binary_path": "adb",
+      "path_source": "path",
+      "version": "37.0.1-15733141",
+      "installed_path": "C:\\dev\\android\\platform-tools\\adb.exe"
+    },
+    "serial": "J7Y5DYOBZL95IJAQ",
+    "package_name": "com.interval.timer.workout.tabata.hiit.free",
+    "version_name": "1.6.2",
+    "version_code": "20106020",
+    "first_install_time": "2026-11-10 10:41:08",
+    "last_update_time": "2026-11-10 10:41:50",
+    "installer_package_name": "com.android.vending",
+    "user_id": 10401,
+    "pkg_flags": "[ HAS_CODE ALLOW_CLEAR_USER_DATA ALLOW_BACKUP ]",
+    "requested_permissions_count": 18,
+    "numeric_issues": {
+      "sample": [],
+      "total": 0
+    },
+    "coverage": "complete"
+  },
+  "confidence": "observed",
+  "authority": "shipped-artifact",
+  "environment": null,
+  "limitations": [
+    "Artifact identity is unavailable for this observation.",
+    "Fields are a fixed projection of dumpsys package output; version-dependent sections are ignored rather than guessed",
+    "requested_permissions_count counts the listed requested permissions section; an absent section is zero only when dumpsys confirms a loaded parsed package",
+    "A null requested_permissions_count means dumpsys reported pkg=null or did not establish that an omitted permission section is an empty inventory"
+  ],
+  "relationship_coverage": null,
+  "locations": [],
+  "evidence_links": []
+}

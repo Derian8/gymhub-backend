@@ -5,9 +5,9 @@
 El despliegue inicial ya esta operativo con:
 
 - Frontend Vercel: `https://proyectoappgym-frontend.vercel.app`
-- Backend Vercel: `https://proyectoappgym-backend.vercel.app`
-- API schema: `https://proyectoappgym-backend.vercel.app/api/schema/`
-- API docs: `https://proyectoappgym-backend.vercel.app/api/docs/`
+- Backend Render: `https://gymhub-api-feria.onrender.com`
+- API schema: `https://gymhub-api-feria.onrender.com/api/schema/`
+- API docs: `https://gymhub-api-feria.onrender.com/api/docs/`
 - Base de datos: Supabase PostgreSQL por pooler.
 
 ## Validaciones Realizadas
@@ -48,8 +48,17 @@ Las credenciales demo no deben publicarse en documentacion externa. Para QA inte
 
 - PostgreSQL local fue removido del compose principal y de produccion local.
 - Django acepta `DATABASE_URL`, `DB_SSLMODE` y `DB_CONN_MAX_AGE`.
+- La contraseña de Supabase usada por Render se conserva únicamente en
+  `.secrets/supabase-password.txt`; `.secrets/` está excluido por
+  [`.gitignore`](../.gitignore) y la contraseña no debe copiarse a GitHub ni a
+  documentación versionada.
+- Windows mantiene despierta la API durante la feria con la tarea
+  `Pulso-Render-KeepAlive`, que ejecuta
+  [`tools/keep-render-awake.ps1`](../tools/keep-render-awake.ps1) al iniciar
+  sesión y cada 10 minutos. El log local está en
+  `logs/render-keepalive.log`.
 - Vercel backend usa cache local en memoria con `REDIS_URL=locmem://`.
-- Vercel frontend usa `VITE_API_BASE_URL=` vacio y rewrites same-origin en `frontend/vercel.json` hacia `https://proyectoappgym-backend.vercel.app`.
+- Vercel frontend usa `VITE_API_BASE_URL=` vacio y rewrites same-origin en `frontend/vercel.json` hacia `https://gymhub-api-feria.onrender.com`.
 - Se agregaron `.vercelignore` para frontend y backend para evitar subir artefactos locales.
 - Se agrego `./gym-connection-check` para validar frontend, backend, readiness de base/cache y rewrite `/health` desde el dominio publico.
 

@@ -1,0 +1,22 @@
+[
+  {
+    "path": "/mnt/c/dev/proyectoappgym/docs/ingenieria_inversa/interval_timer/apks/com.interval.timer.workout.tabata.hiit.free/base.apk",
+    "sha256": "ddb7a959be0760c16f14a806a22758d5a54383c7b2bd7d9e24b567fc798c9ade",
+    "bytes": 25313805
+  },
+  {
+    "path": "/mnt/c/dev/proyectoappgym/docs/ingenieria_inversa/interval_timer/apks/com.interval.timer.workout.tabata.hiit.free/split_ads.apk",
+    "sha256": "9d0f900163e05762d8c12c0c486fa34309aee63bf3680762efa72bc53c157f14",
+    "bytes": 2675116
+  },
+  {
+    "path": "/mnt/c/dev/proyectoappgym/docs/ingenieria_inversa/interval_timer/apks/com.interval.timer.workout.tabata.hiit.free/split_config.arm64_v8a.apk",
+    "sha256": "6903d630c60bd217c01cc17102b94c84aa8f8deae007340895a68c62a20268d4",
+    "bytes": 53576
+  },
+  {
+    "path": "/mnt/c/dev/proyectoappgym/docs/ingenieria_inversa/interval_timer/apks/com.interval.timer.workout.tabata.hiit.free/split_config.xxhdpi.apk",
+    "sha256": "18ab4a3e5214c39aaaaddfa00bb94196d80866d71808263c969d2eae26bf3377",
+    "bytes": 911332
+  }
+]

@@ -5,9 +5,9 @@ Esta guia define que datos hacen falta para conectar el proyecto con Supabase Po
 ## URLs Actuales
 
 - Frontend: `https://proyectoappgym-frontend.vercel.app`
-- Backend API: `https://proyectoappgym-backend.vercel.app`
-- API schema: `https://proyectoappgym-backend.vercel.app/api/schema/`
-- API docs: `https://proyectoappgym-backend.vercel.app/api/docs/`
+- Backend API de feria: `https://gymhub-api-feria.onrender.com`
+- API schema: `https://gymhub-api-feria.onrender.com/api/schema/`
+- API docs: `https://gymhub-api-feria.onrender.com/api/docs/`
 
 ## Alcance
 
@@ -78,7 +78,11 @@ VITE_API_BASE_URL=
 VITE_API_TIMEOUT_MS=15000
 ```
 
-En el despliegue actual se recomienda dejar `VITE_API_BASE_URL` vacio y usar rewrites same-origin en `frontend/vercel.json`. Esto mantiene `/auth/`, `/api/`, `/health/` y `/media/` bajo el dominio del frontend y reduce problemas de cookies. Si decides consumir un backend en otro origen sin proxy, entonces configura `VITE_API_BASE_URL=https://api.tu-dominio.com` y alinea CORS/CSRF/cookies.
+En el despliegue actual se deja `VITE_API_BASE_URL` vacio y se usan rewrites
+same-origin en `frontend/vercel.json` hacia Render. Esto mantiene `/auth/`,
+`/api/`, `/health/` y `/media/` bajo el dominio del frontend y reduce problemas
+de cookies. Si después se activa `api.pulsocr.me`, se puede migrar el destino
+de los rewrites a ese dominio sin cambiar el frontend.
 
 ## Variables Backend Para Dominio Vercel
 
@@ -170,12 +174,19 @@ deploy salió dirigido al proyecto equivocado en Vercel.
 
 ## Pendientes Antes De Produccion
 
-- Definir donde corre el backend Django persistente.
-- Definir Redis gestionado para Celery y cache.
-- Definir almacenamiento de media: Supabase Storage, S3 compatible o volumen persistente servido por proxy.
-- Mantener Vercel backend como runtime web serverless o migrarlo a un runtime persistente si Celery/Redis pasan a ser obligatorios.
+- Render usa [`render.yaml`](../render.yaml) para el entorno gratuito de feria: únicamente API Django, Supabase como PostgreSQL, cache local e IA determinista. No crea Redis administrado, Worker ni Beat, por lo que no cubre tareas asíncronas.
+- La topología completa de producción con API, Redis, Celery Worker y Celery Beat requiere una configuración separada y revisar planes y costos antes de activarse; no se incluye en el Blueprint gratuito de feria.
+- Render no queda habilitado automáticamente por ser estudiante: su flujo puede exigir información de pago incluso para el nivel gratuito, y los workers persistentes de Celery requieren un plan de pago. No introducir una tarjeta si el objetivo es mantener el proyecto sin costo.
+- Configurar en Render las variables privadas de Supabase Storage (`S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` y `S3_ENDPOINT_URL`) y crear el bucket privado `gymhub-media`.
+- Confirmar que Render genere `CRON_SECRET` para `gymhub-api`; el endpoint de mantenimiento no debe quedar sin secreto.
+- Los rewrites de Vercel ya apuntan al servicio Render verificado; mantener el backend Vercel como reversión durante la feria.
+- Configurar el dominio `api.pulsocr.me` como dominio personalizado del servicio `gymhub-api` en Render y añadir su registro CNAME en Namecheap.
 - Ejecutar smoke completo navegador/API contra los dominios finales.
 - Confirmar cookies cross-site reales en navegador.
+
+El frontend sigue en Vercel. La migración del backend no se considera terminada hasta
+que `/health/ready/`, login, refresh, carga de media y una tarea Celery funcionen
+contra Render.
 
 ## Fuentes Oficiales
 

@@ -60,6 +60,7 @@ function emptyExercise(order = 0): Omit<ExercisePayload, 'workout_day'> {
   return {
     catalogo_ejercicio: null,
     imagen_referencia_url: '',
+    video_url: '',
     name: '',
     muscle_group: 'full_body',
     exercise_type: 'strength',
@@ -223,6 +224,7 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
         name: exercise.nombre,
         catalogo_ejercicio: exercise.catalogo_ejercicio ?? null,
         imagen_referencia_url: exercise.imagen_referencia_url ?? '',
+        video_url: '',
         muscle_group: exercise.grupo_muscular,
         exercise_type: exercise.tipo_ejercicio,
         sets: exercise.series,
@@ -478,6 +480,7 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
                                   muscle_group: item.grupo_muscular_plan || exercise.muscle_group,
                                   machine: item.maquina_recomendada ?? null,
                                   imagen_referencia_url: '',
+                                  video_url: '',
                                   technique_notes: item.instrucciones_es,
                                 } : { catalogo_ejercicio: null })
                               }}
@@ -533,6 +536,9 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
                           </Field>
                           <Field label="Imagen de referencia (URL HTTPS)">
                             <input className="input" type="url" placeholder="https://..." value={exercise.imagen_referencia_url ?? ''} onChange={(event) => updateExercise(dayIndex, exerciseIndex, { imagen_referencia_url: event.target.value })} />
+                          </Field>
+                          <Field label="Video de YouTube (solo si falta video base)">
+                            <input className="input" type="url" placeholder="https://youtu.be/..." value={exercise.video_url ?? ''} onChange={(event) => updateExercise(dayIndex, exerciseIndex, { video_url: event.target.value })} />
                           </Field>
                           <Field label={`Peso sugerido (${exercise.weight_suggestion_unit})`}>
                             <input

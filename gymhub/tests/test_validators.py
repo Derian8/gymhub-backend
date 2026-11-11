@@ -3,6 +3,51 @@ test_validators.py — Tests de validadores de modelos (Exercise fields).
 """
 import pytest
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
+from PIL import Image
+from io import BytesIO
+
+
+def _image_upload(name='image.png', image_format='PNG', size=(10, 10)):
+    buffer = BytesIO()
+    Image.new('RGB', size, color='white').save(buffer, format=image_format)
+    return SimpleUploadedFile(
+        name,
+        buffer.getvalue(),
+        content_type=f'image/{image_format.lower()}',
+    )
+
+
+def test_image_upload_accepts_supported_format():
+    from users.validators import validate_image_upload
+
+    validate_image_upload(_image_upload())
+
+
+def test_image_upload_rejects_oversized_file():
+    from users.validators import MAX_IMAGE_UPLOAD_BYTES, validate_image_upload
+
+    upload = SimpleUploadedFile(
+        'large.png',
+        b'x' * (MAX_IMAGE_UPLOAD_BYTES + 1),
+        content_type='image/png',
+    )
+
+    with pytest.raises(ValidationError, match='5 MB'):
+        validate_image_upload(upload)
+
+
+def test_image_upload_rejects_invalid_content():
+    from users.validators import validate_image_upload
+
+    upload = SimpleUploadedFile(
+        'fake.png',
+        b'not-an-image',
+        content_type='image/png',
+    )
+
+    with pytest.raises(ValidationError, match='imagen válida'):
+        validate_image_upload(upload)
 
 
 @pytest.mark.django_db

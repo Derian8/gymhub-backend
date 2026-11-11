@@ -11,6 +11,7 @@ import type { CompleteWorkoutSessionPayload, Exercise, ExerciseLogPayload } from
 import { getResolvedContext, useAuthStore } from '@/shared/store/authStore'
 import { useMemberActivePrescriptionQuery, useMemberDashboardQuery } from '@/modules/members/hooks/useMembers'
 import { useOpenRoutineMutation } from '@/modules/attendance/hooks/useAttendance'
+import { ExerciseVideo } from '../components/ExerciseVideo'
 
 interface ExerciseLogEntry {
   exercise_id: number
@@ -1060,6 +1061,7 @@ function SelectedDayDetail({
                   )}
                 </div>
               ) : null}
+              <ExerciseVideo url={exercise.video_display_url} pending={exercise.video_pendiente} />
             </div>
             })()
           ))
@@ -1149,6 +1151,7 @@ function ClientRoutineFlow({
           {!esTiempo ? <StaticMetric label="Peso sugerido" value={actual.weight_suggestion_kg != null ? formatPesoSugerido(actual.weight_suggestion_kg, actual.weight_suggestion_unit) : 'Según indicación'} /> : null}
         </div>
         {(actual.catalogo_detalle?.instrucciones_es || actual.technique_notes) ? <div className="mt-5 rounded-2xl bg-neutral-50 p-4 text-sm text-neutral-600 dark:bg-neutral-900 dark:text-neutral-300"><p className="font-semibold text-neutral-900 dark:text-white">Cómo hacerlo</p><p className="mt-2">{actual.catalogo_detalle?.instrucciones_es || actual.technique_notes}</p></div> : null}
+        <ExerciseVideo url={actual.video_display_url} pending={actual.video_pendiente} />
 
         <div className="mx-auto mt-6 grid w-full max-w-xl gap-3 sm:grid-cols-2">
           <button type="button" disabled={isSaving} onClick={() => onResolve(actual.id, 'realizado')} className="btn-primary inline-flex min-h-14 w-full items-center justify-center gap-2 text-base shadow-sm" data-testid="mark-exercise-done">{isSaving ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18} />}<span>Realizado</span></button>
@@ -1203,6 +1206,7 @@ function ExerciseCard({ exercise, log, active, onUpdate }: ExerciseCardProps) {
           </div>
         </div>
       )}
+      <ExerciseVideo url={exercise.video_display_url} pending={exercise.video_pendiente} />
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[0.92fr_1.08fr]">
         <div className="rounded-2xl border border-neutral-200 bg-neutral-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/60">

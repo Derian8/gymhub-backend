@@ -14,10 +14,11 @@ class ProgressLogSerializer(serializers.ModelSerializer):
 
 
 class ExerciseLogSerializer(serializers.ModelSerializer):
+    exercise_name = serializers.CharField(source='exercise.name', read_only=True)
     class Meta:
         model = ExerciseLog
         fields = (
-            'id', 'session', 'exercise', 'sets_completed',
+            'id', 'session', 'exercise', 'exercise_name', 'sets_completed',
             'reps_completed', 'minutes_completed', 'weight_used_kg', 'rpe', 'notes', 'estado'
         )
         read_only_fields = ('id',)
@@ -40,13 +41,15 @@ class BulkExerciseLogSerializer(serializers.Serializer):
 
 class WorkoutSessionSerializer(serializers.ModelSerializer):
     exercise_logs = ExerciseLogSerializer(many=True, read_only=True)
+    workout_day_name = serializers.CharField(source='workout_day.name', read_only=True)
+    plan_name = serializers.CharField(source='workout_day.plan.name', read_only=True)
 
     class Meta:
         model = WorkoutSession
         fields = (
             'id', 'member', 'workout_day', 'attendance',
             'started_at', 'completed_at', 'overall_feeling',
-            'is_completed', 'trainer_notes', 'exercise_logs'
+            'is_completed', 'trainer_notes', 'exercise_logs', 'workout_day_name', 'plan_name'
         )
         read_only_fields = ('id', 'started_at', 'completed_at', 'is_completed')
 

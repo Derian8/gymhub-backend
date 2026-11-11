@@ -7,6 +7,7 @@
 - [`MODULOS_Y_API.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/MODULOS_Y_API.md): inventario funcional por app, entidades principales y rutas expuestas.
 - [`OPERACION.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/OPERACION.md): puesta en marcha local, dependencias, pruebas y consideraciones operativas.
 - [`AVANCE_DEPLOY.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/AVANCE_DEPLOY.md): estado actual del deploy en Supabase/Vercel, validaciones y limitaciones.
+- [`INFRAESTRUCTURA_FERIA.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/INFRAESTRUCTURA_FERIA.md): arquitectura actual de Vercel, Render, Supabase, DNS y keep-alive de Windows.
 - [`DEUDA_TECNICA.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/DEUDA_TECNICA.md): deuda técnica identificada, prioridad, impacto y recomendaciones.
 - [`TODO.md`](/mnt/c/dev/proyectoappgym/docs/TODO.md): punto de continuidad, estado validado y pendientes priorizados para la siguiente conversación.
 - [`MVP_FUNCIONAL.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/MVP_FUNCIONAL.md): definición operativa del producto mínimo viable, rutas activas y alcance por rol.

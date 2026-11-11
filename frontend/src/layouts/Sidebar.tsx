@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, Dumbbell,
   CreditCard, User,
   LogOut, ChevronLeft, ChevronRight, Activity,
-  CheckSquare, ClipboardList, NotebookTabs, BarChart3, ChevronDown,
+  CheckSquare, ClipboardList, BarChart3, ChevronDown,
 } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { getResolvedContext, useAuthStore } from '@/shared/store/authStore'
@@ -45,14 +45,9 @@ const trainerStageTwoNav: NavItem[] = [
 
 const memberNav: NavItem[] = [
   { label: 'Inicio', icon: <LayoutDashboard size={18} />, to: '/today' },
-  { label: 'Hoy', icon: <Dumbbell size={18} />, to: '/today' },
-  { label: 'Mi membresía', icon: <CreditCard size={18} />, to: '/membership' },
-]
-
-const memberTrackingNav: NavItem[] = [
-  { label: 'Mi Plan', icon: <NotebookTabs size={18} />, to: '/plans/my' },
-  { label: 'Progreso', icon: <Activity size={18} />, to: '/progress' },
-  { label: 'Historial', icon: <ClipboardList size={18} />, to: '/records' },
+  { label: 'Ejercicios', icon: <Dumbbell size={18} />, to: '/plans/my' },
+  { label: 'Historial', icon: <ClipboardList size={18} />, to: '/history' },
+  { label: 'Perfil', icon: <User size={18} />, to: '/profile' },
 ]
 
 interface SidebarProps {
@@ -70,7 +65,7 @@ export function Sidebar({ collapsed, mobileOpen, onToggle, onCloseMobile }: Side
   const isAdmin = currentContext === 'administrador'
   const isTrainer = currentContext === 'instructor'
   const navItems = isAdmin ? adminNav : isTrainer ? trainerNav : memberNav
-  const secondaryItems = isTrainer ? trainerStageTwoNav : isAdmin ? adminMoreNav : memberTrackingNav
+  const secondaryItems = isTrainer ? trainerStageTwoNav : isAdmin ? adminMoreNav : []
   const secondaryLabel = isTrainer ? 'Entrenamiento · Etapa 2' : isAdmin ? 'Más' : 'Mi seguimiento'
   const compact = collapsed && !mobileOpen
 
@@ -161,7 +156,7 @@ export function Sidebar({ collapsed, mobileOpen, onToggle, onCloseMobile }: Side
 
       {/* User section */}
       <div className="border-t border-neutral-200 dark:border-neutral-800 p-3 space-y-1">
-        <NavLink
+        {isAdmin || isTrainer ? <NavLink
           to="/profile"
           onClick={onCloseMobile}
           data-testid="nav-profile"
@@ -173,7 +168,7 @@ export function Sidebar({ collapsed, mobileOpen, onToggle, onCloseMobile }: Side
             <User size={18} className="flex-shrink-0" />
           </SymbolFrame>
           {!compact && <span>Perfil</span>}
-        </NavLink>
+        </NavLink> : null}
 
         <button
           data-testid="logout-button"
