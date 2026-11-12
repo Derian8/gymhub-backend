@@ -1,4 +1,4 @@
-import { cleanup, fireEvent } from '@testing-library/react'
+import { cleanup } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { renderWithProviders } from '@/test/utils'
 import { AdminDashboard } from './AdminDashboard'
@@ -45,36 +45,26 @@ describe('AdminDashboard', () => {
 
     expect(view.getByText('Clientes activos')).toBeInTheDocument()
     expect(view.getByText('24')).toBeInTheDocument()
-    expect(view.getByText('Clientes al día')).toBeInTheDocument()
-    expect(view.getByText('18')).toBeInTheDocument()
-    expect(view.getByText('Pendientes por cobrar')).toBeInTheDocument()
+    expect(view.getByText('Membresías al día')).toBeInTheDocument()
+    expect(view.getByText('18 de 24')).toBeInTheDocument()
+    expect(view.getByText('Próximos cobros')).toBeInTheDocument()
     expect(view.getByText('Cobros vencidos')).toBeInTheDocument()
-    expect(view.getByText('Cobrado este mes')).toBeInTheDocument()
     expect(view.getByTestId('admin-register-attendance')).toHaveTextContent('Registrar asistencia')
     expect(view.getByTestId('admin-register-attendance')).toHaveAttribute('href', '/attendance')
     expect(view.getByRole('link', { name: 'Clientes activos: 24' })).toHaveAttribute('href', '/members')
-    expect(view.getByRole('link', { name: 'Clientes al día: 18' })).toHaveAttribute('href', '/members?commercial_status=al_dia')
-    expect(view.getByRole('link', { name: 'Pendientes por cobrar: 2' })).toHaveAttribute('href', '/members?payment_status=pending')
-    expect(view.getByRole('link', { name: 'Cobros vencidos: 1' })).toHaveAttribute('href', '/members?payment_status=late')
-    expect(view.getAllByText('Ver detalle →')).toHaveLength(4)
+    expect(view.getByRole('link', { name: 'Clientes al día: 18 de 24' })).toHaveAttribute('href', '/billing?payment_status=paid')
+    expect(view.getByRole('link', { name: /Próximos cobros: 2/ })).toHaveAttribute('href', '/billing?payment_status=pending')
+    expect(view.getByRole('link', { name: /Cobros vencidos: 1/ })).toHaveAttribute('href', '/billing?payment_status=late')
     expect(view.queryByText('Pantallas activas')).not.toBeInTheDocument()
     expect(view.queryByRole('link', { name: /Gestionar clientes/ })).not.toBeInTheDocument()
     expect(view.queryByRole('link', { name: /Cartera y cobros/ })).not.toBeInTheDocument()
     expect(view.queryByRole('link', { name: /Entradas al gym/ })).not.toBeInTheDocument()
-    expect(view.getByText('Ana Mora')).toBeInTheDocument()
-    expect(view.getByRole('link', { name: 'Registrar pago' })).toHaveAttribute('href', '/billing?member=4')
-
-    fireEvent.click(view.getByRole('tab', { name: /Próximos/ }))
-    expect(view.getByText('Luis Próximo')).toBeInTheDocument()
-
-    fireEvent.click(view.getByRole('tab', { name: /Al día/ }))
-    expect(view.getByText('Marta Al Día')).toBeInTheDocument()
+    expect(view.queryByText('Ana Mora')).not.toBeInTheDocument()
+    expect(view.getByRole('link', { name: /Cobros vencidos/ })).toHaveAttribute('href', '/billing?payment_status=late')
   })
 
-  it('opens quick routine assignment from both technical queues', () => {
+  it('opens the routine queue from the no-routine summary action', () => {
     const view = renderWithProviders(<AdminDashboard />)
-
-    fireEvent.click(view.getByRole('button', { name: 'Asignar rutina' }))
-    expect(view.getByTestId('routine-modal')).toHaveTextContent('Carlos Sin Rutina')
+    expect(view.getByRole('link', { name: /Clientes sin rutina/ })).toHaveAttribute('href', '/routines')
   })
 })

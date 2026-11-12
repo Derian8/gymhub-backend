@@ -1,31 +1,19 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Activity,
   CalendarClock,
   CheckCircle2,
   Dumbbell,
-  Loader2,
-  Play,
   UserRound,
 } from 'lucide-react'
-import { toast } from 'sonner'
 
 import { useAuthStore } from '@/shared/store/authStore'
 import { useMemberActivePrescriptionQuery, useMemberDashboardQuery } from '@/modules/members/hooks/useMembers'
-import { useWeeklyPlanQuery, useCreateSessionMutation, useCompleteSessionMutation, useBulkExerciseLogsMutation } from '@/modules/plans/hooks/usePlans'
+import { useWeeklyPlanQuery } from '@/modules/plans/hooks/usePlans'
 import { Badge, EmptyState, PageHeader } from '@/shared/components/UI'
-import { StatCardSkeleton } from '@/shared/components/Skeleton'
 import { SymbolFrame } from '@/shared/components/Brand'
-import { cn, DAY_OF_WEEK_LABELS, formatCurrency, formatDate, formatPesoSugerido, MUSCLE_LABELS } from '@/shared/lib/utils'
-import type { Exercise, ExerciseLogPayload } from '@/shared/types'
-
-interface ExerciseProgressDraft {
-  done: boolean
-  weight_used_kg?: number
-  rpe?: number
-  minutes_completed?: number
-}
+import { cn, DAY_OF_WEEK_LABELS, formatCurrency, formatDate } from '@/shared/lib/utils'
 
 const weekdayOrder: Record<string, number> = {
   mon: 0,
@@ -46,17 +34,10 @@ const MEMBERSHIP_RECURRENCE_LABELS: Record<string, string> = {
   annual: 'año',
 }
 
-function getExercisePrescriptionLabel(exercise: Exercise) {
-  if (exercise.exercise_type === 'timed') {
-    return `${exercise.target_minutes ?? 0} min`
-  }
-  return `${exercise.sets ?? 0}x${exercise.reps_range}`
-}
-
 export function MemberDashboard() {
   const { user } = useAuthStore()
   const memberId = user?.memberprofile_id || 0
-  const { data, isLoading } = useMemberDashboardQuery(memberId)
+  const { data } = useMemberDashboardQuery(memberId)
   const { data: activePrescription } = useMemberActivePrescriptionQuery(memberId)
   const activePlanId = activePrescription?.plan_activo?.id || 0
   const { data: weeklyView } = useWeeklyPlanQuery(activePlanId)
@@ -66,160 +47,6 @@ export function MemberDashboard() {
     () => [...(activePrescription?.dias || [])].sort((a, b) => (weekdayOrder[a.day_of_week] ?? 99) - (weekdayOrder[b.day_of_week] ?? 99) || a.order - b.order),
     [activePrescription?.dias],
   )
-
-  const { mutate: createSession, isPending: isCreatingSession } = useCreateSessionMutation()
-  const { mutate: completeSession, isPending: isCompletingSession } = useCompleteSessionMutation()
-  const { mutate: bulkLogs, isPending: isSavingLogs } = useBulkExerciseLogsMutation()
-  const [sessionId, setSessionId] = useState<number | null>(null)
-  const [sessionStarted, setSessionStarted] = useState(false)
-  const [sessionCompletedToday, setSessionCompletedToday] = useState(false)
-  const [overallFeeling, setOverallFeeling] = useState(4)
-  const [exerciseDrafts, setExerciseDrafts] = useState<Record<number, ExerciseProgressDraft>>({})
-
-  const initializeDrafts = (workoutDay: { exercises: Exercise[] }) => {
-    const nextDrafts: Record<number, ExerciseProgressDraft> = {}
-    workoutDay.exercises.forEach((exercise) => {
-      nextDrafts[exercise.id] = exercise.exercise_type === 'timed'
-        ? {
-            done: false,
-            minutes_completed: exercise.target_minutes ?? 0,
-          }
-        : {
-            done: false,
-            weight_used_kg: exercise.weight_suggestion_kg ?? 0,
-            rpe: 7,
-          }
-    })
-    setExerciseDrafts(nextDrafts)
-  }
-
-  useEffect(() => {
-    if (!todayWorkout?.id) {
-      setSessionId(null)
-      setSessionStarted(false)
-      setSessionCompletedToday(false)
-      setExerciseDrafts({})
-      return
-    }
-
-    if (todayWorkout.today_session_completed) {
-      setSessionId(todayWorkout.today_session_id)
-      setSessionStarted(false)
-      setSessionCompletedToday(true)
-      return
-    }
-
-    if (todayWorkout.today_session_started && todayWorkout.today_session_id) {
-      setSessionId(todayWorkout.today_session_id)
-      setSessionStarted(true)
-      setSessionCompletedToday(false)
-      setExerciseDrafts((current) => {
-        if (Object.keys(current).length) {
-          return current
-        }
-        const nextDrafts: Record<number, ExerciseProgressDraft> = {}
-        todayWorkout.exercises.forEach((exercise) => {
-          nextDrafts[exercise.id] = exercise.exercise_type === 'timed'
-            ? { done: false, minutes_completed: exercise.target_minutes ?? 0 }
-            : { done: false, weight_used_kg: exercise.weight_suggestion_kg ?? 0, rpe: 7 }
-        })
-        return nextDrafts
-      })
-      return
-    }
-
-    setSessionCompletedToday(false)
-  }, [
-    todayWorkout?.id,
-    todayWorkout?.today_session_id,
-    todayWorkout?.today_session_completed,
-    todayWorkout?.today_session_started,
-    todayWorkout?.exercises,
-  ])
-
-  const handleStartWorkout = () => {
-    if (!todayWorkout || sessionCompletedToday) {
-      return
-    }
-    createSession(
-      { workout_day_id: todayWorkout.id },
-      {
-        onSuccess: (session) => {
-          setSessionId(session.id)
-          setSessionStarted(true)
-          setSessionCompletedToday(false)
-          initializeDrafts(todayWorkout)
-        },
-      },
-    )
-  }
-
-  const updateDraft = (exerciseId: number, patch: Partial<ExerciseProgressDraft>) => {
-    setExerciseDrafts((current) => ({
-      ...current,
-      [exerciseId]: { ...current[exerciseId], ...patch },
-    }))
-  }
-
-  const handleCompleteWorkout = () => {
-    if (!sessionId || !todayWorkout) {
-      return
-    }
-
-    const logs = todayWorkout.exercises
-      .map<ExerciseLogPayload | null>((exercise) => {
-        const draft = exerciseDrafts[exercise.id]
-        if (!draft?.done) {
-          return null
-        }
-        if (exercise.exercise_type === 'timed') {
-          return {
-            exercise_id: exercise.id,
-            minutes_completed: draft.minutes_completed ?? exercise.target_minutes ?? 0,
-          }
-        }
-        return {
-          exercise_id: exercise.id,
-          weight_used_kg: draft.weight_used_kg,
-          rpe: draft.rpe,
-        }
-      })
-      .filter((item): item is ExerciseLogPayload => item !== null)
-
-    if (!logs.length) {
-      toast.error('Marca al menos un ejercicio como realizado antes de cerrar la sesión.')
-      return
-    }
-
-    bulkLogs(
-      { session_id: sessionId, logs },
-      {
-        onSuccess: () => {
-          completeSession(
-            { sessionId, payload: { overall_feeling: overallFeeling } },
-            {
-              onSuccess: () => {
-                setSessionStarted(false)
-                setSessionCompletedToday(true)
-                setExerciseDrafts({})
-              },
-            },
-          )
-        },
-      },
-    )
-  }
-
-  if (isLoading) {
-    return (
-      <div className="page-enter">
-        <PageHeader title="Mi cabina de entrenamiento" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => <StatCardSkeleton key={i} />)}
-        </div>
-      </div>
-    )
-  }
 
   const membershipExpiring = data?.payment_status === 'pending' && data.days_until_due != null && data.days_until_due <= 7
   const membershipBadge = data?.payment_status === 'paid'
@@ -236,69 +63,27 @@ export function MemberDashboard() {
       ? (data.days_overdue != null ? `${data.days_overdue} día(s) de atraso. Contacta al gym o registra el pago para regularizarla.` : 'Hay un cobro vencido pendiente.')
       : membershipExpiring
         ? `Tu membresía vence en ${data.days_until_due} día(s). Renueva esta semana para mantener tu acceso.`
-        : (data?.days_until_due != null ? `${data.days_until_due} día(s) restantes antes del próximo vencimiento.` : 'Consulta con tu entrenador si necesitas actualizar la membresía.')
+        : (data?.days_until_due != null ? `${data.days_until_due} día(s) restantes antes del próximo vencimiento.` : 'Consulta con tu administrador si necesitas actualizar la membresía.')
 
   const membershipHero = (
-    <section
-      className={cn(
-        'card relative overflow-hidden p-6 md:p-8',
-        data?.payment_status === 'paid' && 'border-emerald-400/40 bg-emerald-50/50 dark:border-emerald-500/20 dark:bg-emerald-950/10',
-        data?.payment_status === 'late' && 'border-red-400/50 bg-red-50/60 dark:border-red-500/30 dark:bg-red-950/20',
-        data?.payment_status !== 'paid' && data?.payment_status !== 'late' && 'border-amber-400/50 bg-amber-50/60 dark:border-amber-500/25 dark:bg-amber-950/20',
-      )}
-      data-testid="card-membership"
-    >
-      <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/50 blur-3xl dark:bg-white/5" />
+    <section className="card relative overflow-hidden p-6 md:p-8" data-testid="card-membership">
       <div className="relative grid grid-cols-1 gap-6 xl:grid-cols-[1.25fr_0.75fr]">
         <div className="flex items-start gap-4">
-          <SymbolFrame tone={membershipTone} size="lg" className="rounded-3xl">
-            <CalendarClock size={22} />
-          </SymbolFrame>
+          <SymbolFrame tone={membershipTone} size="lg" className="rounded-3xl"><CalendarClock size={22} /></SymbolFrame>
           <div>
             <p className="label-base">Estado de membresía</p>
-            <h2 className="font-heading text-3xl font-black text-neutral-900 dark:text-white">
-              {data?.membership_plan_name || 'Sin membresía asignada'}
-            </h2>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Badge variant={membershipBadge.variant}>{membershipBadge.label}</Badge>
-              <span className="text-sm font-medium text-neutral-600 dark:text-neutral-300">
-                {data?.membership_access_allowed ? 'Acceso permitido' : 'Acceso requiere revisión'}
-              </span>
-            </div>
-            <p className="mt-4 max-w-2xl rounded-sm bg-white/70 p-3 text-sm font-semibold text-neutral-700 dark:bg-neutral-950/40 dark:text-neutral-200">
-              {membershipHelp}
-            </p>
-            <Link to="/membership" className="btn-secondary mt-4 inline-flex" data-testid="member-membership-detail-link">
-              Ver detalle de mi membresía
-            </Link>
+            <h2 className="font-heading text-3xl font-black text-neutral-900 dark:text-white">{data?.membership_plan_name || 'Sin membresía asignada'}</h2>
+            <div className="mt-3 flex flex-wrap items-center gap-2"><Badge variant={membershipBadge.variant}>{membershipBadge.label}</Badge><span className="text-sm font-medium text-neutral-600 dark:text-neutral-300">{data?.membership_access_allowed ? 'Acceso permitido' : 'Acceso requiere revisión'}</span></div>
+            <p className="mt-4 max-w-2xl rounded-sm bg-white/70 p-3 text-sm font-semibold text-neutral-700 dark:bg-neutral-950/40 dark:text-neutral-200">{membershipHelp}</p>
+            <Link to="/membership" className="btn-secondary mt-4 inline-flex" data-testid="member-membership-detail-link">Ver detalle de mi membresía</Link>
           </div>
         </div>
-
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <DashboardMetric
-            label="Vencimiento"
-            value={data?.membership_expires_at ? formatDate(data.membership_expires_at) : 'Sin fecha'}
-          />
-          <DashboardMetric
-            label={data?.days_overdue != null ? 'Días vencidos' : 'Días restantes'}
-            value={data?.days_overdue != null
-              ? `${data.days_overdue}`
-              : data?.days_until_due != null
-                ? `${data.days_until_due}`
-                : 'Sin dato'}
-          />
-          <DashboardMetric
-            label="Precio"
-            value={data?.membership_agreed_price ? formatCurrency(data.membership_agreed_price) : 'Sin precio'}
-          />
-          <DashboardMetric
-            label="Próximo cobro"
-            value={data?.membership_next_billing_date ? formatDate(data.membership_next_billing_date) : 'Sin fecha'}
-          />
-          <DashboardMetric
-            label="Recurrencia"
-            value={data?.membership_recurrence_type ? MEMBERSHIP_RECURRENCE_LABELS[data.membership_recurrence_type] : 'Sin dato'}
-          />
+          <DashboardMetric label="Vencimiento" value={data?.membership_expires_at ? formatDate(data.membership_expires_at) : 'Sin fecha'} />
+          <DashboardMetric label={data?.days_overdue != null ? 'Días vencidos' : 'Días restantes'} value={data?.days_overdue != null ? `${data.days_overdue}` : data?.days_until_due != null ? `${data.days_until_due}` : 'Sin dato'} />
+          <DashboardMetric label="Precio" value={data?.membership_agreed_price ? formatCurrency(data.membership_agreed_price) : 'Sin precio'} />
+          <DashboardMetric label="Próximo cobro" value={data?.membership_next_billing_date ? formatDate(data.membership_next_billing_date) : 'Sin fecha'} />
+          <DashboardMetric label="Recurrencia" value={data?.membership_recurrence_type ? MEMBERSHIP_RECURRENCE_LABELS[data.membership_recurrence_type] : 'Sin dato'} />
         </div>
       </div>
     </section>
@@ -310,169 +95,19 @@ export function MemberDashboard() {
         <div>
           <p className="label-base">Bloque del día</p>
           <h3 className="text-2xl font-heading font-bold text-neutral-900 dark:text-white">
-            {todayWorkout ? `Hoy toca: ${DAY_OF_WEEK_LABELS[weeklyDays.find((day) => day.id === todayWorkout.id)?.day_of_week || 'mon']} · ${todayWorkout.name}` : 'Hoy no toca bloque activo'}
+            {todayWorkout ? `Hoy toca: ${DAY_OF_WEEK_LABELS[weeklyDays.find((day) => day.id === todayWorkout.id)?.day_of_week || "mon"]} · ${todayWorkout.name}` : "Hoy no toca bloque activo"}
           </h3>
-          <p className="text-sm text-neutral-500 mt-1">
-            {todayWorkout
-              ? 'Empieza aquí: ejercicios, máquinas, prescripción y registro rápido del entrenamiento específico de hoy.'
-              : 'Tu semana sigue visible abajo aunque hoy no tengas un bloque específico asignado.'}
-          </p>
+          <p className="text-sm text-neutral-500 mt-1">{todayWorkout ? "Consulta el resumen y abre la rutina guiada para avanzar ejercicio por ejercicio." : "Tu semana sigue visible abajo aunque hoy no tengas un bloque específico asignado."}</p>
         </div>
-        {todayWorkout ? (
-          <Badge variant={sessionCompletedToday ? 'success' : sessionStarted ? 'success' : 'info'}>
-            {sessionCompletedToday ? 'Completado hoy' : sessionStarted ? 'Sesión activa' : 'Listo para entrenar'}
-          </Badge>
-        ) : null}
+        {todayWorkout?.today_session_completed ? <Badge variant="success">Completado hoy</Badge> : todayWorkout ? <Badge variant="info">Listo para entrenar</Badge> : null}
       </div>
-
       {!todayWorkout ? (
-        <EmptyState
-          icon={<Activity size={32} />}
-          title="Sin sesión del día"
-          description="Revisa la semana del plan o consulta a tu trainer si necesitas un bloque para hoy."
-        />
+        <EmptyState icon={<Activity size={32} />} title="Sin sesión del día" description="Revisa la semana del plan o consulta a tu trainer si necesitas un bloque para hoy." />
       ) : (
         <>
-          {sessionCompletedToday ? (
-            <div className="mb-5 rounded-sm border border-emerald-200 bg-emerald-50/60 p-4 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-300">
-              <p className="text-sm font-semibold">Rutina completada hoy</p>
-              <p className="mt-1 text-xs opacity-80">No puedes reiniciar este bloque hasta que vuelva a tocar este día en tu plan semanal.</p>
-            </div>
-          ) : !sessionStarted ? (
-            <button
-              type="button"
-              className="btn-primary mb-5 flex items-center gap-2"
-              onClick={handleStartWorkout}
-              disabled={isCreatingSession}
-              data-testid="start-session-btn"
-            >
-              {isCreatingSession ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
-              {isCreatingSession ? 'Iniciando...' : 'Registrar entrenamiento'}
-            </button>
-          ) : null}
-
-          <div className="space-y-3">
-            {todayWorkout.exercises.map((exercise) => {
-              const draft = exerciseDrafts[exercise.id]
-              const isTimed = exercise.exercise_type === 'timed'
-              return (
-                <div
-                  key={exercise.id}
-                  className={cn(
-                    'rounded-sm border p-4',
-                    draft?.done ? 'border-emerald-400 bg-emerald-50/60 dark:border-emerald-700 dark:bg-emerald-950/20' : 'border-neutral-200 dark:border-neutral-800',
-                  )}
-                  data-testid={`today-exercise-${exercise.id}`}
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-semibold text-neutral-900 dark:text-white">{exercise.name}</h4>
-                        <Badge variant="neutral">{getExercisePrescriptionLabel(exercise)}</Badge>
-                      </div>
-                      <p className="mt-1 text-sm text-neutral-500">
-                        {MUSCLE_LABELS[exercise.muscle_group]} · {exercise.machine_detail?.name || 'Ejercicio libre'}
-                      </p>
-                      {exercise.machine_detail?.category ? (
-                        <p className="text-xs text-neutral-400">{exercise.machine_detail.category}</p>
-                      ) : null}
-                      {exercise.technique_notes ? (
-                        <p className="mt-2 text-xs text-neutral-500">{exercise.technique_notes}</p>
-                      ) : null}
-                    </div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                      <input
-                        type="checkbox"
-                        checked={draft?.done || false}
-                        disabled={!sessionStarted}
-                        onChange={(event) => updateDraft(exercise.id, { done: event.target.checked })}
-                      />
-                      Hecho
-                    </label>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
-                    <DashboardMetric
-                      label="Máquina"
-                      value={exercise.machine_detail?.name || 'Libre'}
-                    />
-                    <DashboardMetric
-                      label="Prescripción"
-                      value={isTimed ? `${exercise.target_minutes ?? 0} min` : `${exercise.sets ?? 0}x${exercise.reps_range}`}
-                    />
-                    <DashboardMetric
-                      label="Descanso"
-                      value={`${exercise.rest_seconds}s`}
-                    />
-                    <DashboardMetric
-                      label="Peso sugerido"
-                      value={formatPesoSugerido(exercise.weight_suggestion_kg, exercise.weight_suggestion_unit)}
-                    />
-                  </div>
-
-                  {sessionStarted ? (
-                    <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-                      {isTimed ? (
-                        <QuickNumberField
-                          label="Minutos realizados"
-                          value={draft?.minutes_completed ?? exercise.target_minutes ?? 0}
-                          onChange={(value) => updateDraft(exercise.id, { minutes_completed: value })}
-                          step={1}
-                          testId={`minutes-input-${exercise.id}`}
-                        />
-                      ) : (
-                        <>
-                          <QuickNumberField
-                            label="Peso usado (kg)"
-                            value={draft?.weight_used_kg ?? 0}
-                            onChange={(value) => updateDraft(exercise.id, { weight_used_kg: value })}
-                            step={2.5}
-                            testId={`weight-input-${exercise.id}`}
-                          />
-                          <QuickNumberField
-                            label="RPE"
-                            value={draft?.rpe ?? 7}
-                            onChange={(value) => updateDraft(exercise.id, { rpe: value })}
-                            step={1}
-                            min={1}
-                            max={10}
-                            testId={`rpe-input-${exercise.id}`}
-                          />
-                        </>
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-              )
-            })}
-          </div>
-
-          {sessionStarted ? (
-            <div className="mt-6 rounded-sm border border-neutral-200 p-4 dark:border-neutral-800">
-              <label className="label-base block mb-2">
-                Sensación general ({overallFeeling}/5)
-              </label>
-              <input
-                type="range"
-                min={1}
-                max={5}
-                value={overallFeeling}
-                onChange={(event) => setOverallFeeling(Number(event.target.value))}
-                className="w-full accent-primary"
-                data-testid="feeling-slider"
-              />
-              <button
-                type="button"
-                className="btn-primary mt-4 flex items-center gap-2"
-                onClick={handleCompleteWorkout}
-                disabled={isSavingLogs || isCompletingSession}
-                data-testid="complete-session-btn"
-              >
-                {isSavingLogs || isCompletingSession ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-                {isSavingLogs || isCompletingSession ? 'Guardando...' : 'Cerrar sesión de hoy'}
-              </button>
-            </div>
-          ) : null}
+          {todayWorkout.today_session_completed ? <p className="mb-4 text-sm text-emerald-700 dark:text-emerald-300">Rutina completada hoy. Este bloque se habilitará cuando vuelva a tocar en tu plan semanal.</p> : null}
+          <p className="mb-4 text-sm text-neutral-600 dark:text-neutral-300">{todayWorkout.exercises.length} ejercicio(s) · {todayWorkout.exercises.slice(0, 3).map((exercise) => exercise.name).join(" · ")}</p>
+          <Link to="/plans/today" className="btn-primary inline-flex items-center gap-2" data-testid="start-session-btn">Abrir rutina guiada</Link>
         </>
       )}
     </div>
@@ -604,42 +239,6 @@ function DashboardMetric({ label, value }: { label: string; value: string }) {
     <div className="rounded-sm border border-neutral-200 px-3 py-2 dark:border-neutral-800">
       <p className="text-[11px] uppercase tracking-wide text-neutral-500">{label}</p>
       <p className="mt-1 text-sm font-medium text-neutral-900 dark:text-white">{value}</p>
-    </div>
-  )
-}
-
-function QuickNumberField({
-  label,
-  value,
-  onChange,
-  step,
-  min = 0,
-  max,
-  testId,
-}: {
-  label: string
-  value: number
-  onChange: (value: number) => void
-  step: number
-  min?: number
-  max?: number
-  testId?: string
-}) {
-  const handleChange = (nextValue: number) => {
-    const bounded = Math.max(min, max != null ? Math.min(max, nextValue) : nextValue)
-    onChange(bounded)
-  }
-
-  return (
-    <div className="rounded-sm border border-neutral-200 px-3 py-3 dark:border-neutral-800" data-testid={testId}>
-      <label className="label-base block mb-2">{label}</label>
-      <div className="flex items-center justify-center gap-2">
-        <button type="button" className="btn-secondary" onClick={() => handleChange(value - step)}>-</button>
-        <span className="w-16 text-center font-heading text-2xl font-bold text-neutral-900 dark:text-white">
-          {Number.isInteger(value) ? value : value.toFixed(1)}
-        </span>
-        <button type="button" className="btn-secondary" onClick={() => handleChange(value + step)}>+</button>
-      </div>
     </div>
   )
 }

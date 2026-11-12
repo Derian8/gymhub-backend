@@ -1,6 +1,5 @@
 import { renderWithProviders } from '@/test/utils'
 import { within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { MembersPage } from './MembersPage'
 import { useAuthStore } from '@/shared/store/authStore'
 
@@ -143,24 +142,17 @@ describe('MembersPage', () => {
 
     expect(getByTestId('members-page')).toBeInTheDocument()
     expect(getByTestId('members-search')).toBeInTheDocument()
-    expect(() => getByTestId('view-unassigned-members')).toThrow()
-    expect(() => getByTestId('payment-filter')).toThrow()
-    expect(getByTestId('risk-filter')).toBeInTheDocument()
-    expect(getByTestId('prescription-filter')).toBeInTheDocument()
-    expect(getByTestId('members-ordering')).toBeInTheDocument()
+    expect(getByTestId('new-member-btn')).toBeInTheDocument()
+    expect(getByTestId('payment-filter')).toBeInTheDocument()
     expect(row).toBeInTheDocument()
     expect(within(row).getByText('Maria Perez')).toBeInTheDocument()
-    expect(within(row).getByText(/Alto/i)).toBeInTheDocument()
-    expect(within(row).getByText(/Bloqueado · contactar admin/i)).toBeInTheDocument()
-    expect(within(row).queryByText(/Tiene pagos en mora/i)).not.toBeInTheDocument()
-    expect(within(row).getByText(/Prescripción incompleta/i)).toBeInTheDocument()
-    expect(getByTestId('member-program-15')).toHaveAttribute('href', '/members/15/program')
+    expect(within(row).getByTestId('member-membership-15')).toBeInTheDocument()
     expect(getByTestId('member-detail-15')).toHaveAttribute('href', '/members/15')
   })
 
-  it('keeps the trainer focused on assigned clients', () => {
+  it('loads the full client list for the administrator context', () => {
     renderWithProviders(<MembersPage />)
-    expect(membersQueryParams[0]).toEqual(expect.objectContaining({ assignment: 'mine' }))
+    expect(membersQueryParams[0]).toEqual(expect.objectContaining({ assignment: undefined }))
     expect(assignTrainerMock).not.toHaveBeenCalled()
   })
 })

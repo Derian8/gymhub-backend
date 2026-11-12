@@ -173,6 +173,16 @@ vi.mock('@/modules/members/hooks/useMembers', () => ({
   }),
 }))
 
+vi.mock('@/modules/attendance/hooks/useAttendance', () => ({
+  useMemberAttendanceToday: (enabled = true) => ({
+    hasCheckedInToday: enabled && Object.keys(window.sessionStorage)
+      .some((key) => key.startsWith('gymhub-routine-entry:') && window.sessionStorage.getItem(key) === 'granted'),
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
+}))
+
 describe('TodayWorkoutPage', () => {
   beforeEach(() => {
     const today = new Intl.DateTimeFormat('en-CA', {
@@ -206,49 +216,37 @@ describe('TodayWorkoutPage', () => {
     })
   })
 
-  it('shows training details before check-in and requires entry to start', () => {
+  it('blocks training details until attendance is confirmed', () => {
     window.sessionStorage.clear()
-    const { getByTestId, queryByText } = renderWithProviders(<TodayWorkoutPage />)
+    const { getByTestId, getByText } = renderWithProviders(<TodayWorkoutPage />)
 
-    expect(getByTestId('today-workout-page')).toBeInTheDocument()
-    expect(getByTestId('start-session-btn')).toHaveTextContent('Registrar entrada e iniciar rutina')
-    expect(queryByText('Ver rutina y registrar entrada')).not.toBeInTheDocument()
+    expect(getByTestId('workout-attendance-required')).toBeInTheDocument()
+    expect(getByText('Confirma tu entrada para abrir la rutina')).toBeInTheDocument()
   })
 
-  it('starts and completes a workout session', async () => {
+  it('starts and records client exercises one at a time', async () => {
     const user = userEvent.setup()
-    useAuthStore.setState((state) => ({
-      user: state.user ? { ...state.user, role: 'admin', memberprofile_id: null,  } : state.user,
-    }))
     crearSesion.mockImplementation((_payload, options) => {
       options?.onSuccess?.({ id: 901 })
     })
-    guardarLogs.mockImplementation((_payload, options) => {
-      options?.onSuccess?.([{ id: 1 }])
-    })
-    completarSesion.mockImplementation((_payload, options) => {
-      options?.onSuccess?.({ id: 901, is_completed: true })
+    let exerciseCount = 0
+    registrarProgresoEjercicio.mockImplementation((_payload, options) => {
+      exerciseCount += 1
+      options?.onSuccess?.({ session_completed: exerciseCount === 2 })
     })
 
     const { getAllByText, getByTestId, queryByTestId, getByText } = renderWithProviders(<TodayWorkoutPage />)
 
     expect(getByTestId('today-workout-page')).toBeInTheDocument()
-    expect(getByText('Press banca')).toBeInTheDocument()
-    expect(getByText('Bici estatica')).toBeInTheDocument()
-    expect(getByText('Carlos Mendoza')).toBeInTheDocument()
+    expect(getAllByText('Carlos Mendoza').length).toBeGreaterThan(0)
     expect(getAllByText('Hipertrofia base').length).toBeGreaterThan(0)
     expect(getByTestId('workout-primary')).toBeInTheDocument()
     expect(getByTestId('workout-primary')).toHaveTextContent('Tu rutina de hoy')
     expect(getByTestId('today-workout-summary')).toHaveTextContent('Ejercicios')
     expect(getByTestId('today-workout-summary')).toHaveTextContent('Hipertrofia base')
-    expect(getByTestId('start-session-btn')).toHaveTextContent('Registrar entrenamiento')
-    expect(
-      getByTestId('start-session-btn').compareDocumentPosition(getByTestId('exercise-checklist'))
-      & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy()
-    expect(getByTestId('exercise-checklist')).toBeInTheDocument()
+    expect(getByTestId('start-session-btn')).toHaveTextContent('Iniciar rutina')
+    expect(queryByTestId('exercise-checklist')).not.toBeInTheDocument()
     expect(getAllByText('Lunes · Torso').length).toBeGreaterThan(0)
-    expect(getByText('Checklist del entrenamiento')).toBeInTheDocument()
 
     await user.click(getByTestId('start-session-btn'))
 
@@ -257,43 +255,19 @@ describe('TodayWorkoutPage', () => {
         { workout_day_id: 101 },
         expect.objectContaining({ onSuccess: expect.any(Function) }),
       )
-      expect(getByTestId('complete-session-btn')).toBeInTheDocument()
-      expect(getAllByText('Prescripción del trainer')).toHaveLength(2)
-      expect(getByTestId('previous-log-501')).toHaveTextContent('Última vez')
-      expect(getByTestId('previous-log-501')).toHaveTextContent('55 kg')
-      expect(getByTestId('rpe-input-501')).toBeInTheDocument()
-      expect(getByTestId('minutes-input-502')).toBeInTheDocument()
+      expect(getByTestId('client-routine-flow')).toBeInTheDocument()
+      expect(getByTestId('client-routine-flow')).toHaveTextContent('Press banca')
+      expect(getByTestId('mark-exercise-done')).toBeInTheDocument()
+      expect(getByTestId('skip-exercise')).toBeInTheDocument()
     })
 
-    await user.clear(getByTestId('body-weight-input'))
-    await user.type(getByTestId('body-weight-input'), '82.5')
-    await user.click(getByTestId('complete-session-btn'))
-
-    await waitFor(() => {
-      expect(guardarLogs).toHaveBeenCalledWith(
-        expect.objectContaining({
-          session_id: 901,
-          logs: [
-            expect.objectContaining({
-              exercise_id: 501,
-              sets_completed: 4,
-              reps_completed: 8,
-              weight_used_kg: 60,
-              rpe: 7,
-            }),
-            expect.objectContaining({
-              exercise_id: 502,
-              minutes_completed: 20,
-            }),
-          ],
-        }),
-        expect.objectContaining({ onSuccess: expect.any(Function) }),
-      )
-      expect(completarSesion).toHaveBeenCalledWith(
-        { sessionId: 901, payload: { overall_feeling: 4, body_weight_kg: 82.5 } },
-        expect.objectContaining({ onSuccess: expect.any(Function) }),
-      )
-    })
+    await user.click(getByTestId('mark-exercise-done'))
+    await waitFor(() => expect(registrarProgresoEjercicio).toHaveBeenCalledWith(
+      { sessionId: 901, payload: { exercise_id: 501, estado: 'realizado' } },
+      expect.objectContaining({ onSuccess: expect.any(Function) }),
+    ))
+    await user.click(getByTestId('skip-exercise'))
+    await waitFor(() => expect(getByText('Rutina completada hoy')).toBeInTheDocument())
 
     expect(queryByTestId('complete-session-btn')).not.toBeInTheDocument()
   })

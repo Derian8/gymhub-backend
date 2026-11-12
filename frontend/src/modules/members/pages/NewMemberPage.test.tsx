@@ -46,6 +46,7 @@ describe('NewMemberPage', () => {
     fireEvent.change(view.getByLabelText(/Apellidos/), { target: { value: 'Solano' } })
     fireEvent.change(view.getByLabelText(/Correo electrónico/), { target: { value: 'ana@test.com' } })
     fireEvent.change(view.getByLabelText(/Teléfono/), { target: { value: '8888-0000' } })
+    fireEvent.change(view.getByLabelText(/Fecha de nacimiento/), { target: { value: '1995-04-12' } })
     fireEvent.change(view.getByTestId('assigned-trainer'), { target: { value: '4' } })
     fireEvent.change(view.getByTestId('membership-plan'), { target: { value: '8' } })
     fireEvent.change(view.getByTestId('payment-method'), { target: { value: 'sinpe' } })

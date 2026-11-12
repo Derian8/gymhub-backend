@@ -1,4 +1,4 @@
-import { act, fireEvent, within } from '@testing-library/react'
+import { fireEvent, within } from '@testing-library/react'
 import { renderWithProviders } from '@/test/utils'
 import { useAuthStore } from '@/shared/store/authStore'
 import { TrainerProgramPage } from './TrainerProgramPage'
@@ -523,6 +523,7 @@ describe('TrainerProgramPage', () => {
       weight_suggestion_unit: 'kg',
       rest_seconds: 60,
       technique_notes: '',
+      video_url: '',
       order: 2,
     })
   })
@@ -537,6 +538,7 @@ describe('TrainerProgramPage', () => {
     expect(addExerciseForm).not.toBeNull()
     const formScope = within(addExerciseForm as HTMLFormElement)
 
+    fireEvent.change(formScope.getAllByRole('textbox')[0], { target: { value: 'Press de prueba' } })
     fireEvent.change(formScope.getByTestId('suggested-weight-unit'), { target: { value: 'lb' } })
     fireEvent.change(formScope.getByTestId('suggested-weight-value'), { target: { value: '100' } })
     fireEvent.click(getByTestId('add-exercise-inline-button'))

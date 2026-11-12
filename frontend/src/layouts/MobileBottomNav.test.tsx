@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent } from '@testing-library/react'
+import { cleanup } from '@testing-library/react'
 import { renderWithProviders } from '@/test/utils'
 import { useAuthStore } from '@/shared/store/authStore'
 import { MobileBottomNav } from './MobileBottomNav'
@@ -39,20 +39,13 @@ describe('MobileBottomNav', () => {
     })
   })
 
-  it('shows the member primary destinations and secondary sheet', () => {
+  it('shows the member primary destinations without administrator tools', () => {
     const view = renderWithProviders(<MobileBottomNav />, { route: '/today' })
 
     expect(view.getByTestId('mobile-bottom-nav')).toBeInTheDocument()
-    expect(view.getByRole('link', { name: 'Hoy' })).toHaveAttribute('href', '/today')
-    expect(view.getByRole('button', { name: 'Más opciones' })).toBeInTheDocument()
-
-    fireEvent.click(view.getByRole('button', { name: 'Más opciones' }))
-
-    expect(view.getByTestId('mobile-more-sheet')).toBeInTheDocument()
-    expect(view.getByRole('link', { name: 'Progreso' })).toHaveAttribute('href', '/progress')
+    expect(view.getByRole('link', { name: 'Inicio' })).toHaveAttribute('href', '/today')
     expect(view.getByRole('link', { name: 'Perfil' })).toHaveAttribute('href', '/profile')
-    fireEvent.click(view.getByTestId('mobile-logout-button'))
-    expect(logoutMock).toHaveBeenCalledTimes(1)
+    expect(view.queryByRole('button', { name: 'Más opciones' })).not.toBeInTheDocument()
   })
 
   it('uses administrator destinations for the administrator account', () => {

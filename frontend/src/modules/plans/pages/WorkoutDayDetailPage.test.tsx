@@ -87,7 +87,7 @@ describe('WorkoutDayDetailPage', () => {
   })
 
   it('shows the exact day plan with exercises and analysis', () => {
-    const { getByTestId, getByText } = renderWithProviders(<WorkoutDayDetailPage />, {
+    const { getByTestId, getByText, getByRole } = renderWithProviders(<WorkoutDayDetailPage />, {
       route: '/plans/12/days/101',
       path: '/plans/:planId/days/:dayId',
     })
@@ -104,7 +104,7 @@ describe('WorkoutDayDetailPage', () => {
     expect(getByText('Pecho · Smith')).toBeInTheDocument()
     expect(getByText('Mantener escapulas retraidas.')).toBeInTheDocument()
     expect(getByTestId('workout-day-analysis')).toHaveTextContent('Fuerza:')
-    expect(getByText('Volver al plan')).toHaveAttribute('href', '/plans/12')
+    expect(getByRole('button', { name: 'Volver al plan' })).toBeInTheDocument()
   })
 
   it('shows an empty state when the day does not belong to the selected plan', () => {

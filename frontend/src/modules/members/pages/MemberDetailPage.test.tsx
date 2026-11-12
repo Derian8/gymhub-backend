@@ -182,7 +182,7 @@ describe('MemberDetailPage', () => {
     })
   })
 
-  it('renders the assigned client without administrative financial controls', async () => {
+  it('shows membership and prescription details to an administrator', async () => {
     const { getAllByText, getByTestId, queryByTestId, queryByText } = renderWithProviders(<MemberDetailPage />, {
       route: '/members/15',
       path: '/members/:id',
@@ -192,20 +192,19 @@ describe('MemberDetailPage', () => {
 
     expect(getByTestId('member-detail-page')).toBeInTheDocument()
     expect(getByTestId('member-profile-card')).toBeInTheDocument()
-    expect(queryByTestId('member-membership-panel')).not.toBeInTheDocument()
+    expect(getByTestId('member-membership-panel')).toBeInTheDocument()
     expect(getByTestId('member-prescription-panel')).toBeInTheDocument()
     expect(queryByTestId('member-last-publication')).not.toBeInTheDocument()
     expect(getByTestId('member-risk-panel')).toBeInTheDocument()
     expect(getByTestId('member-physical-panel')).toBeInTheDocument()
     expect(getByTestId('member-physical-weight-change')).toHaveTextContent('-1.2 kg')
     expect(getAllByText('Maria Perez').length).toBeGreaterThan(1)
-    expect(queryByTestId('activation-panel')).not.toBeInTheDocument()
-    expect(queryByTestId('activate-member-btn')).not.toBeInTheDocument()
+    expect(getByTestId('activation-panel')).toBeInTheDocument()
+    expect(getByTestId('activate-member-btn')).toBeInTheDocument()
     expect(queryByTestId('assign-administrator-btn')).not.toBeInTheDocument()
     expect(queryByTestId('unassigned-member-banner')).not.toBeInTheDocument()
-    expect(getByTestId('member-program-link')).toHaveAttribute('href', '/members/15/program')
-    expect(queryByTestId('member-billing-link')).not.toBeInTheDocument()
-    expect(queryByTestId('member-attendance-link')).not.toBeInTheDocument()
+    expect(getByTestId('member-billing-link')).toHaveAttribute('href', '/billing?member=15')
+    expect(getByTestId('member-attendance-link')).toHaveAttribute('href', '/attendance?member=15')
     expect(queryByText('Nutrición')).not.toBeInTheDocument()
     expect(queryByText('Alertas')).not.toBeInTheDocument()
     expect(queryByTestId('open-ai-copilot-btn')).not.toBeInTheDocument()
