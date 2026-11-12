@@ -28,9 +28,6 @@ class NutritionProfileViewSet(viewsets.ModelViewSet):
             queryset = NutritionProfile.objects.select_related(
                 'training_plan__member__trainer_asignado'
             ).order_by('id')
-            if user.role == 'trainer' and not user.is_staff:
-                trainer_profile = _get_trainer_profile(user)
-                queryset = queryset.filter(training_plan__member__trainer_asignado=trainer_profile)
         if member_id:
             queryset = queryset.filter(training_plan__member_id=member_id)
         if training_plan_id:
@@ -103,9 +100,6 @@ class PlanNutritionLinkViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(plan_id=plan_id)
             return queryset
         queryset = PlanNutritionLink.objects.select_related('plan__member__trainer_asignado').order_by('priority_order', 'id')
-        if user.role == 'trainer' and not user.is_staff:
-            trainer_profile = _get_trainer_profile(user)
-            queryset = queryset.filter(plan__member__trainer_asignado=trainer_profile)
         if plan_id:
             queryset = queryset.filter(plan_id=plan_id)
         return queryset

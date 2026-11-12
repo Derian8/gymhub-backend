@@ -40,7 +40,7 @@ export function ReportsPage() {
           <section>
             <h2 className="mb-4 text-xl font-bold text-neutral-900 dark:text-white">Control de ingresos</h2>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <StatCard label="Cobrado" value={formatCurrency(data.commercial.collected)} variant="success" />
+              <StatCard label="Cobrado en el período" value={formatCurrency(data.commercial.collected)} variant="success" />
               <StatCard label="Esperado" value={formatCurrency(data.commercial.expected)} />
               <StatCard label="Pendiente" value={formatCurrency(data.commercial.pending)} variant="warning" />
               <StatCard label="Vencido" value={formatCurrency(data.commercial.overdue)} variant="danger" />

@@ -1,5 +1,6 @@
 import logging
 import environ
+from corsheaders.defaults import default_headers
 from pathlib import Path
 from datetime import timedelta
 from urllib.parse import parse_qsl, unquote, urlparse, urlsplit, urlunsplit
@@ -267,6 +268,7 @@ else:
 # CORS
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=['http://localhost:3000'])
+CORS_ALLOW_HEADERS = [*default_headers, 'x-gymhub-context']
 CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=CORS_ALLOWED_ORIGINS)
 
 SESSION_COOKIE_SAMESITE = env('SESSION_COOKIE_SAMESITE', default='Lax')

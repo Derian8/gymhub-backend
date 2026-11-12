@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent } from '@testing-library/react'
+import { cleanup } from '@testing-library/react'
 import { renderWithProviders } from '@/test/utils'
 import { useAuthStore } from '@/shared/store/authStore'
 import { Topbar } from './Topbar'
@@ -47,23 +47,25 @@ describe('Topbar', () => {
     expect(collapsedView.queryByTestId('notifications-bell')).not.toBeInTheDocument()
   })
 
-  it('switches between instructor and client contexts for a shared account', () => {
+  it('keeps administrator accounts out of the client context even with legacy profile data', () => {
     useAuthStore.setState((state) => ({
       ...state,
       user: {
         ...state.user!,
-        role: 'trainer',
+        role: 'admin',
+        is_staff: true,
         trainerprofile_id: 7,
         memberprofile_id: 10,
-        perfiles_disponibles: ['instructor', 'cliente'],
-        contexto_predeterminado: 'instructor',
+        perfiles_disponibles: ['administrador', 'cliente'],
+        contexto_predeterminado: 'administrador',
       },
-      activeContext: 'instructor',
+      activeContext: 'administrador',
     }))
     const view = renderWithProviders(<Topbar onMenuClick={vi.fn()} sidebarCollapsed={false} />)
 
-    fireEvent.change(view.getByLabelText('Perfil activo'), { target: { value: 'cliente' } })
-
-    expect(useAuthStore.getState().activeContext).toBe('cliente')
+    expect(view.queryByLabelText('Perfil activo')).not.toBeInTheDocument()
+    expect(useAuthStore.getState().activeContext).toBe('administrador')
+    expect(useAuthStore.getState().setActiveContext('cliente')).toBeUndefined()
+    expect(useAuthStore.getState().activeContext).toBe('administrador')
   })
 })

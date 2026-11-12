@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   Activity,
@@ -18,11 +18,14 @@ import {
 import { cn } from '@/shared/lib/utils'
 import { getResolvedContext, useAuthStore } from '@/shared/store/authStore'
 import { useLogoutMutation } from '@/modules/auth/hooks/useAuthMutations'
+import { useMemberAttendanceToday } from '@/modules/attendance/hooks/useAttendance'
+import './MobileBottomNav.css'
 
 interface MobileNavItem {
   label: string
   to: string
   icon: React.ReactNode
+  disabled?: boolean
 }
 
 const mobileNavigation = {
@@ -41,15 +44,6 @@ const mobileNavigation = {
       { label: 'Reportes', to: '/reports', icon: <BarChart3 size={18} /> },
     ],
   },
-  instructor: {
-    primary: [
-      { label: 'Inicio', to: '/dashboard/trainer', icon: <Home size={19} /> },
-      { label: 'Clientes', to: '/members', icon: <Users size={19} /> },
-      { label: 'Planes', to: '/plans', icon: <Dumbbell size={19} /> },
-      { label: 'Progreso', to: '/progress', icon: <Activity size={19} /> },
-    ],
-    secondary: [],
-  },
   cliente: {
     primary: [
       { label: 'Inicio', to: '/today', icon: <Home size={19} /> },
@@ -65,19 +59,27 @@ function MobileNavLink({ item, onClick, compact = false }: { item: MobileNavItem
   return (
     <NavLink
       to={item.to}
-      end
-      onClick={onClick}
+      end={item.to.startsWith('/dashboard/') || item.to === '/today'}
+      onClick={(event) => {
+        if (item.disabled) {
+          event.preventDefault()
+          return
+        }
+        onClick?.()
+      }}
+      aria-disabled={item.disabled || undefined}
       className={({ isActive }) => cn(
         compact
-          ? 'flex min-w-0 flex-1 flex-col items-center gap-1 rounded-2xl px-1 py-2 text-[10px] font-semibold transition-colors'
-          : 'flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-colors',
+          ? 'mobile-tab flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[11px] font-semibold'
+          : 'flex min-h-14 items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-colors',
         isActive
-          ? 'text-primary'
-          : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-white/5 dark:hover:text-white',
+          ? item.disabled ? 'text-neutral-400 opacity-50' : 'text-primary'
+          : item.disabled ? 'cursor-not-allowed text-neutral-400 opacity-50' : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-white/5 dark:hover:text-white',
       )}
-      aria-label={item.label}
+      aria-label={item.disabled ? `${item.label}, disponible después de confirmar entrada` : item.label}
+      title={item.disabled ? 'Disponible después de confirmar tu entrada' : undefined}
     >
-      <span className="relative inline-flex items-center justify-center">
+      <span className={compact ? 'mobile-tab-icon' : 'inline-flex items-center justify-center'}>
         {item.icon}
       </span>
       <span className={compact ? 'truncate' : ''}>{item.label}</span>
@@ -90,20 +92,45 @@ export function MobileBottomNav() {
   const { mutate: logout, isPending } = useLogoutMutation()
   const location = useLocation()
   const [moreOpen, setMoreOpen] = useState(false)
+  const dialogo = useRef<HTMLDialogElement>(null)
   const currentContext = getResolvedContext(user, activeContext) || 'cliente'
-  const navigation = mobileNavigation[currentContext]
+  const { hasCheckedInToday: hasAttendanceToday } = useMemberAttendanceToday(currentContext === 'cliente')
+  const navigation = currentContext === 'cliente'
+    ? { ...mobileNavigation.cliente, primary: mobileNavigation.cliente.primary.map((item) => item.to === '/plans/my' ? { ...item, disabled: !hasAttendanceToday } : item) }
+    : mobileNavigation[currentContext]
   const hasSecondaryItems = navigation.secondary.length > 0
+  const masActivo = moreOpen || navigation.secondary.some((item) => location.pathname.startsWith(item.to)) || location.pathname.startsWith('/profile')
 
   useEffect(() => {
     setMoreOpen(false)
-  }, [location.pathname])
+  }, [location.pathname, currentContext])
+
+  useEffect(() => {
+    const panel = dialogo.current
+    if (!panel) return
+    if (!moreOpen) {
+      if (panel.open) panel.close()
+      return
+    }
+    panel.showModal()
+    const desplazamientoAnterior = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = desplazamientoAnterior }
+  }, [moreOpen])
+
+  useEffect(() => {
+    const escritorio = window.matchMedia('(min-width: 1024px)')
+    const cerrarEnEscritorio = () => { if (escritorio.matches) setMoreOpen(false) }
+    escritorio.addEventListener('change', cerrarEnEscritorio)
+    return () => escritorio.removeEventListener('change', cerrarEnEscritorio)
+  }, [])
 
   const secondaryItems = useMemo(() => navigation.secondary, [navigation.secondary])
 
   return (
     <>
       <nav
-        className="mobile-bottom-nav fixed inset-x-3 bottom-3 z-40 flex items-center gap-1 rounded-[1.6rem] border border-neutral-200/80 bg-white/95 p-2 shadow-[0_18px_50px_rgba(15,23,42,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-neutral-950/95 dark:shadow-[0_18px_50px_rgba(0,0,0,0.55)] lg:hidden"
+        className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 flex items-start border-t border-neutral-200 bg-white text-neutral-700 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-300 lg:hidden"
         aria-label="Navegación principal móvil"
         data-testid="mobile-bottom-nav"
       >
@@ -114,51 +141,51 @@ export function MobileBottomNav() {
           type="button"
           onClick={() => setMoreOpen(true)}
           className={cn(
-            'flex min-w-0 flex-1 flex-col items-center gap-1 rounded-2xl px-1 py-2 text-[10px] font-semibold transition-colors',
-            moreOpen || (hasSecondaryItems && secondaryItems.some((item) => location.pathname.startsWith(item.to)))
+            'mobile-tab flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[11px] font-semibold',
+            masActivo
               ? 'text-primary'
               : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-white/5 dark:hover:text-white',
           )}
           aria-label="Más opciones"
           aria-expanded={moreOpen}
+          aria-controls="mobile-more-sheet"
+          aria-haspopup="dialog"
+          data-active={masActivo}
           data-testid="mobile-more-button"
         >
-          <MoreHorizontal size={19} />
+          <span className="mobile-tab-icon"><MoreHorizontal size={24} /></span>
           <span>Más</span>
         </button> : null}
       </nav>
 
-      {moreOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden" role="presentation">
-          <button
-            type="button"
-            className="absolute inset-0 bg-neutral-950/60 backdrop-blur-[2px]"
-            aria-label="Cerrar opciones"
-            onClick={() => setMoreOpen(false)}
-          />
-          <section
-            className="mobile-more-sheet absolute inset-x-0 bottom-0 rounded-t-[2rem] border-t border-neutral-200 bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-[0_-20px_60px_rgba(15,23,42,0.2)] dark:border-white/10 dark:bg-neutral-950 dark:shadow-[0_-20px_60px_rgba(0,0,0,0.6)]"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Más opciones"
+      {hasSecondaryItems ? (
+          <dialog
+            ref={dialogo}
+            id="mobile-more-sheet"
+            className="mobile-more-sheet rounded-t-3xl border-0 bg-white p-5 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-50"
+            aria-labelledby="mobile-more-title"
+            onCancel={() => setMoreOpen(false)}
+            onClose={() => setMoreOpen(false)}
+            onClick={(event) => { if (event.target === event.currentTarget) setMoreOpen(false) }}
             data-testid="mobile-more-sheet"
           >
+            <div className="mx-auto mb-3 h-1 w-10 shrink-0 rounded-full bg-neutral-300 dark:bg-neutral-700" aria-hidden="true" />
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <p className="label-base">Accesos rápidos</p>
-                <h2 className="mt-1 font-heading text-2xl font-black text-neutral-900 dark:text-white">Más opciones</h2>
+                <h2 id="mobile-more-title" className="font-heading text-2xl font-bold text-neutral-900 dark:text-white">Más opciones</h2>
               </div>
               <button
                 type="button"
                 onClick={() => setMoreOpen(false)}
-                className="rounded-xl p-2 text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-white/10 dark:hover:text-white"
+                className="flex h-11 w-11 items-center justify-center rounded-xl text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-300 dark:hover:bg-white/10 dark:hover:text-white"
                 aria-label="Cerrar menú"
+                autoFocus
               >
                 <X size={19} />
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="min-h-0 overflow-y-auto overscroll-contain"><div className="grid grid-cols-2 gap-2">
               {secondaryItems.map((item) => (
                 <MobileNavLink key={item.to} item={item} onClick={() => setMoreOpen(false)} />
               ))}
@@ -167,16 +194,15 @@ export function MobileBottomNav() {
                 type="button"
                 onClick={() => logout()}
                 disabled={isPending}
-                className="flex items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold text-neutral-500 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:text-neutral-400 dark:hover:bg-red-500/10 dark:hover:text-red-300"
+                className="flex min-h-14 items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold text-neutral-600 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:text-neutral-300 dark:hover:bg-red-500/10 dark:hover:text-red-300"
                 data-testid="mobile-logout-button"
               >
                 <LogOut size={18} />
                 <span>{isPending ? 'Saliendo…' : 'Cerrar sesión'}</span>
               </button>
-            </div>
-          </section>
-        </div>
-      )}
+            </div></div>
+          </dialog>
+      ) : null}
     </>
   )
 }

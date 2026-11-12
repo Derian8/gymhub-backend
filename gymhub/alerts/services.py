@@ -346,12 +346,7 @@ def base_trainer_alert_queryset(user):
     ).prefetch_related('contacts')
     if user.is_staff:
         return queryset
-    if getattr(user, 'role', None) != 'trainer':
-        return InactivityAlert.objects.none()
-    try:
-        return queryset.filter(member__trainer_asignado=user.trainerprofile)
-    except AttributeError:
-        return InactivityAlert.objects.none()
+    return InactivityAlert.objects.none()
 
 
 def filter_alerts(queryset, params):
@@ -418,8 +413,6 @@ def members_without_open_alerts(user):
     queryset = MemberProfile.objects.filter(is_active=True).select_related('user', 'trainer_asignado__user')
     if user.is_staff:
         pass
-    elif getattr(user, 'role', None) == 'trainer':
-        queryset = queryset.filter(trainer_asignado=user.trainerprofile)
     else:
         return MemberProfile.objects.none()
     queryset = queryset.exclude(inactivity_alerts__status__in=OPEN_ALERT_STATUSES)

@@ -31,7 +31,7 @@ SCHEMA_ERRORS = (ProgrammingError, OperationalError)
 def _get_mode_for_user(user):
     if user.role == 'member':
         return 'member'
-    if user.role == 'trainer' or user.is_staff:
+    if user.is_staff:
         return 'trainer_member'
     return None
 

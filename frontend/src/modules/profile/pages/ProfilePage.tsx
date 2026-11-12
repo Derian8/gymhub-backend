@@ -25,7 +25,7 @@ export function ProfilePage() {
   const currentContext = getResolvedContext(user, activeContext)
   const { mutate: updateMe, isPending } = useUpdateMeMutation()
   const { mutate: logout, isPending: isLoggingOut } = useLogoutMutation()
-  const gymQuery = useQuery({ queryKey: ['gym-profile'], queryFn: async () => (await apiClient.get('/api/trainer/gym-profile/')).data as { nombre: string; telefono: string; correo: string; direccion: string; logo?: string | null }, enabled: currentContext === 'instructor' })
+  const gymQuery = useQuery({ queryKey: ['gym-profile'], queryFn: async () => (await apiClient.get('/api/trainer/gym-profile/')).data as { nombre: string; telefono: string; correo: string; direccion: string; logo?: string | null }, enabled: currentContext === 'administrador' })
   const [gym, setGym] = useState({ nombre: '', telefono: '', correo: '', direccion: '' })
   const [gymLogo, setGymLogo] = useState<File | null>(null)
   const saveGym = useMutation({ mutationFn: async () => { const payload = new FormData(); Object.entries(gym).forEach(([key, value]) => payload.append(key, value)); if (gymLogo) payload.append('logo', gymLogo); return (await apiClient.patch('/api/trainer/gym-profile/', payload)).data }, onSuccess: () => { toast.success('Datos del gimnasio actualizados'); gymQuery.refetch() } })
@@ -70,7 +70,7 @@ export function ProfilePage() {
 
   return (
     <div data-testid="profile-page" className="page-enter mx-auto max-w-4xl">
-      <PageHeader title="Mi Perfil" subtitle="Actualiza tu correo y datos personales sin cambiar tu rol." />
+      <PageHeader title="Mi Perfil" subtitle="Actualiza tu correo y datos personales sin cambiar tu tipo de cuenta." />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
         <section className="card flex flex-col items-center gap-3 p-6 text-center">
@@ -86,8 +86,8 @@ export function ProfilePage() {
           </div>
           <div className="flex flex-wrap items-center justify-center gap-2">
             {getAvailableProfiles(user).map((profile) => (
-              <Badge key={profile} variant={profile === 'instructor' ? 'info' : profile === 'cliente' ? 'success' : 'warning'}>
-                {profile === 'administrador' ? 'Administrador' : profile === 'instructor' ? 'Instructor' : 'Cliente'}
+              <Badge key={profile} variant={profile === 'cliente' ? 'success' : 'warning'}>
+                {profile === 'administrador' ? 'Administrador' : 'Cliente'}
               </Badge>
             ))}
           </div>
@@ -172,7 +172,7 @@ export function ProfilePage() {
               <InfoField
                 icon={<Lock size={16} />}
                 label="Contexto activo"
-                value={currentContext === 'administrador' ? 'Administrador' : currentContext === 'instructor' ? 'Instructor' : 'Cliente'}
+                value={currentContext === 'administrador' ? 'Administrador' : 'Cliente'}
               />
             </div>
 
@@ -199,7 +199,7 @@ export function ProfilePage() {
       </div>
       {currentContext === 'cliente' ? <section className="card mt-6 p-6"><h2 className="font-heading text-lg font-bold">Accesos de mi cuenta</h2><div className="mt-4 flex flex-wrap gap-3"><Link className="btn-secondary inline-flex items-center gap-2" to="/membership"><CreditCard size={16} /> Membresía</Link><Link className="btn-secondary inline-flex items-center gap-2" to="/progress"><Activity size={16} /> Progreso físico</Link><Link className="btn-secondary inline-flex items-center gap-2" to="/attendance/check-in"><ClipboardList size={16} /> Asistencia</Link></div></section> : null}
       <div className="mt-6 flex justify-end"><button className="btn-secondary" onClick={() => logout()} disabled={isLoggingOut}>{isLoggingOut ? 'Cerrando sesión…' : 'Cerrar sesión'}</button></div>
-      {currentContext === 'instructor' ? <section className="card mt-6 p-6"><h3 className="font-heading text-lg font-bold">Identidad del gimnasio</h3><p className="mt-1 text-sm text-neutral-500">Estos datos aparecen en comprobantes internos y pantallas administrativas.</p><div className="mt-5 grid gap-4 sm:grid-cols-2">{Object.entries(gym).map(([key, value]) => <label key={key} className={key === 'direccion' ? 'sm:col-span-2' : ''}><span className="label-base">{{ nombre: 'Nombre', telefono: 'Teléfono', correo: 'Correo', direccion: 'Dirección' }[key as keyof typeof gym]}</span><input className="input-base mt-2 w-full" value={value} onChange={(event) => setGym((current) => ({ ...current, [key]: event.target.value }))} /></label>)}<label className="sm:col-span-2"><span className="label-base">Logo del gimnasio</span><input className="input-base mt-2 w-full" type="file" accept="image/*" onChange={(event) => setGymLogo(event.target.files?.[0] ?? null)} /></label></div><div className="mt-5 flex justify-end"><button className="btn-primary" onClick={() => saveGym.mutate()} disabled={saveGym.isPending}>Guardar gimnasio</button></div></section> : null}
+      {currentContext === 'administrador' ? <section className="card mt-6 p-6"><h3 className="font-heading text-lg font-bold">Identidad del gimnasio</h3><p className="mt-1 text-sm text-neutral-500">Estos datos aparecen en comprobantes internos y pantallas administrativas.</p><div className="mt-5 grid gap-4 sm:grid-cols-2">{Object.entries(gym).map(([key, value]) => <label key={key} className={key === 'direccion' ? 'sm:col-span-2' : ''}><span className="label-base">{{ nombre: 'Nombre', telefono: 'Teléfono', correo: 'Correo', direccion: 'Dirección' }[key as keyof typeof gym]}</span><input className="input-base mt-2 w-full" value={value} onChange={(event) => setGym((current) => ({ ...current, [key]: event.target.value }))} /></label>)}<label className="sm:col-span-2"><span className="label-base">Logo del gimnasio</span><input className="input-base mt-2 w-full" type="file" accept="image/*" onChange={(event) => setGymLogo(event.target.files?.[0] ?? null)} /></label></div><div className="mt-5 flex justify-end"><button className="btn-primary" onClick={() => saveGym.mutate()} disabled={saveGym.isPending}>Guardar gimnasio</button></div></section> : null}
     </div>
   )
 }

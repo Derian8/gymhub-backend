@@ -317,10 +317,11 @@ class ChartOverviewView(APIView):
 
     def get(self, request):
         from users.models import MemberProfile
+        from users.permissions import usa_contexto_cliente
         from users.views import _get_trainer_profile
 
         user = request.user
-        if user.role == 'member':
+        if usa_contexto_cliente(request) or not user.is_staff:
             try:
                 member = MemberProfile.objects.select_related(
                     'user', 'trainer_asignado__user', 'membership_plan'
@@ -329,11 +330,10 @@ class ChartOverviewView(APIView):
                 return Response({'error': 'Perfil de member no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
             return Response(build_member_charts(member))
 
-        if user.role == 'trainer':
-            trainer_profile = _get_trainer_profile(user)
-            return Response(build_trainer_charts(trainer_profile, user, request.query_params))
-
         if user.is_staff:
+            if not usa_contexto_cliente(request):
+                trainer_profile = _get_trainer_profile(user)
+                return Response(build_trainer_charts(trainer_profile, user, request.query_params))
             member_id = request.query_params.get('member_id')
             if not member_id:
                 return Response({'error': 'Para staff se requiere member_id.'}, status=status.HTTP_400_BAD_REQUEST)

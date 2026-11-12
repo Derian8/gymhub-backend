@@ -46,7 +46,7 @@ class Command(BaseCommand):
                 return
             if not options['respaldo']:
                 raise CommandError('Es obligatorio indicar --respaldo al aplicar.')
-            entrenador = TrainerProfile.objects.filter(user__role='trainer').order_by('pk').first()
+            entrenador = TrainerProfile.objects.filter(user__is_staff=True).order_by('pk').first()
             if entrenador is None:
                 raise CommandError('No existe un instructor; no se modificó nada.')
 

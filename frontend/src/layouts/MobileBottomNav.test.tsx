@@ -55,17 +55,17 @@ describe('MobileBottomNav', () => {
     expect(logoutMock).toHaveBeenCalledTimes(1)
   })
 
-  it('uses the active instructor context destinations', () => {
+  it('uses administrator destinations for the administrator account', () => {
     useAuthStore.setState((state) => ({
       ...state,
-      activeContext: 'instructor',
-      user: state.user ? { ...state.user, role: 'trainer', trainerprofile_id: 7, memberprofile_id: null } : null,
+      activeContext: 'administrador',
+      user: state.user ? { ...state.user, role: 'admin', is_staff: true, trainerprofile_id: 7, memberprofile_id: null } : null,
     }))
 
     const view = renderWithProviders(<MobileBottomNav />)
 
-    expect(view.getByRole('link', { name: 'Inicio' })).toHaveAttribute('href', '/dashboard/trainer')
+    expect(view.getByRole('link', { name: 'Inicio' })).toHaveAttribute('href', '/dashboard/admin')
     expect(view.getByRole('link', { name: 'Clientes' })).toHaveAttribute('href', '/members')
-    expect(view.getByRole('link', { name: 'Planes' })).toHaveAttribute('href', '/plans')
+    expect(view.getByRole('link', { name: 'Rutinas' })).toHaveAttribute('href', '/routines')
   })
 })

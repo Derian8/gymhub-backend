@@ -10,6 +10,14 @@ vi.mock('@/modules/auth/hooks/useAuthMutations', () => ({
     mutate: updateMeMock,
     isPending: false,
   }),
+  useLogoutMutation: () => ({ mutate: vi.fn(), isPending: false }),
+}))
+
+vi.mock('@/shared/api/client', () => ({
+  default: {
+    get: vi.fn().mockResolvedValue({ data: { nombre: '', telefono: '', correo: '', direccion: '' } }),
+    patch: vi.fn().mockResolvedValue({ data: { nombre: '', telefono: '', correo: '', direccion: '' } }),
+  },
 }))
 
 describe('ProfilePage', () => {
@@ -22,7 +30,7 @@ describe('ProfilePage', () => {
         username: 'trainer1',
         first_name: 'Carlos',
         last_name: 'Mendoza',
-        role: 'trainer',
+        role: 'admin',
         is_staff: true,
         memberprofile_id: null,
         trainerprofile_id: 8,
@@ -41,7 +49,6 @@ describe('ProfilePage', () => {
     expect(getByDisplayValue('Mendoza')).toBeInTheDocument()
     expect(getByDisplayValue('trainer1@gymhub.com')).toBeInTheDocument()
     expect(getByText('@trainer1')).toBeInTheDocument()
-    expect(getAllByText('Instructor').length).toBeGreaterThan(0)
     expect(getAllByText('Administrador').length).toBeGreaterThan(0)
   })
 

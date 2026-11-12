@@ -23,18 +23,16 @@ function getInitialTheme(): Theme {
 
 export function getAvailableProfiles(user: User | null): PerfilUsuario[] {
   if (!user) return []
+  if (user.is_staff || user.role === 'admin') return ['administrador']
   if (user.perfiles_disponibles?.length) return user.perfiles_disponibles
   const profiles: PerfilUsuario[] = []
-  if (user.is_staff) profiles.push('administrador')
-  if (user.trainerprofile_id || user.role === 'trainer') profiles.push('instructor')
   if (user.memberprofile_id || user.role === 'member') profiles.push('cliente')
   return profiles
 }
 
 export function getDefaultContext(user: User): PerfilUsuario {
+  if (user.is_staff || user.role === 'admin') return 'administrador'
   if (user.contexto_predeterminado) return user.contexto_predeterminado
-  if (user.is_staff) return 'administrador'
-  if (user.trainerprofile_id || user.role === 'trainer') return 'instructor'
   return 'cliente'
 }
 

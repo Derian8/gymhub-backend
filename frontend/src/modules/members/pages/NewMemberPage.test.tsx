@@ -12,7 +12,7 @@ vi.mock('../hooks/useMembers', () => ({
   useTrainersQuery: () => ({
     data: [{
       id: 4,
-      user: { id: 4, email: 'trainer@test.com', username: 'trainer', first_name: 'Carlos', last_name: 'Mora', role: 'trainer', is_staff: false, memberprofile_id: null, trainerprofile_id: 4 },
+      user: { id: 4, email: 'trainer@test.com', username: 'trainer', first_name: 'Carlos', last_name: 'Mora', role: 'admin', is_staff: true, memberprofile_id: null, trainerprofile_id: 4 },
       specialization: '', bio: '', certification: '',
     }],
     isLoading: false,

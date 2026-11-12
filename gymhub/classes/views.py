@@ -23,8 +23,6 @@ class GymClassViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.is_staff:
             return queryset
-        if user.role == 'trainer':
-            return queryset.filter(trainer__user=user)
         return queryset.filter(status='active')
 
     def perform_create(self, serializer):
@@ -83,11 +81,8 @@ class ClassEnrollmentViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         enrollment = serializer.instance
         user = self.request.user
-        if not user.is_staff and (
-            user.role != 'trainer'
-            or enrollment.gym_class.trainer.user_id != user.id
-        ):
-            raise PermissionDenied('Solo el trainer de la clase puede marcar asistencia.')
+        if not user.is_staff:
+            raise PermissionDenied('Solo un administrador puede marcar asistencia.')
         serializer.save(
             member=enrollment.member,
             gym_class=enrollment.gym_class,
@@ -96,9 +91,8 @@ class ClassEnrollmentViewSet(viewsets.ModelViewSet):
     @transaction.atomic
     def perform_destroy(self, instance):
         user = self.request.user
-        if not user.is_staff and user.role == 'trainer':
-            if instance.gym_class.trainer.user_id != user.id:
-                raise PermissionDenied('Solo puedes administrar tus propias clases.')
+        if not user.is_staff:
+            raise PermissionDenied('Solo un administrador puede administrar clases.')
         class_id = instance.gym_class_id
         instance.delete()
         GymClass.objects.filter(id=class_id, current_enrolled__gt=0).update(

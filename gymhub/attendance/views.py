@@ -1,5 +1,9 @@
 import logging
+import hashlib
+import secrets
+from datetime import timedelta
 
+from django.core.cache import cache
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
@@ -20,6 +24,12 @@ from users.models import MemberProfile
 from users.permissions import IsAdministrator, IsMember, usa_contexto_cliente
 
 logger = logging.getLogger(__name__)
+MEMBER_QR_TOKEN_TTL_SECONDS = 120
+
+
+def member_qr_cache_key(token):
+    digest = hashlib.sha256(token.encode('utf-8')).hexdigest()
+    return f'attendance:member-qr:{digest}'
 
 
 class CheckInThrottle(UserRateThrottle):
@@ -108,7 +118,16 @@ class CheckInView(APIView):
         override_reason = serializer.validated_data.get('override_reason', '').strip()
         notes = serializer.validated_data.get('notes', '').strip()
 
-        member_id = serializer.validated_data.get('member_id')
+        qr_token = serializer.validated_data.get('qr_token', '').strip()
+        if qr_token:
+            member_id = cache.get(member_qr_cache_key(qr_token))
+            if member_id is None:
+                return Response(
+                    {'error': 'El codigo QR vencio o ya fue utilizado. Solicita uno nuevo al cliente.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            member_id = serializer.validated_data.get('member_id')
         if not member_id:
             return Response({'error': 'Se requiere member_id para registrar la entrada.'}, status=status.HTTP_400_BAD_REQUEST)
         try:
@@ -181,6 +200,8 @@ class CheckInView(APIView):
             attendance_date=today,
             notes=notes,
         )
+        if qr_token:
+            cache.delete(member_qr_cache_key(qr_token))
         if gym_class_id:
             ClassEnrollment.objects.filter(
                 member=member, gym_class=gym_class
@@ -212,8 +233,36 @@ class CheckInView(APIView):
         )
 
 
+class MemberAttendanceQrView(APIView):
+    """Emite un token opaco, temporal y de un solo uso para el check-in del cliente."""
+
+    permission_classes = [IsAuthenticated, IsMember]
+
+    def get(self, request):
+        try:
+            member = MemberProfile.objects.get(user=request.user)
+        except MemberProfile.DoesNotExist:
+            return Response(
+                {'error': 'Perfil de cliente no encontrado.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        token = secrets.token_urlsafe(32)
+        cache.set(
+            member_qr_cache_key(token),
+            member.id,
+            timeout=MEMBER_QR_TOKEN_TTL_SECONDS,
+        )
+        expires_at = timezone.now() + timedelta(seconds=MEMBER_QR_TOKEN_TTL_SECONDS)
+        return Response({
+            'token': token,
+            'expires_at': expires_at,
+            'expires_in_seconds': MEMBER_QR_TOKEN_TTL_SECONDS,
+        })
+
+
 class MemberRoutineEntryView(APIView):
-    """Valida membresía, registra la entrada y recién entonces revela la rutina."""
+    """Valida la membresía y reutiliza la entrada del día para mostrar la rutina."""
 
     permission_classes = [IsAuthenticated, IsMember]
     throttle_classes = [CheckInThrottle]
@@ -249,17 +298,18 @@ class MemberRoutineEntryView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        attendance, created = Attendance.objects.get_or_create(
+        attendance = Attendance.objects.filter(
             member=member,
             attendance_date=timezone.localdate(),
-            defaults={
-                'checked_in_by': request.user,
-                'notes': 'Entrada registrada al abrir la rutina.',
-            },
-        )
-        if created:
-            from alerts.services import resolve_open_alerts_for_attendance
-            resolve_open_alerts_for_attendance(attendance)
+        ).first()
+        if attendance is None:
+            return Response(
+                {
+                    'attendance_required': True,
+                    'message': 'Muestra tu codigo QR a la administracion para registrar tu entrada antes de abrir los ejercicios.',
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         from users.audit import registrar_auditoria
         from users.services import get_active_prescription
@@ -269,10 +319,10 @@ class MemberRoutineEntryView(APIView):
             'Attendance',
             attendance.id,
             request=request,
-            details={'member_id': member.id, 'attendance_created': created},
+            details={'member_id': member.id, 'attendance_created': False},
         )
         return Response({
             'attendance': AttendanceSerializer(attendance).data,
-            'attendance_created': created,
+            'attendance_created': False,
             'prescription': get_active_prescription(member),
-        }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+        }, status=status.HTTP_200_OK)

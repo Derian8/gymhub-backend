@@ -45,6 +45,7 @@ Para un despliegue real con HTTPS, no reutilices sin cambios el `.env.prod.examp
 - `./gym-smoke --write`: habilita mutaciones; sin esta bandera no crea sesiones ni blacklists de logout.
 - `python manage.py restablecer_demo`: muestra el inventario demo sin modificarlo.
 - `python manage.py restablecer_demo --yes`: recrea trainer1/member1 y elimina demos numeradas adicionales.
+- `python manage.py reemplazar_rutinas_interval_timer --confirmar-borrado`: elimina rutinas y plantillas de entrenamiento, sesiones e historial de ejercicios; conserva el catálogo multimedia y planes vacíos archivados que sostienen datos nutricionales, y carga cuatro plantillas de ejemplo con 3×10–12 y descanso de 60 s.
 - `./deploy-supabase-vercel.sh --dry-run`: muestra el flujo de publicación sin modificar Supabase ni Vercel.
 - `./deploy-supabase-vercel.sh`: migra y audita Supabase, despliega backend y frontend en Vercel y valida los servicios públicos.
 

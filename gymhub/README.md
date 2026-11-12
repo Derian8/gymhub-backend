@@ -53,7 +53,7 @@ docker compose exec backend python manage.py createsuperuser
 | Método | URL | Descripción |
 |--------|-----|-------------|
 | GET | `/auth/csrf/` | Emite cookie/token CSRF para mutaciones por cookie |
-| POST | `/auth/register/` | Registro (trainer requiere IsStaffOrTrainer) |
+| POST | `/auth/register/` | Alta administrativa de cuentas de administrador o cliente |
 | POST | `/auth/login/` | Login → httpOnly cookies |
 | POST | `/auth/logout/` | Logout + blacklist token |
 | POST | `/auth/token/refresh/` | Renovar access token |
@@ -124,6 +124,11 @@ docker compose exec backend pytest tests/ -v
 al confirmarlo elimina demos numeradas adicionales, reconstruye trainer1/member1
 y preserva cuentas reales y superusuarios.
 
+`reemplazar_rutinas_interval_timer --confirmar-borrado` reemplaza de forma
+irreversible las rutinas, plantillas y sesiones de entrenamiento. Mantiene el
+catálogo de ejercicios y sus medios, conserva planes archivados vacíos cuando
+son necesarios para los datos nutricionales y crea cuatro plantillas de ejemplo.
+
 ## Tareas Celery Beat (3)
 
 | Tarea | Horario | Descripción |
@@ -141,3 +146,8 @@ y preserva cuentas reales y superusuarios.
 
 ## Permisos (users/permissions.py)
 `IsTrainer` · `IsMember` · `IsOwnerOrTrainer` · `IsOwnerOnly` · `IsStaffOrTrainer`
+
+Las cuentas tienen dos roles: administrador (`admin`, `is_staff=True`) y cliente
+(`member`). `TrainerProfile` se conserva para referencias técnicas y no concede
+permisos. La migración `users.0007_simplificar_roles_administrador_cliente`
+convierte las cuentas anteriores de instructor en administradores.

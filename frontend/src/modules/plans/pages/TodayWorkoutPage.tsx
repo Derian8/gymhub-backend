@@ -10,7 +10,7 @@ import { DAY_OF_WEEK_LABELS, formatDate, formatPesoSugerido, MUSCLE_LABELS, cn }
 import type { CompleteWorkoutSessionPayload, Exercise, ExerciseLogPayload } from '@/shared/types'
 import { getResolvedContext, useAuthStore } from '@/shared/store/authStore'
 import { useMemberActivePrescriptionQuery, useMemberDashboardQuery } from '@/modules/members/hooks/useMembers'
-import { useOpenRoutineMutation } from '@/modules/attendance/hooks/useAttendance'
+import { useMemberAttendanceToday } from '@/modules/attendance/hooks/useAttendance'
 import { ExerciseVideo } from '../components/ExerciseVideo'
 
 interface ExerciseLogEntry {
@@ -58,36 +58,35 @@ function TodayWorkoutPageContent() {
   const { user, activeContext } = useAuthStore()
   const currentContext = getResolvedContext(user, activeContext)
   const isMember = currentContext === 'cliente'
-  const routineEntryDate = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Costa_Rica', year: 'numeric', month: '2-digit', day: '2-digit',
-  }).format(new Date())
-  const routineEntryKey = `gymhub-routine-entry:${routineEntryDate}`
-  const [routineAccessGranted, setRoutineAccessGranted] = useState(
-    () => !isMember || window.sessionStorage.getItem(routineEntryKey) === 'granted',
-  )
   const memberId = user?.memberprofile_id || 0
+  const {
+    hasCheckedInToday: entradaConfirmada,
+    isLoading: isLoadingAttendance,
+    isError: isAttendanceError,
+    refetch: refetchAttendance,
+  } = useMemberAttendanceToday(isMember)
+  const hasAttendanceToday = !isMember || entradaConfirmada
   const {
     data: activePrescription,
     isLoading: isLoadingPrescription,
     isError: isPrescriptionError,
-  } = useMemberActivePrescriptionQuery(isMember ? memberId : 0, !!memberId)
+  } = useMemberActivePrescriptionQuery(isMember ? memberId : 0, !!memberId && hasAttendanceToday)
   const planId = requestedPlanId || activePrescription?.plan_activo?.id || 0
   const {
     data,
     isLoading: isLoadingTodayWorkout,
     isError: isTodayWorkoutError,
-  } = useTodayWorkoutQuery(planId, !!planId)
+  } = useTodayWorkoutQuery(planId, !!planId && hasAttendanceToday)
   const {
     data: weeklyView,
     isLoading: isLoadingWeeklyView,
     isError: isWeeklyViewError,
-  } = useWeeklyPlanQuery(planId, !!planId)
+  } = useWeeklyPlanQuery(planId, !!planId && hasAttendanceToday)
   const { data: dashboardSummary } = useMemberDashboardQuery(isMember ? memberId : 0)
   const { mutate: createSession, isPending: isCreating } = useCreateSessionMutation()
   const { mutate: completeSession, isPending: isCompleting } = useCompleteSessionMutation()
   const { mutate: bulkLogs, isPending: isSaving } = useBulkExerciseLogsMutation()
   const { mutate: registerExerciseProgress, isPending: isRegisteringExercise } = useRegisterExerciseProgressMutation(planId)
-  const openRoutine = useOpenRoutineMutation()
 
   const [sessionId, setSessionId] = useState<number | null>(null)
   const [sessionStarted, setSessionStarted] = useState(false)
@@ -205,17 +204,6 @@ function TodayWorkoutPageContent() {
     )
   }
 
-  const handleRoutineEntryAndStart = () => {
-    if (!workoutDay || openRoutine.isPending) return
-    openRoutine.mutate(undefined, {
-      onSuccess: () => {
-        window.sessionStorage.setItem(routineEntryKey, 'granted')
-        setRoutineAccessGranted(true)
-        handleStartSession()
-      },
-    })
-  }
-
   const handleCompleteSession = () => {
     if (!sessionId) return
 
@@ -324,7 +312,7 @@ function TodayWorkoutPageContent() {
   const mostrarFallbackSemanal = isMember && !workoutDay?.id && tieneProgramaActivo
   const mostrarEstadoVacioMember = isMember && !workoutDay?.id && !tieneProgramaActivo
   const needsWeeklyContext = isMember && tieneProgramaActivo
-  const isInitialLoading = isLoadingTodayWorkout || (isMember && (isLoadingPrescription || (needsWeeklyContext && isLoadingWeeklyView)))
+  const isInitialLoading = isLoadingTodayWorkout || (isMember && (isLoadingAttendance || isLoadingPrescription || (needsWeeklyContext && isLoadingWeeklyView)))
   const hasCriticalQueryError = isMember && (isPrescriptionError || (tieneProgramaActivo && isWeeklyViewError))
   const lacksTrainingContext = isMember && tieneProgramaActivo && !workoutDay?.id && weeklyDays.length === 0 && diasPrograma.length === 0
   const ejercicios = workoutDay?.exercises?.length || 0
@@ -367,6 +355,28 @@ function TodayWorkoutPageContent() {
         <p className="sr-only">Cargando vista de entrenamiento</p>
         <div className="h-8 w-32 skeleton rounded mb-6" />
         <CardSkeleton lines={8} />
+      </div>
+    )
+  }
+
+  if (isMember && !hasAttendanceToday) {
+    return (
+      <div className="page-enter mx-auto max-w-3xl" data-testid="workout-attendance-required">
+        <section className="rounded-[1.75rem] border border-amber-300 bg-amber-50 p-6 dark:border-amber-800 dark:bg-amber-950/30 md:p-8">
+          <p className="label-base">Ejercicios bloqueados</p>
+          <h1 className="mt-2 font-heading text-3xl font-black text-neutral-900 dark:text-white">
+            {isAttendanceError ? 'No pudimos comprobar tu entrada' : 'Confirma tu entrada para abrir la rutina'}
+          </h1>
+          <p className="mt-3 text-sm leading-6 text-neutral-600 dark:text-neutral-300">
+            {isAttendanceError
+              ? 'Revisa tu conexiÃ³n e intÃ©ntalo nuevamente.'
+              : 'Muestra el cÃ³digo QR de Inicio a la administraciÃ³n. Cuando registren tu llegada, los ejercicios de hoy quedarÃ¡n disponibles.'}
+          </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link to="/today" className="btn-primary">Ir a Inicio y mostrar QR</Link>
+            {isAttendanceError ? <button type="button" onClick={() => void refetchAttendance()} className="btn-secondary">Revisar entrada</button> : null}
+          </div>
+        </section>
       </div>
     )
   }
@@ -483,13 +493,13 @@ function TodayWorkoutPageContent() {
                   </div>
                 ) : null}
                 <button
-                  onClick={isMember && !routineAccessGranted ? handleRoutineEntryAndStart : handleStartSession}
-                  disabled={isCreating || openRoutine.isPending}
+                  onClick={handleStartSession}
+                  disabled={isCreating}
                   className="btn-primary flex w-full items-center justify-center gap-2 py-4 text-base sm:w-auto sm:min-w-[22rem]"
                   data-testid="start-session-btn"
                 >
-                  {isCreating || openRoutine.isPending ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
-                  {isCreating ? 'Iniciando...' : openRoutine.isPending ? 'Registrando entrada...' : isMember && !routineAccessGranted ? 'Registrar entrada e iniciar rutina' : isMember ? 'Iniciar rutina' : 'Registrar entrenamiento'}
+                  {isCreating ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
+                  {isCreating ? 'Iniciando...' : isMember ? 'Iniciar rutina' : 'Registrar entrenamiento'}
                 </button>
               </div>
             ) : (

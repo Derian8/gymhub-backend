@@ -56,7 +56,7 @@ describe('RouteGuards', () => {
         <Route
           path="/trainer"
           element={(
-            <ProtectedRoute requiredRole="trainer">
+            <ProtectedRoute requiredRole="admin">
               <div>Trainer Area</div>
             </ProtectedRoute>
           )}
@@ -83,7 +83,7 @@ describe('RouteGuards', () => {
     })).toBe('/today')
   })
 
-  it('redirects authenticated trainer away from public route', () => {
+  it('redirects authenticated administrator away from public route', () => {
     useAuthStore.setState({
       user: {
         id: 2,
@@ -91,8 +91,8 @@ describe('RouteGuards', () => {
         username: 'trainer',
         first_name: 'Trainer',
         last_name: 'User',
-        role: 'trainer',
-        is_staff: false,
+        role: 'admin',
+        is_staff: true,
         memberprofile_id: null,
         trainerprofile_id: 4,
       },
@@ -111,12 +111,12 @@ describe('RouteGuards', () => {
             </PublicRoute>
           )}
         />
-        <Route path="/dashboard/trainer" element={<div>Dashboard Trainer</div>} />
+        <Route path="/dashboard/admin" element={<div>Dashboard Administrador</div>} />
       </Routes>,
       { route: '/login' },
     )
 
-    expect(getByText('Dashboard Trainer')).toBeInTheDocument()
+    expect(getByText('Dashboard Administrador')).toBeInTheDocument()
   })
 
   it('shows loading screen while auth is resolving', () => {

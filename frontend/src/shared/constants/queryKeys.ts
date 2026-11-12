@@ -37,6 +37,7 @@ export const QUERY_KEYS = {
   // Attendance
   ATTENDANCE: ['attendance'] as const,
   ATTENDANCE_LIST: (params?: Record<string, string>) => ['attendance', 'list', params] as const,
+  MEMBER_ATTENDANCE_QR: ['attendance', 'member-qr'] as const,
 
   // Progress
   PROGRESS_LOGS: (memberId?: number) => ['progress-logs', memberId ?? 'self'] as const,

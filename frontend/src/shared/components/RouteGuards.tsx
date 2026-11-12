@@ -6,16 +6,14 @@ import type { PerfilUsuario, User } from '@/shared/types'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
-  requiredRole?: 'admin' | 'trainer' | 'member' | 'operator' | 'any'
+  requiredRole?: 'admin' | 'member' | 'any'
 }
 
 export function homePathForUser(user: User, context?: PerfilUsuario | null) {
   const selected = context || user.contexto_predeterminado
   if (selected === 'cliente') return '/today'
-  if (selected === 'instructor') return '/dashboard/trainer'
   if (selected === 'administrador') return '/dashboard/admin'
   if (user.is_staff) return '/dashboard/admin'
-  if (user.trainerprofile_id || user.role === 'trainer') return '/dashboard/trainer'
   return '/today'
 }
 
@@ -40,18 +38,9 @@ export function ProtectedRoute({ children, requiredRole = 'any' }: ProtectedRout
     return <Navigate to={homePathForUser(user, currentContext)} replace />
   }
 
-  const hasTrainerProfile = Boolean(user.trainerprofile_id || user.role === 'trainer')
   const hasMemberProfile = Boolean(user.memberprofile_id || user.role === 'member')
 
-  if (requiredRole === 'trainer' && !user.is_staff && (!hasTrainerProfile || currentContext !== 'instructor')) {
-    return <Navigate to={homePathForUser(user, currentContext)} replace />
-  }
-
   if (requiredRole === 'member' && (!hasMemberProfile || currentContext !== 'cliente')) {
-    return <Navigate to={homePathForUser(user, currentContext)} replace />
-  }
-
-  if (requiredRole === 'operator' && !user.is_staff && (!hasTrainerProfile || currentContext !== 'instructor')) {
     return <Navigate to={homePathForUser(user, currentContext)} replace />
   }
 

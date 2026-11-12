@@ -92,32 +92,26 @@ describe('Sidebar', () => {
     expect(queryByText('Pagos')).not.toBeInTheDocument()
   })
 
-  it('shows only the trainer operational core', () => {
+  it('shows full administrator navigation for former trainer accounts', () => {
     useAuthStore.setState((state) => ({
       ...state,
-      user: state.user ? { ...state.user, role: 'trainer', trainerprofile_id: 7, memberprofile_id: null } : null,
+      user: state.user ? { ...state.user, role: 'admin', is_staff: true, trainerprofile_id: 7, memberprofile_id: null } : null,
     }))
 
-    const { getByRole, queryByText } = renderWithProviders(
+    const view = renderWithProviders(
       <Sidebar collapsed={false} mobileOpen={true} onToggle={vi.fn()} onCloseMobile={closeMobileMock} />,
     )
 
-    expect(getByRole('link', { name: /Dashboard/ })).toHaveAttribute('href', '/dashboard/trainer')
-    expect(getByRole('link', { name: /Clientes asignados/ })).toHaveAttribute('href', '/members')
-    fireEvent.click(getByRole('button', { name: /Entrenamiento · Etapa 2/ }))
-    expect(getByRole('link', { name: /Planes/ })).toHaveAttribute('href', '/plans')
-    expect(queryByText('Asistencia')).not.toBeInTheDocument()
-    expect(queryByText('Facturación')).not.toBeInTheDocument()
-    expect(queryByText('Alertas')).not.toBeInTheDocument()
-    expect(queryByText('Nutrición')).not.toBeInTheDocument()
-    expect(queryByText('Gráficas')).not.toBeInTheDocument()
-    expect(queryByText('Chat IA')).not.toBeInTheDocument()
+    expect(view.getByRole('link', { name: /Clientes/ })).toHaveAttribute('href', '/members')
+    expect(view.getByRole('link', { name: /Rutinas/ })).toHaveAttribute('href', '/routines')
+    fireEvent.click(view.getByRole('button', { name: /M.s/ }))
+    expect(view.getByRole('link', { name: /Planes t.cnicos/ })).toHaveAttribute('href', '/plans')
+    expect(view.getByRole('link', { name: /Reportes/ })).toHaveAttribute('href', '/reports')
   })
-
   it('keeps the administrator focused and moves secondary tools under More', () => {
     useAuthStore.setState((state) => ({
       ...state,
-      user: state.user ? { ...state.user, role: 'trainer', is_staff: true, trainerprofile_id: null, memberprofile_id: null } : null,
+      user: state.user ? { ...state.user, role: 'admin', is_staff: true, trainerprofile_id: null, memberprofile_id: null } : null,
     }))
 
     const view = renderWithProviders(

@@ -117,7 +117,12 @@ export function BillingPage() {
   const filtros = memberId ? { member: memberId } : undefined
   const memberIdNumber = memberId ? Number(memberId) : undefined
   const [portfolioSearch, setPortfolioSearch] = useState('')
-  const [portfolioPaymentFilter, setPortfolioPaymentFilter] = useState<PaymentPortfolioFilter>('')
+  const [portfolioPaymentFilter, setPortfolioPaymentFilter] = useState<PaymentPortfolioFilter>(() => {
+    const paymentStatus = searchParams.get('payment_status')
+    return ['paid', 'pending', 'late', 'none'].includes(paymentStatus ?? '')
+      ? paymentStatus as PaymentPortfolioFilter
+      : ''
+  })
   const [section, setSection] = useState<BillingSection>('portfolio')
   const memberPortfolioParams = useMemo(
     () => ({
@@ -219,6 +224,8 @@ export function BillingPage() {
       <PageHeader
         title={memberId ? 'Facturación del miembro' : 'Facturación'}
         subtitle={memberId ? 'Cobros, recibos y estado comercial del miembro seleccionado' : 'Cobros, recibos y vencimientos de la cartera'}
+        backTo={memberId ? '/members' : undefined}
+        backLabel="Volver a clientes"
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">

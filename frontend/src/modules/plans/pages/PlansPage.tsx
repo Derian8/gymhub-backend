@@ -231,7 +231,7 @@ export function PlansPage() {
       <PageHeader
         title={memberId ? 'Planes del miembro' : 'Planes de entrenamiento'}
         subtitle={memberId ? `Mostrando ${data?.count || 0} plan(es) del miembro seleccionado` : 'Crea, asigna y administra las rutinas de tus miembros desde un solo lugar.'}
-        action={currentContext === 'instructor' || user?.is_staff ? (
+        action={user?.is_staff ? (
           <button type="button" className="btn-primary" onClick={() => setWizardOpen(true)} data-testid="open-create-plan-wizard">
             <Plus size={16} /> Crear plan
           </button>
@@ -301,7 +301,7 @@ export function PlansPage() {
           icon={<Dumbbell size={48} />}
           title={search || statusFilter !== 'all' ? 'No encontramos planes con estos filtros.' : 'No hay planes de entrenamiento todavía.'}
           description={search || statusFilter !== 'all' ? 'Ajusta la búsqueda o cambia el filtro de estado.' : 'Crea el primer plan para asignar una rutina clara a un miembro.'}
-          action={currentContext === 'instructor' || user?.is_staff ? (
+          action={user?.is_staff ? (
             <button type="button" className="btn-primary" onClick={() => setWizardOpen(true)}>Crear primer plan</button>
           ) : null}
         />

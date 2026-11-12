@@ -52,7 +52,7 @@ export function WorkoutDayDetailPage() {
   const { user, activeContext } = useAuthStore()
   const currentContext = getResolvedContext(user, activeContext)
   const canEdit = !!plan && (plan.status === 'active' || plan.status === 'draft')
-    && (currentContext === 'instructor' || currentContext === 'administrador' || !!user?.is_staff)
+    && (currentContext === 'administrador' || !!user?.is_staff)
 
   if (isPlanLoading || isDayLoading) {
     return (
@@ -84,14 +84,11 @@ export function WorkoutDayDetailPage() {
 
   return (
     <div className="page-enter" data-testid="workout-day-detail-page">
-      <Link to={`/plans/${day.plan}`} className="mb-6 flex items-center gap-2 text-sm text-neutral-500 transition-colors hover:text-primary">
-        <ArrowLeft size={16} />
-        Volver al plan
-      </Link>
-
       <PageHeader
         title={`${DAY_OF_WEEK_LABELS[day.day_of_week]} · ${day.name}`}
         subtitle={plan ? `Plan: ${plan.name}` : `Día ${day.day_label}`}
+        backTo={`/plans/${day.plan}`}
+        backLabel="Volver al plan"
         action={
           <div className="flex flex-wrap items-center gap-2">
             {canEdit ? (

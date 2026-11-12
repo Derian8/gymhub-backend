@@ -75,7 +75,7 @@ export function Topbar({ onMenuClick, sidebarCollapsed }: TopbarProps) {
             >
               {profiles.map((profile) => (
                 <option key={profile} value={profile}>
-                  {profile === 'administrador' ? 'Administrador' : profile === 'instructor' ? 'Instructor' : 'Cliente'}
+                  {profile === 'administrador' ? 'Administrador' : 'Cliente'}
                 </option>
               ))}
             </select>
@@ -98,7 +98,7 @@ export function Topbar({ onMenuClick, sidebarCollapsed }: TopbarProps) {
                 {user.first_name || user.username}
               </span>
               <span className="block text-[10px] uppercase tracking-[0.22em] text-neutral-500 dark:text-neutral-400">
-                {activeContext === 'administrador' ? 'Administrador' : activeContext === 'instructor' ? 'Instructor' : 'Cliente'}
+                  {activeContext === 'administrador' ? 'Administrador' : 'Cliente'}
               </span>
             </div>
           </Link>

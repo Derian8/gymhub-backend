@@ -5,15 +5,44 @@ from django.utils import timezone
 
 class User(AbstractUser):
     ROLE_CHOICES = [
-        ('member', 'Member'),
-        ('trainer', 'Trainer'),
+        ('admin', 'Administrador'),
+        ('member', 'Cliente'),
     ]
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='member')
     requiere_cambio_contrasena = models.BooleanField(default=False)
 
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(role__in=('admin', 'member')),
+                name='user_role_admin_or_member',
+            ),
+        ]
+
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
+
+    def save(self, *args, **kwargs):
+        # Mantiene compatibilidad con procesos antiguos que aún crean trainers.
+        # El único rol administrativo expuesto es admin.
+        ya_es_administrador = False
+        if self.pk:
+            ya_es_administrador = type(self).objects.filter(pk=self.pk).filter(
+                models.Q(role='admin') | models.Q(is_staff=True) | models.Q(is_superuser=True)
+            ).exists()
+
+        if (
+            ya_es_administrador
+            or self.role in ('admin', 'trainer')
+            or self.is_staff
+            or self.is_superuser
+        ):
+            self.role = 'admin'
+            self.is_staff = True
+            if kwargs.get('update_fields') is not None:
+                kwargs['update_fields'] = set(kwargs['update_fields']) | {'role', 'is_staff'}
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.email} ({self.role})"

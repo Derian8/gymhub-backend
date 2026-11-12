@@ -218,7 +218,7 @@ describe('TodayWorkoutPage', () => {
   it('starts and completes a workout session', async () => {
     const user = userEvent.setup()
     useAuthStore.setState((state) => ({
-      user: state.user ? { ...state.user, role: 'trainer', memberprofile_id: null, trainerprofile_id: 2 } : state.user,
+      user: state.user ? { ...state.user, role: 'admin', memberprofile_id: null, trainerprofile_id: 2 } : state.user,
     }))
     crearSesion.mockImplementation((_payload, options) => {
       options?.onSuccess?.({ id: 901 })

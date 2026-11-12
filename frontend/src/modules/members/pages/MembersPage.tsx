@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { Search, UserPlus, ChevronLeft, ChevronRight, AlertTriangle, CreditCard } from 'lucide-react'
 import { useMembersQuery } from '../hooks/useMembers'
 import { Badge, PageHeader, Avatar } from '@/shared/components/UI'
@@ -48,14 +48,51 @@ function getMembershipPlanName(member: MemberProfile) {
 export function MembersPage() {
   const user = useAuthStore((state) => state.user)
   const isAdmin = Boolean(user?.is_staff)
-  const [search, setSearch] = useState('')
-  const [paymentFilter, setPaymentFilter] = useState('')
-  const [inactivityFilter, setInactivityFilter] = useState('')
-  const [riskFilter, setRiskFilter] = useState('')
-  const [prescriptionFilter, setPrescriptionFilter] = useState('')
-  const [ordering, setOrdering] = useState('riesgo_desc')
-  const [page, setPage] = useState(1)
+  const location = useLocation()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [search, setSearch] = useState(() => searchParams.get('search') || '')
+  const [paymentFilter, setPaymentFilter] = useState(() => {
+    const paymentStatus = searchParams.get('payment_status')
+    if (paymentStatus) return paymentStatus
+    const commercialStatus = searchParams.get('commercial_status')
+    return commercialStatus === 'al_dia' ? 'paid' : commercialStatus === 'sin_membresia' ? 'none' : ''
+  })
+  const [inactivityFilter, setInactivityFilter] = useState(() => searchParams.get('inactivity') || '')
+  const [riskFilter, setRiskFilter] = useState(() => searchParams.get('risk_level') || '')
+  const [prescriptionFilter, setPrescriptionFilter] = useState(() => searchParams.get('prescription_status') || '')
+  const [ordering, setOrdering] = useState(() => searchParams.get('ordering') || 'riesgo_desc')
+  const [page, setPage] = useState(() => Math.max(1, Number(searchParams.get('page')) || 1))
   const [routineClient, setRoutineClient] = useState<AdminRoutineQueueItem | null>(null)
+  const scrollRestored = useRef(false)
+  const listScrollKey = `gymhub-list-scroll:${location.pathname}`
+
+  useEffect(() => {
+    const params = new URLSearchParams()
+    if (search) params.set('search', search)
+    if (paymentFilter) params.set('payment_status', paymentFilter)
+    if (inactivityFilter) params.set('inactivity', inactivityFilter)
+    if (riskFilter) params.set('risk_level', riskFilter)
+    if (prescriptionFilter) params.set('prescription_status', prescriptionFilter)
+    if (ordering !== 'riesgo_desc') params.set('ordering', ordering)
+    if (page > 1) params.set('page', String(page))
+    if (searchParams.toString() !== params.toString()) {
+      setSearchParams(params, { replace: true })
+    }
+  }, [search, paymentFilter, inactivityFilter, riskFilter, prescriptionFilter, ordering, page, searchParams, setSearchParams])
+
+  useEffect(() => {
+    let saveFrame = 0
+    const saveScroll = () => {
+      cancelAnimationFrame(saveFrame)
+      saveFrame = requestAnimationFrame(() => sessionStorage.setItem(listScrollKey, String(window.scrollY)))
+    }
+    window.addEventListener('scroll', saveScroll, { passive: true })
+    return () => {
+      cancelAnimationFrame(saveFrame)
+      sessionStorage.setItem(listScrollKey, String(window.scrollY))
+      window.removeEventListener('scroll', saveScroll)
+    }
+  }, [listScrollKey])
 
   const { data, isLoading } = useMembersQuery({
     assignment: isAdmin ? undefined : 'mine',
@@ -68,6 +105,16 @@ export function MembersPage() {
     ordering: ordering || undefined,
     page,
   })
+
+  useEffect(() => {
+    if (isLoading || scrollRestored.current) return
+    const savedScroll = Number(sessionStorage.getItem(listScrollKey))
+    if (Number.isFinite(savedScroll) && savedScroll > 0) {
+      requestAnimationFrame(() => window.scrollTo(0, savedScroll))
+    }
+    scrollRestored.current = true
+  }, [isLoading, listScrollKey])
+
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value)
     setPage(1)
@@ -79,7 +126,7 @@ export function MembersPage() {
         title={isAdmin ? 'Clientes' : 'Clientes asignados'}
         subtitle={isAdmin ? `${data?.count || 0} clientes registrados` : `${data?.count || 0} clientes bajo tu seguimiento técnico`}
         action={isAdmin ? (
-          <Link to="/members/new" className="btn-primary flex items-center gap-2" data-testid="new-member-btn">
+          <Link to="/members/new" state={{ returnTo: `${location.pathname}${location.search}`, returnLabel: 'Volver a clientes' }} className="btn-primary flex items-center gap-2" data-testid="new-member-btn">
             <UserPlus size={16} />
             Registrar y cobrar
           </Link>
@@ -185,7 +232,7 @@ export function MembersPage() {
               </tr>
             ) : (
               data?.results.map((member) => (
-                <MemberRow key={member.id} member={member} isAdmin={isAdmin} onAssignRoutine={setRoutineClient} />
+                <MemberRow key={member.id} member={member} isAdmin={isAdmin} returnTo={`${location.pathname}${location.search}`} onAssignRoutine={setRoutineClient} />
               ))
             )}
           </tbody>
@@ -224,7 +271,7 @@ export function MembersPage() {
   )
 }
 
-function MemberRow({ member, isAdmin, onAssignRoutine }: { member: MemberProfile; isAdmin: boolean; onAssignRoutine: (client: AdminRoutineQueueItem) => void }) {
+function MemberRow({ member, isAdmin, returnTo, onAssignRoutine }: { member: MemberProfile; isAdmin: boolean; returnTo: string; onAssignRoutine: (client: AdminRoutineQueueItem) => void }) {
   const membership = member.membresia_actual
   const membershipBadge = getMembershipBadge(membership)
   const isUnassigned = member.trainer_asignado == null
@@ -332,7 +379,7 @@ function MemberRow({ member, isAdmin, onAssignRoutine }: { member: MemberProfile
           {member.nivel_riesgo === 'high' && <AlertTriangle size={14} className="text-red-500" />}
           {isAdmin ? (
             <>
-              <Link to={`/billing?member=${member.id}`} className="text-sm font-medium text-primary hover:underline">Cobrar</Link>
+              <Link to={`/billing?member=${member.id}`} state={{ returnTo, returnLabel: 'Volver a clientes' }} className="text-sm font-medium text-primary hover:underline">Cobrar</Link>
               {!member.tiene_plan_activo ? (
                 <button
                   type="button"
@@ -348,12 +395,13 @@ function MemberRow({ member, isAdmin, onAssignRoutine }: { member: MemberProfile
                   Asignar rutina
                 </button>
               ) : null}
-              <Link to={`/members/${member.id}#progreso`} className="text-sm font-medium text-primary hover:underline">Progreso</Link>
+              <Link to={`/members/${member.id}#progreso`} state={{ returnTo, returnLabel: 'Volver a clientes' }} className="text-sm font-medium text-primary hover:underline">Progreso</Link>
             </>
           ) : null}
           {!isAdmin && !isUnassigned ? (
             <Link
               to={`/members/${member.id}/program`}
+              state={{ returnTo, returnLabel: 'Volver a clientes' }}
               className="text-sm font-medium text-neutral-700 hover:text-primary dark:text-neutral-300"
               data-testid={`member-program-${member.id}`}
             >
@@ -362,6 +410,7 @@ function MemberRow({ member, isAdmin, onAssignRoutine }: { member: MemberProfile
           ) : null}
           <Link
             to={`/members/${member.id}`}
+            state={{ returnTo, returnLabel: 'Volver a clientes' }}
             className="text-primary text-sm font-medium hover:underline"
             data-testid={`member-detail-${member.id}`}
           >

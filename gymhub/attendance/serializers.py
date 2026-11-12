@@ -34,6 +34,7 @@ class AttendanceSerializer(serializers.ModelSerializer):
 
 class CheckInSerializer(serializers.Serializer):
     member_id = serializers.IntegerField(required=False)
+    qr_token = serializers.CharField(required=False, allow_blank=False, max_length=200)
     gym_class_id = serializers.IntegerField(required=False, allow_null=True)
     trainer_override = serializers.BooleanField(default=False)
     override_reason = serializers.CharField(required=False, allow_blank=True, max_length=500)

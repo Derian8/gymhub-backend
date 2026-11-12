@@ -25,7 +25,7 @@ export function AiChatPage() {
   const [sentMessageIds, setSentMessageIds] = useState<number[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const isTrainer = Boolean(user?.role === 'trainer' || user?.is_staff)
+  const isTrainer = Boolean(user?.is_staff)
   const selectedMemberId = isTrainer ? parseMemberId(searchParams.get('member')) : undefined
   const { data: context, isLoading: contextLoading, isError: contextError } = useAiChatContextQuery(selectedMemberId)
   const { data: history, isLoading: historyLoading, isError: historyError } = useAiChatHistoryQuery(selectedMemberId)
@@ -129,7 +129,7 @@ export function AiChatPage() {
   return (
     <div data-testid="ai-chat-page" className="page-enter flex flex-col gap-6">
       <PageHeader
-        title={isTrainer ? 'Asistente Inteligente del Trainer' : 'Chat IA'}
+        title={isTrainer ? 'Asistente de administración' : 'Chat IA'}
         subtitle={isTrainer ? 'Analiza miembros con datos reales de PULSO y decide el siguiente paso.' : 'Coach personal con contexto real'}
       />
 

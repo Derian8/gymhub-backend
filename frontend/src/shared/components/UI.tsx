@@ -1,5 +1,7 @@
 import { cn } from '@/shared/lib/utils'
 import { BrandMark, PulsoDecorativo, SymbolFrame } from './Brand'
+import { ArrowLeft } from 'lucide-react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 interface BadgeProps {
   variant?: 'success' | 'warning' | 'error' | 'info' | 'neutral'
@@ -96,28 +98,32 @@ interface PageHeaderProps {
   title: string
   subtitle?: string
   action?: React.ReactNode
+  inlineAction?: boolean
   breadcrumb?: Array<{ label: string; href?: string }>
+  backTo?: string
+  backLabel?: string
 }
 
-export function PageHeader({ title, subtitle, action, breadcrumb, eyebrow }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, action, inlineAction = false, breadcrumb, eyebrow, backTo, backLabel }: PageHeaderProps) {
   return (
-    <div className="pulso-cabecera flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
+    <div className={`pulso-cabecera flex ${inlineAction ? 'flex-row items-center gap-2' : 'flex-col gap-4 lg:flex-row lg:items-center'} justify-between mb-8`}>
       {eyebrow && <PulsoDecorativo className="pointer-events-none absolute bottom-2 right-0 hidden w-64 text-primary/10 lg:block" />}
       <div className="relative min-w-0">
+        {backTo ? <PageHeaderBack fallbackTo={backTo} label={backLabel || 'Volver'} /> : null}
         {eyebrow && <p className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-primary"><span className="h-1.5 w-1.5 rounded-full bg-primary" />{eyebrow}</p>}
         {breadcrumb && (
           <div className="flex items-center gap-1 text-xs text-neutral-500 dark:text-neutral-400 mb-1">
             {breadcrumb.map((item, i) => (
               <span key={i} className="flex items-center gap-1">
                 {i > 0 && <span>/</span>}
-                <span className={i === breadcrumb.length - 1 ? 'text-neutral-900 dark:text-white' : ''}>
-                  {item.label}
-                </span>
+                {item.href
+                  ? <Link to={item.href} className="transition-colors hover:text-primary">{item.label}</Link>
+                  : <span className={i === breadcrumb.length - 1 ? 'text-neutral-900 dark:text-white' : ''}>{item.label}</span>}
               </span>
             ))}
           </div>
         )}
-        <h1 className="text-3xl lg:text-4xl font-heading font-bold uppercase tracking-tight text-neutral-900 dark:text-white">
+        <h1 className={`${inlineAction ? 'text-2xl sm:text-3xl lg:text-4xl' : 'text-3xl lg:text-4xl'} font-heading font-bold uppercase tracking-tight text-neutral-900 dark:text-white`}>
           {title}
         </h1>
         {subtitle && (
@@ -126,6 +132,44 @@ export function PageHeader({ title, subtitle, action, breadcrumb, eyebrow }: Pag
       </div>
       {action && <div className="max-w-full shrink-0">{action}</div>}
     </div>
+  )
+}
+
+function PageHeaderBack({ fallbackTo, label }: { fallbackTo: string; label: string }) {
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  const handleBack = () => {
+    const state = location.state && typeof location.state === 'object'
+      ? location.state as { returnTo?: unknown; returnLabel?: unknown }
+      : undefined
+    if (typeof state?.returnTo === 'string' && state.returnTo.startsWith('/') && !state.returnTo.startsWith('//')) {
+      navigate(state.returnTo, { replace: true })
+      return
+    }
+    const historyIndex = Number(window.history.state?.idx)
+    if (Number.isFinite(historyIndex) && historyIndex > 0) {
+      navigate(-1)
+      return
+    }
+    navigate(fallbackTo, { replace: true })
+  }
+
+  const state = location.state && typeof location.state === 'object'
+    ? location.state as { returnTo?: unknown; returnLabel?: unknown }
+    : undefined
+  const historyIndex = Number(window.history.state?.idx)
+  const hasInternalHistory = Number.isFinite(historyIndex) && historyIndex > 0
+  const hasSafeReturnTo = typeof state?.returnTo === 'string' && state.returnTo.startsWith('/') && !state.returnTo.startsWith('//')
+  const visibleLabel = typeof state?.returnLabel === 'string'
+    ? state.returnLabel
+    : hasSafeReturnTo || !hasInternalHistory ? label : 'Volver'
+
+  return (
+    <button type="button" onClick={handleBack} className="mb-2 inline-flex min-h-9 items-center gap-1.5 rounded-lg pr-2 text-sm font-semibold text-neutral-500 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:text-neutral-400" aria-label={visibleLabel}>
+      <ArrowLeft size={16} />
+      <span>{visibleLabel}</span>
+    </button>
   )
 }
 

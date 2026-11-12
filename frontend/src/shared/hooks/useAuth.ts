@@ -91,7 +91,7 @@ export function useAuth(enabled = true) {
     isLoading: (enabled && isLoading) || !authResolved,
     authResolved,
     activeContext,
-    isTrainer: Boolean(currentUser?.trainerprofile_id || currentUser?.role === 'trainer' || currentUser?.is_staff),
+    isTrainer: Boolean(currentUser?.is_staff),
     isMember: Boolean(currentUser?.memberprofile_id || currentUser?.role === 'member'),
     isStaff: !!currentUser?.is_staff,
   }

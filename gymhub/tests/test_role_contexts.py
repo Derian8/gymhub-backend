@@ -3,11 +3,12 @@ from django.utils import timezone
 from rest_framework import status
 
 from users.models import MemberProfile
+from users.permissions import tiene_perfil_cliente
 from users.serializers import UserSerializer
 
 
 @pytest.mark.django_db
-def test_instructor_client_exposes_both_profiles_and_defaults_to_instructor(
+def test_administrator_with_legacy_client_profile_exposes_admin_only(
     trainer_user,
     trainer_profile,
 ):
@@ -19,13 +20,14 @@ def test_instructor_client_exposes_both_profiles_and_defaults_to_instructor(
     data = UserSerializer(trainer_user).data
 
     assert data['trainerprofile_id'] == trainer_profile.id
-    assert data['memberprofile_id'] == member.id
-    assert data['perfiles_disponibles'] == ['instructor', 'cliente']
-    assert data['contexto_predeterminado'] == 'instructor'
+    assert data['memberprofile_id'] is None
+    assert data['perfiles_disponibles'] == ['administrador']
+    assert data['contexto_predeterminado'] == 'administrador'
+    assert not tiene_perfil_cliente(trainer_user)
 
 
 @pytest.mark.django_db
-def test_admin_enables_existing_instructor_as_client_with_first_payment(
+def test_admin_cannot_convert_an_administrator_account_into_client(
     admin_client,
     trainer_user,
     trainer_profile,
@@ -44,20 +46,27 @@ def test_admin_enables_existing_instructor_as_client_with_first_payment(
         format='json',
     )
 
-    assert response.status_code == status.HTTP_201_CREATED
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert 'no puede convertirse en cliente' in response.data['error']
     trainer_user.refresh_from_db()
-    assert trainer_user.role == 'trainer'
-    assert response.data['user']['perfiles_disponibles'] == [
-        'instructor',
-        'cliente',
-    ]
-    assert response.data['member']['trainer_asignado'] == trainer_profile.id
-    assert response.data['payment']['status'] == 'paid'
-    assert response.data['payment']['paid_at'] is not None
+    assert trainer_user.role == 'admin'
+    assert trainer_user.is_staff is True
+    assert not hasattr(trainer_user, 'memberprofile')
 
 
 @pytest.mark.django_db
-def test_instructor_client_scope_self_never_exposes_assigned_clients_progress(
+def test_administrator_account_cannot_be_demoted_to_client(trainer_user):
+    trainer_user.role = 'member'
+    trainer_user.is_staff = False
+    trainer_user.save()
+    trainer_user.refresh_from_db()
+
+    assert trainer_user.role == 'admin'
+    assert trainer_user.is_staff is True
+
+
+@pytest.mark.django_db
+def test_administrator_cannot_use_client_scope_for_legacy_member_profile(
     trainer_client,
     trainer_user,
     trainer_profile,
@@ -84,12 +93,11 @@ def test_instructor_client_scope_self_never_exposes_assigned_clients_progress(
 
     assert response.status_code == status.HTTP_200_OK
     results = response.data.get('results', response.data)
-    assert [item['id'] for item in results] == [own_log.id]
-    assert assigned_log.id not in {item['id'] for item in results}
+    assert {item['id'] for item in results} == {own_log.id, assigned_log.id}
 
 
 @pytest.mark.django_db
-def test_instructor_cannot_enable_its_own_client_profile(
+def test_administrator_cannot_enable_its_own_client_profile(
     trainer_client,
     trainer_profile,
     membership_plan,
@@ -107,3 +115,4 @@ def test_instructor_cannot_enable_its_own_client_profile(
     )
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert not hasattr(trainer_profile.user, 'memberprofile')

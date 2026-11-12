@@ -41,7 +41,7 @@ export function AppLayout() {
         />
 
         <main className="pulso-contenido min-h-screen pt-16">
-          <div className="page-enter mx-auto max-w-[1600px] px-4 py-6 pb-28 sm:px-6 md:p-8 md:pb-28 lg:pb-10">
+          <div className="page-enter mx-auto max-w-[1600px] px-4 py-6 pb-[calc(6rem_+_env(safe-area-inset-bottom))] sm:px-6 md:p-8 md:pb-[calc(6rem_+_env(safe-area-inset-bottom))] lg:pb-10">
             <BackendStatusBanner />
             <Outlet />
           </div>

@@ -1,68 +1,66 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link, useSearchParams } from 'react-router-dom'
-import { Activity, CalendarDays, CheckSquare, Clock3, Loader2, NotebookPen, Search, UserCheck } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Activity, CheckSquare, Clock3, NotebookPen } from 'lucide-react'
 
 import { useCheckInMutation, useCheckOutMutation, useAttendanceQuery } from '../hooks/useAttendance'
 import { PageHeader, EmptyState, Badge } from '@/shared/components/UI'
 import { SymbolFrame } from '@/shared/components/Brand'
 import { TableRowSkeleton } from '@/shared/components/Skeleton'
-import { formatDate, formatDateTime, formatRelative } from '@/shared/lib/utils'
+import { formatDateTime, formatRelative } from '@/shared/lib/utils'
 import { useAuthStore } from '@/shared/store/authStore'
 import { progressApi } from '@/modules/progress/api/progressApi'
 import { QUERY_KEYS } from '@/shared/constants/queryKeys'
-import { useMembersQuery } from '@/modules/members/hooks/useMembers'
-import type { Attendance } from '@/shared/types'
+import { AdminQrScanner } from '../components/AdminQrScanner'
 
 export function CheckInPage() {
   const { user } = useAuthStore()
-  const esEntrenador = Boolean(user?.is_staff)
-  const [searchParams] = useSearchParams()
-  const memberId = searchParams.get('member')
+  return user?.is_staff ? <AdminQrAttendancePage /> : <MemberCheckInPage />
+}
+
+function AdminQrAttendancePage() {
+  const [scannerSession, setScannerSession] = useState(0)
+  const { mutate: checkIn, isPending } = useCheckInMutation()
+
+  return (
+    <div className="page-enter mx-auto max-w-4xl" data-testid="checkin-page">
+      <PageHeader
+        title="Registrar asistencia"
+        subtitle="Escanea el código QR temporal del cliente para registrar su entrada."
+        backTo="/dashboard/admin"
+        backLabel="Volver a Inicio"
+      />
+      <AdminQrScanner
+        key={scannerSession}
+        isSubmitting={isPending}
+        onSubmit={(qrToken) => checkIn({ qr_token: qrToken }, { onSuccess: () => setScannerSession((session) => session + 1) })}
+      />
+    </div>
+  )
+}
+
+function MemberCheckInPage() {
   const todayCostaRica = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Costa_Rica', year: 'numeric', month: '2-digit', day: '2-digit',
   }).format(new Date())
-  const [searchTerm, setSearchTerm] = useState('')
-  const [dateFilter, setDateFilter] = useState(() => (esEntrenador ? todayCostaRica : ''))
-  const filtros = esEntrenador
-    ? {
-        ...(memberId ? { member: memberId } : {}),
-        ...(dateFilter ? { date: dateFilter } : {}),
-        ...(searchTerm.trim() ? { search: searchTerm.trim() } : {}),
-      }
-    : undefined
-  const [notes, setNotes] = useState('')
-  const [assistedMemberId, setAssistedMemberId] = useState(memberId || '')
-  const [overrideReason, setOverrideReason] = useState('')
-  const { mutate: checkIn, isPending } = useCheckInMutation()
   const { mutate: checkOut, isPending: isCheckingOut } = useCheckOutMutation()
-  const { data: attendance, isLoading } = useAttendanceQuery(filtros)
-  const { data: members } = useMembersQuery({ assignment: 'mine' }, esEntrenador)
+  const { data: attendance, isLoading } = useAttendanceQuery()
   const { data: sessions, isLoading: sessionsLoading } = useQuery({
     queryKey: QUERY_KEYS.WORKOUT_SESSIONS,
     queryFn: () => progressApi.sessions(),
-    enabled: !esEntrenador,
   })
 
   const ultimoRegistro = attendance?.results?.[0]
   const registroHoy = attendance?.results.find((item) => item.attendance_date === todayCostaRica)
-  const todayAttendanceCount = attendance?.results.filter((item) => item.attendance_date === todayCostaRica).length ?? 0
 
   return (
     <div data-testid="checkin-page" className="page-enter mx-auto max-w-4xl">
       <PageHeader
-        title={esEntrenador ? (memberId ? 'Asistencia Del Miembro' : 'Asistencia') : 'Registros'}
-        subtitle={
-          esEntrenador
-            ? memberId
-              ? 'Registros recientes del miembro seleccionado'
-              : 'Visión rápida de registros recientes de asistencia'
-            : 'Registra tu asistencia y revisa tus entrenamientos completados'
-        }
+        title="Registros"
+        subtitle="Consulta tu asistencia y tus entrenamientos completados."
       />
 
-      {!esEntrenador ? (
-        <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+      <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
           <section className="rounded-[1.9rem] border border-neutral-200 bg-gradient-to-br from-white via-neutral-50 to-primary/5 p-6 shadow-sm dark:border-neutral-800 dark:from-neutral-950 dark:via-neutral-950 dark:to-primary/10">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-4">
@@ -75,7 +73,7 @@ export function CheckInPage() {
                     Entrada desde tu rutina
                   </h2>
                   <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
-                    Confirma tu presencia desde “Ver rutina”; allí se valida la membresía antes de mostrar el entrenamiento.
+                    Muestra tu código QR en Inicio para que el administrador registre tu llegada.
                   </p>
                 </div>
               </div>
@@ -111,7 +109,7 @@ export function CheckInPage() {
             ) : (
               <Link to="/today" className="btn-primary mt-5 flex w-full items-center justify-center gap-2" data-testid="open-routine-link">
                 <CheckSquare size={16} />
-                IR A VER RUTINA
+                MOSTRAR CÓDIGO QR
               </Link>
             )}
           </section>
@@ -137,61 +135,11 @@ export function CheckInPage() {
             </div>
           </section>
         </div>
-      ) : null}
-
-      {esEntrenador ? (
-        <><section className="rounded-[1.5rem] border border-primary/20 bg-primary/5 p-5"><p className="label-base">Registro asistido</p><h2 className="font-heading text-xl font-bold">Marcar llegada de un cliente</h2><p className="mt-1 text-sm text-neutral-500">Si la membresía está bloqueada, el motivo de excepción será obligatorio y quedará auditado. Esta excepción no habilita la rutina.</p><div className="mt-4 grid gap-3 md:grid-cols-3"><select className="input" value={assistedMemberId} onChange={(event) => setAssistedMemberId(event.target.value)}><option value="">Selecciona cliente</option>{members?.results.map((member) => <option key={member.id} value={member.id}>{member.full_name}</option>)}</select><input className="input" placeholder="Nota operativa (opcional)" value={notes} onChange={(event) => setNotes(event.target.value)} /><input className="input" placeholder="Motivo si requiere excepción" value={overrideReason} onChange={(event) => setOverrideReason(event.target.value)} /></div><button className="btn-primary mt-3" disabled={!assistedMemberId || isPending} onClick={() => checkIn({ member_id: Number(assistedMemberId), notes, override_reason: overrideReason, trainer_override: Boolean(overrideReason.trim()) }, { onSuccess: () => { setNotes(''); setOverrideReason('') } })}>Registrar llegada</button></section><section className="mt-6 rounded-[1.5rem] border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="flex items-start gap-4">
-              <SymbolFrame size="lg" tone="success">
-                <UserCheck size={26} />
-              </SymbolFrame>
-              <div>
-                <p className="label-base">Asistencia de hoy</p>
-                <h2 className="font-heading text-2xl font-bold text-neutral-900 dark:text-white">
-                  {todayAttendanceCount} check-ins registrados
-                </h2>
-                <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-                  {dateFilter ? `Mostrando registros del ${formatDate(dateFilter)}` : 'Mostrando registros recientes del gimnasio'}
-                </p>
-              </div>
-            </div>
-            <div className="grid w-full gap-3 sm:grid-cols-[1fr_180px] lg:max-w-xl">
-              <label className="space-y-1">
-                <span className="label-base flex items-center gap-2">
-                  <Search size={14} />
-                  Buscar miembro
-                </span>
-                <input
-                  className="input"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Nombre o correo"
-                  data-testid="attendance-search"
-                />
-              </label>
-              <label className="space-y-1">
-                <span className="label-base flex items-center gap-2">
-                  <CalendarDays size={14} />
-                  Día
-                </span>
-                <input
-                  className="input"
-                  type="date"
-                  value={dateFilter}
-                  onChange={(event) => setDateFilter(event.target.value)}
-                  data-testid="attendance-date-filter"
-                />
-              </label>
-            </div>
-          </div>
-        </section></>
-      ) : null}
 
       <section className="mt-6">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h3 className="font-heading text-lg font-bold text-neutral-900 dark:text-white">
-            {esEntrenador ? (memberId ? 'Registros del miembro' : 'Registro de asistencia') : 'Historial reciente'}
+            Historial reciente
           </h3>
           {attendance?.results?.length ? (
             <Badge variant="neutral">{attendance.results.length} registros</Badge>
@@ -210,34 +158,6 @@ export function CheckInPage() {
             title="Sin registros de asistencia"
             description="Tu historial de check-ins aparecerá aquí."
           />
-        ) : esEntrenador ? (
-          <div>
-            <div className="hidden overflow-hidden rounded-2xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950 md:block">
-              <table className="table-base">
-                <thead>
-                  <tr>
-                    <th className="th-base">Miembro</th>
-                    <th className="th-base">Día</th>
-                    <th className="th-base">Entrada</th>
-                    <th className="th-base">Salida</th>
-                    <th className="th-base">Duración</th>
-                    <th className="th-base">Registrado por</th>
-                    <th className="th-base">Notas</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {attendance.results.map((item) => (
-                    <TrainerAttendanceRow key={item.id} item={item} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="space-y-3 md:hidden">
-              {attendance.results.map((item) => (
-                <TrainerAttendanceCard key={item.id} item={item} />
-              ))}
-            </div>
-          </div>
         ) : (
           <div className="space-y-3">
             {attendance.results.map((item) => (
@@ -277,7 +197,6 @@ export function CheckInPage() {
         )}
       </section>
 
-      {!esEntrenador ? (
         <section className="mt-6" data-testid="member-workout-records">
           <div className="mb-3 flex items-center justify-between gap-3">
             <h3 className="font-heading text-lg font-bold text-neutral-900 dark:text-white">
@@ -327,85 +246,6 @@ export function CheckInPage() {
             </div>
           )}
         </section>
-      ) : null}
-    </div>
-  )
-}
-
-function formatAttendanceTime(value: string | null | undefined) {
-  if (!value) return '—'
-  try {
-    return new Intl.DateTimeFormat('es-CR', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-      timeZone: 'America/Costa_Rica',
-    }).format(new Date(value))
-  } catch {
-    return value
-  }
-}
-
-function memberDisplayName(item: Attendance) {
-  return item.member_name || item.member_email || `Miembro #${item.member}`
-}
-
-function TrainerAttendanceRow({ item }: { item: Attendance }) {
-  return (
-    <tr className="tr-hover" data-testid={`attendance-row-${item.id}`}>
-      <td className="td-base">
-        <div className="min-w-0">
-          <p className="font-semibold text-neutral-900 dark:text-white">{memberDisplayName(item)}</p>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400">{item.member_email || 'Sin correo registrado'}</p>
-        </div>
-      </td>
-      <td className="td-base">{formatDate(item.attendance_date)}</td>
-      <td className="td-base">
-        <div className="flex items-center gap-2">
-          <Badge variant="success">Presente</Badge>
-          <span className="text-sm font-semibold">{formatAttendanceTime(item.check_in_time)}</span>
-        </div>
-      </td>
-      <td className="td-base text-sm">{item.check_out_time ? formatAttendanceTime(item.check_out_time) : 'Pendiente'}</td>
-      <td className="td-base text-sm">{item.duration_minutes == null ? '—' : `${item.duration_minutes} min`}</td>
-      <td className="td-base text-sm">{item.checked_in_by_name || 'El miembro'}</td>
-      <td className="td-base max-w-[220px] truncate text-sm text-neutral-500 dark:text-neutral-400">{item.notes || '—'}</td>
-    </tr>
-  )
-}
-
-function TrainerAttendanceCard({ item }: { item: Attendance }) {
-  return (
-    <div
-      className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
-      data-testid={`attendance-row-${item.id}`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="font-semibold text-neutral-900 dark:text-white">{memberDisplayName(item)}</p>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400">{item.member_email || 'Sin correo registrado'}</p>
-        </div>
-        <Badge variant="success">Presente</Badge>
-      </div>
-      <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-        <AttendanceFact label="Día" value={formatDate(item.attendance_date)} />
-        <AttendanceFact label="Entrada" value={formatAttendanceTime(item.check_in_time)} />
-        <AttendanceFact label="Salida" value={item.check_out_time ? formatAttendanceTime(item.check_out_time) : 'Pendiente'} />
-        <AttendanceFact label="Duración" value={item.duration_minutes == null ? '—' : `${item.duration_minutes} min`} />
-      </div>
-      <p className="mt-3 text-xs text-neutral-500 dark:text-neutral-400">
-        Registrado por: {item.checked_in_by_name || 'El miembro'}
-      </p>
-      <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">{item.notes || 'Sin notas.'}</p>
-    </div>
-  )
-}
-
-function AttendanceFact({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-[11px] uppercase text-neutral-500 dark:text-neutral-400">{label}</p>
-      <p className="mt-1 font-semibold text-neutral-900 dark:text-white">{value}</p>
     </div>
   )
 }

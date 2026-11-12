@@ -6,15 +6,19 @@ def tiene_perfil_entrenador(user):
 
 
 def tiene_perfil_cliente(user):
-    return bool(user and user.is_authenticated and hasattr(user, 'memberprofile'))
+    return bool(
+        user
+        and user.is_authenticated
+        and not user.is_staff
+        and hasattr(user, 'memberprofile')
+    )
 
 
 def usa_contexto_cliente(request):
     """Indica si la petición debe limitarse al perfil personal del cliente.
 
-    Las cuentas con varios perfiles envían ``scope=self`` desde el dashboard
-    de cliente. Para una cuenta que solo es cliente, ese alcance es el valor
-    seguro por defecto aunque el parámetro no esté presente.
+    Las cuentas de cliente quedan limitadas a su perfil personal. Las cuentas
+    administrativas nunca usan este alcance, aunque tengan perfiles legados.
     """
 
     user = getattr(request, 'user', None)
@@ -40,28 +44,24 @@ class IsAdministrator(BasePermission):
 
 
 class IsTechnicalTrainer(BasePermission):
-    """Permite operaciones técnicas a trainers, sin incluir administradores."""
+    """Compatibilidad temporal: las operaciones técnicas son administrativas."""
 
     def has_permission(self, request, view):
         return bool(
             request.user
             and request.user.is_authenticated
-            and not request.user.is_staff
-            and tiene_perfil_entrenador(request.user)
+            and request.user.is_staff
         )
 
 
 class IsTrainer(BasePermission):
-    """Permite acceso a trainers y personal administrativo."""
+    """Permite acceso administrativo; TrainerProfile es solo un vínculo técnico."""
 
     def has_permission(self, request, view):
         return (
             request.user
             and request.user.is_authenticated
-            and (
-                request.user.is_staff
-                or tiene_perfil_entrenador(request.user)
-            )
+            and request.user.is_staff
         )
 
 
@@ -82,7 +82,7 @@ class IsOwnerOrTrainer(BasePermission):
     def has_object_permission(self, request, view, obj):
         if not request.user or not request.user.is_authenticated:
             return False
-        if request.user.is_staff or tiene_perfil_entrenador(request.user):
+        if request.user.is_staff:
             return True
         # Check if obj has a member or user attribute
         if hasattr(obj, 'user'):
@@ -110,10 +110,9 @@ class IsOwnerOnly(BasePermission):
 
 
 class IsStaffOrTrainer(BasePermission):
-    """Permite acceso a staff (is_staff) o trainers. Usado en /auth/register/
-    para proteger la asignación de role='trainer'."""
+    """Compatibilidad temporal para endpoints que ahora administra el staff."""
 
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-        return request.user.is_staff or tiene_perfil_entrenador(request.user)
+        return request.user.is_staff

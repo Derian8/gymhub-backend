@@ -11,11 +11,13 @@ import { getResolvedContext, useAuthStore } from '@/shared/store/authStore'
 import { useLogoutMutation } from '@/modules/auth/hooks/useAuthMutations'
 import { Avatar } from '@/shared/components/UI'
 import { BrandMark, BrandWordmark, SymbolFrame } from '@/shared/components/Brand'
+import { useMemberAttendanceToday } from '@/modules/attendance/hooks/useAttendance'
 
 interface NavItem {
   label: string
   icon: React.ReactNode
   to: string
+  disabled?: boolean
 }
 
 const adminNav: NavItem[] = [
@@ -31,16 +33,6 @@ const adminMoreNav: NavItem[] = [
   { label: 'Planes técnicos', icon: <Dumbbell size={18} />, to: '/plans' },
   { label: 'Progreso', icon: <Activity size={18} />, to: '/progress' },
   { label: 'Reportes', icon: <BarChart3 size={18} />, to: '/reports' },
-]
-
-const trainerNav: NavItem[] = [
-  { label: 'Dashboard', icon: <LayoutDashboard size={18} />, to: '/dashboard/trainer' },
-  { label: 'Clientes asignados', icon: <Users size={18} />, to: '/members' },
-]
-
-const trainerStageTwoNav: NavItem[] = [
-  { label: 'Planes', icon: <Dumbbell size={18} />, to: '/plans' },
-  { label: 'Progreso', icon: <Activity size={18} />, to: '/progress' },
 ]
 
 const memberNav: NavItem[] = [
@@ -63,10 +55,12 @@ export function Sidebar({ collapsed, mobileOpen, onToggle, onCloseMobile }: Side
   const [secondaryOpen, setSecondaryOpen] = useState(false)
   const currentContext = getResolvedContext(user, activeContext)
   const isAdmin = currentContext === 'administrador'
-  const isTrainer = currentContext === 'instructor'
-  const navItems = isAdmin ? adminNav : isTrainer ? trainerNav : memberNav
-  const secondaryItems = isTrainer ? trainerStageTwoNav : isAdmin ? adminMoreNav : []
-  const secondaryLabel = isTrainer ? 'Entrenamiento · Etapa 2' : isAdmin ? 'Más' : 'Mi seguimiento'
+  const { hasCheckedInToday: hasAttendanceToday } = useMemberAttendanceToday(currentContext === 'cliente')
+  const navItems = isAdmin
+    ? adminNav
+    : memberNav.map((item) => item.to === '/plans/my' ? { ...item, disabled: !hasAttendanceToday } : item)
+  const secondaryItems = isAdmin ? adminMoreNav : []
+  const secondaryLabel = isAdmin ? 'Más' : 'Mi seguimiento'
   const compact = collapsed && !mobileOpen
 
   return (
@@ -101,16 +95,24 @@ export function Sidebar({ collapsed, mobileOpen, onToggle, onCloseMobile }: Side
           <NavLink
             key={item.to}
             to={item.to}
-            onClick={onCloseMobile}
+            onClick={(event) => {
+              if (item.disabled) {
+                event.preventDefault()
+                return
+              }
+              onCloseMobile()
+            }}
             data-testid={`nav-${item.to.replace('/', '').replace('/', '-')}`}
             className={({ isActive }) =>
               cn(
                 'sidebar-link',
-                isActive && 'sidebar-link-active',
+                isActive && !item.disabled && 'sidebar-link-active',
+                item.disabled && 'cursor-not-allowed opacity-45',
                 compact && 'justify-center px-0',
               )
             }
-            title={compact ? item.label : undefined}
+            aria-disabled={item.disabled || undefined}
+            title={item.disabled ? 'Disponible despuÃ©s de confirmar tu entrada' : compact ? item.label : undefined}
           >
             <SymbolFrame
               size="sm"
@@ -156,7 +158,7 @@ export function Sidebar({ collapsed, mobileOpen, onToggle, onCloseMobile }: Side
 
       {/* User section */}
       <div className="border-t border-neutral-200 dark:border-neutral-800 p-3 space-y-1">
-        {isAdmin || isTrainer ? <NavLink
+        {isAdmin ? <NavLink
           to="/profile"
           onClick={onCloseMobile}
           data-testid="nav-profile"
@@ -199,7 +201,7 @@ export function Sidebar({ collapsed, mobileOpen, onToggle, onCloseMobile }: Side
               <p className="text-sm font-semibold text-neutral-900 dark:text-white truncate">
                 {user.first_name || user.username}
               </p>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-neutral-500 capitalize">{isAdmin ? 'Administrador' : isTrainer ? 'Instructor' : 'Cliente'}</p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-neutral-500 capitalize">{isAdmin ? 'Administrador' : 'Cliente'}</p>
             </div>
           </div>
         )}

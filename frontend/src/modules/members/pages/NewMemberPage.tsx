@@ -85,6 +85,8 @@ export function NewMemberPage() {
         <PageHeader
           title="Cliente registrado y pago confirmado"
           subtitle="La membresía está activa y el comprobante interno ya está disponible."
+          backTo="/members"
+          backLabel="Volver a clientes"
         />
         <section className="card space-y-6 p-6">
           <div className="flex items-start gap-3">
@@ -149,6 +151,8 @@ export function NewMemberPage() {
       <PageHeader
         title="Registrar cliente y cobrar"
         subtitle="El alta se completa cuando el primer pago queda confirmado y el acceso activo."
+        backTo="/members"
+        backLabel="Volver a clientes"
       />
       <form className="space-y-6" onSubmit={submit}>
         <section className="card grid gap-5 p-6 sm:grid-cols-2">
@@ -173,7 +177,7 @@ export function NewMemberPage() {
           <Field label="Contacto de emergencia">
             <input className="input-base mt-2 w-full" value={form.contacto_emergencia} onChange={(event) => update('contacto_emergencia', event.target.value)} />
           </Field>
-          <Field label="Entrenador responsable" required className="sm:col-span-2">
+          <Field label="Administrador responsable" required className="sm:col-span-2">
             <select
               className="input-base mt-2 w-full"
               data-testid="assigned-trainer"
@@ -194,7 +198,7 @@ export function NewMemberPage() {
                 })
               }}
             >
-              <option value="">Seleccionar entrenador</option>
+              <option value="">Seleccionar administrador</option>
               {trainers?.map((trainer) => (
                 <option key={trainer.id} value={trainer.id}>
                   {`${trainer.user.first_name} ${trainer.user.last_name}`.trim() || trainer.user.email}

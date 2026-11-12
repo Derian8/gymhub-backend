@@ -89,23 +89,23 @@ export function ChartsPage() {
   const { user } = useAuthStore()
   const [trainerFilters, setTrainerFilters] = useState<TrainerChartFilters>(DEFAULT_TRAINER_FILTERS)
   const trainerQueryParams = useMemo(() => {
-    if (user?.role !== 'trainer') return undefined
+    if (!user?.is_staff) return undefined
     return Object.fromEntries(
       Object.entries(trainerFilters).filter(([, value]) => value),
     ) as Record<string, string>
-  }, [trainerFilters, user?.role])
+  }, [trainerFilters, user?.is_staff])
   const { data, isLoading } = useQuery({
     queryKey: [...QUERY_KEYS.CHART_OVERVIEW, trainerQueryParams],
     queryFn: () => chartsApi.getOverview(trainerQueryParams),
   })
-  const hasActiveTrainerFilters = user?.role === 'trainer' && JSON.stringify(trainerFilters) !== JSON.stringify(DEFAULT_TRAINER_FILTERS)
+  const hasActiveTrainerFilters = Boolean(user?.is_staff && JSON.stringify(trainerFilters) !== JSON.stringify(DEFAULT_TRAINER_FILTERS))
 
   return (
     <div data-testid="charts-page" className="page-enter space-y-6">
       <PageHeader
-        title={user?.role === 'trainer' ? 'Resumen de tus miembros' : 'Mis Gráficos'}
+        title={user?.is_staff ? 'Resumen de tus miembros' : 'Mis Gráficos'}
         subtitle={
-          user?.role === 'trainer'
+          user?.is_staff
             ? 'Revisa asistencia, progreso y estado de membresías para identificar quién necesita seguimiento.'
             : 'Progreso físico, adherencia y estado operativo de tu proceso.'
         }

@@ -1,5 +1,5 @@
 import { useParams, Link, useLocation } from 'react-router-dom'
-import { ArrowLeft, Phone, Calendar, Mail, Dumbbell, CreditCard, CheckSquare, AlertTriangle, Activity, Ruler, Scale, PencilLine } from 'lucide-react'
+import { Phone, Calendar, Mail, Dumbbell, CreditCard, CheckSquare, AlertTriangle, Activity, Ruler, Scale, PencilLine } from 'lucide-react'
 import { useMemberActivePrescriptionQuery, useMemberDetailQuery, useActivateMemberMutation, useMemberDashboardQuery, useMemberPhysicalSummaryQuery } from '../hooks/useMembers'
 import { Badge, PageHeader, Avatar, EmptyState } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
@@ -201,14 +201,11 @@ export function MemberDetailPage() {
 
   return (
     <div data-testid="member-detail-page" className="page-enter">
-      <Link to="/members" className="flex items-center gap-2 text-sm text-neutral-500 hover:text-primary transition-colors mb-6">
-        <ArrowLeft size={16} />
-        Volver a miembros
-      </Link>
-
       <PageHeader
         title={member.full_name}
         subtitle={member.email}
+        backTo="/members"
+        backLabel="Volver a clientes"
         breadcrumb={[{ label: 'Miembros', href: '/members' }, { label: member.full_name }]}
         action={
           <div className="flex gap-2">

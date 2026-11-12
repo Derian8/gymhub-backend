@@ -339,8 +339,8 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
             trainer = TrainerProfile.objects.select_related('user').get(
                 id=trainer_id,
                 user__is_active=True,
-                user__is_staff=False,
-                user__role='trainer',
+                user__is_staff=True,
+                user__role='admin',
             )
         except TrainerProfile.DoesNotExist as exc:
             raise ValidationError({'trainer_id': 'Entrenador activo no encontrado.'}) from exc

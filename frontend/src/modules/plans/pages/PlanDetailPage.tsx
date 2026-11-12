@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Calendar, Dumbbell, NotebookTabs, UserRound } from 'lucide-react'
+import { Calendar, Dumbbell, NotebookTabs, UserRound } from 'lucide-react'
 import { useDeletePlanMutation, usePlanDetailQuery, useTodayWorkoutQuery } from '../hooks/usePlans'
 import { Badge, ConfirmDialog, PageHeader, EmptyState } from '@/shared/components/UI'
 import { CardSkeleton } from '@/shared/components/Skeleton'
@@ -33,7 +33,7 @@ export function PlanDetailPage() {
   const { data: dashboardSummary } = useMemberDashboardQuery(isMember ? user?.memberprofile_id || 0 : 0)
   const deletePlan = useDeletePlanMutation()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const canManagePlan = !!user && (currentContext === 'instructor' || user.is_staff)
+  const canManagePlan = !!user && user.is_staff
   const canEdit = canManagePlan && (plan?.status === 'active' || plan?.status === 'draft')
 
   useEffect(() => {
@@ -63,14 +63,11 @@ export function PlanDetailPage() {
 
   return (
     <div data-testid="plan-detail-page" className="page-enter">
-      <Link to={isMember ? '/plans/my' : '/plans'} className="flex items-center gap-2 text-sm text-neutral-500 hover:text-primary mb-6 transition-colors">
-        <ArrowLeft size={16} />
-        {isMember ? 'Volver a mi programa' : 'Volver a planes'}
-      </Link>
-
       <PageHeader
         title={plan.name}
         subtitle={isMember ? 'Así se ve el plan completo que tu trainer publicó para ti.' : GOAL_LABELS[plan.goal] || plan.goal}
+        backTo={isMember ? '/plans/my' : '/plans'}
+        backLabel={isMember ? 'Volver a mi programa' : 'Volver a planes'}
         action={
           <div className="flex flex-wrap items-center gap-3">
             {canManagePlan && (

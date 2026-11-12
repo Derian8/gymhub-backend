@@ -222,8 +222,8 @@ describe('AiChatPage', () => {
         username: 'trainer',
         first_name: 'Luis',
         last_name: 'Trainer',
-        role: 'trainer',
-        is_staff: false,
+        role: 'admin',
+        is_staff: true,
         memberprofile_id: null,
         trainerprofile_id: 7,
       },
@@ -275,8 +275,8 @@ describe('AiChatPage', () => {
         username: 'trainer',
         first_name: 'Luis',
         last_name: 'Trainer',
-        role: 'trainer',
-        is_staff: false,
+        role: 'admin',
+        is_staff: true,
         memberprofile_id: null,
         trainerprofile_id: 7,
       },
@@ -406,7 +406,7 @@ describe('AiChatPage', () => {
       path: '/ai-chat',
     })
 
-    expect(getByText('Asistente Inteligente del Trainer')).toBeInTheDocument()
+    expect(getByText('Asistente de administración')).toBeInTheDocument()
     expect(getByTestId('trainer-assistant-status')).toHaveTextContent('Atención inmediata')
     expect(getByTestId('trainer-detected-insights')).toHaveTextContent('Lleva 12 días sin asistir')
     expect(getByText('Analiza pagos')).toBeInTheDocument()

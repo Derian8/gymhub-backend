@@ -939,16 +939,13 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
 
   return (
     <div className="page-enter space-y-6" data-testid="trainer-program-page">
-      <Link to={plansContext ? '/plans' : `/members/${member.id}`} className="flex items-center gap-2 text-sm text-neutral-500 hover:text-primary">
-        <ArrowLeft size={16} />
-        {plansContext ? 'Volver a planes' : 'Volver al cliente'}
-      </Link>
-
       <PageHeader
         title={plansContext && activePlan ? `Configurar ${activePlan.name}` : `Asignacion para ${member.full_name}`}
         subtitle={plansContext
           ? `Edita la rutina asignada a ${member.full_name} desde el módulo de Planes.`
           : 'Aqui defines y publicas el entrenamiento que el miembro vera como su programa activo.'}
+        backTo={plansContext ? '/plans' : `/members/${member.id}`}
+        backLabel={plansContext ? 'Volver a planes' : 'Volver al cliente'}
         action={
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant={activePlan?.status === 'active' ? 'success' : 'warning'}>

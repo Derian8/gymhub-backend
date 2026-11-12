@@ -3,7 +3,7 @@
 // ============================================================
 
 // --- Auth ---
-export type PerfilUsuario = 'administrador' | 'instructor' | 'cliente'
+export type PerfilUsuario = 'administrador' | 'cliente'
 
 export interface User {
   id: number
@@ -11,7 +11,7 @@ export interface User {
   username: string
   first_name: string
   last_name: string
-  role: 'member' | 'trainer'
+  role: 'admin' | 'member'
   is_staff: boolean
   memberprofile_id: number | null
   trainerprofile_id: number | null
@@ -30,7 +30,7 @@ export interface RegisterData {
   username?: string
   first_name: string
   last_name: string
-  role?: 'member' | 'trainer'
+  role?: 'admin' | 'member'
   password: string
   password2: string
 }

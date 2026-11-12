@@ -6,7 +6,7 @@ from django.core.management import call_command
 
 
 @pytest.mark.django_db
-def test_seed_data_creates_only_first_demo_trainer_and_member():
+def test_seed_data_creates_only_first_demo_administrator_and_member():
     from users.models import User
     from billing.models import MemberSubscription, MembershipPlan, PaymentRecord
     from plans.models import TrainingPlan, WorkoutDay
@@ -19,7 +19,7 @@ def test_seed_data_creates_only_first_demo_trainer_and_member():
         stdout=StringIO(),
     )
 
-    assert User.objects.filter(email='trainer1@gymhub.com', role='trainer').exists()
+    assert User.objects.filter(email='trainer1@gymhub.com', role='admin', is_staff=True).exists()
     assert User.objects.filter(email='member1@gymhub.com', role='member').exists()
     assert not User.objects.filter(email='trainer2@gymhub.com').exists()
     assert not User.objects.filter(email__in=[f'member{i}@gymhub.com' for i in range(2, 21)]).exists()

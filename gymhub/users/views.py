@@ -136,20 +136,6 @@ class RegisterView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # La creación de trainers también es una operación administrativa.
-        if role == 'trainer':
-            if not request.user or not request.user.is_authenticated:
-                return Response(
-                    {'error': 'Debes estar autenticado para registrar un trainer.'},
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
-            perm = IsAdministrator()
-            if not perm.has_permission(request, self):
-                return Response(
-                    {'error': 'Solo el administrador puede registrar entrenadores.'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-
         serializer = RegisterSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -790,7 +776,8 @@ class TrainerListView(APIView):
     def get(self, request):
         trainers = TrainerProfile.objects.select_related('user').filter(
             user__is_active=True,
-            user__is_staff=False,
+            user__is_staff=True,
+            user__role='admin',
         ).order_by('user__first_name', 'user__last_name', 'id')
         return Response(TrainerProfileSerializer(trainers, many=True).data)
 
@@ -821,6 +808,16 @@ class HabilitarInstructorClienteView(APIView):
             return Response(
                 {'error': 'Instructor no encontrado.'},
                 status=status.HTTP_404_NOT_FOUND,
+            )
+        if instructor.user.is_staff:
+            return Response(
+                {
+                    'error': (
+                        'Una cuenta administradora no puede convertirse en '
+                        'cliente. Crea una cuenta de cliente independiente.'
+                    ),
+                },
+                status=status.HTTP_403_FORBIDDEN,
             )
         if hasattr(instructor.user, 'memberprofile'):
             raise ValidationError({

@@ -14,7 +14,6 @@ import { LoginPage } from '@/modules/auth/pages/LoginPage'
 import { ChangePasswordPage } from '@/modules/auth/pages/ChangePasswordPage'
 
 // Dashboards
-import { TrainerTechnicalDashboard } from '@/modules/dashboard/pages/TrainerTechnicalDashboard'
 import { AdminDashboard } from '@/modules/admin/pages/AdminDashboard'
 import { ReportsPage } from '@/modules/admin/pages/ReportsPage'
 import { AdminRoutinesPage } from '@/modules/admin/pages/AdminRoutinesPage'
@@ -34,6 +33,7 @@ import { MemberProgramRedirectPage, PlanEditorPage } from '@/modules/plans/pages
 
 // Attendance
 import { CheckInPage } from '@/modules/attendance/pages/CheckInPage'
+import { MemberHomePage } from '@/modules/attendance/pages/MemberHomePage'
 
 // Progress
 import { ProgressPage } from '@/modules/progress/pages/ProgressPage'
@@ -149,8 +149,8 @@ function App() {
         <Route
           path="/dashboard/trainer"
           element={
-            <ProtectedRoute requiredRole="trainer">
-              <TrainerTechnicalDashboard />
+            <ProtectedRoute requiredRole="admin">
+              <Navigate to="/dashboard/admin" replace />
             </ProtectedRoute>
           }
         />
@@ -163,10 +163,10 @@ function App() {
           }
         />
 
-        {/* Members (trainer/staff only) */}
-        <Route path="/members" element={<ProtectedRoute requiredRole="operator"><MembersPage /></ProtectedRoute>} />
-        <Route path="/members/:id" element={<ProtectedRoute requiredRole="operator"><MemberDetailPage /></ProtectedRoute>} />
-        <Route path="/members/:id/program" element={<ProtectedRoute requiredRole="trainer"><MemberProgramRedirectPage /></ProtectedRoute>} />
+        {/* Client management is administrative; clients only see their own account. */}
+        <Route path="/members" element={<ProtectedRoute requiredRole="admin"><MembersPage /></ProtectedRoute>} />
+        <Route path="/members/:id" element={<ProtectedRoute requiredRole="admin"><MemberDetailPage /></ProtectedRoute>} />
+        <Route path="/members/:id/program" element={<ProtectedRoute requiredRole="admin"><MemberProgramRedirectPage /></ProtectedRoute>} />
         <Route path="/members/new" element={<ProtectedRoute requiredRole="admin"><NewMemberPage /></ProtectedRoute>} />
 
         <Route path="/routines" element={<ProtectedRoute requiredRole="admin"><AdminRoutinesPage /></ProtectedRoute>} />
@@ -177,14 +177,14 @@ function App() {
           path="/today"
           element={
             <ProtectedRoute requiredRole="member">
-              <TodayWorkoutPage />
+              <MemberHomePage />
             </ProtectedRoute>
           }
         />
-        <Route path="/plans" element={<ProtectedRoute requiredRole="trainer"><PlansPage /></ProtectedRoute>} />
-        <Route path="/plans/my" element={<ProtectedRoute requiredRole="member"><PlansPage /></ProtectedRoute>} />
+        <Route path="/plans" element={<ProtectedRoute requiredRole="admin"><PlansPage /></ProtectedRoute>} />
+        <Route path="/plans/my" element={<ProtectedRoute requiredRole="member"><TodayWorkoutPage /></ProtectedRoute>} />
         <Route path="/plans/:planId/days/:dayId" element={<WorkoutDayDetailPage />} />
-        <Route path="/plans/:id/edit" element={<ProtectedRoute requiredRole="trainer"><PlanEditorPage /></ProtectedRoute>} />
+        <Route path="/plans/:id/edit" element={<ProtectedRoute requiredRole="admin"><PlanEditorPage /></ProtectedRoute>} />
         <Route path="/plans/:id" element={<PlanDetailPage />} />
         <Route path="/plans/:id/today" element={<TodayWorkoutPage />} />
 

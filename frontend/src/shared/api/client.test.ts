@@ -16,8 +16,8 @@ describe('adjuntar_contexto_cliente', () => {
     expect(config.headers['X-GymHub-Context']).toBe('cliente')
   })
 
-  it('conserva las solicitudes técnicas sin el contexto Cliente', () => {
-    const config = adjuntar_contexto_cliente(config_inicial(), 'instructor')
+  it('conserva las solicitudes administrativas sin el contexto Cliente', () => {
+    const config = adjuntar_contexto_cliente(config_inicial(), 'administrador')
 
     expect(config.params).toBeUndefined()
     expect(config.headers['X-GymHub-Context']).toBeUndefined()

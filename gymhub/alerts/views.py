@@ -32,14 +32,14 @@ class InactivityAlertViewSet(viewsets.ReadOnlyModelViewSet):
         return filter_alerts(base_trainer_alert_queryset(user), self.request.query_params)
 
     def _require_trainer_or_staff(self, request):
-        if request.user.role != 'trainer' and not request.user.is_staff:
-            return Response({'error': 'Solo trainers o staff pueden modificar alertas.'}, status=status.HTTP_403_FORBIDDEN)
+        if not request.user.is_staff:
+            return Response({'error': 'Solo administradores pueden modificar alertas.'}, status=status.HTTP_403_FORBIDDEN)
         return None
 
     @action(detail=False, methods=['get'], url_path='summary')
     def summary(self, request):
-        if request.user.role != 'trainer' and not request.user.is_staff:
-            return Response({'error': 'Solo trainers o staff pueden ver este resumen.'}, status=status.HTTP_403_FORBIDDEN)
+        if not request.user.is_staff:
+            return Response({'error': 'Solo administradores pueden ver este resumen.'}, status=status.HTTP_403_FORBIDDEN)
         return Response(trainer_alert_summary(request.user))
 
     @action(detail=True, methods=['post'], url_path='resolve')
@@ -125,8 +125,8 @@ class MembersWithoutInactivityAlertsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        if request.user.role != 'trainer' and not request.user.is_staff:
-            return Response({'error': 'Solo trainers o staff pueden ver esta lista.'}, status=status.HTTP_403_FORBIDDEN)
+        if not request.user.is_staff:
+            return Response({'error': 'Solo administradores pueden ver esta lista.'}, status=status.HTTP_403_FORBIDDEN)
         members = members_without_open_alerts(request.user)[:50]
         data = [
             {

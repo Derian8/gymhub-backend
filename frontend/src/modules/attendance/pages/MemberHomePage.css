@@ -1,0 +1,64 @@
+.carnet-entrada {
+  animation: carnet-revelar 360ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.carnet-trazo path {
+  stroke-dasharray: 760;
+  animation: carnet-latido 650ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.carnet-qr-boton {
+  transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1), background-color 160ms ease;
+}
+
+.carnet-qr-boton:active { transform: scale(0.98); }
+
+.carnet-qr-dialogo[open] {
+  animation: carnet-ampliar 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.carnet-qr-dialogo[open]::backdrop {
+  animation: carnet-fondo 160ms ease-out;
+}
+
+.carnet-confirmacion { animation: carnet-confirmar 240ms ease-out; }
+
+@keyframes carnet-revelar {
+  from { clip-path: inset(0 0 8% 0 round 1.75rem); }
+  to { clip-path: inset(0 round 1.75rem); }
+}
+
+@keyframes carnet-latido {
+  from { stroke-dashoffset: 760; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes carnet-ampliar {
+  from { transform: scale(0.96); opacity: 0.6; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes carnet-fondo {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes carnet-confirmar {
+  from { background-color: rgb(16 185 129 / 0.16); }
+  to { background-color: transparent; }
+}
+
+@media (hover: hover) {
+  .carnet-qr-boton:hover { transform: scale(1.015); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .carnet-entrada,
+  .carnet-trazo path,
+  .carnet-qr-dialogo[open],
+  .carnet-qr-dialogo[open]::backdrop,
+  .carnet-confirmacion { animation: none; }
+  .carnet-qr-boton { transition: background-color 100ms linear; }
+  .carnet-qr-boton:hover,
+  .carnet-qr-boton:active { transform: none; }
+}

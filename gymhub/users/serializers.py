@@ -42,6 +42,8 @@ class UserSerializer(serializers.ModelSerializer):
         )
 
     def get_memberprofile_id(self, obj):
+        if obj.is_staff:
+            return None
         profile = getattr(obj, 'memberprofile', None)
         return profile.id if profile else None
 
@@ -53,20 +55,15 @@ class UserSerializer(serializers.ModelSerializer):
         return profile.id if profile else None
 
     def get_perfiles_disponibles(self, obj):
-        perfiles = []
         if obj.is_staff:
-            perfiles.append('administrador')
-        if getattr(obj, 'trainerprofile', None):
-            perfiles.append('instructor')
+            return ['administrador']
         if getattr(obj, 'memberprofile', None):
-            perfiles.append('cliente')
-        return perfiles
+            return ['cliente']
+        return []
 
     def get_contexto_predeterminado(self, obj):
         if obj.is_staff:
             return 'administrador'
-        if getattr(obj, 'trainerprofile', None):
-            return 'instructor'
         return 'cliente'
 
 
@@ -124,6 +121,8 @@ class RegisterSerializer(serializers.ModelSerializer):
         else:
             validated_data['username'] = username
         user = User(**validated_data)
+        if user.role == 'admin':
+            user.is_staff = True
         user.set_password(password)
         user.save()
         return user
@@ -314,17 +313,6 @@ class MemberProfileSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
         request = self.context.get('request')
         user = getattr(request, 'user', None)
-        if user and not user.is_staff and getattr(user, 'role', None) == 'trainer':
-            for field in (
-                'membership_plan', 'membership_plan_nombre',
-                'suscripcion_activa_id', 'precio_suscripcion_actual',
-                'membresia_actual',
-            ):
-                data.pop(field, None)
-            data['motivos_riesgo'] = [
-                reason for reason in data.get('motivos_riesgo', [])
-                if 'pago' not in reason.lower()
-            ]
         return data
 
     def get_membresia_actual(self, obj):
@@ -417,8 +405,8 @@ class RegistroClientePagoSerializer(AltaMiembroSerializer):
     entrenador = serializers.PrimaryKeyRelatedField(
         queryset=TrainerProfile.objects.filter(
             user__is_active=True,
-            user__is_staff=False,
-            user__role='trainer',
+            user__is_staff=True,
+            user__role='admin',
         ),
     )
     tipo_membresia = serializers.ChoiceField(
