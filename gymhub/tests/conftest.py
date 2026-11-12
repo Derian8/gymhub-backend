@@ -42,7 +42,7 @@ def admin_user(db):
         username='admin_test',
         email='admin@test.com',
         password='admin123!',
-        role='trainer',
+        role='admin',
         is_staff=True,
         first_name='Admin',
         last_name='Gym',
@@ -84,7 +84,7 @@ def trainer_user(db):
         username='trainer_test',
         email='trainer@test.com',
         password='trainer123!',
-        role='trainer',
+        role='admin',
         first_name='Test',
         last_name='Trainer',
     )
@@ -94,12 +94,7 @@ def trainer_user(db):
 @pytest.fixture
 @pytest.mark.django_db
 def trainer_profile(db, trainer_user):
-    from users.models import TrainerProfile
-    profile, _ = TrainerProfile.objects.get_or_create(
-        user=trainer_user,
-        defaults={'specialization': 'Test', 'bio': 'Test bio', 'certification': 'Test cert'}
-    )
-    return profile
+    return trainer_user
 
 
 @pytest.fixture

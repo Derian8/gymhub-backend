@@ -25,15 +25,15 @@ export function AiChatPage() {
   const [sentMessageIds, setSentMessageIds] = useState<number[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const isTrainer = Boolean(user?.is_staff)
-  const selectedMemberId = isTrainer ? parseMemberId(searchParams.get('member')) : undefined
+  const isAdministrator = Boolean(user?.is_staff)
+  const selectedMemberId = isAdministrator ? parseMemberId(searchParams.get('member')) : undefined
   const { data: context, isLoading: contextLoading, isError: contextError } = useAiChatContextQuery(selectedMemberId)
   const { data: history, isLoading: historyLoading, isError: historyError } = useAiChatHistoryQuery(selectedMemberId)
-  const { data: membersPage } = useMembersQuery({ page: 1 }, isTrainer)
+  const { data: membersPage } = useMembersQuery({ page: 1 }, isAdministrator)
   const { mutate: sendMessage, isPending, data: lastResponse } = useAiChatMutation()
   const { mutate: sendTrainerMessage, isPending: isSendingTrainerMessage } = useAiChatSendMessageMutation()
-  const canSendWithoutContext = !isTrainer || Boolean(selectedMemberId)
-  const chatUnavailable = isTrainer && !selectedMemberId
+  const canSendWithoutContext = !isAdministrator || Boolean(selectedMemberId)
+  const chatUnavailable = isAdministrator && !selectedMemberId
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -68,7 +68,7 @@ export function AiChatPage() {
     sendMessage(
       {
         message: content,
-        member_id: isTrainer ? (context?.member?.id ?? selectedMemberId) : undefined,
+        member_id: isAdministrator ? (context?.member?.id ?? selectedMemberId) : undefined,
         conversation_id: context?.conversation_id ?? undefined,
       },
       {
@@ -129,8 +129,8 @@ export function AiChatPage() {
   return (
     <div data-testid="ai-chat-page" className="page-enter flex flex-col gap-6">
       <PageHeader
-        title={isTrainer ? 'Asistente de administración' : 'Chat IA'}
-        subtitle={isTrainer ? 'Analiza miembros con datos reales de PULSO y decide el siguiente paso.' : 'Coach personal con contexto real'}
+        title={isAdministrator ? 'Asistente de administración' : 'Chat IA'}
+        subtitle={isAdministrator ? 'Analiza miembros con datos reales de PULSO y decide el siguiente paso.' : 'Coach personal con contexto real'}
       />
 
       {(contextError || historyError) && (
@@ -142,7 +142,7 @@ export function AiChatPage() {
         </div>
       )}
 
-      {isTrainer && !selectedMemberId ? (
+      {isAdministrator && !selectedMemberId ? (
         <TrainerSelectionState
           members={membersPage?.results ?? []}
           onSelectMember={handleSelectMember}
@@ -153,7 +153,7 @@ export function AiChatPage() {
             <ChatContextPanel
               context={context}
               contextLoading={contextLoading}
-              isTrainer={isTrainer}
+              isAdministrator={isAdministrator}
               onSelectMember={handleSelectMember}
               members={membersPage?.results ?? []}
             />
@@ -361,13 +361,13 @@ function TrainerSelectionState({
 function ChatContextPanel({
   context,
   contextLoading,
-  isTrainer,
+  isAdministrator,
   onSelectMember,
   members,
 }: {
   context: Awaited<ReturnType<typeof useAiChatContextQuery>>['data']
   contextLoading: boolean
-  isTrainer: boolean
+  isAdministrator: boolean
   onSelectMember: (memberId: number) => void
   members: Array<{ id: number; full_name: string; email: string }>
 }) {
@@ -395,7 +395,7 @@ function ChatContextPanel({
     <div className="card p-6 space-y-4" data-testid="chat-context-panel">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="label-base">{isTrainer ? 'Cliente en contexto' : 'Tu contexto actual'}</p>
+          <p className="label-base">{isAdministrator ? 'Cliente en contexto' : 'Tu contexto actual'}</p>
           <h2 className="font-heading text-2xl font-bold text-neutral-900 dark:text-white">
             {context.member?.full_name}
           </h2>
@@ -408,7 +408,7 @@ function ChatContextPanel({
         ) : null}
       </div>
 
-      {isTrainer && members.length > 1 ? (
+      {isAdministrator && members.length > 1 ? (
         <div className="flex flex-wrap gap-2">
           {members.slice(0, 4).map((member) => (
             <button
@@ -428,7 +428,7 @@ function ChatContextPanel({
         </div>
       ) : null}
 
-      {isTrainer && context.trainer_assistant ? (
+      {isAdministrator && context.trainer_assistant ? (
         <TrainerAssistantOverview context={context} />
       ) : null}
 
@@ -481,7 +481,7 @@ function ChatContextPanel({
         </p>
       </div>
 
-      {isTrainer && context.member ? (
+      {isAdministrator && context.member ? (
         <Link
           to={`/members/${context.member.id}`}
           className="text-sm font-medium text-primary hover:underline"

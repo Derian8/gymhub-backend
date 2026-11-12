@@ -26,22 +26,6 @@ export function useAdminUsers() {
   })
 }
 
-export function useEnableClientProfileMutation() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({ trainerId, payload }: {
-      trainerId: number
-      payload: Parameters<typeof adminApi.enableClientProfile>[1]
-    }) => adminApi.enableClientProfile(trainerId, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
-      queryClient.invalidateQueries({ queryKey: ['members'] })
-      toast.success('Perfil de cliente habilitado')
-    },
-    onError: () => toast.error('No se pudo habilitar el perfil de cliente'),
-  })
-}
-
 export function useCollectionFollowUpMutation() {
   const queryClient = useQueryClient()
   return useMutation({

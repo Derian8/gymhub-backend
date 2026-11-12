@@ -44,7 +44,7 @@ describe('RouteGuards', () => {
         role: 'member',
         is_staff: false,
         memberprofile_id: 10,
-        trainerprofile_id: null,
+
       },
       isAuthenticated: true,
       authResolved: true,
@@ -79,7 +79,7 @@ describe('RouteGuards', () => {
       role: 'member',
       is_staff: false,
       memberprofile_id: 10,
-      trainerprofile_id: null,
+
     })).toBe('/today')
   })
 
@@ -94,7 +94,7 @@ describe('RouteGuards', () => {
         role: 'admin',
         is_staff: true,
         memberprofile_id: null,
-        trainerprofile_id: 4,
+
       },
       isAuthenticated: true,
       authResolved: true,

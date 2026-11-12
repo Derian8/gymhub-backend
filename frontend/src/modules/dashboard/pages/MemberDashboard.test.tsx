@@ -176,7 +176,7 @@ describe('MemberDashboard', () => {
         role: 'member',
         is_staff: false,
         memberprofile_id: 10,
-        trainerprofile_id: null,
+
       },
       isAuthenticated: true,
       authResolved: true,

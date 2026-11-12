@@ -97,10 +97,10 @@ export function useActivateMemberMutation() {
   })
 }
 
-export function useTrainersQuery(enabled = true) {
+export function useAdministratorsQuery(enabled = true) {
   return useQuery({
     queryKey: QUERY_KEYS.TRAINERS,
-    queryFn: membersApi.trainers,
+    queryFn: membersApi.administrators,
     enabled,
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,

@@ -13,7 +13,6 @@ export function AdminDashboard() {
     <div className="pulso-inicio page-enter space-y-5 sm:space-y-8" data-testid="admin-dashboard">
       <PageHeader
         title="Inicio"
-        inlineAction
         action={(
           <Link
             to="/attendance"

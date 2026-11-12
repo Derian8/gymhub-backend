@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Calendar, Dumbbell, UserRound, X } from 'lucide-react'
-import { useMemberDetailQuery, useTrainersQuery } from '@/modules/members/hooks/useMembers'
+import { useMemberDetailQuery, useAdministratorsQuery } from '@/modules/members/hooks/useMembers'
 import { Badge } from '@/shared/components/UI'
 import { formatDate } from '@/shared/lib/utils'
 import type { AdminRoutineQueueItem } from '@/shared/types'
@@ -36,7 +36,7 @@ export function QuickRoutineAssignmentModal({ client, onClose }: QuickRoutineAss
   const templatesQuery = useTrainingTemplatesQuery(Boolean(client))
   const plansQuery = useReusablePlanSourcesQuery(Boolean(client))
   const memberDetailQuery = useMemberDetailQuery(client?.member_id ?? 0)
-  const trainersQuery = useTrainersQuery(Boolean(client))
+  const administratorsQuery = useAdministratorsQuery(Boolean(client))
   const assignment = useQuickRoutineAssignmentMutation()
   const [sourceKey, setSourceKey] = useState('')
   const [trainerId, setTrainerId] = useState('')
@@ -47,7 +47,7 @@ export function QuickRoutineAssignmentModal({ client, onClose }: QuickRoutineAss
 
   const templates = templatesQuery.data?.results ?? []
   const reusablePlans = plansQuery.data?.pages.flatMap((page) => page.results) ?? []
-  const trainers = trainersQuery.data ?? []
+  const trainers = administratorsQuery.data ?? []
   const sourceType = sourceKey.startsWith('draft:')
     ? 'draft'
     : sourceKey.startsWith('plan:')

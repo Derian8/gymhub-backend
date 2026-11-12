@@ -34,7 +34,7 @@ describe('ProgressPage', () => {
         role: 'member',
         is_staff: false,
         memberprofile_id: 9,
-        trainerprofile_id: null,
+
       },
       activeContext: 'cliente',
       isAuthenticated: true,

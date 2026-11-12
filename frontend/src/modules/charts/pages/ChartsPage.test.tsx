@@ -37,7 +37,7 @@ describe('ChartsPage', () => {
         role: 'member',
         is_staff: false,
         memberprofile_id: 7,
-        trainerprofile_id: null,
+
       },
       isAuthenticated: true,
       authResolved: true,
@@ -105,7 +105,7 @@ describe('ChartsPage', () => {
         role: 'admin',
         is_staff: true,
         memberprofile_id: null,
-        trainerprofile_id: 3,
+
       },
       isAuthenticated: true,
       authResolved: true,
@@ -113,7 +113,7 @@ describe('ChartsPage', () => {
     })
 
     vi.mocked(chartsApi.getOverview).mockResolvedValue({
-      role: 'trainer',
+      role: 'admin',
       summary: {
         members_count: 12,
         active_attendance_count: 9,
@@ -193,7 +193,7 @@ describe('ChartsPage', () => {
         role: 'admin',
         is_staff: true,
         memberprofile_id: null,
-        trainerprofile_id: 3,
+
       },
       isAuthenticated: true,
       authResolved: true,
@@ -201,7 +201,7 @@ describe('ChartsPage', () => {
     })
 
     vi.mocked(chartsApi.getOverview).mockResolvedValue({
-      role: 'trainer',
+      role: 'admin',
       summary: {
         members_count: 0,
         active_attendance_count: 0,

@@ -59,10 +59,10 @@ docker compose exec backend python manage.py createsuperuser
 | POST | `/auth/token/refresh/` | Renovar access token |
 | GET | `/api/members/{id}/dashboard-summary/` | Dashboard del miembro |
 | POST | `/api/members/{id}/activate/` | Activar miembro |
-| GET | `/api/trainer/gym-overview/` | Resumen del gimnasio |
+| GET | `/api/admin/gym-overview/` | Resumen del gimnasio |
 | GET | `/api/admin/dashboard/` | Cartera y alertas operativas del administrador |
-| GET | `/api/plans/summary/` | Métricas reales de planes para trainer |
-| POST | `/api/plans/assign-template/` | Publica o programa una plantilla con cliente y entrenador |
+| GET | `/api/plans/summary/` | Métricas reales de planes para el administrador |
+| POST | `/api/plans/assign-template/` | Publica o programa una plantilla con cliente y administrador |
 | POST | `/api/plans/create-complete/` | Crear plan completo con miembro, días y ejercicios |
 | POST | `/api/plans/{id}/duplicate/` | Duplicar plan como copia independiente |
 | POST | `/api/plans/{id}/finish/` | Finalizar plan |
@@ -75,9 +75,9 @@ docker compose exec backend python manage.py createsuperuser
 | POST | `/api/exercise-logs/bulk/` | Registrar múltiples ejercicios (atómico) |
 | GET | `/api/members/{id}/progress-by-exercise/{exercise_id}/` | Progresión por ejercicio |
 | POST | `/api/attendance/check-in/` | Check-in (throttle 30/min) |
-| GET | `/api/trainer/inactivity-alerts/` | Bandeja de seguimiento de inactividad |
-| GET | `/api/trainer/inactivity-alerts/summary/` | Resumen de alertas de inactividad |
-| POST | `/api/trainer/inactivity-alerts/{id}/resolve/` | Resolver alerta de inactividad |
+| GET | `/api/admin/inactivity-alerts/` | Bandeja de seguimiento de inactividad |
+| GET | `/api/admin/inactivity-alerts/summary/` | Resumen de alertas de inactividad |
+| POST | `/api/admin/inactivity-alerts/{id}/resolve/` | Resolver alerta de inactividad |
 | GET | `/api/charts/{type}/` | Gráficas PNG (cache 6h) |
 | POST | `/api/ai-chat/` | Chat IA contextual por rol |
 | GET | `/api/ai-chat/history/` | Historial de conversación IA |
@@ -137,17 +137,18 @@ son necesarios para los datos nutricionales y crea cuatro plantillas de ejemplo.
 | `run_daily_membership_maintenance` | 06:05 Costa Rica | Actualiza vigencias, mora y recordatorios de pago |
 | `activate_scheduled_plans` | 05:55 Costa Rica | Activa rutinas programadas y finaliza la versión anterior |
 
-## Modelos (22)
-`User` · `MemberProfile` · `TrainerProfile` · `AuditLog` · `GymClass` · `ClassEnrollment` ·
+## Modelos (21)
+`User` · `MemberProfile` · `AuditLog` · `GymClass` · `ClassEnrollment` ·
 `TrainingPlan` · `WorkoutDay` · `Exercise` · `Attendance` · `ProgressLog` · `WorkoutSession` ·
 `ExerciseLog` · `InactivityAlert` · `Notification` · `MembershipPlan` · `PaymentSchedule` ·
 `PaymentRecord` · `PaymentMethod` · `PaymentInstruction` · `NutritionProfile` ·
 `NutritionGuideline` · `PlanNutritionLink` (+ AI: `AIChatConversation` · `AIChatMessage`)
 
 ## Permisos (users/permissions.py)
-`IsTrainer` · `IsMember` · `IsOwnerOrTrainer` · `IsOwnerOnly` · `IsStaffOrTrainer`
+`IsAdministrator` · `IsMember` · `IsOwnerOrAdministrator` · `IsOwnerOnly`
 
 Las cuentas tienen dos roles: administrador (`admin`, `is_staff=True`) y cliente
-(`member`). `TrainerProfile` se conserva para referencias técnicas y no concede
-permisos. La migración `users.0007_simplificar_roles_administrador_cliente`
-convierte las cuentas anteriores de instructor en administradores.
+(`member`). Clientes, planes, clases, membresías, alertas y datos del gimnasio
+se asignan directamente a cuentas administradoras. La migración
+`users.0008_reemplazar_trainerprofile_por_administrador` elimina el perfil
+técnico anterior y conserva las relaciones existentes.

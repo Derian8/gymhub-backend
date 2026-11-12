@@ -297,7 +297,7 @@ def build_trainer_charts(trainer_profile, user, filters=None):
     search = (filters.get('search') or '').strip()
 
     queryset = annotate_member_metrics(
-        MemberProfile.objects.select_related('user', 'trainer_asignado__user', 'membership_plan').order_by('id')
+        MemberProfile.objects.select_related('user', 'trainer_asignado', 'membership_plan').order_by('id')
     )
     if not user.is_staff:
         queryset = queryset.filter(trainer_asignado=trainer_profile)
@@ -399,7 +399,7 @@ def build_trainer_charts(trainer_profile, user, filters=None):
     cumplimiento_promedio = round(sum(completion_values) / len(completion_values), 1) if completion_values else None
 
     return {
-        'role': 'trainer',
+        'role': 'admin',
         'filters': {
             'period': filters.get('period') or '30',
             'start_date': period_start.isoformat(),

@@ -89,7 +89,7 @@ def weekly_attendance_average(member, last_attendance_date=None):
 
 
 def last_contact(alert):
-    return alert.contacts.select_related('trainer__user').order_by('-contacted_at', '-id').first()
+    return alert.contacts.select_related('trainer').order_by('-contacted_at', '-id').first()
 
 
 def has_recent_contact(alert, today=None):
@@ -137,7 +137,7 @@ def recommended_action(priority, alert_status, membership_status, recent_contact
 def serialize_contact(contact):
     if not contact:
         return None
-    trainer_name = contact.trainer.user.get_full_name() or contact.trainer.user.email
+    trainer_name = contact.trainer.get_full_name() or contact.trainer.email
     return {
         'id': contact.id,
         'trainer': contact.trainer_id,
@@ -231,7 +231,7 @@ def notify_alert_created(alert):
     recipients = []
     trainer = getattr(alert.member, 'trainer_asignado', None)
     if trainer is not None:
-        recipients.append(trainer.user)
+        recipients.append(trainer)
     for recipient in recipients:
         Notification.objects.get_or_create(
             user=recipient,
@@ -251,7 +251,7 @@ def generate_inactivity_alerts(today=None):
     created = 0
     checked = 0
     for member in MemberProfile.objects.filter(is_active=True).select_related(
-        'user', 'trainer_asignado__user'
+        'user', 'trainer_asignado'
     ).iterator():
         checked += 1
         alert, was_created = create_alert_if_needed(member, today=today)
@@ -306,7 +306,7 @@ def create_contact(alert, trainer, method, result, note='', next_follow_up_date=
         next_follow_up_date=next_follow_up_date,
     )
     if alert.status == 'new':
-        set_alert_status(alert, 'in_follow_up', user=trainer.user, reason='Contacto registrado.')
+        set_alert_status(alert, 'in_follow_up', user=trainer, reason='Contacto registrado.')
     return contact
 
 
@@ -342,7 +342,7 @@ def resolve_open_alerts_for_attendance(attendance):
 def base_trainer_alert_queryset(user):
     queryset = InactivityAlert.objects.select_related(
         'member__user',
-        'member__trainer_asignado__user',
+        'member__trainer_asignado',
     ).prefetch_related('contacts')
     if user.is_staff:
         return queryset
@@ -410,7 +410,7 @@ def trainer_alert_summary(user):
 
 
 def members_without_open_alerts(user):
-    queryset = MemberProfile.objects.filter(is_active=True).select_related('user', 'trainer_asignado__user')
+    queryset = MemberProfile.objects.filter(is_active=True).select_related('user', 'trainer_asignado')
     if user.is_staff:
         pass
     else:

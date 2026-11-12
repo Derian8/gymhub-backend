@@ -108,7 +108,7 @@ def check_membership_status_alerts():
     subscriptions = MemberSubscription.objects.filter(
         is_active=True,
         status__in=['expiring', 'expired'],
-    ).select_related('member__user', 'member__trainer_asignado__user')
+    ).select_related('member__user', 'member__trainer_asignado')
 
     for subscription in subscriptions:
         member = subscription.member

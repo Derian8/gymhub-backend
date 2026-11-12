@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, MemberProfile, TrainerProfile, AuditLog, ConfiguracionSistema
+from .models import User, MemberProfile, AuditLog, ConfiguracionSistema
 
 
 @admin.register(User)
@@ -17,12 +17,6 @@ class MemberProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'membership_plan', 'join_date', 'is_active')
     list_filter = ('is_active', 'membership_plan')
     search_fields = ('user__email', 'user__first_name', 'user__last_name')
-
-
-@admin.register(TrainerProfile)
-class TrainerProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'specialization', 'certification')
-    search_fields = ('user__email', 'specialization')
 
 
 @admin.register(AuditLog)

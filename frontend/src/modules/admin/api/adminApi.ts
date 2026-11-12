@@ -15,19 +15,6 @@ export const adminApi = {
     const { data } = await apiClient.get('/api/admin/users/')
     return data
   },
-  enableClientProfile: async (trainerId: number, payload: {
-    entrenador_asignado: number
-    telefono?: string
-    plan_membresia: number
-    tipo_membresia: 'catalogo'
-    precio_acordado?: string
-    renovacion_automatica: boolean
-    metodo_pago: 'cash' | 'sinpe' | 'transfer' | 'other'
-    referencia_pago?: string
-  }) => {
-    const { data } = await apiClient.post(`/api/trainers/${trainerId}/enable-client-profile/`, payload)
-    return data
-  },
   report: async (filters: ReportFilters): Promise<AdminReportOverview> => {
     const { data } = await apiClient.get('/api/admin/reports/overview/', { params: filters })
     return data

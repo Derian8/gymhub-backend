@@ -518,7 +518,7 @@ def get_active_prescription(member):
     )
     linked_guides = list(active_plan.nutrition_links.order_by('priority_order', 'id'))
     today_workout = get_today_workout_day(active_plan)
-    trainer = active_plan.trainer.user
+    trainer = active_plan.trainer
     estado_prescripcion = get_member_prescription_status(member)
 
     trainer_name = trainer.get_full_name() or trainer.email
@@ -539,7 +539,7 @@ def get_active_prescription(member):
     }
 
 
-def get_trainer_overview(user, trainer_profile):
+def get_admin_overview(user):
     from users.models import MemberProfile
     from billing.models import MemberSubscription
 
@@ -550,11 +550,8 @@ def get_trainer_overview(user, trainer_profile):
 
     miembros = annotate_member_metrics(
         MemberProfile.objects.select_related(
-        'user', 'membership_plan', 'trainer_asignado__user'
+        'user', 'membership_plan', 'trainer_asignado'
     ).filter(is_active=True).order_by('id'))
-    if not user.is_staff:
-        miembros = miembros.filter(trainer_asignado=trainer_profile)
-
     member_ids = list(miembros.values_list('id', flat=True))
     total_active = len(member_ids)
     checked_in_today = Attendance.objects.filter(

@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.middleware.csrf import get_token
 from django.db.models import Q, Case, When, IntegerField, Prefetch
@@ -22,21 +21,18 @@ from progress.services import build_member_physical_summary
 from billing.models import MemberSubscription
 from billing.serializers import MemberMembershipSerializer, PaymentRecordSerializer
 from billing.services import default_grace_days, initialize_subscription, mark_payment_paid
-from .models import MemberProfile, TrainerProfile, PerfilGimnasio
+from .models import MemberProfile, PerfilGimnasio
 from .audit import registrar_auditoria
 from .permissions import (
     IsAdministrator,
-    IsStaffOrTrainer,
-    IsTrainer,
     IsMember,
-    tiene_perfil_entrenador,
+    tiene_perfil_administrador,
     usa_contexto_cliente,
 )
 from .serializers import (
     UserSerializer, RegisterSerializer, LoginSerializer, MeUpdateSerializer,
-    MemberProfileSerializer, TrainerProfileSerializer, PerfilGimnasioSerializer,
+    MemberProfileSerializer, AdministradorAsignacionSerializer, PerfilGimnasioSerializer,
     AltaMiembroSerializer, RegistroClientePagoSerializer,
-    HabilitarInstructorClienteSerializer,
     CambioContrasenaSerializer, AuditLogSerializer,
 )
 from .prescription_services import get_member_prescription_summary
@@ -46,7 +42,7 @@ from .services import (
     get_member_dashboard_summary,
     get_member_prescription_status,
     get_member_risk_snapshot,
-    get_trainer_overview,
+    get_admin_overview,
 )
 
 User = get_user_model()
@@ -71,11 +67,10 @@ def _enforce_csrf(request):
     SessionAuthentication().enforce_csrf(request)
 
 
-def _get_trainer_profile(user):
-    try:
-        return user.trainerprofile
-    except ObjectDoesNotExist as exc:
-        raise PermissionDenied('Perfil de trainer no encontrado.') from exc
+def _get_administrator(user):
+    if not user or not user.is_authenticated or not user.is_staff:
+        raise PermissionDenied('Se requiere una cuenta administradora.')
+    return user
 
 
 def _set_auth_cookies(response, refresh_token):
@@ -431,7 +426,7 @@ class MemberViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         qs = annotate_member_metrics(MemberProfile.objects.select_related(
-            'user', 'membership_plan', 'trainer_asignado__user'
+            'user', 'membership_plan', 'trainer_asignado'
         ).prefetch_related(
             Prefetch(
                 'subscriptions',
@@ -443,8 +438,8 @@ class MemberViewSet(viewsets.ModelViewSet):
         if usa_contexto_cliente(self.request):
             return qs.filter(user=user)
 
-        if not user.is_staff and tiene_perfil_entrenador(user):
-            trainer_profile = _get_trainer_profile(user)
+        if not user.is_staff and tiene_perfil_administrador(user):
+            trainer_profile = _get_administrator(user)
             qs = qs.filter(trainer_asignado=trainer_profile)
         elif not user.is_staff:
             return qs.none()
@@ -544,7 +539,7 @@ class MemberViewSet(viewsets.ModelViewSet):
         member = self.get_object()
         summary = get_member_dashboard_summary(member)
         if (
-            tiene_perfil_entrenador(request.user)
+            tiene_perfil_administrador(request.user)
             and not request.user.is_staff
             and not usa_contexto_cliente(request)
         ):
@@ -565,7 +560,7 @@ class MemberViewSet(viewsets.ModelViewSet):
     def membership_summary(self, request, pk=None):
         """GET /api/members/{id}/membership-summary/"""
         if (
-            tiene_perfil_entrenador(request.user)
+            tiene_perfil_administrador(request.user)
             and not request.user.is_staff
             and not usa_contexto_cliente(request)
         ):
@@ -597,7 +592,7 @@ class MemberViewSet(viewsets.ModelViewSet):
         member = self.get_object()
         return Response(build_member_physical_summary(member))
 
-    @action(detail=True, methods=['post'], url_path='assign-trainer')
+    @action(detail=True, methods=['post'], url_path='assign-administrator')
     def assign_trainer(self, request, pk=None):
         member = self.get_object()
 
@@ -606,11 +601,16 @@ class MemberViewSet(viewsets.ModelViewSet):
             if not trainer_id:
                 raise ValidationError({'trainer_id': 'Este campo es requerido.'})
             try:
-                trainer_profile = TrainerProfile.objects.get(id=trainer_id)
-            except TrainerProfile.DoesNotExist as exc:
-                raise ValidationError({'trainer_id': 'Trainer no encontrado.'}) from exc
+                trainer_profile = User.objects.get(
+                    id=trainer_id,
+                    is_active=True,
+                    is_staff=True,
+                    role='admin',
+                )
+            except User.DoesNotExist as exc:
+                raise ValidationError({'trainer_id': 'Administrador no encontrado.'}) from exc
         else:
-            trainer_profile = _get_trainer_profile(request.user)
+            trainer_profile = _get_administrator(request.user)
             if member.trainer_asignado and member.trainer_asignado_id != trainer_profile.id:
                 raise PermissionDenied('El cliente ya está asignado a otro trainer.')
 
@@ -757,29 +757,26 @@ class MemberViewSet(viewsets.ModelViewSet):
         })
 
 
-class TrainerOverviewView(APIView):
-    """GET /api/trainer/gym-overview/"""
-    permission_classes = [IsAuthenticated, IsTrainer]
+class AdminOverviewView(APIView):
+    """GET /api/admin/gym-overview/"""
+    permission_classes = [IsAuthenticated, IsAdministrator]
 
     def get(self, request):
-        trainer_profile = (
-            None if request.user.is_staff else _get_trainer_profile(request.user)
-        )
-        return Response(get_trainer_overview(request.user, trainer_profile))
+        return Response(get_admin_overview(request.user))
 
 
-class TrainerListView(APIView):
-    """Catálogo mínimo de entrenadores para asignación administrativa."""
+class AdministradorListView(APIView):
+    """Catálogo de administradores activos para asignaciones del gimnasio."""
 
     permission_classes = [IsAuthenticated, IsAdministrator]
 
     def get(self, request):
-        trainers = TrainerProfile.objects.select_related('user').filter(
-            user__is_active=True,
-            user__is_staff=True,
-            user__role='admin',
-        ).order_by('user__first_name', 'user__last_name', 'id')
-        return Response(TrainerProfileSerializer(trainers, many=True).data)
+        administrators = User.objects.filter(
+            is_active=True,
+            is_staff=True,
+            role='admin',
+        ).order_by('first_name', 'last_name', 'id')
+        return Response(AdministradorAsignacionSerializer(administrators, many=True).data)
 
 
 class AdminUserListView(APIView):
@@ -788,142 +785,22 @@ class AdminUserListView(APIView):
     permission_classes = [IsAuthenticated, IsAdministrator]
 
     def get(self, request):
-        users = User.objects.select_related(
-            'trainerprofile',
-            'memberprofile',
-        ).order_by('first_name', 'last_name', 'email')
+        users = User.objects.select_related('memberprofile').order_by(
+            'first_name', 'last_name', 'email'
+        )
         return Response(UserSerializer(users, many=True).data)
 
 
-class HabilitarInstructorClienteView(APIView):
-    """Agrega el perfil cliente a un instructor sin duplicar su cuenta."""
-
+class PerfilGimnasioView(APIView):
     permission_classes = [IsAuthenticated, IsAdministrator]
 
-    @transaction.atomic
-    def post(self, request, pk):
-        try:
-            instructor = TrainerProfile.objects.select_related('user').get(pk=pk)
-        except TrainerProfile.DoesNotExist:
-            return Response(
-                {'error': 'Instructor no encontrado.'},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        if instructor.user.is_staff:
-            return Response(
-                {
-                    'error': (
-                        'Una cuenta administradora no puede convertirse en '
-                        'cliente. Crea una cuenta de cliente independiente.'
-                    ),
-                },
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        if hasattr(instructor.user, 'memberprofile'):
-            raise ValidationError({
-                'instructor': 'Esta cuenta ya tiene perfil de cliente.',
-            })
-
-        serializer = HabilitarInstructorClienteSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-        plan = data.get('plan_membresia')
-        trainer = data['entrenador_asignado']
-
-        member = MemberProfile.objects.create(
-            user=instructor.user,
-            trainer_asignado=trainer,
-            membership_plan=plan,
-            phone=data.get('telefono', '').strip(),
-            birth_date=data.get('fecha_nacimiento'),
-            emergency_contact=data.get('contacto_emergencia', '').strip(),
-            is_active=True,
-        )
-        recurrence_type = (
-            plan.recurrence_type
-            if plan
-            else data.get('tipo_recurrencia', 'monthly')
-        )
-        grace_period_days = (
-            plan.grace_period_days
-            if plan
-            else data.get('dias_gracia', default_grace_days(recurrence_type))
-        )
-        subscription = MemberSubscription.objects.create(
-            member=member,
-            plan=plan,
-            membership_name=(
-                plan.name if plan else data['nombre_membresia'].strip()
-            ),
-            description=(
-                plan.description
-                if plan
-                else 'Membresía comercial personalizada.'
-            ),
-            trainer=trainer,
-            agreed_price=data.get('precio_acordado') or plan.price,
-            start_date=timezone.localdate(),
-            next_billing_date=timezone.localdate(),
-            recurrence_type=recurrence_type,
-            grace_period_days=grace_period_days,
-            auto_generate_next=data['renovacion_automatica'],
-            status='pending',
-            is_active=True,
-            commercial_notes=data.get('notas_comerciales', '').strip(),
-            motivo_ajuste_precio=data.get('motivo_ajuste_precio', '').strip(),
-        )
-        _, payment = initialize_subscription(subscription)
-        try:
-            payment, _ = mark_payment_paid(
-                payment,
-                reference=data.get('referencia_pago', '').strip(),
-                notes=data.get('notas_pago', '').strip(),
-                method=data['metodo_pago'],
-                recorded_by=request.user,
-            )
-        except ValueError as exc:
-            raise ValidationError({'pago': str(exc)}) from exc
-
-        registrar_auditoria(
-            request.user,
-            'instructor_client_profile_enabled',
-            'MemberProfile',
-            member.id,
-            request=request,
-            details={
-                'user_id': instructor.user_id,
-                'trainer_profile_id': instructor.id,
-                'member_profile_id': member.id,
-                'subscription_id': subscription.id,
-                'payment_id': payment.id,
-            },
-        )
-        instructor.user.refresh_from_db()
-        return Response({
-            'user': UserSerializer(instructor.user).data,
-            'member': MemberProfileSerializer(
-                member,
-                context={'request': request},
-            ).data,
-            'membership': MemberMembershipSerializer(
-                subscription,
-                context={'request': request},
-            ).data,
-            'payment': PaymentRecordSerializer(payment).data,
-            'message': 'Perfil de cliente habilitado y primer pago registrado.',
-        }, status=status.HTTP_201_CREATED)
-
-
-class PerfilGimnasioView(APIView):
-    permission_classes = [IsAuthenticated, IsTrainer]
-
     def get_object(self, user):
-        trainer = _get_trainer_profile(user)
+        trainer = _get_administrator(user)
         profile, _ = PerfilGimnasio.objects.get_or_create(
-            entrenador=trainer,
+            administrador=trainer,
             defaults={
-                'nombre': trainer.user.get_full_name() or 'Mi gimnasio',
-                'correo': trainer.user.email,
+                'nombre': trainer.get_full_name() or 'Mi gimnasio',
+                'correo': trainer.email,
             },
         )
         return profile

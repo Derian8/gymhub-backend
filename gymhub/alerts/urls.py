@@ -8,14 +8,14 @@ from .views import (
 
 router = DefaultRouter()
 router.register(r'alerts', InactivityAlertViewSet, basename='alert')
-router.register(r'trainer/inactivity-alerts', InactivityAlertViewSet, basename='trainer-inactivity-alert')
+router.register(r'admin/inactivity-alerts', InactivityAlertViewSet, basename='admin-inactivity-alert')
 router.register(r'notifications', NotificationViewSet, basename='notification')
 
 urlpatterns = [
     path(
-        'trainer/members-without-alerts/',
+        'admin/members-without-alerts/',
         MembersWithoutInactivityAlertsView.as_view(),
-        name='trainer-members-without-alerts',
+        name='admin-members-without-alerts',
     ),
     path('', include(router.urls)),
 ]

@@ -13,7 +13,7 @@ class GymClassSerializer(serializers.ModelSerializer):
         )
 
     def get_trainer_name(self, obj):
-        return obj.trainer.user.get_full_name() or obj.trainer.user.email
+        return obj.trainer.get_full_name() or obj.trainer.email
 
 
 class ClassEnrollmentSerializer(serializers.ModelSerializer):

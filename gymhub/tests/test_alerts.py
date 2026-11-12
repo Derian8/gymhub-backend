@@ -33,7 +33,7 @@ class TestAlerts:
 
         InactivityAlert.objects.create(member=member_profile, days_inactive=21)
 
-        resp = member_client.get('/api/trainer/inactivity-alerts/')
+        resp = member_client.get('/api/admin/inactivity-alerts/')
 
         assert resp.status_code == status.HTTP_200_OK
         results = resp.data.get('results', resp.data)
@@ -44,7 +44,7 @@ class TestAlerts:
 
         alert = InactivityAlert.objects.create(member=member_profile, days_inactive=18, status='new')
 
-        resp = trainer_client.post(f'/api/trainer/inactivity-alerts/{alert.id}/resolve/')
+        resp = trainer_client.post(f'/api/admin/inactivity-alerts/{alert.id}/resolve/')
 
         assert resp.status_code == status.HTTP_200_OK
         alert.refresh_from_db()
@@ -57,7 +57,7 @@ class TestAlerts:
 
         alert = InactivityAlert.objects.create(member=member_profile, days_inactive=18)
 
-        resp = member_client.post(f'/api/trainer/inactivity-alerts/{alert.id}/resolve/')
+        resp = member_client.post(f'/api/admin/inactivity-alerts/{alert.id}/resolve/')
 
         assert resp.status_code == status.HTTP_403_FORBIDDEN
 
@@ -66,13 +66,13 @@ class TestAlerts:
 
         alert = InactivityAlert.objects.create(member=member_profile, days_inactive=12, status='new')
 
-        follow_resp = trainer_client.post(f'/api/trainer/inactivity-alerts/{alert.id}/start-follow-up/')
+        follow_resp = trainer_client.post(f'/api/admin/inactivity-alerts/{alert.id}/start-follow-up/')
         assert follow_resp.status_code == status.HTTP_200_OK
         alert.refresh_from_db()
         assert alert.status == 'in_follow_up'
 
         contact_resp = trainer_client.post(
-            f'/api/trainer/inactivity-alerts/{alert.id}/contacts/',
+            f'/api/admin/inactivity-alerts/{alert.id}/contacts/',
             {'method': 'whatsapp', 'result': 'Respondió', 'note': 'Vuelve el lunes.'},
         )
 
@@ -85,14 +85,14 @@ class TestAlerts:
         alert = InactivityAlert.objects.create(member=member_profile, days_inactive=10, status='new')
 
         dismiss_resp = trainer_client.post(
-            f'/api/trainer/inactivity-alerts/{alert.id}/dismiss/',
+            f'/api/admin/inactivity-alerts/{alert.id}/dismiss/',
             {'reason': 'Ausencia justificada.'},
         )
         assert dismiss_resp.status_code == status.HTTP_200_OK
         alert.refresh_from_db()
         assert alert.status == 'dismissed'
 
-        reopen_resp = trainer_client.post(f'/api/trainer/inactivity-alerts/{alert.id}/reopen/')
+        reopen_resp = trainer_client.post(f'/api/admin/inactivity-alerts/{alert.id}/reopen/')
         assert reopen_resp.status_code == status.HTTP_200_OK
         alert.refresh_from_db()
         assert alert.status == 'new'
@@ -107,7 +107,7 @@ class TestAlerts:
         Attendance.objects.create(member=member_profile, attendance_date=last_day, check_in_time=timezone.now() - timedelta(days=23))
         alert = InactivityAlert.objects.create(member=member_profile, last_checkin_date=last_day, days_inactive=23, status='new')
 
-        resp = trainer_client.get(f'/api/trainer/inactivity-alerts/{alert.id}/')
+        resp = trainer_client.get(f'/api/admin/inactivity-alerts/{alert.id}/')
 
         assert resp.status_code == status.HTTP_200_OK
         assert resp.data['member_name']
@@ -194,7 +194,7 @@ class TestAlerts:
         create_active_subscription(member_profile, membership_plan)
         Attendance.objects.create(member=member_profile, attendance_date=date.today(), check_in_time=timezone.now())
 
-        resp = trainer_client.get('/api/trainer/members-without-alerts/')
+        resp = trainer_client.get('/api/admin/members-without-alerts/')
 
         assert resp.status_code == status.HTTP_200_OK
         assert any(item['id'] == member_profile.id for item in resp.data['results'])

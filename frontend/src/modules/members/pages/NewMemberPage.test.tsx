@@ -9,11 +9,10 @@ vi.mock('../hooks/useMembers', () => ({
     mutate: registerMock,
     isPending: false,
   }),
-  useTrainersQuery: () => ({
+  useAdministratorsQuery: () => ({
     data: [{
       id: 4,
-      user: { id: 4, email: 'trainer@test.com', username: 'trainer', first_name: 'Carlos', last_name: 'Mora', role: 'admin', is_staff: true, memberprofile_id: null, trainerprofile_id: 4 },
-      specialization: '', bio: '', certification: '',
+      user: { id: 4, email: 'admin@test.com', username: 'admin', first_name: 'Carlos', last_name: 'Mora', role: 'admin', is_staff: true, memberprofile_id: null },
     }],
     isLoading: false,
   }),

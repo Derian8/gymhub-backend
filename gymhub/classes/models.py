@@ -7,7 +7,7 @@ class GymClass(models.Model):
         ('cancelled', 'Cancelled'),
     ]
     trainer = models.ForeignKey(
-        'users.TrainerProfile',
+        'users.User',
         on_delete=models.CASCADE,
         related_name='classes'
     )

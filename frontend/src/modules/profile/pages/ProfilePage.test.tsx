@@ -33,7 +33,7 @@ describe('ProfilePage', () => {
         role: 'admin',
         is_staff: true,
         memberprofile_id: null,
-        trainerprofile_id: 8,
+
       },
       isAuthenticated: true,
       authResolved: true,

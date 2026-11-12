@@ -98,18 +98,16 @@ interface PageHeaderProps {
   title: string
   subtitle?: string
   action?: React.ReactNode
-  inlineAction?: boolean
   breadcrumb?: Array<{ label: string; href?: string }>
   backTo?: string
   backLabel?: string
 }
 
-export function PageHeader({ title, subtitle, action, inlineAction = false, breadcrumb, eyebrow, backTo, backLabel }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, action, breadcrumb, eyebrow, backTo, backLabel }: PageHeaderProps) {
   return (
-    <div className={`pulso-cabecera flex ${inlineAction ? 'flex-row items-center gap-2' : 'flex-col gap-4 lg:flex-row lg:items-center'} justify-between mb-8`}>
+    <div className="pulso-cabecera flex flex-row items-center justify-between gap-2 mb-8">
       {eyebrow && <PulsoDecorativo className="pointer-events-none absolute bottom-2 right-0 hidden w-64 text-primary/10 lg:block" />}
-      <div className="relative min-w-0">
-        {backTo ? <PageHeaderBack fallbackTo={backTo} label={backLabel || 'Volver'} /> : null}
+      <div className="relative min-w-0 flex-1">
         {eyebrow && <p className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-primary"><span className="h-1.5 w-1.5 rounded-full bg-primary" />{eyebrow}</p>}
         {breadcrumb && (
           <div className="flex items-center gap-1 text-xs text-neutral-500 dark:text-neutral-400 mb-1">
@@ -123,14 +121,19 @@ export function PageHeader({ title, subtitle, action, inlineAction = false, brea
             ))}
           </div>
         )}
-        <h1 className={`${inlineAction ? 'text-2xl sm:text-3xl lg:text-4xl' : 'text-3xl lg:text-4xl'} font-heading font-bold uppercase tracking-tight text-neutral-900 dark:text-white`}>
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-heading font-bold uppercase tracking-tight text-neutral-900 dark:text-white">
           {title}
         </h1>
         {subtitle && (
           <p className="mt-2 max-w-2xl text-sm text-neutral-500 dark:text-neutral-400">{subtitle}</p>
         )}
       </div>
-      {action && <div className="max-w-full shrink-0">{action}</div>}
+      {(backTo || action) && (
+        <div className="pulso-cabecera-accion flex w-fit max-w-full shrink-0 flex-wrap items-center gap-2">
+          {backTo ? <PageHeaderBack fallbackTo={backTo} label={backLabel || 'Volver'} /> : null}
+          {action}
+        </div>
+      )}
     </div>
   )
 }
@@ -166,7 +169,7 @@ function PageHeaderBack({ fallbackTo, label }: { fallbackTo: string; label: stri
     : hasSafeReturnTo || !hasInternalHistory ? label : 'Volver'
 
   return (
-    <button type="button" onClick={handleBack} className="mb-2 inline-flex min-h-9 items-center gap-1.5 rounded-lg pr-2 text-sm font-semibold text-neutral-500 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:text-neutral-400" aria-label={visibleLabel}>
+    <button type="button" onClick={handleBack} className="btn-primary mb-2 inline-flex min-h-11 items-center justify-center gap-2 text-sm font-semibold" aria-label={visibleLabel}>
       <ArrowLeft size={16} />
       <span>{visibleLabel}</span>
     </button>

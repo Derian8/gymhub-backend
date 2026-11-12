@@ -1,8 +1,8 @@
 from rest_framework.permissions import BasePermission
 
 
-def tiene_perfil_entrenador(user):
-    return bool(user and user.is_authenticated and hasattr(user, 'trainerprofile'))
+def tiene_perfil_administrador(user):
+    return bool(user and user.is_authenticated and user.is_staff)
 
 
 def tiene_perfil_cliente(user):
@@ -29,7 +29,7 @@ def usa_contexto_cliente(request):
         or request.headers.get('X-GymHub-Context') == 'cliente'
     ):
         return True
-    return not user.is_staff and not tiene_perfil_entrenador(user)
+    return not user.is_staff and not tiene_perfil_administrador(user)
 
 
 class IsAdministrator(BasePermission):
@@ -37,28 +37,6 @@ class IsAdministrator(BasePermission):
 
     def has_permission(self, request, view):
         return bool(
-            request.user
-            and request.user.is_authenticated
-            and request.user.is_staff
-        )
-
-
-class IsTechnicalTrainer(BasePermission):
-    """Compatibilidad temporal: las operaciones técnicas son administrativas."""
-
-    def has_permission(self, request, view):
-        return bool(
-            request.user
-            and request.user.is_authenticated
-            and request.user.is_staff
-        )
-
-
-class IsTrainer(BasePermission):
-    """Permite acceso administrativo; TrainerProfile es solo un vínculo técnico."""
-
-    def has_permission(self, request, view):
-        return (
             request.user
             and request.user.is_authenticated
             and request.user.is_staff
@@ -76,8 +54,8 @@ class IsMember(BasePermission):
         )
 
 
-class IsOwnerOrTrainer(BasePermission):
-    """Permite acceso al dueño del recurso o a cualquier trainer."""
+class IsOwnerOrAdministrator(BasePermission):
+    """Permite acceso al dueño del recurso o a un administrador."""
 
     def has_object_permission(self, request, view, obj):
         if not request.user or not request.user.is_authenticated:
@@ -107,12 +85,3 @@ class IsOwnerOnly(BasePermission):
             if hasattr(member, 'user'):
                 return member.user == request.user
         return False
-
-
-class IsStaffOrTrainer(BasePermission):
-    """Compatibilidad temporal para endpoints que ahora administra el staff."""
-
-    def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
-        return request.user.is_staff

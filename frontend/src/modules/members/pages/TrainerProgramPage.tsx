@@ -551,7 +551,7 @@ export function TrainerProgramPage({ memberIdOverride, planIdOverride, plansCont
 
   const canEditProgram = !!member && (
     user?.is_staff ||
-    (member.trainer_asignado !== null && member.trainer_asignado === user?.trainerprofile_id)
+    (member.trainer_asignado !== null && member.trainer_asignado === user?.id)
   )
 
   const handlePlanSubmit = (event: FormEvent<HTMLFormElement>) => {

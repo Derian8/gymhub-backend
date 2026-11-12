@@ -40,7 +40,7 @@ const memberData = {
     role: 'member',
     is_staff: false,
     memberprofile_id: 15,
-    trainerprofile_id: null,
+
   },
 }
 
@@ -304,7 +304,7 @@ describe('TrainerProgramPage', () => {
         role: 'admin',
         is_staff: true,
         memberprofile_id: null,
-        trainerprofile_id: 9,
+
       },
       isAuthenticated: true,
       authResolved: true,

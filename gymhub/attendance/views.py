@@ -4,7 +4,7 @@ import secrets
 from datetime import timedelta
 
 from django.core.cache import cache
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -30,6 +30,54 @@ MEMBER_QR_TOKEN_TTL_SECONDS = 120
 def member_qr_cache_key(token):
     digest = hashlib.sha256(token.encode('utf-8')).hexdigest()
     return f'attendance:member-qr:{digest}'
+
+
+def create_qr_membership_block_alert(member, admin_user, access):
+    """Record a billing follow-up and notify the admin who scanned the QR."""
+    from alerts.models import Notification
+    from billing.models import SeguimientoCobro
+    from billing.services import current_member_membership
+
+    today = timezone.localdate()
+    subscription = current_member_membership(member)
+    membership_name = subscription.membership_name if subscription else 'Membresía'
+    full_name = member.user.get_full_name() or member.user.email
+    days_overdue = access.get('days_overdue', 0)
+    detail = (
+        f' vencida hace {days_overdue} día(s)'
+        if access.get('reason') == 'payment_overdue'
+        else ' pendiente de regularización'
+    )
+
+    if not SeguimientoCobro.objects.filter(
+        cliente=member,
+        estado__in=['nuevo', 'en_seguimiento'],
+    ).exists():
+        try:
+            with transaction.atomic():
+                SeguimientoCobro.objects.create(
+                    cliente=member,
+                    administrador=admin_user,
+                    nota=f'Check-in QR bloqueado: membresía {membership_name}{detail}.',
+                )
+        except IntegrityError:
+            # Another scan may have created the unique open follow-up at the same time.
+            pass
+
+    if subscription:
+        event_key = 'membership_expired' if access.get('reason') == 'payment_overdue' else 'membership_payment_required'
+        dedupe_key = f'{event_key}:admin:{admin_user.id}:{subscription.id}:{today.isoformat()}'
+    else:
+        dedupe_key = f'qr_membership_blocked:admin:{admin_user.id}:{member.id}:{today.isoformat()}'
+
+    Notification.objects.get_or_create(
+        user=admin_user,
+        dedupe_key=dedupe_key,
+        defaults={
+            'type': 'payment_overdue' if access.get('reason') == 'payment_overdue' else 'payment_due',
+            'message': f'{full_name}: membresía {membership_name}{detail}; asistencia QR bloqueada.',
+        },
+    )
 
 
 class CheckInThrottle(UserRateThrottle):
@@ -139,11 +187,16 @@ class CheckInView(APIView):
         access = membership_access(member)
         commercial_override = bool(not access['allowed'] and requested_override)
         if not access['allowed'] and not commercial_override:
+            if qr_token and access['reason'] != 'member_inactive':
+                create_qr_membership_block_alert(member, request.user, access)
+                cache.delete(member_qr_cache_key(qr_token))
             return Response(
                 {
                     'blocked': True,
                     'reason': access['reason'],
                     'days_overdue': access['days_overdue'],
+                    'member_id': member.id,
+                    'member_name': member.user.get_full_name() or member.user.email,
                 },
                 status=status.HTTP_403_FORBIDDEN,
             )

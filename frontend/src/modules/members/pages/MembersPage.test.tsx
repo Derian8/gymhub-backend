@@ -130,7 +130,7 @@ describe('MembersPage', () => {
     assignTrainerMock.mockReset()
     membersQueryParams.length = 0
     useAuthStore.setState({
-      user: { id: 9, email: 'trainer@test.com', username: 'trainer', first_name: 'Trainer', last_name: 'Demo', role: 'admin', is_staff: true, memberprofile_id: null, trainerprofile_id: 9 },
+      user: { id: 9, email: 'trainer@test.com', username: 'trainer', first_name: 'Trainer', last_name: 'Demo', role: 'admin', is_staff: true, memberprofile_id: null,  },
       isAuthenticated: true,
       authResolved: true,
       theme: 'dark',

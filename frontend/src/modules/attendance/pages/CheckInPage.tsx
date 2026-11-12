@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Activity, CheckSquare, Clock3, NotebookPen } from 'lucide-react'
 
 import { useCheckInMutation, useCheckOutMutation, useAttendanceQuery } from '../hooks/useAttendance'
@@ -20,6 +20,7 @@ export function CheckInPage() {
 
 function AdminQrAttendancePage() {
   const [scannerSession, setScannerSession] = useState(0)
+  const navigate = useNavigate()
   const { mutate: checkIn, isPending } = useCheckInMutation()
 
   return (
@@ -33,7 +34,17 @@ function AdminQrAttendancePage() {
       <AdminQrScanner
         key={scannerSession}
         isSubmitting={isPending}
-        onSubmit={(qrToken) => checkIn({ qr_token: qrToken }, { onSuccess: () => setScannerSession((session) => session + 1) })}
+        onSubmit={(qrToken) => checkIn({ qr_token: qrToken }, {
+          onSuccess: () => setScannerSession((session) => session + 1),
+          onError: (error) => {
+            const response = (error as { response?: { data?: { blocked?: boolean; member_id?: number } } }).response?.data
+            if (response?.blocked && response.member_id) {
+              navigate(`/billing?member=${response.member_id}`, {
+                state: { returnTo: '/attendance', returnLabel: 'Volver a asistencia' },
+              })
+            }
+          },
+        })}
       />
     </div>
   )

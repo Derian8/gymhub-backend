@@ -457,4 +457,4 @@ class PlantillaEntrenamientoSerializer(serializers.ModelSerializer):
         read_only_fields = ('trainer', 'creada_en')
 
     def get_trainer_nombre(self, obj):
-        return obj.trainer.user.get_full_name() or obj.trainer.user.email
+        return obj.trainer.get_full_name() or obj.trainer.email

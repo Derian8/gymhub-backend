@@ -136,7 +136,7 @@ class TrainingPlan(models.Model):
         related_name='plans'
     )
     trainer = models.ForeignKey(
-        'users.TrainerProfile',
+        'users.User',
         on_delete=models.CASCADE,
         related_name='created_plans'
     )
@@ -349,7 +349,7 @@ class PlantillaEntrenamiento(models.Model):
     ]
 
     trainer = models.ForeignKey(
-        'users.TrainerProfile',
+        'users.User',
         on_delete=models.CASCADE,
         related_name='plantillas_entrenamiento'
     )

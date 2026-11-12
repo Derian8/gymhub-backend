@@ -18,7 +18,7 @@ vi.mock('../hooks/useMembers', () => ({
         role: 'member',
         is_staff: false,
         memberprofile_id: 15,
-        trainerprofile_id: null,
+
       },
       email: 'maria@gymhub.com',
       full_name: 'Maria Perez',
@@ -174,7 +174,7 @@ describe('MemberDetailPage', () => {
         role: 'admin',
         is_staff: true,
         memberprofile_id: null,
-        trainerprofile_id: 9,
+
       },
       isAuthenticated: true,
       authResolved: true,
@@ -201,7 +201,7 @@ describe('MemberDetailPage', () => {
     expect(getAllByText('Maria Perez').length).toBeGreaterThan(1)
     expect(queryByTestId('activation-panel')).not.toBeInTheDocument()
     expect(queryByTestId('activate-member-btn')).not.toBeInTheDocument()
-    expect(queryByTestId('assign-trainer-btn')).not.toBeInTheDocument()
+    expect(queryByTestId('assign-administrator-btn')).not.toBeInTheDocument()
     expect(queryByTestId('unassigned-member-banner')).not.toBeInTheDocument()
     expect(getByTestId('member-program-link')).toHaveAttribute('href', '/members/15/program')
     expect(queryByTestId('member-billing-link')).not.toBeInTheDocument()

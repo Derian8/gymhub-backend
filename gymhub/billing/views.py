@@ -26,11 +26,11 @@ from .services import (
 )
 from users.permissions import (
     IsAdministrator,
-    tiene_perfil_entrenador,
+    tiene_perfil_administrador,
     usa_contexto_cliente,
 )
 from users.audit import registrar_auditoria
-from users.views import _get_trainer_profile
+from users.views import _get_administrator
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ class MembershipPlanViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = MembershipPlan.objects.select_related('trainer__user').all()
+        queryset = MembershipPlan.objects.select_related('trainer').all()
         if usa_contexto_cliente(self.request):
             try:
                 trainer_profile = user.memberprofile.trainer_asignado
@@ -51,7 +51,7 @@ class MembershipPlanViewSet(viewsets.ModelViewSet):
                     is_active=True,
                 )
             return MembershipPlan.objects.none()
-        if not user.is_staff and tiene_perfil_entrenador(user):
+        if not user.is_staff and tiene_perfil_administrador(user):
             return MembershipPlan.objects.none()
         return queryset
 
@@ -87,11 +87,11 @@ class MemberSubscriptionViewSet(viewsets.ModelViewSet):
         user = self.request.user
         member_id = self.request.query_params.get('member')
         queryset = MemberSubscription.objects.select_related(
-            'member__user', 'plan', 'trainer__user'
+            'member__user', 'plan', 'trainer'
         ).all()
         if usa_contexto_cliente(self.request):
             queryset = queryset.filter(member__user=user)
-        elif not user.is_staff and tiene_perfil_entrenador(user):
+        elif not user.is_staff and tiene_perfil_administrador(user):
             return MemberSubscription.objects.none()
         elif not user.is_staff:
             return MemberSubscription.objects.none()
@@ -395,7 +395,7 @@ class PaymentScheduleViewSet(viewsets.ModelViewSet):
         if usa_contexto_cliente(self.request):
             return PaymentSchedule.objects.filter(member__user=user)
         queryset = PaymentSchedule.objects.select_related('member__user', 'plan', 'subscription__plan').all()
-        if not user.is_staff and tiene_perfil_entrenador(user):
+        if not user.is_staff and tiene_perfil_administrador(user):
             return PaymentSchedule.objects.none()
         if not user.is_staff:
             return PaymentSchedule.objects.none()
@@ -439,7 +439,7 @@ class PaymentRecordViewSet(viewsets.ReadOnlyModelViewSet):
         queryset = PaymentRecord.objects.select_related(
             'schedule__member__user', 'schedule__plan', 'schedule__subscription'
         ).all()
-        if not user.is_staff and tiene_perfil_entrenador(user):
+        if not user.is_staff and tiene_perfil_administrador(user):
             return PaymentRecord.objects.none()
         if not user.is_staff:
             return PaymentRecord.objects.none()
@@ -552,7 +552,7 @@ class PaymentMethodViewSet(viewsets.ModelViewSet):
         )
         if user.is_staff:
             return queryset
-        if tiene_perfil_entrenador(user):
+        if tiene_perfil_administrador(user):
             return PaymentMethod.objects.none()
         return queryset.none()
 
@@ -577,7 +577,7 @@ class PaymentMethodViewSet(viewsets.ModelViewSet):
         if not user.is_staff:
             if usa_contexto_cliente(self.request) and instance.member.user_id != user.id:
                 raise PermissionDenied('No puedes modificar este método de pago.')
-            if tiene_perfil_entrenador(user):
+            if tiene_perfil_administrador(user):
                 raise PermissionDenied('El entrenador no puede gestionar pagos.')
         serializer.save(member=instance.member)
 

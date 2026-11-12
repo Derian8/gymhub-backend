@@ -294,7 +294,7 @@ def build_trainer_assistant_context(member, summary, active_prescription):
             'join_date': _iso(member.join_date),
             'is_active': member.is_active,
             'trainer_name': (
-                member.trainer_asignado.user.get_full_name() or member.trainer_asignado.user.email
+                member.trainer_asignado.get_full_name() or member.trainer_asignado.email
                 if member.trainer_asignado_id else None
             ),
         },

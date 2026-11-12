@@ -117,7 +117,6 @@ class TestCheckOverduePayments:
         from alerts.models import Notification
         from billing.models import PaymentSchedule, PaymentRecord
         from billing.tasks import check_overdue_payments
-        from users.models import TrainerProfile
 
         other_trainer = get_user_model().objects.create_user(
             username='trainer_extra',
@@ -125,7 +124,6 @@ class TestCheckOverduePayments:
             password='trainer123!',
             role='trainer',
         )
-        TrainerProfile.objects.get_or_create(user=other_trainer)
 
         schedule = PaymentSchedule.objects.create(
             member=member_profile,

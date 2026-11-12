@@ -38,7 +38,7 @@ const mobileNavigation = {
     ],
     secondary: [
       { label: 'Usuarios', to: '/admin/users', icon: <ShieldCheck size={18} /> },
-      { label: 'Accesos', to: '/attendance', icon: <CheckSquare size={18} /> },
+      { label: 'Asistencia', to: '/attendance', icon: <CheckSquare size={18} /> },
       { label: 'Planes técnicos', to: '/plans', icon: <Dumbbell size={18} /> },
       { label: 'Progreso', to: '/progress', icon: <Activity size={18} /> },
       { label: 'Reportes', to: '/reports', icon: <BarChart3 size={18} /> },
@@ -177,7 +177,7 @@ export function MobileBottomNav() {
               <button
                 type="button"
                 onClick={() => setMoreOpen(false)}
-                className="flex h-11 w-11 items-center justify-center rounded-xl text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-300 dark:hover:bg-white/10 dark:hover:text-white"
+                className="btn-primary mobile-more-close flex h-11 w-11 items-center justify-center"
                 aria-label="Cerrar menú"
                 autoFocus
               >

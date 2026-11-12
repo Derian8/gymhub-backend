@@ -30,7 +30,7 @@ describe('MobileBottomNav', () => {
         role: 'member',
         is_staff: false,
         memberprofile_id: 10,
-        trainerprofile_id: null,
+
       },
       isAuthenticated: true,
       authResolved: true,
@@ -59,7 +59,7 @@ describe('MobileBottomNav', () => {
     useAuthStore.setState((state) => ({
       ...state,
       activeContext: 'administrador',
-      user: state.user ? { ...state.user, role: 'admin', is_staff: true, trainerprofile_id: 7, memberprofile_id: null } : null,
+      user: state.user ? { ...state.user, role: 'admin', is_staff: true,  memberprofile_id: null } : null,
     }))
 
     const view = renderWithProviders(<MobileBottomNav />)

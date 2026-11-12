@@ -25,10 +25,10 @@ export function ProfilePage() {
   const currentContext = getResolvedContext(user, activeContext)
   const { mutate: updateMe, isPending } = useUpdateMeMutation()
   const { mutate: logout, isPending: isLoggingOut } = useLogoutMutation()
-  const gymQuery = useQuery({ queryKey: ['gym-profile'], queryFn: async () => (await apiClient.get('/api/trainer/gym-profile/')).data as { nombre: string; telefono: string; correo: string; direccion: string; logo?: string | null }, enabled: currentContext === 'administrador' })
+  const gymQuery = useQuery({ queryKey: ['gym-profile'], queryFn: async () => (await apiClient.get('/api/admin/gym-profile/')).data as { nombre: string; telefono: string; correo: string; direccion: string; logo?: string | null }, enabled: currentContext === 'administrador' })
   const [gym, setGym] = useState({ nombre: '', telefono: '', correo: '', direccion: '' })
   const [gymLogo, setGymLogo] = useState<File | null>(null)
-  const saveGym = useMutation({ mutationFn: async () => { const payload = new FormData(); Object.entries(gym).forEach(([key, value]) => payload.append(key, value)); if (gymLogo) payload.append('logo', gymLogo); return (await apiClient.patch('/api/trainer/gym-profile/', payload)).data }, onSuccess: () => { toast.success('Datos del gimnasio actualizados'); gymQuery.refetch() } })
+  const saveGym = useMutation({ mutationFn: async () => { const payload = new FormData(); Object.entries(gym).forEach(([key, value]) => payload.append(key, value)); if (gymLogo) payload.append('logo', gymLogo); return (await apiClient.patch('/api/admin/gym-profile/', payload)).data }, onSuccess: () => { toast.success('Datos del gimnasio actualizados'); gymQuery.refetch() } })
 
   const {
     register,

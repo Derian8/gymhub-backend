@@ -6,11 +6,12 @@ logger = logging.getLogger(__name__)
 def _notification_recipients(member):
     trainer = getattr(member, 'trainer_asignado', None)
     if trainer is not None:
-        return [trainer.user]
+        return [trainer]
 
-    from users.models import TrainerProfile
+    from django.contrib.auth import get_user_model
 
-    return [trainer_profile.user for trainer_profile in TrainerProfile.objects.select_related('user').all()]
+    User = get_user_model()
+    return list(User.objects.filter(is_active=True, is_staff=True, role='admin'))
 
 
 @shared_task(name='alerts.tasks.check_member_inactivity')

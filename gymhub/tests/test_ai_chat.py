@@ -123,7 +123,7 @@ class TestAIChat:
             role='member',
         )
         foreign_member = foreign_member_user.memberprofile
-        foreign_member.trainer_asignado = other_trainer_user.trainerprofile
+        foreign_member.trainer_asignado = other_trainer_user
         foreign_member.membership_plan = membership_plan
         foreign_member.join_date = date.today()
         foreign_member.is_active = True

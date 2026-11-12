@@ -24,8 +24,7 @@ class User(AbstractUser):
     REQUIRED_FIELDS = ['username']
 
     def save(self, *args, **kwargs):
-        # Mantiene compatibilidad con procesos antiguos que aún crean trainers.
-        # El único rol administrativo expuesto es admin.
+        # Una cuenta administrativa no se degrada a cuenta de cliente.
         ya_es_administrador = False
         if self.pk:
             ya_es_administrador = type(self).objects.filter(pk=self.pk).filter(
@@ -34,7 +33,7 @@ class User(AbstractUser):
 
         if (
             ya_es_administrador
-            or self.role in ('admin', 'trainer')
+            or self.role == 'admin'
             or self.is_staff
             or self.is_superuser
         ):
@@ -77,7 +76,7 @@ class MemberProfile(models.Model):
         User, on_delete=models.CASCADE, related_name='memberprofile'
     )
     trainer_asignado = models.ForeignKey(
-        'users.TrainerProfile',
+        'users.User',
         null=True, blank=True,
         on_delete=models.SET_NULL,
         related_name='clientes',
@@ -106,21 +105,9 @@ class MemberProfile(models.Model):
         return f"Member: {self.user.get_full_name() or self.user.email}"
 
 
-class TrainerProfile(models.Model):
-    user = models.OneToOneField(
-        User, on_delete=models.CASCADE, related_name='trainerprofile'
-    )
-    specialization = models.CharField(max_length=200, blank=True)
-    bio = models.TextField(blank=True)
-    certification = models.CharField(max_length=200, blank=True)
-
-    def __str__(self):
-        return f"Trainer: {self.user.get_full_name() or self.user.email}"
-
-
 class PerfilGimnasio(models.Model):
-    entrenador = models.OneToOneField(
-        TrainerProfile,
+    administrador = models.OneToOneField(
+        User,
         on_delete=models.CASCADE,
         related_name='perfil_gimnasio',
     )

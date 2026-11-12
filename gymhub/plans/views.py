@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
@@ -22,12 +23,14 @@ from .serializers import (
     GymMachineSerializer, CatalogoEjercicioSerializer,
 )
 from users.permissions import (
-    IsTrainer,
-    tiene_perfil_entrenador,
+    IsAdministrator,
+    tiene_perfil_administrador,
     usa_contexto_cliente,
 )
-from users.models import MemberProfile, TrainerProfile
-from users.views import _get_trainer_profile
+from users.models import MemberProfile
+from users.views import _get_administrator
+
+User = get_user_model()
 
 
 class CatalogPagination(PageNumberPagination):
@@ -74,9 +77,9 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
         if usa_contexto_cliente(self.request):
             assert_member_training_eligible(user.memberprofile)
             return TrainingPlan.objects.filter(member__user=user, status='active')
-        queryset = TrainingPlan.objects.select_related('member__user', 'trainer__user').prefetch_related('workout_days').all()
-        if not user.is_staff and tiene_perfil_entrenador(user):
-            trainer_profile = _get_trainer_profile(user)
+        queryset = TrainingPlan.objects.select_related('member__user', 'trainer').prefetch_related('workout_days').all()
+        if not user.is_staff and tiene_perfil_administrador(user):
+            trainer_profile = _get_administrator(user)
             queryset = queryset.filter(member__trainer_asignado=trainer_profile)
         elif not user.is_staff:
             return queryset.none()
@@ -96,27 +99,10 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
             )
         return queryset
 
-    def _get_plan_trainer(self, member):
-        user = self.request.user
-        if user.is_staff:
-            if not member.trainer_asignado:
-                raise ValidationError({
-                    'member': 'Asigna un instructor al cliente antes de crear su plan.',
-                })
-            return member.trainer_asignado
-        return _get_trainer_profile(user)
-
     def _assert_member_allowed(self, member):
-        user = self.request.user
-        if user.is_staff:
-            trainer_profile = self._get_plan_trainer(member)
-            assert_member_training_eligible(member)
-            return trainer_profile
-        trainer_profile = _get_trainer_profile(user)
-        if member.trainer_asignado_id != trainer_profile.id:
-            raise PermissionDenied('Solo puedes crear planes para clientes asignados.')
+        administrador = _get_administrator(self.request.user)
         assert_member_training_eligible(member)
-        return trainer_profile
+        return administrador
 
     def _deactivate_other_plans(self, member, current_plan):
         now = timezone.now()
@@ -142,7 +128,7 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ('create', 'update', 'partial_update', 'destroy', 'create_complete', 'assign_template', 'duplicate', 'finish', 'archive', 'summary', 'create_revision', 'publish'):
-            return [IsAuthenticated(), IsTrainer()]
+            return [IsAuthenticated(), IsAdministrator()]
         return [IsAuthenticated()]
 
     @action(detail=True, methods=['get'], url_path='today-workout')
@@ -215,7 +201,7 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
     def save_as_template(self, request, pk=None):
         plan = self.get_object()
         user = request.user
-        trainer_profile = plan.trainer if user.is_staff else _get_trainer_profile(user)
+        trainer_profile = plan.trainer if user.is_staff else _get_administrator(user)
         if not user.is_staff and plan.member.trainer_asignado_id != trainer_profile.id:
             raise PermissionDenied('Solo puedes convertir en plantilla planes de clientes asignados.')
 
@@ -272,8 +258,8 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
         today = timezone.localdate()
         soon = today + timedelta(days=14)
         members_qs = MemberProfile.objects.select_related('user', 'trainer_asignado')
-        if not request.user.is_staff and tiene_perfil_entrenador(request.user):
-            members_qs = members_qs.filter(trainer_asignado=_get_trainer_profile(request.user))
+        if not request.user.is_staff and tiene_perfil_administrador(request.user):
+            members_qs = members_qs.filter(trainer_asignado=_get_administrator(request.user))
         active_member_ids = TrainingPlan.objects.filter(
             member__in=members_qs,
             status='active',
@@ -289,12 +275,12 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
     def reusable_sources(self, request):
         """Lista todos los planes visibles que pueden reutilizarse como fuente."""
         queryset = TrainingPlan.objects.select_related(
-            'member__user', 'trainer__user',
+            'member__user', 'trainer',
         ).prefetch_related('workout_days').order_by('-id')
         if not request.user.is_staff:
-            if not tiene_perfil_entrenador(request.user):
+            if not tiene_perfil_administrador(request.user):
                 return Response({'count': 0, 'next': None, 'previous': None, 'results': []})
-            queryset = queryset.filter(member__trainer_asignado=_get_trainer_profile(request.user))
+            queryset = queryset.filter(member__trainer_asignado=_get_administrator(request.user))
 
         page = self.paginate_queryset(queryset)
         serializer = self.get_serializer(page, many=True)
@@ -336,14 +322,14 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
         except MemberProfile.DoesNotExist as exc:
             raise ValidationError({'member_id': 'Cliente activo no encontrado.'}) from exc
         try:
-            trainer = TrainerProfile.objects.select_related('user').get(
+            trainer = User.objects.get(
                 id=trainer_id,
-                user__is_active=True,
-                user__is_staff=True,
-                user__role='admin',
+                is_active=True,
+                is_staff=True,
+                role='admin',
             )
-        except TrainerProfile.DoesNotExist as exc:
-            raise ValidationError({'trainer_id': 'Entrenador activo no encontrado.'}) from exc
+        except User.DoesNotExist as exc:
+            raise ValidationError({'trainer_id': 'Administrador activo no encontrado.'}) from exc
         template = None
         draft = None
         source_plan = None
@@ -372,7 +358,7 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                 raise ValidationError({'plan_id': 'Plan reutilizable del cliente no encontrado.'}) from exc
 
         if not request.user.is_staff:
-            own_trainer = _get_trainer_profile(request.user)
+            own_trainer = _get_administrator(request.user)
             if trainer.id != own_trainer.id or member.trainer_asignado_id != own_trainer.id:
                 raise PermissionDenied('Solo puedes asignar planes a tus clientes.')
             if source_type == 'plan' and source_plan.member.trainer_asignado_id != own_trainer.id:
@@ -811,8 +797,8 @@ class WorkoutDayViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(plan_id=plan_id)
             return queryset
         queryset = WorkoutDay.objects.select_related('plan__member__trainer_asignado').all()
-        if not user.is_staff and tiene_perfil_entrenador(user):
-            trainer_profile = _get_trainer_profile(user)
+        if not user.is_staff and tiene_perfil_administrador(user):
+            trainer_profile = _get_administrator(user)
             queryset = queryset.filter(plan__member__trainer_asignado=trainer_profile)
         elif not user.is_staff:
             return queryset.none()
@@ -825,7 +811,7 @@ class WorkoutDayViewSet(viewsets.ModelViewSet):
         assert_plan_editable(plan)
         user = self.request.user
         if not user.is_staff:
-            trainer_profile = _get_trainer_profile(user)
+            trainer_profile = _get_administrator(user)
             if plan.member.trainer_asignado_id != trainer_profile.id:
                 raise PermissionDenied('Solo puedes editar días de clientes asignados.')
         assert_member_training_eligible(plan.member)
@@ -893,13 +879,13 @@ class WorkoutDayViewSet(viewsets.ModelViewSet):
     def _assert_plan_editor_allowed(self, plan):
         if self.request.user.is_staff:
             return
-        trainer_profile = _get_trainer_profile(self.request.user)
+        trainer_profile = _get_administrator(self.request.user)
         if plan.member.trainer_asignado_id != trainer_profile.id:
             raise PermissionDenied('Solo puedes editar días de clientes asignados.')
 
     def get_permissions(self):
         if self.action in ('create', 'update', 'partial_update', 'destroy', 'duplicate'):
-            return [IsAuthenticated(), IsTrainer()]
+            return [IsAuthenticated(), IsAdministrator()]
         return [IsAuthenticated()]
 
 
@@ -920,7 +906,7 @@ class GymMachineViewSet(viewsets.ModelViewSet):
 
     def _validate_manager(self):
         user = self.request.user
-        if not user.is_staff and not tiene_perfil_entrenador(user):
+        if not user.is_staff and not tiene_perfil_administrador(user):
             raise PermissionDenied('Solo trainers o staff pueden modificar máquinas del gimnasio.')
 
     def perform_create(self, serializer):
@@ -948,8 +934,8 @@ class ExerciseViewSet(viewsets.ModelViewSet):
                 workout_day__plan__status='active',
             )
         queryset = Exercise.objects.select_related('workout_day__plan__member__trainer_asignado').all()
-        if not user.is_staff and tiene_perfil_entrenador(user):
-            trainer_profile = _get_trainer_profile(user)
+        if not user.is_staff and tiene_perfil_administrador(user):
+            trainer_profile = _get_administrator(user)
             queryset = queryset.filter(workout_day__plan__member__trainer_asignado=trainer_profile)
         elif not user.is_staff:
             return queryset.none()
@@ -960,7 +946,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         assert_plan_editable(workout_day.plan)
         user = self.request.user
         if not user.is_staff:
-            trainer_profile = _get_trainer_profile(user)
+            trainer_profile = _get_administrator(user)
             if workout_day.plan.member.trainer_asignado_id != trainer_profile.id:
                 raise PermissionDenied('Solo puedes editar ejercicios de clientes asignados.')
         assert_member_training_eligible(workout_day.plan.member)
@@ -978,16 +964,16 @@ class ExerciseViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ('create', 'update', 'partial_update', 'destroy'):
-            return [IsAuthenticated(), IsTrainer()]
+            return [IsAuthenticated(), IsAdministrator()]
         return [IsAuthenticated()]
 
 
 class PlantillaEntrenamientoViewSet(viewsets.ModelViewSet):
     serializer_class = PlantillaEntrenamientoSerializer
-    permission_classes = [IsAuthenticated, IsTrainer]
+    permission_classes = [IsAuthenticated, IsAdministrator]
 
     def get_queryset(self):
-        trainer_profile = _get_trainer_profile(self.request.user)
+        trainer_profile = _get_administrator(self.request.user)
         queryset = PlantillaEntrenamiento.objects.prefetch_related(
             'dias__ejercicios'
         )
@@ -996,15 +982,15 @@ class PlantillaEntrenamientoViewSet(viewsets.ModelViewSet):
         return queryset.filter(Q(trainer=trainer_profile) | Q(es_compartida=True)).order_by('nombre', 'id')
 
     def _assert_can_edit(self, plantilla):
-        if not self.request.user.is_staff and plantilla.trainer_id != _get_trainer_profile(self.request.user).id:
+        if not self.request.user.is_staff and plantilla.trainer_id != _get_administrator(self.request.user).id:
             raise PermissionDenied('Solo puedes editar tus propias plantillas.')
 
     def perform_create(self, serializer):
-        serializer.save(trainer=_get_trainer_profile(self.request.user))
+        serializer.save(trainer=_get_administrator(self.request.user))
 
     def perform_update(self, serializer):
         self._assert_can_edit(serializer.instance)
-        serializer.save(trainer=_get_trainer_profile(self.request.user))
+        serializer.save(trainer=_get_administrator(self.request.user))
 
     def perform_destroy(self, instance):
         self._assert_can_edit(instance)
@@ -1014,7 +1000,7 @@ class PlantillaEntrenamientoViewSet(viewsets.ModelViewSet):
     def refresh_from_plan(self, request, pk=None):
         plantilla = self.get_object()
         self._assert_can_edit(plantilla)
-        trainer_profile = _get_trainer_profile(request.user)
+        trainer_profile = _get_administrator(request.user)
         plan_id = request.data.get('plan_id')
         if not plan_id:
             raise ValidationError({'plan_id': 'Este campo es requerido.'})
@@ -1066,7 +1052,7 @@ class PlantillaEntrenamientoViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='apply')
     def apply(self, request, pk=None):
         plantilla = self.get_object()
-        trainer_profile = _get_trainer_profile(request.user)
+        trainer_profile = _get_administrator(request.user)
         member_id = request.data.get('member_id')
         start_date_value = request.data.get('start_date')
         if not member_id:
@@ -1135,7 +1121,7 @@ class PlantillaEntrenamientoViewSet(viewsets.ModelViewSet):
 
 class CatalogoEjercicioViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = CatalogoEjercicioSerializer
-    permission_classes = [IsAuthenticated, IsTrainer]
+    permission_classes = [IsAuthenticated, IsAdministrator]
     pagination_class = CatalogPagination
 
     def get_queryset(self):

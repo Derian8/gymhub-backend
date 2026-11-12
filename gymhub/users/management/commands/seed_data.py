@@ -71,7 +71,7 @@ class Command(BaseCommand):
         return user, created
 
     def _clear_data(self):
-        from users.models import User, MemberProfile, TrainerProfile, AuditLog
+        from users.models import User, MemberProfile, AuditLog
         from classes.models import GymClass, ClassEnrollment
         from plans.models import TrainingPlan, WorkoutDay, Exercise
         from attendance.models import Attendance
@@ -88,7 +88,6 @@ class Command(BaseCommand):
 
     def _seed_trainers(self):
         from django.contrib.auth import get_user_model
-        from users.models import TrainerProfile
         User = get_user_model()
         trainers = []
         trainer_data = [
@@ -101,18 +100,10 @@ class Command(BaseCommand):
                 User,
                 td,
                 self.trainer_password,
-                'trainer',
+                'admin',
             )
-            profile, _ = TrainerProfile.objects.get_or_create(
-                user=user,
-                defaults={
-                    'specialization': td['specialization'],
-                    'bio': td['bio'],
-                    'certification': td['certification'],
-                }
-            )
-            trainers.append(profile)
-        self.stdout.write(f'  {len(trainers)} Trainers creados.')
+            trainers.append(user)
+        self.stdout.write(f'  {len(trainers)} administradores creados.')
         return trainers
 
     def _seed_members(self, trainers):
@@ -419,7 +410,7 @@ class Command(BaseCommand):
 
         # Notificación mínima para el trainer demo.
         for trainer_profile in trainers:
-            trainer_user = trainer_profile.user
+            trainer_user = trainer_profile
             messages = [
                 ('member1 tiene su plan activo y rutina lista para hoy.', 'system'),
             ]

@@ -75,8 +75,8 @@ class TestRegister:
         assert resp.status_code == status.HTTP_201_CREATED
         assert resp.data['user']['username'] == 'new-member-1'
 
-    def test_register_trainer_requires_auth(self, api_client):
-        """Registrar trainer sin autenticación está prohibido."""
+    def test_register_admin_requires_auth(self, api_client):
+        """Registrar una cuenta administrativa sin autenticación está prohibido."""
         resp = api_client.post('/auth/register/', {
             'email': 'newtrainer@test.com',
             'username': 'newtrainer',
@@ -86,8 +86,8 @@ class TestRegister:
         })
         assert resp.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_register_trainer_by_member_forbidden(self, member_client):
-        """Miembro intentando registrar trainer → 403 (IsStaffOrTrainer)."""
+    def test_register_admin_by_member_forbidden(self, member_client):
+        """Cliente intentando registrar una cuenta administrativa → 403."""
         resp = member_client.post('/auth/register/', {
             'email': 'newtrainer2@test.com',
             'username': 'newtrainer2',
@@ -97,26 +97,26 @@ class TestRegister:
         })
         assert resp.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_register_trainer_by_trainer_forbidden(self, trainer_client):
-        """El entrenador técnico no administra cuentas."""
+    def test_register_admin_by_admin_allowed(self, trainer_client):
+        """Una cuenta administrativa puede crear otra cuenta administrativa."""
         resp = trainer_client.post('/auth/register/', {
-            'email': 'newtrainer3@test.com',
-            'username': 'newtrainer3',
+            'email': 'newadmin3@test.com',
+            'username': 'newadmin3',
             'first_name': 'New',
-            'last_name': 'Trainer',
-            'role': 'trainer',
+            'last_name': 'Admin',
+            'role': 'admin',
             'password': 'pass123!ABC',
             'password2': 'pass123!ABC',
         })
-        assert resp.status_code == status.HTTP_403_FORBIDDEN
+        assert resp.status_code == status.HTTP_201_CREATED
 
     def test_register_does_not_replace_admin_session(self, admin_client):
         resp = admin_client.post('/auth/register/', {
-            'email': 'newtrainer-session@test.com',
-            'username': 'newtrainer-session',
+            'email': 'newadmin-session@test.com',
+            'username': 'newadmin-session',
             'first_name': 'New',
-            'last_name': 'Trainer',
-            'role': 'trainer',
+            'last_name': 'Admin',
+            'role': 'admin',
             'password': 'pass123!ABC',
             'password2': 'pass123!ABC',
         })
@@ -319,11 +319,11 @@ class TestMe:
 class TestPermissions:
     def test_member_cannot_access_trainer_endpoint(self, member_client):
         """Miembro → 403 en endpoint de trainer."""
-        resp = member_client.get('/api/trainer/gym-overview/')
+        resp = member_client.get('/api/admin/gym-overview/')
         assert resp.status_code == status.HTTP_403_FORBIDDEN
 
     def test_trainer_can_access_trainer_endpoint(self, trainer_client, trainer_profile):
-        resp = trainer_client.get('/api/trainer/gym-overview/')
+        resp = trainer_client.get('/api/admin/gym-overview/')
         assert resp.status_code == status.HTTP_200_OK
 
     def test_unauthenticated_blocked(self, api_client):

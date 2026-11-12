@@ -38,7 +38,7 @@ class Command(BaseCommand):
         from classes.models import ClassEnrollment, GymClass
         from plans.models import TrainingPlan
         from progress.models import ExerciseLog, ProgressLog, WorkoutSession
-        from users.models import AuditLog, MemberProfile, TrainerProfile, User
+        from users.models import AuditLog, MemberProfile, User
 
         operaciones = [
             ('mensajes del asistente', AIChatMessage.objects.all()),
@@ -70,7 +70,7 @@ class Command(BaseCommand):
         self.stdout.write('Datos protegidos:')
         self.stdout.write(f'  cuentas: {User.objects.count()}')
         self.stdout.write(f'  perfiles de miembro: {MemberProfile.objects.count()}')
-        self.stdout.write(f'  perfiles de trainer: {TrainerProfile.objects.count()}')
+        self.stdout.write(f'  administradores: {User.objects.filter(is_staff=True).count()}')
 
         confirmed = options['confirm'] or options.get('confirmar') == 'REINICIAR-DATOS'
         if not confirmed:

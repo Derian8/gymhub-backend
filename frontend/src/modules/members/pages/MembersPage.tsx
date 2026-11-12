@@ -128,7 +128,7 @@ export function MembersPage() {
         action={isAdmin ? (
           <Link to="/members/new" state={{ returnTo: `${location.pathname}${location.search}`, returnLabel: 'Volver a clientes' }} className="btn-primary flex items-center gap-2" data-testid="new-member-btn">
             <UserPlus size={16} />
-            Registrar y cobrar
+            Nuevo cliente
           </Link>
         ) : undefined}
       />

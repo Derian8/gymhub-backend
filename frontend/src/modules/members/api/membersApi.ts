@@ -7,7 +7,7 @@ import type {
   RegistroClientePagoPayload,
   RegistroClientePagoResponse,
   TrainerOverview,
-  TrainerProfile,
+  AdministratorAssignment,
   PaginatedResponse,
 } from '@/shared/types'
 
@@ -24,8 +24,8 @@ interface MembersParams {
 }
 
 export const membersApi = {
-  trainers: async (): Promise<TrainerProfile[]> => {
-    const { data } = await apiClient.get('/api/trainers/')
+  administrators: async (): Promise<AdministratorAssignment[]> => {
+    const { data } = await apiClient.get('/api/administrators/')
     return data
   },
   create: async (payload: {
@@ -92,7 +92,7 @@ export const membersApi = {
   },
 
   assignTrainer: async (id: number): Promise<MemberProfile> => {
-    const { data } = await apiClient.post(`/api/members/${id}/assign-trainer/`)
+    const { data } = await apiClient.post(`/api/members/${id}/assign-administrator/`)
     return data
   },
 
@@ -102,7 +102,7 @@ export const membersApi = {
   },
 
   trainerOverview: async (): Promise<TrainerOverview> => {
-    const { data } = await apiClient.get('/api/trainer/gym-overview/')
+    const { data } = await apiClient.get('/api/admin/gym-overview/')
     return data
   },
 

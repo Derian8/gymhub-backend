@@ -14,7 +14,6 @@ export interface User {
   role: 'admin' | 'member'
   is_staff: boolean
   memberprofile_id: number | null
-  trainerprofile_id: number | null
   requiere_cambio_contrasena?: boolean
   perfiles_disponibles?: PerfilUsuario[]
   contexto_predeterminado?: PerfilUsuario
@@ -204,12 +203,9 @@ export interface RegistroClientePagoResponse {
   message: string
 }
 
-export interface TrainerProfile {
+export interface AdministratorAssignment {
   id: number
   user: User
-  specialization: string
-  bio: string
-  certification: string
 }
 
 export interface AdminReportOverview {
@@ -478,7 +474,7 @@ export interface MemberChartsOverview {
 }
 
 export interface TrainerChartsOverview {
-  role: 'trainer'
+  role: 'admin'
   filters?: {
     period: string
     start_date: string

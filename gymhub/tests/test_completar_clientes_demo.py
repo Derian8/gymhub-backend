@@ -9,13 +9,12 @@ from django.core.management.base import CommandError
 from billing.models import MemberSubscription, PaymentRecord
 from billing.services import membership_access
 from plans.models import TrainingPlan
-from users.models import MemberProfile, TrainerProfile, User
+from users.models import MemberProfile, User
 
 
 @pytest.fixture
 def cuentas_demo(db):
     instructor = User.objects.create_user(username='trainer2', email='trainer2@gymhub.com', role='trainer')
-    TrainerProfile.objects.get_or_create(user=instructor)
     admin = User.objects.create_user(username='admin', email='admin@gymhub.com', is_staff=True, is_superuser=True)
     real = User.objects.create_user(username='real', email='real@example.com')
     for numero in range(1, 5):

@@ -164,7 +164,7 @@ describe('TrainerDashboard', () => {
         role: 'admin',
         is_staff: true,
         memberprofile_id: null,
-        trainerprofile_id: 7,
+
       },
       isAuthenticated: true,
       authResolved: true,

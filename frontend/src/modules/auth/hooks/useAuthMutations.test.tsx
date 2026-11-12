@@ -140,7 +140,7 @@ describe('useAuthMutations', () => {
         role: 'member',
         is_staff: false,
         memberprofile_id: 10,
-        trainerprofile_id: null,
+
       },
       message: 'ok',
     })
@@ -165,7 +165,7 @@ describe('useAuthMutations', () => {
         role: 'member',
         is_staff: false,
         memberprofile_id: 30,
-        trainerprofile_id: null,
+
       },
       message: 'ok',
     })
@@ -190,7 +190,7 @@ describe('useAuthMutations', () => {
         role: 'member',
         is_staff: false,
         memberprofile_id: 10,
-        trainerprofile_id: null,
+
       },
       isAuthenticated: true,
       authResolved: true,
@@ -205,7 +205,7 @@ describe('useAuthMutations', () => {
       role: 'member',
       is_staff: false,
       memberprofile_id: 10,
-      trainerprofile_id: null,
+
     })
 
     renderMutation(<UpdateMeHarness />, '/login')
@@ -228,7 +228,7 @@ describe('useAuthMutations', () => {
         role: 'admin',
         is_staff: true,
         memberprofile_id: null,
-        trainerprofile_id: 5,
+
       },
       isAuthenticated: true,
       authResolved: true,

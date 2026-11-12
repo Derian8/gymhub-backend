@@ -24,7 +24,7 @@ class TestBillingViews:
             password='trainer123!',
             role='trainer',
         )
-        other_trainer = other_user.trainerprofile
+        other_trainer = other_user
         MembershipPlan.objects.create(
             trainer=other_trainer,
             name='Plan ajeno',
@@ -451,7 +451,7 @@ class TestBillingViews:
             password='trainer123!',
             role='trainer',
         )
-        other_trainer = other_trainer_user.trainerprofile
+        other_trainer = other_trainer_user
         other_member_user = User.objects.create_user(
             username='member_forbidden',
             email='member-forbidden@test.com',

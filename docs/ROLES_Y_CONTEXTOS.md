@@ -14,12 +14,10 @@ Los perfiles y registros históricos ya asociados a cuentas administrativas se
 conservan durante la migración, pero no habilitan el contexto Cliente ni se
 exponen como un perfil disponible en la identidad de esa cuenta.
 
-`TrainerProfile` queda como vínculo técnico para asignaciones de clientes,
-planes, clases y datos del gimnasio; ya no concede un rol ni permisos por sí
-mismo. La migración `0007_simplificar_roles_administrador_cliente` convierte
-las cuentas de instructor existentes en administradores, conserva sus perfiles
-técnicos y agrega el perfil técnico a las cuentas administrativas que lo
-necesitan.
+Las asignaciones de clientes, planes, clases, membresías, alertas y datos del
+gimnasio apuntan directamente a cuentas administradoras. La migración
+`0008_reemplazar_trainerprofile_por_administrador` traslada las referencias al
+administrador correspondiente y elimina el modelo técnico anterior.
 
 ## Cuentas separadas
 
@@ -31,5 +29,5 @@ independiente con credenciales propias.
 API administrativa:
 
 - `GET /api/admin/users/`
-- `POST /api/trainers/{trainer_id}/enable-client-profile/` se conserva por
-  compatibilidad, pero rechaza cuentas administrativas con HTTP 403.
+- `GET /api/administrators/` lista cuentas administradoras para asignaciones.
+- Ya no existe un endpoint para convertir una cuenta administradora en cliente.

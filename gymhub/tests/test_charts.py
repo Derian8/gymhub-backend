@@ -27,7 +27,7 @@ class TestCharts:
         resp = trainer_client.get('/api/charts/overview/')
 
         assert resp.status_code == status.HTTP_200_OK
-        assert resp.data['role'] == 'trainer'
+        assert resp.data['role'] == 'admin'
         assert 'risk_distribution' in resp.data
         assert 'payment_distribution' in resp.data
         assert 'membership_distribution' in resp.data

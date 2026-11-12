@@ -96,7 +96,7 @@ def test_trainer_overview_returns_members_at_risk(
         status='late',
     )
 
-    response = trainer_client.get('/api/trainer/gym-overview/')
+    response = trainer_client.get('/api/admin/gym-overview/')
 
     assert response.status_code == 200
     assert 'miembros_en_riesgo' in response.data

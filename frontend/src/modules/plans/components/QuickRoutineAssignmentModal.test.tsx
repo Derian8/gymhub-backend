@@ -16,7 +16,7 @@ vi.mock('../hooks/usePlans', () => ({
 
 vi.mock('@/modules/members/hooks/useMembers', () => ({
   useMemberDetailQuery: () => ({ data: { id: 7, full_name: 'Carlos Cliente', user: {}, trainer_asignado: 3 }, isLoading: false }),
-  useTrainersQuery: () => ({ data: [{ id: 3, user: { first_name: 'Laura', last_name: 'Trainer', email: 'laura@test.com' } }] }),
+  useAdministratorsQuery: () => ({ data: [{ id: 3, user: { first_name: 'Laura', last_name: 'Administradora', email: 'laura@test.com' } }] }),
 }))
 
 vi.mock('./TrainingPlanWizard', () => ({

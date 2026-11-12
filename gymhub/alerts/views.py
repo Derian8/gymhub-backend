@@ -100,11 +100,11 @@ class InactivityAlertViewSet(viewsets.ReadOnlyModelViewSet):
             return denied
         alert = self.get_object()
         if request.method.lower() == 'get':
-            serializer = InactivityAlertContactSerializer(alert.contacts.select_related('trainer__user'), many=True)
+            serializer = InactivityAlertContactSerializer(alert.contacts.select_related('trainer'), many=True)
             return Response(serializer.data)
         serializer = InactivityAlertContactSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        trainer = getattr(request.user, 'trainerprofile', None)
+        trainer = request.user
         if trainer is None:
             trainer = alert.member.trainer_asignado
         if trainer is None:

@@ -66,7 +66,6 @@ class TestProgressMetrics:
 
     def test_trainer_cannot_manage_progress_of_other_trainers_member(self, trainer_client, membership_plan):
         from django.contrib.auth import get_user_model
-        from users.models import TrainerProfile
 
         other_trainer_user = get_user_model().objects.create_user(
             username='trainer_otro',
@@ -74,7 +73,7 @@ class TestProgressMetrics:
             password='trainer123!',
             role='trainer',
         )
-        other_trainer = TrainerProfile.objects.get(user=other_trainer_user)
+        other_trainer = other_trainer_user
 
         member_user = get_user_model().objects.create_user(
             username='cliente_externo',

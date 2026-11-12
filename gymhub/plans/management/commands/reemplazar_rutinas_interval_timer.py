@@ -16,7 +16,7 @@ from plans.models import (
     WorkoutDay,
 )
 from progress.models import ExerciseLog, WorkoutSession
-from users.models import TrainerProfile
+from django.contrib.auth import get_user_model
 
 
 RUTINAS = [
@@ -137,9 +137,10 @@ class Command(BaseCommand):
                 'con --confirmar-borrado.'
             )
 
-        entrenador = TrainerProfile.objects.select_related('user').order_by('id').first()
+        User = get_user_model()
+        entrenador = User.objects.filter(is_staff=True, role='admin').order_by('id').first()
         if not entrenador:
-            raise CommandError('No hay instructor para crear las plantillas compartidas.')
+            raise CommandError('No hay administrador para crear las plantillas compartidas.')
 
         with transaction.atomic():
             # Eliminar logs explícitamente hace el alcance del borrado verificable.

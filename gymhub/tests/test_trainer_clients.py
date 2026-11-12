@@ -49,7 +49,7 @@ class TestTrainerClients:
         member.is_active = True
         member.save(update_fields=['membership_plan', 'is_active'])
 
-        response = trainer_client.post(f'/api/members/{member.id}/assign-trainer/')
+        response = trainer_client.post(f'/api/members/{member.id}/assign-administrator/')
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
         member.refresh_from_db()
@@ -79,7 +79,6 @@ class TestTrainerClients:
 
     def test_trainer_available_members_excludes_other_trainer_clients(self, trainer_client, trainer_profile, member_profile, membership_plan):
         from django.contrib.auth import get_user_model
-        from users.models import TrainerProfile
 
         other_trainer_user = get_user_model().objects.create_user(
             username='trainer_otro_available',
@@ -87,7 +86,7 @@ class TestTrainerClients:
             password='trainer123!',
             role='trainer',
         )
-        other_trainer = TrainerProfile.objects.get(user=other_trainer_user)
+        other_trainer = other_trainer_user
 
         free_user = get_user_model().objects.create_user(
             username='cliente_available_libre',

@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (
     CsrfTokenView, RegisterView, LoginView, LogoutView,
     TokenRefreshCookieView, MeView, ChangePasswordView,
-    TrainerOverviewView,
+    AdminOverviewView,
 )
 
 urlpatterns = [

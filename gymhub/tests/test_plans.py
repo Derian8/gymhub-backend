@@ -96,6 +96,25 @@ class TestTrainingPlans:
         assert resp.data['member'] == member_profile.id
         assert resp.data['trainer'] == trainer_profile.id
 
+    def test_administrator_can_create_plan_for_unassigned_member(
+        self, trainer_client, member_profile, trainer_profile
+    ):
+        member_profile.trainer_asignado = None
+        member_profile.save(update_fields=['trainer_asignado'])
+
+        resp = trainer_client.post('/api/plans/', {
+            'member': member_profile.id,
+            'name': 'Plan de cliente sin asignación',
+            'goal': 'general',
+            'start_date': date.today().isoformat(),
+            'weeks_duration': 4,
+            'days_per_week': 3,
+            'is_active': True,
+        }, format='json')
+
+        assert resp.status_code == status.HTTP_201_CREATED, resp.data
+        assert resp.data['trainer'] == trainer_profile.id
+
     def test_trainer_can_delete_plan_and_cascade_content(self, trainer_client, training_plan):
         training_plan.status = 'draft'
         training_plan.is_active = False
@@ -602,13 +621,16 @@ class TestWorkoutSessions:
     def test_dual_profile_client_context_cannot_register_another_day(
         self, member_client, member_user, member_profile, training_plan, workout_day_a
     ):
-        from users.models import TrainerProfile
+        from users.models import User
 
-        dual_trainer, _ = TrainerProfile.objects.get_or_create(
-            user=member_user,
-            defaults={'specialization': 'Pruebas'},
+        administrador = User.objects.create_user(
+            username='admin_contexto_plan',
+            email='admin-contexto-plan@test.com',
+            password='admin123!',
+            role='admin',
+            is_staff=True,
         )
-        member_profile.trainer_asignado = dual_trainer
+        member_profile.trainer_asignado = administrador
         member_profile.save(update_fields=['trainer_asignado'])
         other_day = training_plan.workout_days.exclude(id=workout_day_a.id).get()
 

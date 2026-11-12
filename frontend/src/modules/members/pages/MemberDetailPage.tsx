@@ -93,7 +93,7 @@ export function MemberDetailPage() {
   const { data: progressLogs, isLoading: isLoadingProgressLogs } = useQuery({
     queryKey: QUERY_KEYS.PROGRESS_LOGS(memberId),
     queryFn: () => progressApi.logs(memberId),
-    enabled: !!memberId && !!user && (Boolean(user.trainerprofile_id) || user.is_staff),
+    enabled: !!memberId && !!user && user.is_staff,
   })
 
   const upsertMeasurement = useMutation({
@@ -135,7 +135,7 @@ export function MemberDetailPage() {
     || (
       member
       && member.trainer_asignado !== null
-      && member.trainer_asignado === user?.trainerprofile_id
+      && member.trainer_asignado === user?.id
     ),
   )
 
@@ -177,7 +177,7 @@ export function MemberDetailPage() {
     )
   }
 
-  const canManagePrescription = !user?.is_staff && Boolean(user?.trainerprofile_id) && member.trainer_asignado !== null && member.trainer_asignado === user?.trainerprofile_id
+  const canManagePrescription = Boolean(user?.is_staff)
   const prescriptionStatus = !member.trainer_asignado
     ? 'Sin asignar'
     : activePrescription?.estado_prescripcion.esta_lista_para_member

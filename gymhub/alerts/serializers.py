@@ -94,7 +94,7 @@ class InactivityAlertContactSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'member', 'trainer', 'trainer_name', 'alert', 'created_at')
 
     def get_trainer_name(self, obj):
-        return obj.trainer.user.get_full_name() or obj.trainer.user.email
+        return obj.trainer.get_full_name() or obj.trainer.email
 
 
 class NotificationSerializer(serializers.ModelSerializer):

@@ -70,7 +70,7 @@ class PlantillaNutricion(models.Model):
     ]
 
     trainer = models.ForeignKey(
-        'users.TrainerProfile',
+        'users.User',
         on_delete=models.CASCADE,
         related_name='plantillas_nutricion'
     )

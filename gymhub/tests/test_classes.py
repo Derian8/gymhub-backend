@@ -33,9 +33,8 @@ class TestClasses:
         assert resp.status_code == status.HTTP_201_CREATED
         assert resp.data['member'] == member_profile.id
         assert resp.data['attended'] is False
-    def test_trainer_only_sees_own_classes(self, trainer_client, trainer_profile):
+    def test_administrator_sees_all_classes(self, trainer_client, trainer_profile):
         from django.contrib.auth import get_user_model
-        from users.models import TrainerProfile
         from classes.models import GymClass
 
         GymClass.objects.create(
@@ -52,12 +51,8 @@ class TestClasses:
             password='trainer123!',
             role='trainer',
         )
-        other_trainer_profile, _ = TrainerProfile.objects.get_or_create(
-            user=other_trainer_user,
-            defaults={'specialization': 'Yoga', 'bio': 'Bio', 'certification': 'Cert'},
-        )
         GymClass.objects.create(
-            trainer=other_trainer_profile,
+            trainer=other_trainer_user,
             name='Clase ajena',
             schedule=timezone.now(),
             max_capacity=20,
@@ -67,8 +62,7 @@ class TestClasses:
 
         assert resp.status_code == status.HTTP_200_OK
         results = resp.data.get('results', resp.data)
-        assert len(results) == 1
-        assert results[0]['name'] == 'Clase propia'
+        assert {item['name'] for item in results} == {'Clase propia', 'Clase ajena'}
 
     def test_member_cannot_create_gym_class(self, member_client, trainer_profile):
         resp = member_client.post('/api/classes/', {

@@ -77,7 +77,7 @@ class ProgressLogViewSet(viewsets.ModelViewSet):
             return queryset.filter(member_id=member_id) if member_id else queryset
 
         try:
-            trainer_profile = user.trainerprofile
+            trainer_profile = user
         except ObjectDoesNotExist:
             return ProgressLog.objects.none()
         queryset = queryset.filter(member__trainer_asignado=trainer_profile)
@@ -182,7 +182,7 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(member_id=member_id) if member_id else queryset
             return self._filter_month(queryset)
         try:
-            queryset = queryset.filter(member__trainer_asignado=user.trainerprofile)
+            queryset = queryset.filter(member__trainer_asignado=user)
             queryset = queryset.filter(member_id=member_id) if member_id else queryset
             return self._filter_month(queryset)
         except ObjectDoesNotExist:

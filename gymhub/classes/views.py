@@ -6,17 +6,17 @@ from rest_framework.permissions import IsAuthenticated
 
 from .models import ClassEnrollment, GymClass
 from .serializers import ClassEnrollmentSerializer, GymClassSerializer
-from users.permissions import IsTrainer
+from users.permissions import IsAdministrator
 
 
 class GymClassViewSet(viewsets.ModelViewSet):
-    queryset = GymClass.objects.select_related('trainer__user').order_by('id')
+    queryset = GymClass.objects.select_related('trainer').order_by('id')
     serializer_class = GymClassSerializer
 
     def get_permissions(self):
         if self.action in ('list', 'retrieve'):
             return [IsAuthenticated()]
-        return [IsAuthenticated(), IsTrainer()]
+        return [IsAuthenticated(), IsAdministrator()]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -30,11 +30,7 @@ class GymClassViewSet(viewsets.ModelViewSet):
         if user.is_staff and serializer.validated_data.get('trainer'):
             serializer.save()
             return
-        try:
-            trainer = user.trainerprofile
-        except AttributeError as exc:
-            raise PermissionDenied('Perfil de trainer no encontrado.') from exc
-        serializer.save(trainer=trainer)
+        serializer.save(trainer=user)
 
 
 class ClassEnrollmentViewSet(viewsets.ModelViewSet):
@@ -50,7 +46,7 @@ class ClassEnrollmentViewSet(viewsets.ModelViewSet):
         ).order_by('id')
         if user.is_staff:
             return queryset
-        return queryset.filter(gym_class__trainer__user=user)
+        return queryset.filter(gym_class__trainer=user)
 
     @transaction.atomic
     def perform_create(self, serializer):
@@ -68,9 +64,9 @@ class ClassEnrollmentViewSet(viewsets.ModelViewSet):
         else:
             member = serializer.validated_data['member']
             if not user.is_staff:
-                if gym_class.trainer.user_id != user.id:
+                if gym_class.trainer_id != user.id:
                     raise PermissionDenied('Solo puedes administrar tus propias clases.')
-                if member.trainer_asignado_id != user.trainerprofile.id:
+                if member.trainer_asignado_id != user.id:
                     raise PermissionDenied('El miembro no está asignado a este trainer.')
 
         serializer.save(member=member, gym_class=gym_class, attended=False)

@@ -8,50 +8,35 @@ from users.serializers import UserSerializer
 
 
 @pytest.mark.django_db
-def test_administrator_with_legacy_client_profile_exposes_admin_only(
+def test_administrator_with_legacy_member_data_exposes_admin_only(
     trainer_user,
     trainer_profile,
 ):
-    member = MemberProfile.objects.create(
+    MemberProfile.objects.create(
         user=trainer_user,
         trainer_asignado=trainer_profile,
     )
 
     data = UserSerializer(trainer_user).data
 
-    assert data['trainerprofile_id'] == trainer_profile.id
     assert data['memberprofile_id'] is None
+    assert 'trainerprofile_id' not in data
     assert data['perfiles_disponibles'] == ['administrador']
     assert data['contexto_predeterminado'] == 'administrador'
     assert not tiene_perfil_cliente(trainer_user)
 
 
 @pytest.mark.django_db
-def test_admin_cannot_convert_an_administrator_account_into_client(
+def test_admin_assignment_catalog_contains_user_accounts(
     admin_client,
+    admin_user,
     trainer_user,
-    trainer_profile,
-    membership_plan,
 ):
-    response = admin_client.post(
-        f'/api/trainers/{trainer_profile.id}/enable-client-profile/',
-        {
-            'entrenador_asignado': trainer_profile.id,
-            'telefono': '8888-0000',
-            'tipo_membresia': 'catalogo',
-            'plan_membresia': membership_plan.id,
-            'renovacion_automatica': True,
-            'metodo_pago': 'cash',
-        },
-        format='json',
-    )
+    response = admin_client.get('/api/administrators/')
 
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-    assert 'no puede convertirse en cliente' in response.data['error']
-    trainer_user.refresh_from_db()
-    assert trainer_user.role == 'admin'
-    assert trainer_user.is_staff is True
-    assert not hasattr(trainer_user, 'memberprofile')
+    assert response.status_code == status.HTTP_200_OK
+    assert {item['id'] for item in response.data} == {admin_user.id, trainer_user.id}
+    assert all('user' in item for item in response.data)
 
 
 @pytest.mark.django_db
@@ -66,7 +51,21 @@ def test_administrator_account_cannot_be_demoted_to_client(trainer_user):
 
 
 @pytest.mark.django_db
-def test_administrator_cannot_use_client_scope_for_legacy_member_profile(
+def test_removed_admin_to_client_conversion_endpoint_is_not_available(
+    admin_client,
+    trainer_profile,
+):
+    response = admin_client.post(
+        f'/api/trainers/{trainer_profile.id}/enable-client-profile/',
+        {},
+        format='json',
+    )
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.django_db
+def test_administrator_scope_self_does_not_limit_admin_access(
     trainer_client,
     trainer_user,
     trainer_profile,
@@ -74,16 +73,15 @@ def test_administrator_cannot_use_client_scope_for_legacy_member_profile(
 ):
     from progress.models import ProgressLog
 
-    own_member = MemberProfile.objects.create(
-        user=trainer_user,
-        trainer_asignado=trainer_profile,
-    )
     own_log = ProgressLog.objects.create(
-        member=own_member,
+        member=MemberProfile.objects.create(
+            user=trainer_user,
+            trainer_asignado=trainer_profile,
+        ),
         recorded_at=timezone.now(),
         weight_kg=75,
     )
-    assigned_log = ProgressLog.objects.create(
+    client_log = ProgressLog.objects.create(
         member=member_profile,
         recorded_at=timezone.now(),
         weight_kg=68,
@@ -93,26 +91,4 @@ def test_administrator_cannot_use_client_scope_for_legacy_member_profile(
 
     assert response.status_code == status.HTTP_200_OK
     results = response.data.get('results', response.data)
-    assert {item['id'] for item in results} == {own_log.id, assigned_log.id}
-
-
-@pytest.mark.django_db
-def test_administrator_cannot_enable_its_own_client_profile(
-    trainer_client,
-    trainer_profile,
-    membership_plan,
-):
-    response = trainer_client.post(
-        f'/api/trainers/{trainer_profile.id}/enable-client-profile/',
-        {
-            'entrenador_asignado': trainer_profile.id,
-            'tipo_membresia': 'catalogo',
-            'plan_membresia': membership_plan.id,
-            'renovacion_automatica': True,
-            'metodo_pago': 'cash',
-        },
-        format='json',
-    )
-
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-    assert not hasattr(trainer_profile.user, 'memberprofile')
+    assert {item['id'] for item in results} == {own_log.id, client_log.id}

@@ -32,7 +32,7 @@ describe('Sidebar', () => {
         role: 'member',
         is_staff: false,
         memberprofile_id: 10,
-        trainerprofile_id: null,
+
       },
       isAuthenticated: true,
       authResolved: true,
@@ -95,7 +95,7 @@ describe('Sidebar', () => {
   it('shows full administrator navigation for former trainer accounts', () => {
     useAuthStore.setState((state) => ({
       ...state,
-      user: state.user ? { ...state.user, role: 'admin', is_staff: true, trainerprofile_id: 7, memberprofile_id: null } : null,
+      user: state.user ? { ...state.user, role: 'admin', is_staff: true,  memberprofile_id: null } : null,
     }))
 
     const view = renderWithProviders(
@@ -111,7 +111,7 @@ describe('Sidebar', () => {
   it('keeps the administrator focused and moves secondary tools under More', () => {
     useAuthStore.setState((state) => ({
       ...state,
-      user: state.user ? { ...state.user, role: 'admin', is_staff: true, trainerprofile_id: null, memberprofile_id: null } : null,
+      user: state.user ? { ...state.user, role: 'admin', is_staff: true,  memberprofile_id: null } : null,
     }))
 
     const view = renderWithProviders(
@@ -123,7 +123,7 @@ describe('Sidebar', () => {
     expect(view.getByRole('link', { name: /Rutinas/ })).toHaveAttribute('href', '/routines')
     expect(view.queryByRole('link', { name: /Reportes/ })).not.toBeInTheDocument()
     fireEvent.click(view.getByRole('button', { name: /Más/ }))
-    expect(view.getByRole('link', { name: /Accesos/ })).toHaveAttribute('href', '/attendance')
+    expect(view.getByRole('link', { name: /Asistencia/ })).toHaveAttribute('href', '/attendance')
     expect(view.getByRole('link', { name: /Reportes/ })).toHaveAttribute('href', '/reports')
   })
 })

@@ -22,7 +22,7 @@ class Command(BaseCommand):
         parser.add_argument('--respaldo', help='Archivo JSON nuevo para respaldo privado completo.')
 
     def handle(self, *args, **options):
-        from users.models import MemberProfile, TrainerProfile, User
+        from users.models import MemberProfile, User
 
         with transaction.atomic():
             usuarios = list(User.objects.select_for_update().order_by('email'))
@@ -46,9 +46,13 @@ class Command(BaseCommand):
                 return
             if not options['respaldo']:
                 raise CommandError('Es obligatorio indicar --respaldo al aplicar.')
-            entrenador = TrainerProfile.objects.filter(user__is_staff=True).order_by('pk').first()
-            if entrenador is None:
-                raise CommandError('No existe un instructor; no se modificó nada.')
+            administrador = User.objects.filter(
+                is_active=True,
+                is_staff=True,
+                role='admin',
+            ).order_by('pk').first()
+            if administrador is None:
+                raise CommandError('No existe un administrador; no se modificó nada.')
 
             # Incluye relaciones CASCADE y SET_NULL para recuperar los datos originales.
             descriptor = os.open(options['respaldo'], os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
@@ -63,16 +67,24 @@ class Command(BaseCommand):
                 os.fsync(archivo.fileno())
 
             protegidos = list(User.objects.exclude(pk__in=[u.pk for u in candidatos]).order_by('pk').values())
-            perfiles_instructores = list(TrainerProfile.objects.order_by('pk').values())
+            administradores_protegidos = list(
+                User.objects.filter(is_staff=True).order_by('pk').values(
+                    'pk', 'email', 'is_active', 'role'
+                )
+            )
             for indice, usuario in enumerate(conservados):
                 perfil, _ = MemberProfile.objects.get_or_create(user=usuario)
-                self.completar(perfil, perfil.trainer_asignado or entrenador, indice)
+                self.completar(perfil, perfil.trainer_asignado or administrador, indice)
             User.objects.filter(pk__in=eliminados, role='member', is_staff=False,
                                 is_superuser=False).delete()
             if protegidos != list(User.objects.exclude(pk__in=ids).order_by('pk').values()):
                 raise CommandError('Cambió una cuenta protegida; se revierte la operación.')
-            if perfiles_instructores != list(TrainerProfile.objects.order_by('pk').values()):
-                raise CommandError('Cambió un instructor; se revierte la operación.')
+            if administradores_protegidos != list(
+                User.objects.filter(is_staff=True).order_by('pk').values(
+                    'pk', 'email', 'is_active', 'role'
+                )
+            ):
+                raise CommandError('Cambió un administrador; se revierte la operación.')
             self.stdout.write(self.style.SUCCESS('Completado: exactamente dos clientes demo.'))
 
     def completar(self, perfil, entrenador, indice):
@@ -115,7 +127,7 @@ class Command(BaseCommand):
                 trainer=entrenador, goal=objetivo, start_date=hoy - timedelta(days=7),
                 end_date=hoy + timedelta(days=49), weeks_duration=8, days_per_week=3,
                 level='beginner' if indice == 0 else 'intermediate', status='active',
-                is_active=True, publicado_en=timezone.now(), publicado_por=entrenador.user,
+                is_active=True, publicado_en=timezone.now(), publicado_por=entrenador,
                 notes='Ejemplo ficticio. Calentá 5 minutos y revisá la técnica con tu instructor. '
                       'Iniciá la rutina y marcá cada ejercicio como Realizado u Omitir. '
                       'Descansá entre series y dejá un día de recuperación entre rutinas.',

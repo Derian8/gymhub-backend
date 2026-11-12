@@ -56,8 +56,8 @@ def _serialize_member_context(member, summary, prescription_status):
         'siguiente_accion': summary['siguiente_accion'],
         'estado_prescripcion': prescription_status['estado'],
         'trainer_asignado_nombre': (
-            member.trainer_asignado.user.get_full_name()
-            if member.trainer_asignado_id and member.trainer_asignado and member.trainer_asignado.user
+            member.trainer_asignado.get_full_name()
+            if member.trainer_asignado_id and member.trainer_asignado and member.trainer_asignado
             else None
         ),
         'last_checkin': summary['last_checkin'],
@@ -89,8 +89,8 @@ def _serialize_summary_context(summary, active_prescription):
 
 def _serialize_analysis_context(member, summary, active_prescription, prescription_status):
     trainer_name = (
-        member.trainer_asignado.user.get_full_name()
-        if member.trainer_asignado_id and member.trainer_asignado and member.trainer_asignado.user
+        member.trainer_asignado.get_full_name()
+        if member.trainer_asignado_id and member.trainer_asignado and member.trainer_asignado
         else None
     )
     return {
@@ -191,7 +191,7 @@ def _resolve_member_for_request(user, member_id=None):
         return None, mode, None
 
     try:
-        member = MemberProfile.objects.select_related('user', 'trainer_asignado__user').get(id=member_id)
+        member = MemberProfile.objects.select_related('user', 'trainer_asignado').get(id=member_id)
     except MemberProfile.DoesNotExist:
         return None, mode, Response({'error': 'Miembro no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -199,7 +199,7 @@ def _resolve_member_for_request(user, member_id=None):
         return member, mode, None
 
     try:
-        trainer_profile = user.trainerprofile
+        trainer_profile = user
     except ObjectDoesNotExist:
         return None, mode, Response({'error': 'Perfil de trainer no encontrado.'}, status=status.HTTP_403_FORBIDDEN)
 

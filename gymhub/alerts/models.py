@@ -101,7 +101,7 @@ class InactivityAlertContact(models.Model):
         related_name='inactivity_contacts',
     )
     trainer = models.ForeignKey(
-        'users.TrainerProfile',
+        'users.User',
         on_delete=models.CASCADE,
         related_name='inactivity_contacts',
     )
@@ -136,7 +136,7 @@ class MemberJustifiedAbsence(models.Model):
         related_name='justified_absences',
     )
     trainer = models.ForeignKey(
-        'users.TrainerProfile',
+        'users.User',
         null=True,
         blank=True,
         on_delete=models.SET_NULL,

@@ -7,7 +7,7 @@ def user_can_manage_member_progress(user, member):
     if user.is_staff:
         return True
     try:
-        trainer_profile = user.trainerprofile
+        trainer_profile = user
     except ObjectDoesNotExist:
         return False
     return member.trainer_asignado_id == trainer_profile.id

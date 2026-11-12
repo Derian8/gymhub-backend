@@ -348,7 +348,7 @@ class TestPrescriptionTemplates:
             password='trainer123!',
             role='trainer',
         )
-        other_trainer = other_trainer_user.trainerprofile
+        other_trainer = other_trainer_user
         foreign_member_user = User.objects.create_user(
             username='foreign_member',
             email='foreign_member@test.com',

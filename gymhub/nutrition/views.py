@@ -10,8 +10,8 @@ from .serializers import (
     PlanNutritionLinkSerializer, PlantillaNutricionSerializer,
 )
 from plans.models import TrainingPlan
-from users.permissions import IsTrainer
-from users.views import _get_trainer_profile
+from users.permissions import IsAdministrator
+from users.views import _get_administrator
 
 
 class NutritionProfileViewSet(viewsets.ModelViewSet):
@@ -37,7 +37,7 @@ class NutritionProfileViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         training_plan = serializer.validated_data['training_plan']
         user = self.request.user
-        trainer_profile = _get_trainer_profile(user)
+        trainer_profile = _get_administrator(user)
         if not user.is_staff and training_plan.member.trainer_asignado_id != trainer_profile.id:
             raise PermissionDenied('Solo puedes crear nutrición para clientes asignados.')
         serializer.save()
@@ -45,21 +45,21 @@ class NutritionProfileViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         nutrition_profile = serializer.instance
         user = self.request.user
-        trainer_profile = _get_trainer_profile(user)
+        trainer_profile = _get_administrator(user)
         if not user.is_staff and nutrition_profile.training_plan.member.trainer_asignado_id != trainer_profile.id:
             raise PermissionDenied('Solo puedes editar nutrición de clientes asignados.')
         serializer.save()
 
     def get_permissions(self):
         if self.action in ('create', 'update', 'partial_update', 'destroy'):
-            return [IsAuthenticated(), IsTrainer()]
+            return [IsAuthenticated(), IsAdministrator()]
         return [IsAuthenticated()]
 
     @action(detail=True, methods=['post'], url_path='save-as-template')
     def save_as_template(self, request, pk=None):
         profile = self.get_object()
         user = request.user
-        trainer_profile = _get_trainer_profile(user)
+        trainer_profile = _get_administrator(user)
         if not user.is_staff and profile.training_plan.member.trainer_asignado_id != trainer_profile.id:
             raise PermissionDenied('Solo puedes convertir en plantilla nutrición de clientes asignados.')
 
@@ -84,7 +84,7 @@ class NutritionGuidelineViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ('create', 'update', 'partial_update', 'destroy'):
-            return [IsAuthenticated(), IsTrainer()]
+            return [IsAuthenticated(), IsAdministrator()]
         return [IsAuthenticated()]
 
 
@@ -107,27 +107,27 @@ class PlanNutritionLinkViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         plan = serializer.validated_data['plan']
         user = self.request.user
-        trainer_profile = _get_trainer_profile(user)
+        trainer_profile = _get_administrator(user)
         if not user.is_staff and plan.member.trainer_asignado_id != trainer_profile.id:
             raise PermissionDenied('Solo puedes asociar guías a clientes asignados.')
         serializer.save()
 
     def get_permissions(self):
         if self.action in ('create', 'update', 'partial_update', 'destroy'):
-            return [IsAuthenticated(), IsTrainer()]
+            return [IsAuthenticated(), IsAdministrator()]
         return [IsAuthenticated()]
 
 
 class PlantillaNutricionViewSet(viewsets.ModelViewSet):
     serializer_class = PlantillaNutricionSerializer
-    permission_classes = [IsAuthenticated, IsTrainer]
+    permission_classes = [IsAuthenticated, IsAdministrator]
 
     def get_queryset(self):
-        trainer_profile = _get_trainer_profile(self.request.user)
+        trainer_profile = _get_administrator(self.request.user)
         return PlantillaNutricion.objects.filter(trainer=trainer_profile).order_by('nombre', 'id')
 
     def perform_create(self, serializer):
-        serializer.save(trainer=_get_trainer_profile(self.request.user))
+        serializer.save(trainer=_get_administrator(self.request.user))
 
     @action(detail=True, methods=['post'], url_path='apply')
     def apply(self, request, pk=None):
@@ -142,7 +142,7 @@ class PlantillaNutricionViewSet(viewsets.ModelViewSet):
             raise ValidationError({'training_plan_id': 'Plan no encontrado.'}) from exc
 
         user = request.user
-        trainer_profile = _get_trainer_profile(user)
+        trainer_profile = _get_administrator(user)
         if not user.is_staff and training_plan.member.trainer_asignado_id != trainer_profile.id:
             raise PermissionDenied('Solo puedes aplicar plantillas a clientes asignados.')
 

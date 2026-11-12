@@ -57,7 +57,7 @@ def _datos_dashboard_administrador():
     fin_rutinas_proximas = hoy + timedelta(days=14)
 
     clientes = list(
-        MemberProfile.objects.select_related('user', 'trainer_asignado__user')
+        MemberProfile.objects.select_related('user', 'trainer_asignado')
         .filter(is_active=True)
         .order_by('user__first_name', 'user__last_name', 'id')
     )
@@ -96,7 +96,7 @@ def _datos_dashboard_administrador():
     )
 
     planes_activos = TrainingPlan.objects.select_related(
-        'member__user', 'trainer__user'
+        'member__user', 'trainer'
     ).filter(member__in=clientes, status='active')
     clientes_con_rutina = set(planes_activos.values_list('member_id', flat=True))
     sin_rutina = [cliente for cliente in clientes if cliente.id not in clientes_con_rutina]
@@ -139,8 +139,8 @@ def _datos_dashboard_administrador():
                     'member_name': cliente.user.get_full_name() or cliente.user.email,
                     'trainer_id': cliente.trainer_asignado_id,
                     'trainer_name': (
-                        cliente.trainer_asignado.user.get_full_name()
-                        or cliente.trainer_asignado.user.email
+                        cliente.trainer_asignado.get_full_name()
+                        or cliente.trainer_asignado.email
                     ) if cliente.trainer_asignado else None,
                     'can_publish': bool(acceso_por_cliente[cliente.id]['allowed']),
                 }
@@ -156,7 +156,7 @@ def _datos_dashboard_administrador():
                     'end_date': plan.end_date.isoformat(),
                     'days_until_end': (plan.end_date - hoy).days,
                     'trainer_id': plan.trainer_id,
-                    'trainer_name': plan.trainer.user.get_full_name() or plan.trainer.user.email,
+                    'trainer_name': plan.trainer.get_full_name() or plan.trainer.email,
                     'can_publish': bool(acceso_por_cliente[plan.member_id]['allowed']),
                 }
                 for plan in rutinas_proximas[:8]

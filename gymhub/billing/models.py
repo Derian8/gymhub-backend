@@ -38,7 +38,7 @@ RECURRENCE_TYPE_CHOICES = [
 
 class MembershipPlan(models.Model):
     trainer = models.ForeignKey(
-        'users.TrainerProfile',
+        'users.User',
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
@@ -82,7 +82,7 @@ class MemberSubscription(models.Model):
     membership_name = models.CharField(max_length=200, default='Membresía')
     description = models.TextField(blank=True)
     trainer = models.ForeignKey(
-        'users.TrainerProfile',
+        'users.User',
         on_delete=models.CASCADE,
         related_name='member_subscriptions'
     )

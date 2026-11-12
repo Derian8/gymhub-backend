@@ -20,7 +20,7 @@ describe('Topbar', () => {
         role: 'member',
         is_staff: false,
         memberprofile_id: 10,
-        trainerprofile_id: null,
+
       },
       isAuthenticated: true,
       authResolved: true,
@@ -54,7 +54,7 @@ describe('Topbar', () => {
         ...state.user!,
         role: 'admin',
         is_staff: true,
-        trainerprofile_id: 7,
+
         memberprofile_id: 10,
         perfiles_disponibles: ['administrador', 'cliente'],
         contexto_predeterminado: 'administrador',

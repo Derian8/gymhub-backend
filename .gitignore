@@ -3,7 +3,25 @@
 !.env.example
 !.env.prod.example
 !.env.staging.example
+# Env files may contain credentials; examples are the only tracked env files.
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
 .secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+*.sqlite3
+*.db
+*.bak
+*.inaccessible.bak/
+*.orig
+*.rej
+*:Zone.Identifier
 
 # APK de terceros usados como evidencia local; no versionar los binarios.
 docs/ingenieria_inversa/interval_timer/apks/**/*.apk
@@ -25,6 +43,9 @@ frontend/.vite/
 frontend/playwright-report/
 frontend/test-results/
 frontend/.playwright/
+coverage/
+.coverage
+htmlcov/
 
 *.log
 
@@ -35,5 +56,31 @@ docs/gymhub_expotecnica/build/
 gymhub/media/
 gymhub/staticfiles/
 
+# impeccable-ignore-start
+# Impeccable runtime state and per-developer overrides.
+# Keep shared configuration, design artifacts, briefs, and critiques tracked.
+**/.impeccable/config.local.json
+**/.impeccable/hook.cache.json
+**/.impeccable/hook.pending.json
+**/.impeccable/*.png
+**/.impeccable/review/
+**/.impeccable/questions/
+**/.impeccable/live/server.json
+**/.impeccable/live/sessions/
+**/.impeccable/live/previews/
+**/.impeccable/live/annotations/
+**/.impeccable/live/cache/
+**/.impeccable/live/manual-edit-apply-transaction.json
+**/.impeccable/live/manual-edit-events.jsonl
+**/.impeccable/live/manual-edit-evidence/
+**/.impeccable/live/pending-manual-edits.json
+**/.impeccable/live/deferred-svelte-component-accepts.json
+**/.impeccable/live/*.png
+# impeccable-ignore-end
+
 .DS_Store
 Thumbs.db
+.idea/
+.vscode/
+.agents/skills/impeccable
+/.agents

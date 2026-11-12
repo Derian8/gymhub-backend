@@ -121,7 +121,7 @@ export function ChartsPage() {
           title="Sin analytics disponibles"
           description="Todavía no hay suficientes datos para construir tus gráficos."
         />
-      ) : data.role === 'trainer' ? (
+      ) : data.role === 'admin' ? (
         <TrainerChartsView
           data={data}
           filters={trainerFilters}

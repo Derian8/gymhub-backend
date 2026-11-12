@@ -7,7 +7,7 @@ import { BASE_URL } from '@/shared/api/client'
 import { PageHeader } from '@/shared/components/UI'
 import { formatCurrency, formatDate } from '@/shared/lib/utils'
 import type { RegistroClientePagoPayload, RegistroClientePagoResponse } from '@/shared/types'
-import { useRegisterClientWithPaymentMutation, useTrainersQuery } from '../hooks/useMembers'
+import { useRegisterClientWithPaymentMutation, useAdministratorsQuery } from '../hooks/useMembers'
 
 const initialForm: RegistroClientePagoPayload = {
   nombres: '',
@@ -51,7 +51,7 @@ export function NewMemberPage() {
   const [form, setForm] = useState<RegistroClientePagoPayload>(initialForm)
   const [created, setCreated] = useState<RegistroClientePagoResponse | null>(null)
   const { data: plans, isLoading: isLoadingPlans } = useMembershipPlansQuery()
-  const { data: trainers, isLoading: isLoadingTrainers } = useTrainersQuery()
+  const { data: administrators, isLoading: isLoadingTrainers } = useAdministratorsQuery()
   const registerClient = useRegisterClientWithPaymentMutation()
   const selectedPlan = useMemo(
     () => plans?.results.find((plan) => plan.id === form.plan_membresia),
@@ -199,9 +199,9 @@ export function NewMemberPage() {
               }}
             >
               <option value="">Seleccionar administrador</option>
-              {trainers?.map((trainer) => (
-                <option key={trainer.id} value={trainer.id}>
-                  {`${trainer.user.first_name} ${trainer.user.last_name}`.trim() || trainer.user.email}
+              {administrators?.map((administrator) => (
+                <option key={administrator.id} value={administrator.id}>
+                  {`${administrator.user.first_name} ${administrator.user.last_name}`.trim() || administrator.user.email}
                 </option>
               ))}
             </select>

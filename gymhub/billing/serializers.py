@@ -2,7 +2,7 @@ from rest_framework import serializers
 from users.validators import validate_image_upload
 from .models import MembershipPlan, MemberSubscription, PaymentSchedule, PaymentRecord, PaymentMethod, PaymentInstruction, SeguimientoCobro
 from .services import default_grace_days, membership_access, membership_summary, refresh_membership_status
-from users.permissions import tiene_perfil_entrenador
+from users.permissions import tiene_perfil_administrador
 
 
 class MembershipPlanSerializer(serializers.ModelSerializer):
@@ -28,7 +28,7 @@ class MembershipPlanSerializer(serializers.ModelSerializer):
     def get_trainer_nombre(self, obj):
         if not obj.trainer_id:
             return None
-        return obj.trainer.user.get_full_name() or obj.trainer.user.email
+        return obj.trainer.get_full_name() or obj.trainer.email
 
 
 class MemberSubscriptionSerializer(serializers.ModelSerializer):
@@ -130,8 +130,8 @@ class MemberMembershipSerializer(serializers.ModelSerializer):
             if existing.exists():
                 raise serializers.ValidationError({'member': 'El miembro ya tiene una membresía operativa.'})
         request = self.context.get('request')
-        if request and tiene_perfil_entrenador(request.user) and not request.user.is_staff:
-            trainer = request.user.trainerprofile
+        if request and tiene_perfil_administrador(request.user) and not request.user.is_staff:
+            trainer = request.user
             if member and member.trainer_asignado_id != trainer.id:
                 raise serializers.ValidationError({'member': 'Solo puedes administrar miembros asignados.'})
             if plan and plan.trainer_id and plan.trainer_id != trainer.id:
