@@ -47,7 +47,7 @@ Para un despliegue real con HTTPS, no reutilices sin cambios el `.env.prod.examp
 - `python manage.py restablecer_demo --yes`: recrea trainer1/member1 y elimina demos numeradas adicionales.
 - `python manage.py reemplazar_rutinas_interval_timer --confirmar-borrado`: elimina rutinas y plantillas de entrenamiento, sesiones e historial de ejercicios; conserva el catálogo multimedia y planes vacíos archivados que sostienen datos nutricionales, y carga cuatro plantillas de ejemplo con 3×10–12 y descanso de 60 s.
 - `./deploy-supabase-vercel.sh --dry-run`: muestra el flujo de publicación sin modificar Supabase ni Vercel.
-- `./deploy-supabase-vercel.sh`: migra y audita Supabase, despliega backend y frontend en Vercel y valida los servicios públicos.
+- `./deploy-supabase-vercel.sh`: migra y audita Supabase, despliega el backend Vercel de respaldo y el frontend, y valida el backend activo de Render a través del dominio público.
 
 El despliegue automatizado se detiene ante el primer error. También acepta
 `--sin-migraciones`, `--sin-backend`, `--sin-frontend` y `--sin-validacion` para
@@ -84,6 +84,8 @@ Para E2E con Playwright:
 - si necesitas navegador visible, usa `cd frontend && npm run test:e2e:headed`
 
 ## Variables Operativas Relevantes
+- `ACTIVE_FRONTEND_PUBLIC_URL`: dominio de producción que valida el release; por defecto `https://www.pulsocr.me`.
+- `ACTIVE_BACKEND_PUBLIC_URL`: destino real de los rewrites públicos; por defecto `https://gymhub-api-feria.onrender.com`.
 - `DJANGO_SECRET_KEY`
 - `AUTH_COOKIE_SECURE`
 - `AUTH_COOKIE_SAMESITE`
@@ -147,14 +149,11 @@ En Vercel, `gymhub/vercel.json` invoca diariamente `/api/internal/daily-membersh
 - `VITE_API_TIMEOUT_MS`
 
 ## Consideraciones De Despliegue
-- `render.yaml` declara web Django, worker Celery, Beat y Render Key Value en Oregon.
-- El Blueprint genera `CRON_SECRET` para proteger el mantenimiento interno diario; no lo copies al frontend ni lo publiques.
-- La cuenta de estudiante no garantiza créditos ni elimina la verificación de pago de Render. Si no hay presupuesto, conserva Vercel + Supabase como despliegue activo y no agregues tarjeta solo para intentar crear el Blueprint.
-- El servicio web, el worker y Beat comparten las credenciales de Supabase Storage definidas en `gymhub-api`; así las tareas asíncronas no vuelven a almacenamiento efímero.
+- `render.yaml` declara solamente la API web en Render; usa caché local y no declara Redis, Celery Worker ni Celery Beat.
+- El servicio Render activo tiene `autoDeployTrigger: off`; después de publicar el commit en GitHub, despliega ese commit desde Render Dashboard.
 - Render usa el Session Pooler de Supabase (`5432`); `6543` se reserva para serverless.
 - El predeploy aplica migraciones y `auditar_esquema` valida tablas y columnas.
-- Con `USE_S3_STORAGE=True`, media vive en el bucket privado `gymhub-media` y usa URLs firmadas.
-- En Render, activa `USE_S3_STORAGE=True` en `gymhub-api` y verifica que el bucket sea privado antes de subir fotos, logos, QR o gráficos.
+- El despliegue de feria mantiene `USE_S3_STORAGE=False`; media no tiene persistencia en Render hasta configurar almacenamiento externo.
 - La API limita las imágenes subidas a 5 MB y valida que sean JPG, PNG o WebP reales antes de enviarlas al almacenamiento.
 - Las consultas de miembros y panel del frontend reutilizan respuestas durante 30 segundos y desactivan refetch por foco; las mutaciones invalidan esas consultas para mantener la información actualizada sin multiplicar llamadas a la API.
 - Antes de cambiar el frontend a `api.pulsocr.me`, valida la API directamente y conserva el rewrite de Vercel como plan de reversión.

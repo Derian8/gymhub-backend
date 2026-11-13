@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-FRONTEND_URL="${FRONTEND_URL:-https://proyectoappgym-frontend.vercel.app}"
-BACKEND_URL="${BACKEND_URL:-https://proyectoappgym-backend.vercel.app}"
+FRONTEND_URL="${FRONTEND_URL:-https://www.pulsocr.me}"
+BACKEND_URL="${BACKEND_URL:-https://gymhub-api-feria.onrender.com}"
 
 for bin in curl python3 rg; do
   if ! command -v "$bin" >/dev/null 2>&1; then

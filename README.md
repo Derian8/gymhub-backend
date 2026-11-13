@@ -44,8 +44,11 @@ después ejecuta el despliegue real:
 ./deploy-supabase-vercel.sh
 ```
 
-El script aplica y audita las migraciones de Supabase, despliega backend y frontend
-en Vercel y termina con la validación pública. Usa `--help` para omitir etapas.
+El script aplica y audita las migraciones de Supabase, despliega el backend Vercel
+de respaldo y el frontend, y termina validando el dominio público contra el backend
+activo en Render. Render tiene el autodespliegue desactivado; publica ahí el mismo
+commit desde su Dashboard antes de considerar completada la release. Usa `--help`
+para omitir etapas.
 
 Para reconstruir las demos numeradas sin tocar cuentas reales, ejecuta primero
 `python manage.py restablecer_demo` y confirma después con

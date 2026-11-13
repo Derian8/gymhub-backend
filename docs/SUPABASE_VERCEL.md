@@ -84,6 +84,11 @@ same-origin en `frontend/vercel.json` hacia Render. Esto mantiene `/auth/`,
 de cookies. Si después se activa `api.pulsocr.me`, se puede migrar el destino
 de los rewrites a ese dominio sin cambiar el frontend.
 
+La release pública valida el backend activo de Render (`ACTIVE_BACKEND_PUBLIC_URL`,
+por defecto `https://gymhub-api-feria.onrender.com`) desde `https://www.pulsocr.me`.
+`BACKEND_PUBLIC_URL` identifica el backend Vercel de respaldo que publica el script;
+no sustituye la validación del destino real de los rewrites.
+
 ## Variables Backend Para Dominio Vercel
 
 Cuando el frontend vive en Vercel y el backend en otro dominio:
@@ -136,9 +141,14 @@ Desde la raíz del repositorio:
 
 El script usa `.env.supabase-vercel.local`, selecciona
 `SUPABASE_POOLER_DATABASE_URL` para las migraciones cuando está disponible,
-ejecuta `migrate` y `auditar_esquema`, publica primero el backend y espera que
-responda antes de publicar el frontend. Finalmente ejecuta
-`./gym-connection-check`.
+ejecuta `migrate` y `auditar_esquema`, publica el backend Vercel de respaldo y el
+frontend. Finalmente `./gym-connection-check` valida el frontend público y el
+backend activo de Render. `ACTIVE_FRONTEND_PUBLIC_URL` y
+`ACTIVE_BACKEND_PUBLIC_URL` permiten cambiar esos destinos en staging.
+
+El servicio Render activo tiene `autoDeployTrigger: off`. Despliega manualmente
+el mismo commit en Render Dashboard después de publicar la rama y antes de dar
+por finalizada la release.
 
 Antes de tocar Supabase también ejecuta `makemigrations --check --dry-run`; si
 los modelos cambiaron sin una migración versionada, el despliegue se detiene.

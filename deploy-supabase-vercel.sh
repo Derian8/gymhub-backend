@@ -250,8 +250,8 @@ if [[ "${VALIDAR_PUBLICACION}" == true ]]; then
   if [[ "${SIMULAR}" == true ]]; then
     mostrar_comando "${DIRECTORIO_RAIZ}/gym-connection-check"
   else
-    FRONTEND_URL="${FRONTEND_PUBLIC_URL:-https://proyectoappgym-frontend.vercel.app}" \
-    BACKEND_URL="${BACKEND_PUBLIC_URL:-https://proyectoappgym-backend.vercel.app}" \
+    FRONTEND_URL="${ACTIVE_FRONTEND_PUBLIC_URL:-https://www.pulsocr.me}" \
+    BACKEND_URL="${ACTIVE_BACKEND_PUBLIC_URL:-https://gymhub-api-feria.onrender.com}" \
       "${DIRECTORIO_RAIZ}/gym-connection-check"
   fi
 else

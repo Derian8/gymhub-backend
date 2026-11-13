@@ -22,10 +22,12 @@
 
 > Flujo recomendado: usa la orquestación de raíz del repositorio con `./gym-start`, `./gym-start --prod`, `./gym-smoke`, `./gym-log` y `./gym-stop`. Este README conserva los comandos directos del backend solo para tareas puntuales dentro del servicio `backend`.
 
-Para desplegar Supabase y ambos proyectos de Vercel desde la raíz, usa primero
+Para desplegar Supabase y los proyectos de Vercel desde la raíz, usa primero
 `./deploy-supabase-vercel.sh --dry-run` y luego `./deploy-supabase-vercel.sh`.
 El comando aplica las migraciones Django y ejecuta `auditar_esquema` antes de
-publicar el backend y el frontend.
+publicar el backend Vercel de respaldo y el frontend. El frontend enruta las
+solicitudes públicas al backend activo de Render; como su autodespliegue está
+desactivado, publica ahí el mismo commit desde Render Dashboard.
 
 ```bash
 # 1. Clonar y configurar variables de entorno
