@@ -39,7 +39,6 @@ const mobileNavigation = {
     secondary: [
       { label: 'Usuarios', to: '/admin/users', icon: <ShieldCheck size={18} /> },
       { label: 'Asistencia', to: '/attendance', icon: <CheckSquare size={18} /> },
-      { label: 'Planes técnicos', to: '/plans', icon: <Dumbbell size={18} /> },
       { label: 'Progreso', to: '/progress', icon: <Activity size={18} /> },
       { label: 'Reportes', to: '/reports', icon: <BarChart3 size={18} /> },
     ],

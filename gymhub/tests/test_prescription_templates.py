@@ -103,6 +103,14 @@ class TestPrescriptionTemplates:
         assert 'Su prescripción activa está incompleta' not in risk['motivos_riesgo']
 
     def test_trainer_can_save_training_plan_as_template(self, trainer_client, training_plan):
+        from plans.models import GymMachine
+
+        maquina = GymMachine.objects.create(name='Prensa de prueba')
+        ejercicio = training_plan.workout_days.first().exercises.first()
+        ejercicio.machine = maquina
+        ejercicio.video_url = 'https://www.youtube.com/watch?v=abc123def45'
+        ejercicio.save(update_fields=['machine', 'video_url'])
+
         response = trainer_client.post(
             f'/api/plans/{training_plan.id}/save-as-template/',
             {
@@ -117,6 +125,9 @@ class TestPrescriptionTemplates:
         assert response.data['nombre'] == 'Base recomposicion'
         assert response.data['dias']
         assert response.data['dias'][0]['ejercicios']
+        ejercicio_plantilla = response.data['dias'][0]['ejercicios'][0]
+        assert ejercicio_plantilla['url_video'] == ejercicio.video_url
+        assert ejercicio_plantilla['maquina'] == maquina.id
 
     def test_trainer_cannot_save_incomplete_plan_as_template(self, trainer_client, training_plan):
         training_plan.workout_days.first().exercises.all().delete()
@@ -132,7 +143,13 @@ class TestPrescriptionTemplates:
         assert not PlantillaEntrenamiento.objects.filter(nombre='Base incompleta').exists()
 
     def test_trainer_can_apply_training_template_to_assigned_member(self, trainer_client, trainer_profile, member_profile):
-        from plans.models import PlantillaDiaEntrenamiento, PlantillaEjercicio, PlantillaEntrenamiento, TrainingPlan
+        from plans.models import (
+            GymMachine, PlantillaDiaEntrenamiento, PlantillaEjercicio,
+            PlantillaEntrenamiento, TrainingPlan,
+        )
+
+        maquina = GymMachine.objects.create(name='Polea de prueba')
+        url_video = 'https://www.youtube.com/watch?v=abc123def45'
 
         plantilla = PlantillaEntrenamiento.objects.create(
             trainer=trainer_profile,
@@ -149,6 +166,8 @@ class TestPrescriptionTemplates:
         )
         PlantillaEjercicio.objects.create(
             dia=dia,
+            url_video=url_video,
+            maquina=maquina,
             nombre='Sentadilla goblet',
             grupo_muscular='legs',
             series=3,
@@ -168,6 +187,9 @@ class TestPrescriptionTemplates:
         assert plan.member == member_profile
         assert plan.workout_days.count() == 1
         assert plan.workout_days.first().exercises.count() == 1
+        ejercicio = plan.workout_days.first().exercises.first()
+        assert ejercicio.video_url == url_video
+        assert ejercicio.machine_id == maquina.id
 
     def test_trainer_can_update_own_training_template(self, trainer_client, trainer_profile):
         from plans.models import PlantillaEntrenamiento
@@ -221,7 +243,16 @@ class TestPrescriptionTemplates:
         assert PlantillaEntrenamiento.objects.filter(id=plantilla.id).exists() is False
 
     def test_trainer_can_refresh_template_from_active_plan(self, trainer_client, trainer_profile, training_plan):
-        from plans.models import PlantillaDiaEntrenamiento, PlantillaEjercicio, PlantillaEntrenamiento
+        from plans.models import (
+            GymMachine, PlantillaDiaEntrenamiento, PlantillaEjercicio,
+            PlantillaEntrenamiento,
+        )
+
+        maquina = GymMachine.objects.create(name='Remo de prueba')
+        ejercicio = training_plan.workout_days.first().exercises.first()
+        ejercicio.machine = maquina
+        ejercicio.video_url = 'https://www.youtube.com/watch?v=abc123def45'
+        ejercicio.save(update_fields=['machine', 'video_url'])
 
         plantilla = PlantillaEntrenamiento.objects.create(
             trainer=trainer_profile,
@@ -263,6 +294,9 @@ class TestPrescriptionTemplates:
         assert primer_dia.nombre == primer_dia_plan.name
         assert primer_dia.ejercicios.count() == primer_dia_plan.exercises.count()
         assert primer_dia.ejercicios.filter(nombre='Ejercicio viejo').exists() is False
+        ejercicio_actualizado = primer_dia.ejercicios.order_by('orden').first()
+        assert ejercicio_actualizado.url_video == ejercicio.video_url
+        assert ejercicio_actualizado.maquina_id == maquina.id
 
     def test_trainer_can_save_nutrition_profile_as_template(self, trainer_client, training_plan):
         from nutrition.models import NutritionProfile
@@ -334,10 +368,10 @@ class TestPrescriptionTemplates:
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert PlantillaNutricion.objects.filter(id=template.id).exists() is False
 
-    def test_trainer_cannot_apply_nutrition_template_to_foreign_member(self, trainer_client, trainer_profile, membership_plan):
+    def test_admin_can_apply_nutrition_template_to_another_member(self, trainer_client, trainer_profile, membership_plan):
         from datetime import date
         from django.contrib.auth import get_user_model
-        from nutrition.models import PlantillaNutricion
+        from nutrition.models import NutritionProfile, PlantillaNutricion
         from plans.models import TrainingPlan
         from users.models import MemberProfile
 
@@ -346,7 +380,7 @@ class TestPrescriptionTemplates:
             username='other_trainer',
             email='other_trainer@test.com',
             password='trainer123!',
-            role='trainer',
+            role='admin',
         )
         other_trainer = other_trainer_user
         foreign_member_user = User.objects.create_user(
@@ -386,4 +420,6 @@ class TestPrescriptionTemplates:
             format='json',
         )
 
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['training_plan'] == foreign_plan.id
+        assert NutritionProfile.objects.filter(training_plan=foreign_plan).exists()

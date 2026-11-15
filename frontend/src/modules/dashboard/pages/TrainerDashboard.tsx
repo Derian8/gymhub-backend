@@ -193,7 +193,7 @@ export function TrainerDashboard() {
         <h2 className="font-heading text-2xl font-bold">Acciones prioritarias</h2>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           <Link className="rounded-sm border border-neutral-200 p-4 hover:border-primary dark:border-neutral-800" to="/members/new"><strong>Registrar miembro</strong><p className="mt-1 text-sm text-neutral-500">Crea la cuenta y entrega una contraseña temporal.</p></Link>
-          <Link className="rounded-sm border border-neutral-200 p-4 hover:border-primary dark:border-neutral-800" to="/plans"><strong>{data?.members_without_active_plan ?? 0} sin plan publicado</strong><p className="mt-1 text-sm text-neutral-500">Completa borradores o crea revisiones.</p></Link>
+          <Link className="rounded-sm border border-neutral-200 p-4 hover:border-primary dark:border-neutral-800" to="/routines?tab=asignadas"><strong>{data?.members_without_active_plan ?? 0} sin plan publicado</strong><p className="mt-1 text-sm text-neutral-500">Completa borradores o crea revisiones.</p></Link>
           <Link className="rounded-sm border border-neutral-200 p-4 hover:border-primary dark:border-neutral-800" to="/billing"><strong>{data?.members_in_mora ?? 0} cobros en mora</strong><p className="mt-1 text-sm text-neutral-500">Registra pagos y recupera accesos.</p></Link>
         </div>
       </section>

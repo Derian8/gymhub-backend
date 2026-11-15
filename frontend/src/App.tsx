@@ -25,7 +25,6 @@ import { MemberDetailPage } from '@/modules/members/pages/MemberDetailPage'
 import { NewMemberPage } from '@/modules/members/pages/NewMemberPage'
 
 // Plans
-import { PlansPage } from '@/modules/plans/pages/PlansPage'
 import { PlanDetailPage } from '@/modules/plans/pages/PlanDetailPage'
 import { TodayWorkoutPage } from '@/modules/plans/pages/TodayWorkoutPage'
 import { WorkoutDayDetailPage } from '@/modules/plans/pages/WorkoutDayDetailPage'
@@ -181,7 +180,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/plans" element={<ProtectedRoute requiredRole="admin"><PlansPage /></ProtectedRoute>} />
+        <Route path="/plans" element={<ProtectedRoute requiredRole="admin"><Navigate to="/routines?tab=asignadas" replace /></ProtectedRoute>} />
         <Route path="/plans/my" element={<ProtectedRoute requiredRole="member"><TodayWorkoutPage /></ProtectedRoute>} />
         <Route path="/plans/:planId/days/:dayId" element={<WorkoutDayDetailPage />} />
         <Route path="/plans/:id/edit" element={<ProtectedRoute requiredRole="admin"><PlanEditorPage /></ProtectedRoute>} />

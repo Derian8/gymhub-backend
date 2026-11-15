@@ -208,7 +208,7 @@ export function MemberDetailPage() {
         backLabel="Volver a clientes"
         breadcrumb={[{ label: 'Miembros', href: '/members' }, { label: member.full_name }]}
         action={
-          <div className="flex gap-2">
+          <div className="flex w-full min-w-0 flex-wrap gap-2 xl:w-auto">
             {member.trainer_asignado && canManagePrescription && (
               <Link
                 to={`/members/${member.id}/program`}

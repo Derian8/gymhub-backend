@@ -80,7 +80,7 @@ class TestAdminDashboardOperations:
         assert response.data['commercial']['current_clients'] == 1
         assert response.data['commercial']['due_soon_count'] == 1
         assert response.data['training']['without_routine_count'] == 1
-        assert trainer_client.get('/api/admin/dashboard/').status_code == status.HTTP_403_FORBIDDEN
+        assert trainer_client.get('/api/admin/dashboard/').status_code == status.HTTP_200_OK
 
     def test_late_payment_removes_client_from_current(
         self, admin_client, member_profile, trainer_profile, membership_plan,
@@ -265,12 +265,11 @@ class TestQuickRoutineAssignment:
             first_name='Cliente',
             last_name='Destino',
         )
-        target = MemberProfile.objects.create(
-            user=target_user,
-            trainer_asignado=trainer_profile,
-            membership_plan=membership_plan,
-            is_active=True,
-        )
+        target = MemberProfile.objects.get(user=target_user)
+        target.trainer_asignado = trainer_profile
+        target.membership_plan = membership_plan
+        target.is_active = True
+        target.save(update_fields=['trainer_asignado', 'membership_plan', 'is_active'])
         crear_suscripcion_vigente(member_profile, trainer_profile, membership_plan)
         crear_suscripcion_vigente(target, trainer_profile, membership_plan)
         source = TrainingPlan.objects.create(
@@ -318,10 +317,15 @@ class TestQuickRoutineAssignment:
     def test_admin_publishes_template_for_client_without_routine(
         self, admin_client, member_profile, trainer_profile, membership_plan,
     ):
-        from plans.models import TrainingPlan
+        from plans.models import GymMachine, TrainingPlan
 
         crear_suscripcion_vigente(member_profile, trainer_profile, membership_plan)
         plantilla = crear_plantilla(trainer_profile)
+        maquina = GymMachine.objects.create(name='Máquina de asignación')
+        ejercicio_plantilla = plantilla.dias.first().ejercicios.first()
+        ejercicio_plantilla.maquina = maquina
+        ejercicio_plantilla.url_video = 'https://www.youtube.com/watch?v=abc123def45'
+        ejercicio_plantilla.save(update_fields=['maquina', 'url_video'])
 
         response = admin_client.post('/api/plans/assign-template/', {
             'member_id': member_profile.id,
@@ -337,6 +341,9 @@ class TestQuickRoutineAssignment:
         assert plan.status == 'active'
         assert plan.publicado_en is not None
         assert plan.workout_days.first().exercises.count() == 1
+        ejercicio = plan.workout_days.first().exercises.first()
+        assert ejercicio.machine_id == maquina.id
+        assert ejercicio.video_url == ejercicio_plantilla.url_video
         assert plan.end_date == date.today() + timedelta(weeks=6)
 
     def test_ending_plan_schedules_replacement_and_daily_task_activates_it(

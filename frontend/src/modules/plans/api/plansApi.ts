@@ -18,6 +18,7 @@ import type {
   DuplicateWorkoutDayPayload,
   ExercisePayload,
   TrainingTemplate,
+  TrainingTemplatePayload,
   CompleteTrainingPlanPayload,
   TrainingPlansSummary,
   CatalogExercise,
@@ -183,6 +184,11 @@ export const plansApi = {
 
   trainingTemplates: async (): Promise<PaginatedResponse<TrainingTemplate>> => {
     const { data } = await apiClient.get('/api/plan-templates/')
+    return data
+  },
+
+  createTrainingTemplate: async (payload: TrainingTemplatePayload): Promise<TrainingTemplate> => {
+    const { data } = await apiClient.post('/api/plan-templates/', payload)
     return data
   },
 

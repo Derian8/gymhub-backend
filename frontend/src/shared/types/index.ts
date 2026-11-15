@@ -675,6 +675,11 @@ export interface TrainingTemplateExercise {
   catalogo_ejercicio?: number | null
   catalogo_detalle?: CatalogExercise | null
   imagen_referencia_url?: string
+  url_video?: string
+  maquina?: number | null
+  maquina_detalle?: GymMachine | null
+  imagen_visual_url?: string
+  video_display_url?: string
   nombre: string
   grupo_muscular: MuscleGroup
   tipo_ejercicio: ExerciseType
@@ -721,6 +726,26 @@ export interface TrainingTemplateUpdatePayload {
   nivel_adherencia_recomendado: 'low' | 'medium' | 'high'
   dias_por_semana_sugeridos: number
   esta_activa: boolean
+  modo_ejecucion?: 'weekly' | 'cycle'
+  dias?: TrainingTemplateDayPayload[]
+}
+
+export type TrainingTemplateDayPayload = Pick<TrainingTemplateDay, 'nombre' | 'etiqueta_dia' | 'dia_semana' | 'orden'> & {
+  ejercicios: TrainingTemplateExercisePayload[]
+}
+
+export type TrainingTemplateExercisePayload = Pick<TrainingTemplateExercise,
+  'catalogo_ejercicio' | 'imagen_referencia_url' | 'url_video' | 'maquina' | 'nombre' |
+  'grupo_muscular' | 'tipo_ejercicio' | 'series' | 'rango_repeticiones' | 'minutos_objetivo' |
+  'peso_sugerido_kg' | 'unidad_peso_sugerido' | 'descanso_segundos' | 'notas_tecnicas' | 'orden'
+>
+
+export type TrainingTemplatePayload = Pick<TrainingTemplateUpdatePayload,
+  'nombre' | 'descripcion' | 'objetivo' | 'nivel_adherencia_recomendado' |
+  'dias_por_semana_sugeridos' | 'esta_activa'
+> & {
+  modo_ejecucion: 'weekly' | 'cycle'
+  dias: TrainingTemplateDayPayload[]
 }
 
 export interface TrainingPlanPayload {

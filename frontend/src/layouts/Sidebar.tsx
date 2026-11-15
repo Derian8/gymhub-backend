@@ -30,7 +30,6 @@ const adminNav: NavItem[] = [
 
 const adminMoreNav: NavItem[] = [
   { label: 'Asistencia', icon: <CheckSquare size={18} />, to: '/attendance' },
-  { label: 'Planes técnicos', icon: <Dumbbell size={18} />, to: '/plans' },
   { label: 'Progreso', icon: <Activity size={18} />, to: '/progress' },
   { label: 'Reportes', icon: <BarChart3 size={18} />, to: '/reports' },
 ]
@@ -112,7 +111,7 @@ export function Sidebar({ collapsed, mobileOpen, onToggle, onCloseMobile }: Side
               )
             }
             aria-disabled={item.disabled || undefined}
-            title={item.disabled ? 'Disponible despuÃ©s de confirmar tu entrada' : compact ? item.label : undefined}
+            title={item.disabled ? 'Disponible después de confirmar tu entrada' : compact ? item.label : undefined}
           >
             <SymbolFrame
               size="sm"

@@ -105,7 +105,7 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, action, breadcrumb, eyebrow, backTo, backLabel }: PageHeaderProps) {
   return (
-    <div className="pulso-cabecera flex flex-row items-center justify-between gap-2 mb-8">
+    <div className="pulso-cabecera mb-8">
       {eyebrow && <PulsoDecorativo className="pointer-events-none absolute bottom-2 right-0 hidden w-64 text-primary/10 lg:block" />}
       <div className="relative min-w-0 flex-1">
         {eyebrow && <p className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-primary"><span className="h-1.5 w-1.5 rounded-full bg-primary" />{eyebrow}</p>}
@@ -129,7 +129,7 @@ export function PageHeader({ title, subtitle, action, breadcrumb, eyebrow, backT
         )}
       </div>
       {(backTo || action) && (
-        <div className="pulso-cabecera-accion flex w-fit max-w-full shrink-0 flex-wrap items-center gap-2">
+        <div className="pulso-cabecera-accion">
           {backTo ? <PageHeaderBack fallbackTo={backTo} label={backLabel || 'Volver'} /> : null}
           {action}
         </div>
@@ -169,7 +169,7 @@ function PageHeaderBack({ fallbackTo, label }: { fallbackTo: string; label: stri
     : hasSafeReturnTo || !hasInternalHistory ? label : 'Volver'
 
   return (
-    <button type="button" onClick={handleBack} className="btn-primary mb-2 inline-flex min-h-11 items-center justify-center gap-2 text-sm font-semibold" aria-label={visibleLabel}>
+    <button type="button" onClick={handleBack} className="btn-primary inline-flex min-h-11 max-w-full items-center justify-center gap-2 text-sm font-semibold" aria-label={visibleLabel}>
       <ArrowLeft size={16} />
       <span>{visibleLabel}</span>
     </button>

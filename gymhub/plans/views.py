@@ -237,6 +237,8 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                         dia=template_day,
                         catalogo_ejercicio=exercise.catalogo_ejercicio,
                         imagen_referencia_url=exercise.imagen_referencia_url,
+                        url_video=exercise.video_url,
+                        maquina=exercise.machine,
                         nombre=exercise.name,
                         grupo_muscular=exercise.muscle_group,
                         tipo_ejercicio=exercise.exercise_type,
@@ -518,6 +520,8 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                             workout_day=day,
                             catalogo_ejercicio=template_exercise.catalogo_ejercicio,
                             imagen_referencia_url=template_exercise.imagen_referencia_url,
+                            video_url=template_exercise.url_video,
+                            machine=template_exercise.maquina,
                             name=template_exercise.nombre,
                             muscle_group=template_exercise.grupo_muscular,
                             exercise_type=template_exercise.tipo_ejercicio,
@@ -975,7 +979,8 @@ class PlantillaEntrenamientoViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         trainer_profile = _get_administrator(self.request.user)
         queryset = PlantillaEntrenamiento.objects.prefetch_related(
-            'dias__ejercicios'
+            'dias__ejercicios__catalogo_ejercicio',
+            'dias__ejercicios__maquina',
         )
         if self.request.user.is_staff:
             return queryset.order_by('nombre', 'id')
@@ -1034,6 +1039,8 @@ class PlantillaEntrenamientoViewSet(viewsets.ModelViewSet):
                         dia=template_day,
                         catalogo_ejercicio=exercise.catalogo_ejercicio,
                         imagen_referencia_url=exercise.imagen_referencia_url,
+                        url_video=exercise.video_url,
+                        maquina=exercise.machine,
                         nombre=exercise.name,
                         grupo_muscular=exercise.muscle_group,
                         tipo_ejercicio=exercise.exercise_type,
@@ -1103,6 +1110,8 @@ class PlantillaEntrenamientoViewSet(viewsets.ModelViewSet):
                         workout_day=day,
                         catalogo_ejercicio=template_exercise.catalogo_ejercicio,
                         imagen_referencia_url=template_exercise.imagen_referencia_url,
+                        video_url=template_exercise.url_video,
+                        machine=template_exercise.maquina,
                         name=template_exercise.nombre,
                         muscle_group=template_exercise.grupo_muscular,
                         exercise_type=template_exercise.tipo_ejercicio,

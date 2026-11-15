@@ -5,6 +5,7 @@ import { TrainingPlanWizard } from './TrainingPlanWizard'
 
 const createCompletePlanMutate = vi.fn()
 const assignTrainerMutate = vi.fn()
+const templatesResult = vi.hoisted(() => ({ results: [] as Record<string, unknown>[] }))
 
 vi.mock('../hooks/usePlans', () => ({
   useCreateCompletePlanMutation: () => ({
@@ -20,7 +21,7 @@ vi.mock('../hooks/usePlans', () => ({
     },
     isLoading: false,
   }),
-  useTrainingTemplatesQuery: () => ({ data: { results: [] } }),
+  useTrainingTemplatesQuery: () => ({ data: templatesResult }),
   useCatalogExercisesQuery: () => ({ data: { results: [{
     id: 20,
     identificador_origen: 'gymhub-base:prensa',
@@ -84,6 +85,48 @@ describe('TrainingPlanWizard', () => {
   beforeEach(() => {
     createCompletePlanMutate.mockReset()
     assignTrainerMutate.mockReset()
+    templatesResult.results.length = 0
+  })
+
+  it('keeps the custom video and machine when creating a plan from a template', async () => {
+    templatesResult.results.push({
+      id: 7,
+      nombre: 'Fuerza guiada',
+      objetivo: 'muscle_gain',
+      dias_por_semana_sugeridos: 1,
+      dias: [{
+        nombre: 'Piernas', etiqueta_dia: 'A', dia_semana: 'mon',
+        ejercicios: [{
+          nombre: 'Prensa', catalogo_ejercicio: 20,
+          imagen_referencia_url: 'https://example.com/prensa.jpg',
+          url_video: 'https://www.youtube.com/watch?v=abc123def45',
+          maquina: 1, grupo_muscular: 'quadriceps', tipo_ejercicio: 'strength',
+          series: 3, rango_repeticiones: '10-12', minutos_objetivo: null,
+          peso_sugerido_kg: null, descanso_segundos: 90,
+          notas_tecnicas: '',
+        }],
+      }],
+    })
+    const user = userEvent.setup()
+    renderWithProviders(<TrainingPlanWizard open onClose={vi.fn()} />)
+
+    await user.click(screen.getByTestId('select-plan-member-10'))
+    await user.click(screen.getByRole('button', { name: /continuar/i }))
+    await user.selectOptions(screen.getByLabelText('Crear desde plantilla'), '7')
+    expect(screen.getByTestId('wizard-exercise-machine-0-0')).toHaveValue('1')
+    await user.click(screen.getByRole('button', { name: /continuar/i }))
+    await user.click(screen.getByRole('button', { name: /guardar como borrador/i }))
+
+    expect(createCompletePlanMutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        days: [expect.objectContaining({ exercises: [expect.objectContaining({
+          video_url: 'https://www.youtube.com/watch?v=abc123def45',
+          machine: 1,
+          imagen_referencia_url: 'https://example.com/prensa.jpg',
+        })] })],
+      }),
+      expect.any(Object),
+    )
   })
 
   it('allows assigning a gym machine to an exercise from the general plan flow', async () => {

@@ -23,7 +23,7 @@ export function TrainerTechnicalDashboard() {
           <section className="card p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div><p className="label-base">Trabajo técnico</p><h2 className="text-xl font-bold">Clientes que requieren atención</h2></div>
-              <Link to="/plans" className="btn-primary">Gestionar rutinas</Link>
+              <Link to="/routines?tab=asignadas" className="btn-primary">Gestionar rutinas</Link>
             </div>
             {data.miembros_sin_plan_activo.length === 0 ? (
               <EmptyState title="Todos tienen rutina" description="No hay clientes asignados sin entrenamiento publicado." />

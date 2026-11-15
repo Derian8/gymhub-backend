@@ -224,13 +224,13 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
         name: exercise.nombre,
         catalogo_ejercicio: exercise.catalogo_ejercicio ?? null,
         imagen_referencia_url: exercise.imagen_referencia_url ?? '',
-        video_url: '',
+        video_url: exercise.url_video ?? '',
         muscle_group: exercise.grupo_muscular,
         exercise_type: exercise.tipo_ejercicio,
         sets: exercise.series,
         reps_range: exercise.rango_repeticiones,
         target_minutes: exercise.minutos_objetivo,
-        machine: null,
+        machine: exercise.maquina ?? null,
         weight_suggestion_kg: exercise.peso_sugerido_kg,
         weight_suggestion_unit: exercise.unidad_peso_sugerido,
         rest_seconds: exercise.descanso_segundos,
@@ -537,8 +537,8 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
                           <Field label="Imagen de referencia (URL HTTPS)">
                             <input className="input" type="url" placeholder="https://..." value={exercise.imagen_referencia_url ?? ''} onChange={(event) => updateExercise(dayIndex, exerciseIndex, { imagen_referencia_url: event.target.value })} />
                           </Field>
-                          <Field label="Video de YouTube (solo si falta video base)">
-                            <input className="input" type="url" placeholder="https://youtu.be/..." value={exercise.video_url ?? ''} onChange={(event) => updateExercise(dayIndex, exerciseIndex, { video_url: event.target.value })} />
+                          <Field label="Video adicional de YouTube">
+                            <input className="input" type="url" placeholder="No reemplaza el video del catálogo" value={exercise.video_url ?? ''} onChange={(event) => updateExercise(dayIndex, exerciseIndex, { video_url: event.target.value })} />
                           </Field>
                           <Field label={`Peso sugerido (${exercise.weight_suggestion_unit})`}>
                             <input

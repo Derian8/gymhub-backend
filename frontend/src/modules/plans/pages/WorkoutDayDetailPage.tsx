@@ -224,7 +224,7 @@ function ExerciseDetailCard({ exercise, index }: { exercise: Exercise; index: nu
           )}
         </div>
       ) : null}
-      <ExerciseVideo url={exercise.video_display_url} pending={exercise.video_pendiente} />
+      <ExerciseVideo url={exercise.catalogo_detalle?.video_url} extraUrl={exercise.video_url} pending={exercise.video_pendiente} />
     </article>
   )
 }

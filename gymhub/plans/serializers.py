@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 from users.permissions import usa_contexto_cliente
@@ -106,10 +107,10 @@ class ExerciseSerializer(serializers.ModelSerializer):
     def get_video_display_url(self, obj):
         if obj.catalogo_ejercicio and obj.catalogo_ejercicio.video_url:
             return obj.catalogo_ejercicio.video_url
-        return obj.video_url
+        return obj.video_url or ''
 
     def get_video_pendiente(self, obj):
-        return not bool(self.get_video_display_url(obj))
+        return not bool(obj.video_url or (obj.catalogo_ejercicio and obj.catalogo_ejercicio.video_url))
 
     def get_previous_log(self, obj):
         member = self.context.get('member')
@@ -425,26 +426,98 @@ class TodayWorkoutSerializer(serializers.ModelSerializer):
 
 class PlantillaEjercicioSerializer(serializers.ModelSerializer):
     catalogo_detalle = CatalogoEjercicioSerializer(source='catalogo_ejercicio', read_only=True)
+    maquina_detalle = GymMachineSerializer(source='maquina', read_only=True)
+    imagen_visual_url = serializers.SerializerMethodField()
+    video_display_url = serializers.SerializerMethodField()
+
+    def validate(self, attrs):
+        tipo = attrs.get('tipo_ejercicio', 'strength')
+        series = attrs.get('series')
+        repeticiones = attrs.get('rango_repeticiones', '')
+        minutos = attrs.get('minutos_objetivo')
+        imagen = attrs.get('imagen_referencia_url', '')
+        video = attrs.get('url_video', '')
+        if tipo == 'timed' and (not minutos or series is not None or repeticiones):
+            raise serializers.ValidationError('Los ejercicios por tiempo requieren minutos y no usan series ni repeticiones.')
+        if tipo != 'timed' and (not series or not repeticiones or minutos is not None):
+            raise serializers.ValidationError('Los ejercicios de fuerza requieren series y repeticiones, y no usan minutos.')
+        if imagen and not imagen.startswith('https://'):
+            raise serializers.ValidationError({'imagen_referencia_url': 'La imagen debe usar una URL HTTPS.'})
+        if video and not (video.startswith('https://www.youtube.com/') or video.startswith('https://youtu.be/')):
+            raise serializers.ValidationError({'url_video': 'El video debe ser un enlace HTTPS de YouTube.'})
+        return attrs
+
     class Meta:
         model = PlantillaEjercicio
         fields = (
-            'id', 'dia', 'catalogo_ejercicio', 'catalogo_detalle', 'nombre', 'grupo_muscular', 'tipo_ejercicio', 'series',
+            'id', 'dia', 'catalogo_ejercicio', 'catalogo_detalle', 'maquina_detalle',
+            'imagen_visual_url', 'video_display_url', 'nombre', 'grupo_muscular', 'tipo_ejercicio', 'series',
             'rango_repeticiones', 'minutos_objetivo', 'peso_sugerido_kg', 'unidad_peso_sugerido', 'descanso_segundos',
-            'notas_tecnicas', 'orden', 'imagen_referencia_url',
+            'notas_tecnicas', 'orden', 'imagen_referencia_url', 'url_video', 'maquina',
         )
+        read_only_fields = ('id', 'dia', 'catalogo_detalle')
+
+    def get_imagen_visual_url(self, obj):
+        if obj.imagen_referencia_url:
+            return obj.imagen_referencia_url
+        if obj.catalogo_ejercicio:
+            return obj.catalogo_ejercicio.animacion_url or obj.catalogo_ejercicio.imagen_url
+        return ''
+
+    def get_video_display_url(self, obj):
+        if obj.catalogo_ejercicio:
+            return obj.catalogo_ejercicio.video_url or obj.url_video
+        return obj.url_video or ''
 
 
 class PlantillaDiaEntrenamientoSerializer(serializers.ModelSerializer):
-    ejercicios = PlantillaEjercicioSerializer(many=True, read_only=True)
+    ejercicios = PlantillaEjercicioSerializer(many=True)
 
     class Meta:
         model = PlantillaDiaEntrenamiento
         fields = ('id', 'plantilla', 'nombre', 'etiqueta_dia', 'dia_semana', 'orden', 'ejercicios')
+        read_only_fields = ('id', 'plantilla')
+
+    def validate_ejercicios(self, value):
+        if not value:
+            raise serializers.ValidationError('Cada día debe tener al menos un ejercicio.')
+        return value
 
 
 class PlantillaEntrenamientoSerializer(serializers.ModelSerializer):
-    dias = PlantillaDiaEntrenamientoSerializer(many=True, read_only=True)
+    dias = PlantillaDiaEntrenamientoSerializer(many=True, required=True)
     trainer_nombre = serializers.SerializerMethodField()
+
+    def validate_dias(self, value):
+        if not value:
+            raise serializers.ValidationError('La rutina debe incluir al menos un día.')
+        return value
+
+    @staticmethod
+    def _crear_dias(plantilla, dias):
+        for dia_data in dias:
+            ejercicios = dia_data.pop('ejercicios')
+            dia = PlantillaDiaEntrenamiento.objects.create(plantilla=plantilla, **dia_data)
+            PlantillaEjercicio.objects.bulk_create([
+                PlantillaEjercicio(dia=dia, **ejercicio_data)
+                for ejercicio_data in ejercicios
+            ])
+
+    @transaction.atomic
+    def create(self, validated_data):
+        dias = validated_data.pop('dias')
+        plantilla = PlantillaEntrenamiento.objects.create(**validated_data)
+        self._crear_dias(plantilla, dias)
+        return plantilla
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        dias = validated_data.pop('dias', None)
+        instance = super().update(instance, validated_data)
+        if dias is not None:
+            instance.dias.all().delete()
+            self._crear_dias(instance, dias)
+        return instance
 
     class Meta:
         model = PlantillaEntrenamiento

@@ -369,8 +369,8 @@ function TodayWorkoutPageContent() {
           </h1>
           <p className="mt-3 text-sm leading-6 text-neutral-600 dark:text-neutral-300">
             {isAttendanceError
-              ? 'Revisa tu conexiÃ³n e intÃ©ntalo nuevamente.'
-              : 'Muestra el cÃ³digo QR de Inicio a la administraciÃ³n. Cuando registren tu llegada, los ejercicios de hoy quedarÃ¡n disponibles.'}
+              ? 'Revisa tu conexión e inténtalo nuevamente.'
+              : 'Muestra el código QR de Inicio a la administración. Cuando registren tu llegada, los ejercicios de hoy quedarán disponibles.'}
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link to="/today" className="btn-primary">Ir a Inicio y mostrar QR</Link>
@@ -1071,7 +1071,7 @@ function SelectedDayDetail({
                   )}
                 </div>
               ) : null}
-              <ExerciseVideo url={exercise.video_display_url} pending={exercise.video_pendiente} />
+              <ExerciseVideo url={exercise.catalogo_detalle?.video_url} extraUrl={exercise.video_url} pending={exercise.video_pendiente} />
             </div>
             })()
           ))
@@ -1161,7 +1161,7 @@ function ClientRoutineFlow({
           {!esTiempo ? <StaticMetric label="Peso sugerido" value={actual.weight_suggestion_kg != null ? formatPesoSugerido(actual.weight_suggestion_kg, actual.weight_suggestion_unit) : 'Según indicación'} /> : null}
         </div>
         {(actual.catalogo_detalle?.instrucciones_es || actual.technique_notes) ? <div className="mt-5 rounded-2xl bg-neutral-50 p-4 text-sm text-neutral-600 dark:bg-neutral-900 dark:text-neutral-300"><p className="font-semibold text-neutral-900 dark:text-white">Cómo hacerlo</p><p className="mt-2">{actual.catalogo_detalle?.instrucciones_es || actual.technique_notes}</p></div> : null}
-        <ExerciseVideo url={actual.video_display_url} pending={actual.video_pendiente} />
+        <ExerciseVideo url={actual.catalogo_detalle?.video_url} extraUrl={actual.video_url} pending={actual.video_pendiente} />
 
         <div className="mx-auto mt-6 grid w-full max-w-xl gap-3 sm:grid-cols-2">
           <button type="button" disabled={isSaving} onClick={() => onResolve(actual.id, 'realizado')} className="btn-primary inline-flex min-h-14 w-full items-center justify-center gap-2 text-base shadow-sm" data-testid="mark-exercise-done">{isSaving ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18} />}<span>Realizado</span></button>
@@ -1216,7 +1216,7 @@ function ExerciseCard({ exercise, log, active, onUpdate }: ExerciseCardProps) {
           </div>
         </div>
       )}
-      <ExerciseVideo url={exercise.video_display_url} pending={exercise.video_pendiente} />
+      <ExerciseVideo url={exercise.catalogo_detalle?.video_url} extraUrl={exercise.video_url} pending={exercise.video_pendiente} />
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[0.92fr_1.08fr]">
         <div className="rounded-2xl border border-neutral-200 bg-neutral-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/60">

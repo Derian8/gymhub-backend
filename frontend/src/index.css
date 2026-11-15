@@ -225,11 +225,27 @@
 }
 .pulso-cabecera {
   position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem;
   padding: 1.75rem;
   border: 1px solid rgb(var(--border));
   border-radius: 1rem;
   background: linear-gradient(110deg, #fff 35%, #fff3f4);
   overflow: hidden;
+}
+.pulso-cabecera > .relative {
+  min-width: 0;
+}
+.pulso-cabecera-accion {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
 }
 .dark .pulso-cabecera {
   background: linear-gradient(110deg, #18181b 35%, #261316);
@@ -244,7 +260,8 @@
   border-radius: 3px;
   background: rgb(var(--primary));
 }
-.pulso-cabecera-accion > :is(a, button) {
+.pulso-cabecera-accion > :is(a, button),
+.pulso-cabecera-accion > div > :is(a, button) {
   display: flex;
   width: fit-content;
   max-width: 100%;
@@ -252,10 +269,33 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  white-space: nowrap;
+  white-space: normal;
+  text-align: center;
   border-radius: 0.75rem;
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
+}
+.pulso-cabecera-accion > div {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+@media (min-width: 1280px) {
+  .pulso-cabecera {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 55%);
+    align-items: center;
+  }
+  .pulso-cabecera-accion {
+    width: fit-content;
+    justify-self: end;
+    justify-content: flex-end;
+  }
+  .pulso-cabecera-accion > div {
+    width: auto;
+  }
 }
 .btn-primary {
   background-color: #d90018;

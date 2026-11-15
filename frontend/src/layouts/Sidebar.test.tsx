@@ -90,7 +90,7 @@ describe('Sidebar', () => {
     expect(queryByText('Pagos')).not.toBeInTheDocument()
   })
 
-  it('shows full administrator navigation for former trainer accounts', () => {
+  it('keeps former trainer accounts in the administrator navigation', () => {
     useAuthStore.setState((state) => ({
       ...state,
       user: state.user ? { ...state.user, role: 'admin', is_staff: true,  memberprofile_id: null } : null,
@@ -103,7 +103,8 @@ describe('Sidebar', () => {
     expect(view.getByRole('link', { name: /Clientes/ })).toHaveAttribute('href', '/members')
     expect(view.getByRole('link', { name: /Rutinas/ })).toHaveAttribute('href', '/routines')
     fireEvent.click(view.getByRole('button', { name: /M.s/ }))
-    expect(view.getByRole('link', { name: /Planes t.cnicos/ })).toHaveAttribute('href', '/plans')
+    expect(view.queryByRole('link', { name: /Planes t.cnicos/ })).not.toBeInTheDocument()
+    expect(view.getByRole('link', { name: /Asistencia/ })).toHaveAttribute('href', '/attendance')
     expect(view.getByRole('link', { name: /Reportes/ })).toHaveAttribute('href', '/reports')
   })
   it('keeps the administrator focused and moves secondary tools under More', () => {

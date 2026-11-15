@@ -4,12 +4,13 @@ import { plansApi } from '../api/plansApi'
 import { QUERY_KEYS } from '@/shared/constants/queryKeys'
 import { extractApiError } from '@/shared/lib/utils'
 import type { CompleteTrainingPlanPayload, CompleteWorkoutSessionPayload, ExerciseProgressPayload, QuickRoutineAssignmentPayload } from '@/shared/types'
-import type { DuplicateWorkoutDayPayload, ExercisePayload, TrainingPlanPayload, TrainingTemplateUpdatePayload, WorkoutDayPayload } from '@/shared/types'
+import type { DuplicateWorkoutDayPayload, ExercisePayload, TrainingPlanPayload, TrainingTemplatePayload, TrainingTemplateUpdatePayload, WorkoutDayPayload } from '@/shared/types'
 
-export function usePlansQuery(params?: Record<string, string>) {
+export function usePlansQuery(params?: Record<string, string>, enabled = true) {
   return useQuery({
     queryKey: QUERY_KEYS.PLANS_LIST(params),
     queryFn: () => plansApi.list(params),
+    enabled,
   })
 }
 
@@ -96,6 +97,18 @@ export function useTrainingTemplatesQuery(enabled = true) {
     queryKey: QUERY_KEYS.PLAN_TEMPLATES,
     queryFn: plansApi.trainingTemplates,
     enabled,
+  })
+}
+
+export function useCreateTrainingTemplateMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: TrainingTemplatePayload) => plansApi.createTrainingTemplate(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_TEMPLATES })
+      toast.success('Rutina guardada en la biblioteca')
+    },
+    onError: (error) => toast.error(extractApiError(error)),
   })
 }
 
