@@ -80,6 +80,8 @@ echo "==> Validando frontend: $FRONTEND_URL"
 frontend_html="$(request frontend "$FRONTEND_URL" "text/html")"
 grep -E '<div id="root"' "$frontend_html" >/dev/null || fail "El frontend no parece ser la app Vite esperada."
 grep -E 'assets/index-.*\.js' "$frontend_html" >/dev/null || fail "El frontend no referencia bundle JS de producción."
+grep -E -i '^permissions-policy:.*camera=\(self\)' "$TMP_DIR/frontend.headers" >/dev/null \
+  || fail "El frontend debe permitir camera=(self) para solicitar acceso al escáner QR."
 frontend_asset="$(grep -E -o 'assets/index-[A-Za-z0-9_-]+\.js' "$frontend_html" | head -n 1)"
 [[ -n "$frontend_asset" ]] || fail "No se pudo identificar el bundle principal."
 frontend_bundle="$(request frontend_bundle "$FRONTEND_URL/$frontend_asset" "javascript")"
@@ -123,4 +125,5 @@ Conexión OK
   Rewrite /health: ok
   Rewrite /auth: ok
   Bundle/CSP: compatible
+  Permiso de cámara: habilitado para el sitio
 EOF
