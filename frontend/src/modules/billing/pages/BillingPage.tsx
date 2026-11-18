@@ -131,6 +131,24 @@ export function BillingPage() {
     memberPortfolioParams,
     !memberId && section === 'portfolio',
   )
+  const portfolioCountParams = useMemo(
+    () => ({ search: portfolioSearch.trim() || undefined, page: 1, page_size: 1 }),
+    [portfolioSearch],
+  )
+  const shouldCountPortfolioMembers = !memberId && section === 'portfolio' && !portfolioPaymentFilter
+  const { data: activePortfolioCount } = useMembersQuery(
+    { ...portfolioCountParams, estado_cliente: 'membresia_activa' },
+    shouldCountPortfolioMembers,
+  )
+  const { data: inactiveMembershipCount } = useMembersQuery(
+    { ...portfolioCountParams, estado_cliente: 'membresia_inactiva' },
+    shouldCountPortfolioMembers,
+  )
+  const portfolioCount = portfolioPaymentFilter
+    ? membersPortfolio?.count ?? (isLoadingMembersPortfolio ? null : 0)
+    : activePortfolioCount && inactiveMembershipCount
+      ? activePortfolioCount.count + inactiveMembershipCount.count
+      : null
   const { data: plans } = useMembershipPlansQuery(Boolean(memberId || section === 'catalog'))
   const activePlans = useMemo(() => plans?.results.filter((plan) => plan.is_active !== false) || [], [plans])
   const { data: subscriptions } = useMemberSubscriptionsQuery(filtros, Boolean(memberId))
@@ -247,7 +265,7 @@ export function BillingPage() {
       {!memberId && section === 'portfolio' && (
         <MembershipPortfolio
           members={membersPortfolio?.results || []}
-          totalCount={membersPortfolio?.count || 0}
+          totalCount={portfolioCount}
           isLoading={isLoadingMembersPortfolio}
           search={portfolioSearch}
           paymentFilter={portfolioPaymentFilter}
@@ -607,7 +625,7 @@ function MembershipPortfolio({
   onPaymentFilterChange,
 }: {
   members: MemberProfile[]
-  totalCount: number
+  totalCount: number | null
   isLoading: boolean
   search: string
   paymentFilter: PaymentPortfolioFilter
@@ -625,7 +643,7 @@ function MembershipPortfolio({
     <section className="card mb-8 overflow-hidden" data-testid="membership-portfolio">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-neutral-200 p-5 dark:border-neutral-800 sm:p-6">
         <div><p className="label-base">Cartera de clientes</p><h2 className="font-heading text-xl font-bold text-neutral-900 dark:text-white">Clientes y cobros</h2><p className="mt-1 text-sm text-neutral-500">Los cargos más urgentes aparecen primero.</p></div>
-        <Badge variant="neutral">{totalCount} {totalCount === 1 ? 'cliente' : 'clientes'}</Badge>
+        <Badge variant="neutral">{totalCount === null ? '… clientes' : `${totalCount} ${totalCount === 1 ? 'cliente' : 'clientes'}`}</Badge>
       </div>
       <div className="grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_190px] sm:p-5">
         <label className="relative"><Search size={17} className="pointer-events-none absolute left-3 top-3.5 text-neutral-400" /><span className="sr-only">Buscar cliente</span><input className="input pl-10" data-testid="billing-member-search" placeholder="Buscar cliente por nombre o correo" value={search} onChange={(event) => onSearchChange(event.target.value)} /></label>
