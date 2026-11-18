@@ -215,6 +215,7 @@ if [[ "${EJECUTAR_MIGRACIONES}" == true ]]; then
   ETAPA_ACTUAL="migraciones de Supabase"
   echo "==> Aplicando migraciones en Supabase"
   ejecutar_django migrate --noinput
+  ejecutar_django createcachetable registros_cache
 
   ETAPA_ACTUAL="auditoría del esquema de Supabase"
   echo "==> Auditando el esquema de Supabase"
@@ -251,7 +252,7 @@ if [[ "${VALIDAR_PUBLICACION}" == true ]]; then
     mostrar_comando "${DIRECTORIO_RAIZ}/gym-connection-check"
   else
     FRONTEND_URL="${ACTIVE_FRONTEND_PUBLIC_URL:-https://www.pulsocr.me}" \
-    BACKEND_URL="${ACTIVE_BACKEND_PUBLIC_URL:-https://gymhub-api-feria.onrender.com}" \
+    BACKEND_URL="${ACTIVE_BACKEND_PUBLIC_URL:-https://proyectoappgym-backend.vercel.app}" \
       "${DIRECTORIO_RAIZ}/gym-connection-check"
   fi
 else

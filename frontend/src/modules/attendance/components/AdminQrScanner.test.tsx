@@ -35,19 +35,50 @@ it('registra varios clientes sin reabrir la cámara ni duplicar el QR', async ()
   expect(detenerPista).not.toHaveBeenCalled()
 })
 
-it('libera la cámara anterior y recuerda la frontal al cambiar', async () => {
+it('libera la cámara al cambiar y vuelve a la trasera al abrir el escáner', async () => {
+  localStorage.setItem('pulso-camara-asistencia', 'user')
   const vista = render(<AdminQrScanner isSubmitting={false} onSubmit={vi.fn()} />)
   const cambiar = await screen.findByRole('button', { name: 'Usar cámara frontal' })
   await waitFor(() => expect(cambiar).toBeEnabled())
+  expect(obtenerCamara.mock.calls[0][0].video.facingMode.exact).toBe('environment')
   fireEvent.click(cambiar)
   await waitFor(() => expect(obtenerCamara).toHaveBeenCalledTimes(2))
   expect(detenerPista).toHaveBeenCalled()
   expect(obtenerCamara.mock.calls[1][0].video.facingMode.exact).toBe('user')
-  await waitFor(() => expect(localStorage.getItem('pulso-camara-asistencia')).toBe('user'))
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Usar cámara trasera' })).toBeEnabled())
   vista.unmount()
   render(<AdminQrScanner isSubmitting={false} onSubmit={vi.fn()} />)
   await waitFor(() => expect(obtenerCamara).toHaveBeenCalledTimes(3))
-  expect(obtenerCamara.mock.calls[2][0].video.facingMode.exact).toBe('user')
+  expect(obtenerCamara.mock.calls[2][0].video.facingMode.exact).toBe('environment')
+})
+
+it.each(['OverconstrainedError', 'NotFoundError', 'NotReadableError', 'AbortError'])('usa la frontal si la trasera falla con %s', async (nombre) => {
+  obtenerCamara.mockRejectedValueOnce(new DOMException('trasera no disponible', nombre))
+  render(<AdminQrScanner isSubmitting={false} onSubmit={vi.fn()} />)
+  const cambiar = await screen.findByRole('button', { name: 'Usar cámara trasera' })
+  await waitFor(() => expect(cambiar).toBeEnabled())
+  expect(obtenerCamara).toHaveBeenCalledTimes(2)
+  expect(obtenerCamara.mock.calls[0][0].video.facingMode.exact).toBe('environment')
+  expect(obtenerCamara.mock.calls[1][0].video.facingMode.ideal).toBe('user')
+  expect(decodificar).toHaveBeenCalledTimes(1)
+  fireEvent.click(cambiar)
+  await waitFor(() => expect(obtenerCamara).toHaveBeenCalledTimes(3))
+  expect(obtenerCamara.mock.calls[2][0].video.facingMode.exact).toBe('environment')
+})
+
+it('muestra el error sin entrar en bucle si ninguna cámara está disponible', async () => {
+  obtenerCamara.mockRejectedValue(new DOMException('sin cámaras', 'NotFoundError'))
+  render(<AdminQrScanner isSubmitting={false} onSubmit={vi.fn()} />)
+  await screen.findByRole('button', { name: 'Reintentar cámara' })
+  expect(obtenerCamara).toHaveBeenCalledTimes(2)
+  expect(decodificar).not.toHaveBeenCalled()
+})
+
+it('usa la orientación real para el botón cuando el navegador elige otra cámara', async () => {
+  obtenerCamara.mockRejectedValueOnce(new DOMException('restricción no admitida', 'OverconstrainedError'))
+  obtenerCamara.mockResolvedValueOnce({ ...flujo, getVideoTracks: () => [{ getSettings: () => ({ facingMode: 'environment' }) }] })
+  render(<AdminQrScanner isSubmitting={false} onSubmit={vi.fn()} />)
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Usar cámara frontal' })).toBeEnabled())
 })
 
 it('permite reintentar tras denegar el permiso sin solicitarlo en bucle', async () => {

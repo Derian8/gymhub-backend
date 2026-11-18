@@ -1,6 +1,14 @@
 # Avance Deploy
 
-## Estado Actual
+## Estado actual — 2026-11-18
+
+Frontend y API están publicados en Vercel; PostgreSQL y las fotos privadas están
+en Supabase. Los rewrites públicos dejaron de apuntar a Render. Se verificaron
+login, refresh, membresías, QR, imágenes, exportaciones, cron y salud pública.
+La tarea keep-alive de Windows quedó deshabilitada. Consultar
+[retorno a Vercel](RETORNO_VERCEL_SUPABASE.md) para configuración y evidencia.
+
+## Historial del despliegue anterior
 
 El despliegue inicial ya esta operativo con:
 

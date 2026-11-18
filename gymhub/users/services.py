@@ -1,17 +1,18 @@
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta, timezone as zona_horaria
 from types import SimpleNamespace
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Count, DateTimeField, Exists, OuterRef, Q, Subquery, Sum
-from django.db.models.functions import Coalesce
+from django.db.models import Case, CharField, Count, DateTimeField, Exists, IntegerField, OuterRef, Q, Subquery, Sum, Value, When
+from django.db.models.functions import Coalesce, Least
 from django.utils import timezone
 
 from alerts.models import InactivityAlert, Notification
 from attendance.models import Attendance
 from billing.models import MemberSubscription, PaymentRecord
 from nutrition.models import NutritionProfile
-from plans.models import TrainingPlan
+from plans.models import TrainingPlan, WorkoutDay
+from billing.services import anotar_estado_clientes, obtener_estado_cliente
 from progress.models import ProgressLog, WorkoutSession
 
 
@@ -68,6 +69,10 @@ def annotate_member_metrics(queryset):
 
     return queryset.annotate(
         active_plan_id_cached=Subquery(active_plans.values('id')[:1]),
+        entrenamiento_hoy_cache=Exists(WorkoutDay.objects.filter(
+            plan_id=OuterRef('active_plan_id_cached'),
+            day_of_week=timezone.localdate().strftime('%a').lower()[:3],
+        )),
         active_plan_name_cached=Subquery(active_plans.values('name')[:1]),
         active_plan_days_per_week_cached=Subquery(active_plans.values('days_per_week')[:1]),
         active_plan_goal_cached=Subquery(active_plans.values('goal')[:1]),
@@ -112,6 +117,66 @@ def annotate_member_metrics(queryset):
     )
 
 
+def anotar_prioridad_clientes(queryset):
+    """Calcula la misma puntuacion que el resumen sin cargar todos los perfiles."""
+    hoy = timezone.localdate()
+
+    def limite(dias):
+        return datetime.combine(
+            hoy - timedelta(days=dias - 1), time.min, tzinfo=zona_horaria.utc,
+        )
+
+    def puntos_actividad(campo, sin_registros, umbral, puntos, segundo=None):
+        condiciones = [
+            When(**{f'{campo}__isnull': True}, then=Value(sin_registros)),
+            When(**{f'{campo}__lt': limite(umbral)}, then=Value(puntos)),
+        ]
+        if segundo:
+            condiciones.append(When(
+                **{f'{campo}__lt': limite(segundo[0])},
+                then=Value(segundo[1]),
+            ))
+        return Case(*condiciones, default=Value(0), output_field=IntegerField())
+
+    incompleta = (
+        Q(active_plan_workout_days_count_cached=0)
+        | Q(active_plan_exercises_count_cached=0)
+    )
+    puntos_plan = Case(
+        When(active_plan_id_cached__isnull=True, then=Value(10)),
+        When(incompleta, then=Value(15)),
+        default=Value(0), output_field=IntegerField(),
+    )
+    puntos_pago = Case(
+        When(latest_payment_status_cached='late', then=Value(30)),
+        When(
+            latest_payment_status_cached='pending',
+            latest_payment_due_date_cached__range=(
+                hoy, hoy + timedelta(days=min(3, settings.MEMBERSHIP_EXPIRING_DAYS)),
+            ),
+            then=Value(15),
+        ),
+        default=Value(0), output_field=IntegerField(),
+    )
+    return queryset.annotate(
+        puntuacion_riesgo=Least(
+            puntos_plan + puntos_pago
+            + puntos_actividad(
+                'last_checkin_at_cached', 25,
+                settings.INACTIVITY_DAYS_THRESHOLD, 35, (7, 15),
+            )
+            + puntos_actividad('last_session_at_cached', 15, 10, 20)
+            + puntos_actividad('last_progress_at_cached', 10, 21, 15),
+            Value(100),
+        ),
+        prioridad_prescripcion=Case(
+            When(active_plan_id_cached__isnull=True, then=Value(0)),
+            When(incompleta, then=Value(1)),
+            default=Value(2), output_field=IntegerField(),
+        ),
+    )
+
+
 def get_today_workout_day(plan):
     if not plan:
         return None
@@ -122,6 +187,9 @@ def get_today_workout_day(plan):
 def get_active_plan(member):
     if hasattr(member, '_active_plan_cache'):
         return member._active_plan_cache
+    if hasattr(member, 'active_plan_id_cached') and member.active_plan_id_cached is None:
+        member._active_plan_cache = None
+        return None
     if getattr(member, 'active_plan_id_cached', None):
         member._active_plan_cache = TrainingPlan.objects.filter(
             id=member.active_plan_id_cached
@@ -132,7 +200,17 @@ def get_active_plan(member):
 
 def get_member_prescription_status(member):
     active_plan_id = getattr(member, 'active_plan_id_cached', None)
-    if active_plan_id is not None:
+    if hasattr(member, 'active_plan_id_cached'):
+        if active_plan_id is None:
+            return {
+                'tiene_plan_activo': False,
+                'tiene_dias': False,
+                'tiene_ejercicios': False,
+                'tiene_nutricion': False,
+                'tiene_guias': False,
+                'esta_lista_para_member': False,
+                'estado': 'sin_plan',
+            }
         has_days = getattr(member, 'active_plan_workout_days_count_cached', 0) > 0
         has_exercises = getattr(member, 'active_plan_exercises_count_cached', 0) > 0
         has_nutrition = getattr(member, 'active_plan_nutrition_count_cached', 0) > 0
@@ -325,9 +403,13 @@ def get_member_risk_snapshot(member):
     ):
         payment_status = 'paid'
 
-    active_plan = get_active_plan(member)
-    workout_day = get_today_workout_day(active_plan) if active_plan else None
-    today_has_workout = workout_day is not None
+    if hasattr(member, 'entrenamiento_hoy_cache'):
+        active_plan = member.active_plan_id_cached
+        today_has_workout = member.entrenamiento_hoy_cache
+    else:
+        active_plan = get_active_plan(member)
+        workout_day = get_today_workout_day(active_plan) if active_plan else None
+        today_has_workout = workout_day is not None
 
     score = 0
     reasons = []
@@ -463,6 +545,7 @@ def get_member_dashboard_summary(member):
         'membership_agreed_price': str(current_subscription.agreed_price) if current_subscription else None,
         'membership_recurrence_type': current_subscription.recurrence_type if current_subscription else None,
         'membership_next_billing_date': current_subscription.next_billing_date.isoformat() if current_subscription and current_subscription.next_billing_date else None,
+        'estado_cliente': obtener_estado_cliente(member, current_subscription),
         'membership_access_allowed': membership_access(member)['allowed'] if current_subscription else False,
         'last_checkin': last_checkin_at or (last_attendance.check_in_time if last_attendance else None),
         'active_plan': active_plan_payload,
@@ -552,6 +635,9 @@ def get_admin_overview(user):
         MemberProfile.objects.select_related(
         'user', 'membership_plan', 'trainer_asignado'
     ).filter(is_active=True).order_by('id'))
+    miembros = anotar_estado_clientes(miembros).exclude(
+        estado_cliente_cache='cliente_inactivo',
+    )
     member_ids = list(miembros.values_list('id', flat=True))
     total_active = len(member_ids)
     checked_in_today = Attendance.objects.filter(

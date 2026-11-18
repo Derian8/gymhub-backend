@@ -2,9 +2,9 @@
 set -euo pipefail
 
 FRONTEND_URL="${FRONTEND_URL:-https://www.pulsocr.me}"
-BACKEND_URL="${BACKEND_URL:-https://gymhub-api-feria.onrender.com}"
+BACKEND_URL="${BACKEND_URL:-https://proyectoappgym-backend.vercel.app}"
 
-for bin in curl python3 rg; do
+for bin in curl python3 grep; do
   if ! command -v "$bin" >/dev/null 2>&1; then
     echo "Falta dependencia requerida: $bin" >&2
     exit 1
@@ -48,7 +48,7 @@ request() {
     exit 1
   fi
 
-  if [[ -n "$expected_content_type" ]] && ! rg -i "^content-type: .*${expected_content_type}" "$headers_file" >/dev/null; then
+  if [[ -n "$expected_content_type" ]] && ! grep -E -i "^content-type: .*${expected_content_type}" "$headers_file" >/dev/null; then
     echo "Content-Type inesperado para $label. Esperado: $expected_content_type" >&2
     sed -n '1,20p' "$headers_file" >&2 || true
     exit 1
@@ -78,14 +78,14 @@ PY
 
 echo "==> Validando frontend: $FRONTEND_URL"
 frontend_html="$(request frontend "$FRONTEND_URL" "text/html")"
-rg '<div id="root"' "$frontend_html" >/dev/null || fail "El frontend no parece ser la app Vite esperada."
-rg 'assets/index-.*\.js' "$frontend_html" >/dev/null || fail "El frontend no referencia bundle JS de producción."
-frontend_asset="$(rg -o 'assets/index-[A-Za-z0-9_-]+\.js' "$frontend_html" | head -n 1)"
+grep -E '<div id="root"' "$frontend_html" >/dev/null || fail "El frontend no parece ser la app Vite esperada."
+grep -E 'assets/index-.*\.js' "$frontend_html" >/dev/null || fail "El frontend no referencia bundle JS de producción."
+frontend_asset="$(grep -E -o 'assets/index-[A-Za-z0-9_-]+\.js' "$frontend_html" | head -n 1)"
 [[ -n "$frontend_asset" ]] || fail "No se pudo identificar el bundle principal."
 frontend_bundle="$(request frontend_bundle "$FRONTEND_URL/$frontend_asset" "javascript")"
 
-if rg -i "^content-security-policy:.*connect-src 'self'" "$TMP_DIR/frontend.headers" >/dev/null \
-  && rg -F "$BACKEND_URL" "$frontend_bundle" >/dev/null; then
+if grep -E -i "^content-security-policy:.*connect-src 'self'" "$TMP_DIR/frontend.headers" >/dev/null \
+  && grep -F "$BACKEND_URL" "$frontend_bundle" >/dev/null; then
   fail "El bundle usa el backend absoluto, pero la CSP solo permite connect-src 'self'."
 fi
 
@@ -95,7 +95,7 @@ assert_json_field "$frontend_csrf" "data.get('csrf_token')" "frontend csrf token
 
 echo "==> Validando backend schema: $BACKEND_URL/api/schema/"
 backend_schema="$(request backend_schema "$BACKEND_URL/api/schema/" "")"
-rg -i 'openapi|swagger|paths' "$backend_schema" >/dev/null || fail "El schema del backend no parece OpenAPI."
+grep -E -i 'openapi|swagger|paths' "$backend_schema" >/dev/null || fail "El schema del backend no parece OpenAPI."
 
 echo "==> Validando backend live: $BACKEND_URL/health/live/"
 backend_live="$(request backend_live "$BACKEND_URL/health/live/" "application/json")"

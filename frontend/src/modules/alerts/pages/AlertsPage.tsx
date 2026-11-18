@@ -1,3 +1,4 @@
+import { ESTADOS_CLIENTE } from '@/shared/lib/estadoMembresia'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -66,15 +67,9 @@ const PRIORITY_BADGES: Record<string, 'success' | 'warning' | 'error' | 'info' |
   urgent: 'error',
 }
 
-const MEMBERSHIP_LABELS: Record<string, string> = {
-  none: 'Sin membresía',
-  pending: 'Pendiente',
-  active: 'Activa',
-  expiring: 'Por vencer',
-  expired: 'Vencida',
-  suspended: 'Suspendida',
-  cancelled: 'Cancelada',
-}
+const MEMBERSHIP_LABELS: Record<string, string> = Object.fromEntries(
+  Object.entries(ESTADOS_CLIENTE).map(([estado, datos]) => [estado, datos.label]),
+)
 
 const CONTACT_METHOD_LABELS: Record<InactivityAlertContact['method'], string> = {
   whatsapp: 'WhatsApp',
@@ -184,11 +179,10 @@ export function AlertsPage() {
 
           <select className="input" value={filters.membership_status} onChange={(event) => updateFilter('membership_status', event.target.value)} disabled={filters.status === 'without_alerts'} data-testid="filter-membership">
             <option value="all">Todas las membresías</option>
-            <option value="active">Activa</option>
-            <option value="expiring">Por vencer</option>
-            <option value="expired">Vencida</option>
-            <option value="suspended">Suspendida</option>
-          </select>
+            <option value="membresia_activa">Membresía activa</option>
+              <option value="membresia_inactiva">Membresía inactiva</option>
+              <option value="cliente_inactivo">Cliente inactivo (+30 días)</option>
+            </select>
 
           <button type="button" className="btn-secondary inline-flex items-center justify-center gap-2" onClick={() => setFilters(DEFAULT_FILTERS)} data-testid="reset-alert-filters">
             <RefreshCcw size={16} />

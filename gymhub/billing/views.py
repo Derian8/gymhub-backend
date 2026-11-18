@@ -9,6 +9,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -33,6 +34,13 @@ from users.audit import registrar_auditoria
 from users.views import _get_administrator
 
 logger = logging.getLogger(__name__)
+
+
+class PaginacionCobros(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
 
 class MembershipPlanViewSet(viewsets.ModelViewSet):
     serializer_class = MembershipPlanSerializer
@@ -418,6 +426,7 @@ class PaymentScheduleViewSet(viewsets.ModelViewSet):
 class PaymentRecordViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PaymentRecordSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = PaginacionCobros
 
     def get_permissions(self):
         if self.action == 'mark_paid':
@@ -431,22 +440,35 @@ class PaymentRecordViewSet(viewsets.ReadOnlyModelViewSet):
             self.request.query_params.get('include_void') == 'true'
             or self.action == 'mark_paid'
         )
-        if usa_contexto_cliente(self.request):
-            queryset = PaymentRecord.objects.filter(schedule__member__user=user)
-            if not include_void:
-                queryset = queryset.exclude(status='void')
-            return queryset
         queryset = PaymentRecord.objects.select_related(
             'schedule__member__user', 'schedule__plan', 'schedule__subscription'
-        ).all()
-        if not user.is_staff and tiene_perfil_administrador(user):
+        )
+        if usa_contexto_cliente(self.request):
+            queryset = queryset.filter(schedule__member__user=user)
+        elif not user.is_staff:
             return PaymentRecord.objects.none()
-        if not user.is_staff:
-            return PaymentRecord.objects.none()
-        if member_id:
+        elif member_id:
             queryset = queryset.filter(schedule__member_id=member_id)
         if not include_void:
             queryset = queryset.exclude(status='void')
+        if self.action == 'list':
+            if self.request.query_params.get('outstanding') == 'true':
+                queryset = queryset.filter(
+                    status__in=['pending', 'late'], schedule__is_active=True,
+                )
+                return queryset.order_by('schedule__due_date', 'id')
+            payment_status = self.request.query_params.get('status')
+            if payment_status in ('paid', 'pending', 'late'):
+                queryset = queryset.filter(status=payment_status)
+            search = self.request.query_params.get('search', '').strip()
+            if search and user.is_staff:
+                queryset = queryset.filter(
+                    Q(schedule__member__user__first_name__icontains=search)
+                    | Q(schedule__member__user__last_name__icontains=search)
+                    | Q(schedule__member__user__email__icontains=search)
+                )
+            if payment_status == 'paid':
+                return queryset.order_by('-paid_at', '-id')
         return queryset
 
     @action(detail=True, methods=['post'], url_path='mark-paid')

@@ -83,6 +83,14 @@ Frontend SPA completo para el sistema de gestión de gimnasio GymHub. Construido
 ## Tests
 - Testing completado al 95%: Login, routing, validación, dark mode, responsive
 
+## Rutinas, ejercicios e historial
+
+- El administrador gestiona rutinas en una lista con búsqueda, objetivo, estado y acciones para editar, consultar clientes, asignar y desactivar. Crear y editar usan páginas propias.
+- Los ejercicios reutilizables viven en una sección propia dentro de Rutinas. Su ficha de catálogo contiene nombre, músculo, equipo, instrucciones y medios. La rutina define la prescripción concreta: días, series, repeticiones, tiempo y descansos.
+- Desactivar una rutina o ejercicio impide nuevas asignaciones desde esa fuente. Los planes ya asignados siguen disponibles.
+- Asignar una rutina crea un plan independiente y conserva una copia de los datos de cada ejercicio. Los cambios de biblioteca y catálogo afectan a las asignaciones futuras. Un cambio para un cliente concreto requiere una revisión explícita de su plan.
+- Cada sesión conserva una copia del nombre del plan, el día y los ejercicios al iniciarse. El historial mensual muestra decisiones Realizado/Omitir, prescripción y tipo de cierre. Al completar una sesión, el histórico queda cerrado.
+
 ## Backlog / Próximas Fases
 - P0 completado: Recorrido transaccional de API contra Supabase para registro, pago, comprobante, acceso y reportes
 - P0 completado: Registro comercial de clientes con membresía, primer pago obligatorio, acceso y comprobante
@@ -100,3 +108,19 @@ Frontend SPA completo para el sistema de gestión de gimnasio GymHub. Construido
 - P2: Edición de perfil de usuario
 - P3: OAuth wearables (campo source en ProgressLog)
 - P3: Notificaciones push en tiempo real
+
+### Estados en la lista de clientes
+
+La lista usa una clasificacion comercial exclusiva, calculada en cada consulta:
+
+- Membresia activa: periodo pagado vigente, incluido su ultimo dia.
+- Membresia inactiva: periodo vencido hasta 30 dias, sin periodo pagado
+  o sin membresia asignada; incluye las membresias suspendidas.
+- Cliente inactivo: mas de 30 dias desde el vencimiento, o baja manual del perfil.
+
+Un cobro futuro pendiente no desactiva un periodo ya pagado. Registrar una
+renovacion con periodo vigente devuelve al cliente a membresia activa, salvo
+que exista una baja manual. La clasificacion no modifica la cuenta de acceso
+ni elimina datos historicos. El listado filtra con `estado_cliente` y devuelve
+ese mismo estado para sus etiquetas; los filtros de cobros de facturacion
+mantienen su uso independiente.

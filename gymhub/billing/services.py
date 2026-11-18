@@ -3,6 +3,8 @@ from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Case, CharField, OuterRef, Q, Subquery, Value, When
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from .models import MemberSubscription, PaymentRecord, PaymentSchedule
@@ -20,6 +22,58 @@ DEFAULT_GRACE_DAYS = {
     'quarterly': 7,
     'annual': 7,
 }
+
+
+DIAS_ATRASO_CLIENTE_INACTIVO = 30
+
+
+def obtener_estado_cliente(cliente, suscripcion, on_date=None):
+    if not cliente.is_active:
+        return 'cliente_inactivo'
+    hoy = on_date or timezone.localdate()
+    vencimiento = suscripcion.current_period_end if suscripcion else None
+    if vencimiento and (hoy - vencimiento).days > DIAS_ATRASO_CLIENTE_INACTIVO:
+        return 'cliente_inactivo'
+    if (
+        vencimiento and vencimiento >= hoy
+        and suscripcion.is_active
+        and suscripcion.status not in ('suspended', 'cancelled')
+    ):
+        return 'membresia_activa'
+    return 'membresia_inactiva'
+
+
+def anotar_estado_clientes(queryset):
+    suscripcion = MemberSubscription.objects.filter(
+        member_id=OuterRef('pk'), is_active=True,
+    ).exclude(status='cancelled').order_by('-start_date', '-id')
+    hoy = timezone.localdate()
+    return queryset.annotate(
+        vencimiento_membresia_cache=Subquery(
+            suscripcion.values('current_period_end')[:1],
+        ),
+        estado_suscripcion_cache=Subquery(suscripcion.values('status')[:1]),
+        inicio_membresia_cache=Subquery(
+            suscripcion.annotate(inicio_pagado=Coalesce(
+                'current_period_start', 'start_date',
+            )).values('inicio_pagado')[:1],
+        ),
+    ).annotate(
+        estado_cliente_cache=Case(
+            When(is_active=False, then=Value('cliente_inactivo')),
+            When(
+                vencimiento_membresia_cache__lt=hoy - timedelta(days=DIAS_ATRASO_CLIENTE_INACTIVO),
+                then=Value('cliente_inactivo'),
+            ),
+            When(
+                Q(vencimiento_membresia_cache__gte=hoy)
+                & ~Q(estado_suscripcion_cache__in=('suspended', 'cancelled')),
+                then=Value('membresia_activa'),
+            ),
+            default=Value('membresia_inactiva'),
+            output_field=CharField(),
+        ),
+    )
 
 
 def default_grace_days(recurrence_type):
@@ -101,6 +155,13 @@ def initialize_subscription(subscription):
 
 
 def current_member_membership(member):
+    suscripciones = getattr(member, '_prefetched_objects_cache', {}).get('subscriptions')
+    if suscripciones is not None:
+        vigentes = (
+            suscripcion for suscripcion in suscripciones
+            if suscripcion.is_active and suscripcion.status in VISIBLE_MEMBERSHIP_STATUSES
+        )
+        return max(vigentes, key=lambda item: (item.start_date, item.id), default=None)
     return (
         member.subscriptions
         .filter(is_active=True, status__in=VISIBLE_MEMBERSHIP_STATUSES)
@@ -162,6 +223,7 @@ def membership_summary(member):
     access = membership_access(member)
     if not subscription:
         return {
+            'estado_cliente': obtener_estado_cliente(member, subscription),
             'membership_id': None,
             'plan_name': None,
             'status': None,
@@ -175,6 +237,7 @@ def membership_summary(member):
             'access_reason': access['reason'],
         }
     return {
+        'estado_cliente': obtener_estado_cliente(member, subscription),
         'membership_id': subscription.id,
         'plan_name': subscription.membership_name,
         'status': subscription.status,
@@ -254,24 +317,20 @@ def mark_payment_paid(record, reference='', notes='', method='cash', recorded_by
 def membership_access(member, on_date=None):
     today = on_date or timezone.localdate()
     subscription = current_member_membership(member)
-    if not member.is_active:
-        return {'allowed': False, 'reason': 'member_inactive', 'days_overdue': 0}
-    if not subscription:
-        return {'allowed': False, 'reason': 'no_membership', 'days_overdue': 0}
-    refresh_membership_status(subscription, today=today)
-    if not subscription.current_period_end:
-        return {'allowed': False, 'reason': 'payment_required', 'days_overdue': 0}
-    if subscription.status in {'pending', 'suspended', 'cancelled'}:
-        return {'allowed': False, 'reason': 'payment_required', 'days_overdue': 0}
-    if today <= subscription.current_period_end:
+    estado = obtener_estado_cliente(member, subscription, on_date=today)
+    vencimiento = subscription.current_period_end if subscription else None
+    atraso = max(0, (today - vencimiento).days) if vencimiento else 0
+    if estado == 'membresia_activa':
         return {'allowed': True, 'reason': None, 'days_overdue': 0}
-    days_overdue = (today - subscription.current_period_end).days
-    allowed = days_overdue <= subscription.grace_period_days
-    return {
-        'allowed': allowed,
-        'reason': None if allowed else 'payment_overdue',
-        'days_overdue': days_overdue,
-    }
+    if not member.is_active or estado == 'cliente_inactivo':
+        motivo = 'member_inactive'
+    elif not subscription:
+        motivo = 'no_membership'
+    elif atraso:
+        motivo = 'payment_overdue'
+    else:
+        motivo = 'payment_required'
+    return {'allowed': False, 'reason': motivo, 'days_overdue': atraso}
 
 
 @transaction.atomic

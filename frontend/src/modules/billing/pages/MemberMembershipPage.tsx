@@ -1,3 +1,4 @@
+import { obtenerEstadoMembresia } from '@/shared/lib/estadoMembresia'
 import { AlertTriangle, CalendarClock, CheckCircle2, CreditCard, ShieldCheck } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
@@ -19,80 +20,16 @@ const RECURRENCE_LABELS: Record<string, string> = {
 }
 
 function getMembershipPresentation(data?: MemberDashboardSummary) {
-  if (!data?.membership_plan_name) {
-    return {
-      label: 'Sin membresía asignada',
-      badge: 'Sin membresía',
-      variant: 'neutral' as const,
-      tone: 'default' as const,
-      title: 'Aún no tienes una membresía asignada',
-      detail: 'Cuando tu entrenador o el gimnasio asigne una membresía, verás aquí el precio, vencimiento y estado de acceso.',
-      icon: <CreditCard size={24} />,
-    }
-  }
-
-  if (!data.membership_agreed_price && !data.membership_next_billing_date && data.payment_status == null) {
-    return {
-      label: data.membership_plan_name,
-      badge: 'Sin membresía activa',
-      variant: 'warning' as const,
-      tone: 'warning' as const,
-      title: 'Aún no tienes una membresía activa',
-      detail: 'Cuando el gimnasio cree tu membresía comercial, verás aquí precio, pagos y vencimientos.',
-      icon: <AlertTriangle size={24} />,
-    }
-  }
-
-  if (data.payment_status === 'paid') {
-    return {
-      label: data.membership_plan_name,
-      badge: 'Membresía vigente',
-      variant: 'success' as const,
-      tone: 'success' as const,
-      title: 'Tu membresía está al día',
-      detail: data.days_until_due != null
-        ? `Tienes ${data.days_until_due} día(s) restantes antes del próximo vencimiento.`
-        : 'Tu acceso comercial está activo.',
-      icon: <CheckCircle2 size={24} />,
-    }
-  }
-
-  if (data.payment_status === 'late') {
-    return {
-      label: data.membership_plan_name,
-      badge: 'Membresía vencida',
-      variant: 'error' as const,
-      tone: 'danger' as const,
-      title: 'Tu membresía requiere regularización',
-      detail: data.days_overdue != null
-        ? `Tu membresía venció hace ${data.days_overdue} día(s). Contacta al gimnasio para regularizar el pago.`
-        : 'Existe un cobro vencido pendiente de regularizar.',
-      icon: <AlertTriangle size={24} />,
-    }
-  }
-
-  if (data.payment_status === 'pending' && data.days_until_due != null && data.days_until_due <= 7) {
-    return {
-      label: data.membership_plan_name,
-      badge: 'Por vencer',
-      variant: 'warning' as const,
-      tone: 'warning' as const,
-      title: 'Tu membresía está próxima a vencer',
-      detail: `Tu membresía vence en ${data.days_until_due} día(s). Renueva dentro de esta semana para mantener el acceso activo.`,
-      icon: <CalendarClock size={24} />,
-    }
-  }
-
+  const estado = obtenerEstadoMembresia(data)
   return {
-    label: data.membership_plan_name,
-    badge: 'Membresía por confirmar',
-    variant: 'warning' as const,
-    tone: 'warning' as const,
-    title: 'Tu membresía está por confirmar',
-    detail: data.days_until_due != null
-      ? `Tienes ${data.days_until_due} día(s) para completar el pago.`
-      : 'Consulta con el gimnasio si necesitas actualizar tu membresía.',
-    icon: <CalendarClock size={24} />,
+    label: data?.membership_plan_name || 'Sin membresía asignada',
+    badge: estado.label,
+    variant: estado.variant,
+    tone: (estado.estado === 'membresia_activa' ? 'success' : 'danger') as 'success' | 'danger' | 'warning' | 'default',
+    title: estado.label,
+    detail: estado.detail,
+    icon: estado.estado === 'membresia_activa'
+      ? <CheckCircle2 size={24} /> : <AlertTriangle size={24} />,
   }
 }
 

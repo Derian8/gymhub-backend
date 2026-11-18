@@ -33,7 +33,7 @@ def test_image_upload_rejects_oversized_file():
         content_type='image/png',
     )
 
-    with pytest.raises(ValidationError, match='5 MB'):
+    with pytest.raises(ValidationError, match='2 MB'):
         validate_image_upload(upload)
 
 

@@ -101,7 +101,7 @@ export function useNotificationsQuery(params?: Record<string, string>) {
   return useQuery({
     queryKey: QUERY_KEYS.NOTIFICATIONS_LIST(params),
     queryFn: () => alertsApi.notifications(params),
-    refetchInterval: 30_000,
+    refetchInterval: 120_000,
   })
 }
 

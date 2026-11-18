@@ -133,6 +133,16 @@ def build_database_config():
 
 
 DATABASES = build_database_config()
+if env.bool('DB_POOL_ENABLED', default=True):
+    DATABASES['default']['CONN_MAX_AGE'] = 0
+    opciones_bd = DATABASES['default'].setdefault('OPTIONS', {})
+    opciones_bd['pool'] = {
+        'min_size': env.int('DB_POOL_MIN_SIZE', default=0 if env('VERCEL', default='') else 1),
+        'max_size': env.int('DB_POOL_MAX_SIZE', default=1 if env('VERCEL', default='') else 4),
+        'timeout': 10,
+    }
+    # Compatible con conexiones externas que usan un pool transaccional.
+    opciones_bd['prepare_threshold'] = None
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -169,6 +179,7 @@ if USE_S3_STORAGE:
             'endpoint_url': env('S3_ENDPOINT_URL'),
             'region_name': env('S3_REGION', default='us-west-2'),
             'addressing_style': 'path',
+            'signature_version': 's3v4',
             'default_acl': None,
             'file_overwrite': False,
             'querystring_auth': True,
@@ -250,7 +261,15 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 # Cache
-if REDIS_URL == 'locmem://':
+if env.bool('USE_DB_CACHE', default=False):
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+            'LOCATION': 'registros_cache',
+            'OPTIONS': {'MAX_ENTRIES': 10000},
+        },
+    }
+elif REDIS_URL == 'locmem://':
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',

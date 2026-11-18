@@ -56,6 +56,7 @@ export interface MembershipPlan {
 }
 
 export interface MemberSubscription {
+  estado_cliente?: EstadoCliente
   id: number
   member: number
   plan: number | null
@@ -81,7 +82,10 @@ export interface MemberSubscription {
   motivo_ajuste_precio: string
 }
 
+export type EstadoCliente = 'membresia_activa' | 'membresia_inactiva' | 'cliente_inactivo'
+
 export interface MemberMembershipSummary {
+  estado_cliente?: EstadoCliente
   subscription_id: number
   plan_id: number
   plan_name: string
@@ -103,6 +107,7 @@ export interface MemberMembershipSummary {
 }
 
 export interface MemberMembership {
+  estado_cliente?: EstadoCliente
   id: number
   member: number
   membership_plan: number | null
@@ -168,6 +173,8 @@ export interface MemberProfile {
   suscripcion_activa_id?: number | null
   precio_suscripcion_actual?: string | null
   membresia_actual?: MemberMembershipSummary | null
+  estado_cliente?: EstadoCliente
+  id_cobro_abierto?: number | null
   estado_comercial?: 'al_dia' | 'por_vencer' | 'bloqueado'
   accion_comercial?: 'contactar_administrador' | null
 }
@@ -308,6 +315,7 @@ export type QuickRoutineAssignmentPayload = {
   start_date: string
   weeks_duration: number
   confirm_trainer_change: boolean
+  conflict_strategy?: 'schedule_after_active' | 'replace_active'
 } & (
   | { source_type: 'template'; template_id: number }
   | { source_type: 'draft'; plan_id: number }
@@ -315,6 +323,7 @@ export type QuickRoutineAssignmentPayload = {
 )
 
 export interface MemberDashboardSummary {
+  estado_cliente?: EstadoCliente
   payment_status: 'paid' | 'pending' | 'late' | null
   days_until_due: number | null
   days_overdue: number | null
@@ -488,6 +497,9 @@ export interface TrainerChartsOverview {
     high_risk_count?: number
     active_attendance_count?: number
     inactive_count?: number
+    active_membership_count?: number
+    inactive_membership_count?: number
+    inactive_client_count?: number
     expiring_membership_count?: number
     expired_membership_count?: number
     pending_payment_count?: number
@@ -521,7 +533,7 @@ export interface TrainerChartsOverview {
     full_name: string
     email: string
     followup_status: 'ok' | 'attention' | 'urgent'
-    membership_status: 'pending' | 'active' | 'expiring' | 'expired' | 'suspended' | 'cancelled' | 'none'
+    membership_status: EstadoCliente | 'pending' | 'active' | 'expiring' | 'expired' | 'suspended' | 'cancelled' | 'none'
     membership_name: string | null
     membership_end_date: string | null
     payment_status: 'paid' | 'pending' | 'late' | null
@@ -622,6 +634,7 @@ export interface TrainingPlan {
   publicado_en?: string | null
   publicado_por?: number | null
   plan_origen?: number | null
+  plantilla_origen?: number | null
   modo_ejecucion?: 'weekly' | 'cycle'
   indice_bloque_actual?: number
   workout_days?: WorkoutDay[]
@@ -705,6 +718,7 @@ export interface TrainingTemplateDay {
 
 export interface TrainingTemplate {
   id: number
+  clientes_vigentes?: number
   trainer: number
   trainer_nombre: string
   nombre: string
@@ -717,6 +731,17 @@ export interface TrainingTemplate {
   modo_ejecucion?: 'weekly' | 'cycle'
   creada_en: string
   dias: TrainingTemplateDay[]
+}
+
+export type TrainingTemplateSummary = Pick<TrainingTemplate,
+  'id' | 'nombre' | 'descripcion' | 'objetivo' | 'esta_activa' | 'clientes_vigentes'
+> & { dias_count: number; ejercicios_count: number }
+
+export interface RoutineAssignmentState {
+  puede_publicar: boolean
+  motivo_bloqueo: 'membresia' | null
+  plan_vigente: { id: number; nombre: string; fecha_fin: string | null } | null
+  plan_programado: { id: number; nombre: string; fecha_inicio: string } | null
 }
 
 export interface TrainingTemplateUpdatePayload {
@@ -927,6 +952,12 @@ export interface ProgressLog {
 
 export interface WorkoutSession {
   id: number
+  motivo_cierre?: 'automatica' | 'anticipada' | 'manual' | ''
+  detalle_iniciado?: {
+    plan_nombre?: string
+    dia_nombre?: string
+    ejercicios?: Array<{ id: number; nombre: string; tipo?: string; series?: number | null; repeticiones?: string; minutos?: number | null; descanso_segundos?: number; catalogo?: Partial<CatalogExercise> }>
+  }
   member: number
   workout_day: number
   attendance: number | null
@@ -1009,6 +1040,8 @@ export interface PaymentRecord {
   id: number
   schedule: number
   subscription_id?: number | null
+  member_id?: number
+  member_name?: string
   due_date: string
   amount: string
   paid_at: string | null
@@ -1052,7 +1085,7 @@ export interface InactivityAlert {
   member_email: string
   member_phone: string
   member_photo: string | null
-  membership_status: 'none' | 'pending' | 'active' | 'expiring' | 'expired' | 'suspended' | 'cancelled'
+  membership_status: EstadoCliente | 'none' | 'pending' | 'active' | 'expiring' | 'expired' | 'suspended' | 'cancelled'
   membership_name: string | null
   membership_end_date: string | null
   weekly_attendance_average: number

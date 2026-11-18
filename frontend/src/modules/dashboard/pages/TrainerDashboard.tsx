@@ -1,3 +1,4 @@
+import { obtenerEstadoMembresia } from '@/shared/lib/estadoMembresia'
 import {
   Users, CheckSquare, AlertTriangle, DollarSign, Activity, UserPlus,
   Dumbbell, ArrowRight, Siren, TrendingDown, CreditCard,
@@ -26,26 +27,7 @@ const MEMBERSHIP_RECURRENCE_LABELS: Record<MemberMembershipSummary['recurrence_t
   annual: 'año',
 }
 
-function getMembershipStatus(member: MemberProfile): {
-  label: string
-  variant: 'success' | 'warning' | 'error' | 'neutral'
-  priority: number
-} {
-  const membership = member.membresia_actual
-  if (!membership) {
-    return { label: 'Sin membresía', variant: 'neutral', priority: 3 }
-  }
-  if (membership.payment_status === 'late' || membership.status === 'expired') {
-    return { label: 'Vencida', variant: 'error', priority: 0 }
-  }
-  if (membership.payment_status === 'pending' || (membership.days_until_due != null && membership.days_until_due <= 7)) {
-    return { label: 'Por vencer', variant: 'warning', priority: 1 }
-  }
-  if (!membership.access_allowed) {
-    return { label: 'Revisar acceso', variant: 'warning', priority: 2 }
-  }
-  return { label: 'Vigente', variant: 'success', priority: 4 }
-}
+const getMembershipStatus = (member: MemberProfile) => obtenerEstadoMembresia(member)
 
 function getMembershipPlanName(member: MemberProfile) {
   return member.membresia_actual?.plan_name || 'Sin membresía'
@@ -379,11 +361,9 @@ function MembershipCriticalPanel({
     member,
     status: getMembershipStatus(member),
   }))
-  const activeCount = withStatus.filter((item) => item.status.label === 'Vigente').length
-  const dueSoonCount = withStatus.filter((item) => item.status.label === 'Por vencer').length
-  const overdueCount = withStatus.filter((item) => item.status.label === 'Vencida').length
-  const planWithoutBillingCount = withStatus.filter((item) => item.status.label === 'Sin membresía').length
-  const withoutMembershipCount = withStatus.filter((item) => item.status.label === 'Sin membresía').length
+  const activeCount = withStatus.filter(item => item.status.estado === 'membresia_activa').length
+  const inactiveCount = withStatus.filter(item => item.status.estado === 'membresia_inactiva').length
+  const inactiveClients = withStatus.filter(item => item.status.estado === 'cliente_inactivo').length
   const criticalMembers = [...withStatus]
     .sort((a, b) => a.status.priority - b.status.priority)
     .slice(0, 6)
@@ -405,12 +385,10 @@ function MembershipCriticalPanel({
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-6 mb-5">
-        <MembershipKpi label="Vigentes" value={String(activeCount)} tone="success" />
-        <MembershipKpi label="Por vencer" value={String(dueSoonCount)} tone="warning" />
-        <MembershipKpi label="Vencidas" value={String(overdueCount)} tone="danger" />
-        <MembershipKpi label="Falta cobro" value={String(planWithoutBillingCount)} tone="warning" />
-        <MembershipKpi label="Sin membresía" value={String(withoutMembershipCount)} tone="default" />
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 mb-5">
+        <MembershipKpi label="Membresías activas" value={String(activeCount)} tone="success" />
+        <MembershipKpi label="Membresías inactivas" value={String(inactiveCount)} tone="danger" />
+        <MembershipKpi label="Clientes inactivos" value={String(inactiveClients)} tone="default" />
         <MembershipKpi label="Cobranza esperada" value={formatCurrency(expectedRevenue)} tone="primary" />
       </div>
 
@@ -476,8 +454,6 @@ function MembershipCriticalCard({
       className={`rounded-sm border p-4 ${
         status.variant === 'error'
           ? 'border-red-400/40 bg-red-50/60 dark:border-red-500/25 dark:bg-red-950/20'
-          : status.variant === 'warning'
-            ? 'border-amber-400/40 bg-amber-50/60 dark:border-amber-500/25 dark:bg-amber-950/20'
             : 'border-neutral-200 dark:border-neutral-800'
       }`}
       data-testid={`membership-critical-member-${member.id}`}

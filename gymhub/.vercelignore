@@ -7,3 +7,5 @@ media
 staticfiles
 htmlcov
 *.log
+.env
+.env.*

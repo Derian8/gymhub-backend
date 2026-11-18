@@ -2,6 +2,16 @@ from django.db import models
 from django.utils import timezone
 
 
+class TokenAccesoQr(models.Model):
+    resumen = models.CharField(max_length=64, unique=True)
+    cliente = models.ForeignKey('users.MemberProfile', on_delete=models.CASCADE)
+    vence_en = models.DateTimeField(db_index=True)
+    consumido_en = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'tokens_acceso_qr'
+
+
 class Attendance(models.Model):
     member = models.ForeignKey(
         'users.MemberProfile',

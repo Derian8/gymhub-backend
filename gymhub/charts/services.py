@@ -7,7 +7,7 @@ from django.utils.dateparse import parse_date
 
 from attendance.models import Attendance
 from billing.models import MemberSubscription, PaymentRecord
-from billing.services import current_member_membership, refresh_membership_status
+from billing.services import current_member_membership, refresh_membership_status, obtener_estado_cliente
 from progress.models import ExerciseLog, ProgressLog, WorkoutSession
 from progress.services import build_member_physical_summary
 from users.services import (
@@ -312,7 +312,7 @@ def build_trainer_charts(trainer_profile, user, filters=None):
     members = list(queryset)
 
     payment_distribution = {'paid': 0, 'pending': 0, 'late': 0, 'sin_dato': 0}
-    membership_distribution = {'active': 0, 'expiring': 0, 'expired': 0, 'suspended': 0, 'pending': 0, 'none': 0}
+    membership_distribution = {'membresia_activa': 0, 'membresia_inactiva': 0, 'cliente_inactivo': 0}
     followup_distribution = {'ok': 0, 'attention': 0, 'urgent': 0}
     members_needing_followup = []
     filtered_members = []
@@ -330,14 +330,15 @@ def build_trainer_charts(trainer_profile, user, filters=None):
             membership_end_date = subscription.current_period_end.isoformat() if subscription.current_period_end else None
         followup_status = _followup_status(member, risk, prescription, membership_status)
 
-        if membership_filter != 'all' and membership_status != membership_filter:
+        estado_cliente = obtener_estado_cliente(member, subscription)
+        if membership_filter != 'all' and membership_filter not in (membership_status, estado_cliente):
             continue
         if followup_filter != 'all' and followup_status != followup_filter:
             continue
 
         filtered_members.append(member)
         payment_distribution[risk['payment_status'] or 'sin_dato'] += 1
-        membership_distribution[membership_status if membership_status in membership_distribution else 'none'] += 1
+        membership_distribution[estado_cliente] += 1
         followup_distribution[followup_status] += 1
 
         summary = get_member_dashboard_summary(member)
@@ -347,7 +348,7 @@ def build_trainer_charts(trainer_profile, user, filters=None):
                 'full_name': member.user.get_full_name() or member.user.email,
                 'email': member.user.email,
                 'followup_status': followup_status,
-                'membership_status': membership_status,
+                'membership_status': estado_cliente,
                 'membership_name': membership_name,
                 'membership_end_date': membership_end_date,
                 'payment_status': risk['payment_status'],
@@ -412,8 +413,11 @@ def build_trainer_charts(trainer_profile, user, filters=None):
             'members_count': len(member_ids),
             'active_attendance_count': Attendance.objects.filter(member_id__in=member_ids, attendance_date__gte=period_start, attendance_date__lte=period_end).values('member_id').distinct().count(),
             'inactive_count': followup_distribution['attention'] + followup_distribution['urgent'],
-            'expiring_membership_count': membership_distribution['expiring'],
-            'expired_membership_count': membership_distribution['expired'],
+            'expiring_membership_count': 0,
+            'active_membership_count': membership_distribution['membresia_activa'],
+            'inactive_membership_count': membership_distribution['membresia_inactiva'],
+            'inactive_client_count': membership_distribution['cliente_inactivo'],
+            'expired_membership_count': membership_distribution['membresia_inactiva'] + membership_distribution['cliente_inactivo'],
             'pending_payment_count': payment_distribution['pending'],
             'late_payment_count': payment_distribution['late'],
             'urgent_followup_count': followup_distribution['urgent'],

@@ -26,13 +26,13 @@ export const progressApi = {
     return data
   },
 
-  sessionsForMonth: async (month: string): Promise<WorkoutSession[]> => {
+  sessionsForMonth: async (month: string, memberId?: number): Promise<WorkoutSession[]> => {
     const sessions: WorkoutSession[] = []
     let page = 1
     let hasNext = true
     while (hasNext) {
       const { data } = await apiClient.get<PaginatedResponse<WorkoutSession>>('/api/workout-sessions/', {
-        params: { month, page },
+        params: { month, page, ...(memberId ? { member_id: memberId } : {}) },
       })
       sessions.push(...data.results)
       hasNext = Boolean(data.next)

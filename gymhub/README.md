@@ -1,10 +1,14 @@
 # Gimnasio Miembros Hub — Backend API
 
 ## Stack
+La demo pública usa Django en Vercel con Supabase PostgreSQL y Storage privado.
+Ver [Retorno a Vercel y Supabase](../docs/RETORNO_VERCEL_SUPABASE.md) para variables,
+migración, caché compartida, cron y comprobaciones previas al cambio público.
+
 - **Backend**: Django 5.1+, DRF, simplejwt (httpOnly cookies), Supabase PostgreSQL
 - **Cola**: Celery 5+, django-celery-beat, Redis 7+
 - **IA**: motor contextual gratuito por reglas + mejora opcional con Ollama local
-- **Infra**: Docker local; `render.yaml` para Django/Celery/Beat/Redis; Supabase PostgreSQL y Storage
+- **Infra**: Docker local; Vercel para la API; Supabase PostgreSQL y Storage privado con firmas S3 v4
 - **Docs API**: drf-spectacular (Swagger UI en `/api/docs/`)
 
 ## Apps Django (9)
@@ -25,9 +29,8 @@
 Para desplegar Supabase y los proyectos de Vercel desde la raíz, usa primero
 `./deploy-supabase-vercel.sh --dry-run` y luego `./deploy-supabase-vercel.sh`.
 El comando aplica las migraciones Django y ejecuta `auditar_esquema` antes de
-publicar el backend Vercel de respaldo y el frontend. El frontend enruta las
-solicitudes públicas al backend activo de Render; como su autodespliegue está
-desactivado, publica ahí el mismo commit desde Render Dashboard.
+publicar el backend y el frontend en Vercel. Las solicitudes públicas usan
+rewrites del mismo origen; las fotos usan URLs firmadas de Supabase Storage.
 
 ```bash
 # 1. Clonar y configurar variables de entorno
@@ -154,3 +157,19 @@ Las cuentas tienen dos roles: administrador (`admin`, `is_staff=True`) y cliente
 se asignan directamente a cuentas administradoras. La migración
 `users.0008_reemplazar_trainerprofile_por_administrador` elimina el perfil
 técnico anterior y conserva las relaciones existentes.
+
+### Rendimiento de la lista de clientes
+
+El listado pagina y ordena por riesgo en PostgreSQL, sin consultar planes o
+membresias individualmente para cada cliente. Los resultados conservan las
+reglas de riesgo, permisos y estados comerciales.
+
+El backend utiliza `psycopg[binary,pool]` para reutilizar conexiones entre
+peticiones, incluidas las conexiones del servidor de desarrollo. El pool tiene
+una conexion minima y hasta cuatro por proceso; no almacena respuestas ni
+retrasa la actualizacion de pagos. `DB_POOL_ENABLED` vale `True` por defecto.
+`DB_POOL_MAX_SIZE` permite ajustar el maximo por proceso; considerar tambien
+los procesos web y Celery al calcular el limite de conexiones. Con el pool
+activo, `CONN_MAX_AGE` es `0`. Para deshabilitarlo, configurar
+`DB_POOL_ENABLED=False`; entonces vuelve a aplicarse `DB_CONN_MAX_AGE`.
+Reconstruir las imagenes backend y workers tras actualizar dependencias.

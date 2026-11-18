@@ -17,7 +17,7 @@ from users.models import AuditLog, MemberProfile, PerfilGimnasio
 from users.permissions import IsAdministrator
 
 from .models import MemberSubscription, PaymentRecord, SeguimientoCobro
-from .services import membership_access
+from .services import membership_access, obtener_estado_cliente, current_member_membership, anotar_estado_clientes
 
 
 def _serializar_cobro_operativo(pago, hoy):
@@ -57,13 +57,14 @@ def _datos_dashboard_administrador():
     fin_rutinas_proximas = hoy + timedelta(days=14)
 
     clientes = list(
-        MemberProfile.objects.select_related('user', 'trainer_asignado')
-        .filter(is_active=True)
+        anotar_estado_clientes(MemberProfile.objects.select_related('user', 'trainer_asignado'))
+        .exclude(estado_cliente_cache='cliente_inactivo')
         .order_by('user__first_name', 'user__last_name', 'id')
     )
     clientes_con_cobro_vencido = set(
         PaymentRecord.objects.filter(
             schedule__member__in=clientes,
+            schedule__is_active=True,
             status__in=['pending', 'late'],
             schedule__due_date__lt=hoy,
         ).values_list('schedule__member_id', flat=True)
@@ -73,13 +74,14 @@ def _datos_dashboard_administrador():
     for cliente in clientes:
         acceso = membership_access(cliente)
         acceso_por_cliente[cliente.id] = acceso
-        if acceso['allowed'] and cliente.id not in clientes_con_cobro_vencido:
+        if acceso['allowed']:
             clientes_al_dia.append(cliente)
 
     cobros_vencidos = PaymentRecord.objects.select_related(
         'schedule__member__user'
     ).filter(
         schedule__member__in=clientes,
+        schedule__is_active=True,
         status__in=['pending', 'late'],
         schedule__due_date__lt=hoy,
     ).order_by('schedule__due_date', 'id')
@@ -87,6 +89,7 @@ def _datos_dashboard_administrador():
         'schedule__member__user'
     ).filter(
         schedule__member__in=clientes,
+        schedule__is_active=True,
         status='pending',
         schedule__due_date__gte=hoy,
         schedule__due_date__lte=fin_cobros_proximos,

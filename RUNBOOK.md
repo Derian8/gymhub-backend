@@ -4,6 +4,7 @@
 Este documento concentra el flujo de arranque, validación, soporte y recuperación. La documentación en `docs/` queda como detalle técnico complementario.
 
 ## Entornos Soportados
+- Demo pública: frontend y API en Vercel; PostgreSQL y fotos privadas en Supabase. Ver [operación del retorno](docs/RETORNO_VERCEL_SUPABASE.md). Render y el keep-alive de Windows no son necesarios.
 - Desarrollo local: usa [`.env.example`](/mnt/c/dev/proyectos/proyectoappgym/.env.example) y `./gym-start`.
 - Producción local validada: usa [`.env.prod.example`](/mnt/c/dev/proyectos/proyectoappgym/.env.prod.example) y `./gym-start --prod`.
 - Staging real: usa [`.env.staging.example`](/mnt/c/dev/proyectos/proyectoappgym/.env.staging.example) como plantilla y reemplaza dominios, secretos, cookies y SSL por valores reales antes de desplegar.

@@ -171,6 +171,10 @@ class TrainingPlan(models.Model):
         on_delete=models.SET_NULL,
         related_name='revisiones',
     )
+    plantilla_origen = models.ForeignKey(
+        'PlantillaEntrenamiento', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='planes_asignados',
+    )
     modo_ejecucion = models.CharField(
         max_length=10, choices=MODO_EJECUCION_CHOICES, default='weekly'
     )
@@ -262,6 +266,7 @@ class Exercise(models.Model):
         CatalogoEjercicio, null=True, blank=True, on_delete=models.SET_NULL,
         related_name='prescripciones',
     )
+    detalle_catalogo_asignado = models.JSONField(default=dict, blank=True)
     imagen_referencia_url = models.URLField(
         blank=True,
         help_text='Referencia visual HTTPS proporcionada por el trainer para ejercicios personalizados.',
@@ -316,6 +321,33 @@ class Exercise(models.Model):
 
     class Meta:
         ordering = ['order']
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.catalogo_ejercicio_id and not self.detalle_catalogo_asignado:
+            catalogo = self.catalogo_ejercicio
+            self.detalle_catalogo_asignado = {
+                'id': catalogo.id,
+                'identificador_origen': catalogo.identificador_origen,
+                'nombre': catalogo.nombre,
+                'categoria': catalogo.categoria,
+                'parte_cuerpo': catalogo.parte_cuerpo,
+                'equipo': catalogo.equipo,
+                'musculo_objetivo': catalogo.musculo_objetivo,
+                'grupo_muscular': catalogo.grupo_muscular,
+                'grupo_muscular_plan': catalogo.grupo_muscular_plan,
+                'maquina_recomendada': catalogo.maquina_recomendada_id,
+                'musculos_secundarios': catalogo.musculos_secundarios,
+                'instrucciones_es': catalogo.instrucciones_es,
+                'pasos_es': catalogo.pasos_es,
+                'imagen_url': catalogo.imagen_url,
+                'animacion_url': catalogo.animacion_url,
+                'video_url': catalogo.video_url,
+                'atribucion_media': catalogo.atribucion_media,
+                'version_origen': catalogo.version_origen,
+                'esta_activo': catalogo.esta_activo,
+                'es_catalogo_base': catalogo.es_catalogo_base,
+            }
+        return super().save(*args, **kwargs)
 
     def clean(self):
         super().clean()

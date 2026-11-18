@@ -55,7 +55,7 @@ class InactivityAlertSerializer(serializers.ModelSerializer):
         return self._alert_ctx(obj)['member_photo']
 
     def get_membership_status(self, obj):
-        return self._alert_ctx(obj)['membership_status']
+        return self._alert_ctx(obj)['estado_cliente']
 
     def get_membership_name(self, obj):
         return self._alert_ctx(obj)['membership_name']

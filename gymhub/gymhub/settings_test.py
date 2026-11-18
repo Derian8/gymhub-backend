@@ -36,6 +36,11 @@ INACTIVITY_DAYS_THRESHOLD = 30
 PAYMENT_GRACE_DAYS = 7
 
 MEDIA_ROOT = '/tmp/gymhub_test_media'
+USE_S3_STORAGE = False
+STORAGES = {
+    **STORAGES,
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+}
 
 # Deshabilitar email real en tests
 EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'

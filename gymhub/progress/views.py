@@ -47,6 +47,8 @@ def completar_sesion(session, datos=None):
     """Completa una sesión bloqueada y avanza el ciclo si corresponde."""
     datos = datos or {}
     session.is_completed = True
+    if not session.motivo_cierre:
+        session.motivo_cierre = 'manual'
     session.completed_at = timezone.now()
     if datos.get('overall_feeling'):
         session.overall_feeling = datos['overall_feeling']
@@ -168,6 +170,9 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
     """
     serializer_class = WorkoutSessionSerializer
     permission_classes = [IsAuthenticated]
+
+    def destroy(self, request, *args, **kwargs):
+        raise MethodNotAllowed(request.method)
 
     def get_queryset(self):
         user = self.request.user
@@ -319,6 +324,7 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
                 ejercicios = session.workout_day.exercises.all()
                 registrados = set(ExerciseLog.objects.filter(session=session).values_list('exercise_id', flat=True))
                 pendientes = [ejercicio for ejercicio in ejercicios if ejercicio.id not in registrados]
+                session.motivo_cierre = 'anticipada' if pendientes else 'manual'
                 # Para clientes, cerrar una sesión siempre resuelve pendientes como omitidos.
                 # La interfaz pide confirmación antes de usar esta acción.
                 if pendientes:
@@ -395,6 +401,7 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
             resueltos = set(ExerciseLog.objects.filter(session=session).values_list('exercise_id', flat=True))
             completada = session.workout_day.exercises.count() > 0 and len(resueltos) >= session.workout_day.exercises.count()
             if completada:
+                session.motivo_cierre = 'automatica'
                 completar_sesion(session)
 
         return Response({
@@ -438,6 +445,8 @@ class BulkExerciseLogView(APIView):
             session = WorkoutSession.objects.select_for_update().select_related(
                 'workout_day__plan'
             ).get(pk=session.pk)
+            if session.is_completed:
+                raise ValidationError({'session': 'El historial de una sesión completada no se puede modificar.'})
             if contexto_cliente:
                 assert_client_current_workout_day(session.workout_day)
             created_logs = []

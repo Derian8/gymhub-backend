@@ -4,11 +4,6 @@ import type { IScannerControls } from '@zxing/browser'
 import { Camera, Loader2, QrCode, SwitchCamera } from 'lucide-react'
 
 type Orientacion = 'user' | 'environment'
-const CLAVE_CAMARA = 'pulso-camara-asistencia'
-function camaraPreferida(): Orientacion {
-  try { return localStorage.getItem(CLAVE_CAMARA) === 'user' ? 'user' : 'environment' }
-  catch { return 'environment' }
-}
 
 interface AdminQrScannerProps {
   isSubmitting: boolean
@@ -21,7 +16,8 @@ export function AdminQrScanner({ isSubmitting, onSubmit }: AdminQrScannerProps) 
   const procesandoRef = useRef(false)
   const ultimoRef = useRef({ token: '', hasta: 0 })
   const aperturaRef = useRef<Promise<void>>(Promise.resolve())
-  const [orientacion, establecerOrientacion] = useState(camaraPreferida)
+  const [orientacion, establecerOrientacion] = useState<Orientacion>('environment')
+  const [orientacionActiva, establecerOrientacionActiva] = useState<Orientacion>('environment')
   const [intento, establecerIntento] = useState(0)
   const [abriendo, establecerAbriendo] = useState(true)
   const [errorCamara, establecerError] = useState(false)
@@ -47,18 +43,19 @@ export function AdminQrScanner({ isSubmitting, onSubmit }: AdminQrScannerProps) 
       try {
         if (!window.isSecureContext) throw new Error('HTTPS_REQUIRED')
         if (!navigator.mediaDevices?.getUserMedia) throw new Error('CAMERA_UNSUPPORTED')
+        let orientacionAbierta = orientacion
         try {
           flujo = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { exact: orientacion } } })
         } catch (error) {
-          if (error instanceof DOMException && error.name === 'OverconstrainedError') {
-            flujo = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: orientacion } } })
+          if (error instanceof Error && ['OverconstrainedError', 'NotFoundError', 'NotReadableError', 'AbortError'].includes(error.name)) {
+            if (!activo) return
+            orientacionAbierta = orientacion === 'environment' ? 'user' : 'environment'
+            flujo = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: orientacionAbierta } } })
           } else { throw error }
         }
         if (!activo) { detener(); return }
         const orientacionReal = flujo.getVideoTracks()[0]?.getSettings().facingMode
-        try {
-          localStorage.setItem(CLAVE_CAMARA, orientacionReal === 'user' || orientacionReal === 'environment' ? orientacionReal : orientacion)
-        } catch { /* La cámara también funciona sin almacenamiento local. */ }
+        establecerOrientacionActiva(orientacionReal === 'user' || orientacionReal === 'environment' ? orientacionReal : orientacionAbierta)
         const lector = new BrowserQRCodeReader(undefined, { delayBetweenScanSuccess: 1000, delayBetweenScanAttempts: 150 })
         controles = await lector.decodeFromStream(flujo, video, (resultado) => {
           if (!activo || !resultado || procesandoRef.current) return
@@ -82,7 +79,7 @@ export function AdminQrScanner({ isSubmitting, onSubmit }: AdminQrScannerProps) 
         })
         if (!activo) { detener(); return }
         establecerAbriendo(false)
-        if (!procesandoRef.current) establecerMensaje(orientacionReal && orientacionReal !== orientacion
+        if (!procesandoRef.current) establecerMensaje((orientacionReal || orientacionAbierta) !== orientacion
           ? 'La cámara solicitada no está disponible. Usando la cámara disponible para escanear.'
           : 'Apunta la cámara al código QR del cliente.')
       } catch (error) {
@@ -124,11 +121,14 @@ export function AdminQrScanner({ isSubmitting, onSubmit }: AdminQrScannerProps) 
             {isSubmitting || abriendo ? <Loader2 size={18} className="shrink-0 animate-spin text-primary" /> : <Camera size={18} className="shrink-0 text-primary" />}
             <span>{isSubmitting ? 'Registrando asistencia…' : mensaje}</span>
           </div>
-          <button type="button" disabled={abriendo || isSubmitting} onClick={() => establecerOrientacion((actual) => actual === 'environment' ? 'user' : 'environment')} className="btn-secondary inline-flex min-h-11 w-full items-center justify-center gap-2 disabled:opacity-50">
-            <SwitchCamera size={18} /> Usar cámara {orientacion === 'environment' ? 'frontal' : 'trasera'}
+          <button type="button" disabled={abriendo || isSubmitting} onClick={() => {
+            establecerOrientacion(orientacionActiva === 'environment' ? 'user' : 'environment')
+            establecerIntento((actual) => actual + 1)
+          }} className="btn-secondary inline-flex min-h-11 w-full items-center justify-center gap-2 disabled:opacity-50">
+            <SwitchCamera size={18} /> Usar cámara {orientacionActiva === 'environment' ? 'frontal' : 'trasera'}
           </button>
           {errorCamara ? <button type="button" onClick={() => establecerIntento((actual) => actual + 1)} className="btn-primary min-h-11 w-full">Reintentar cámara</button> : null}
-          <p className="text-xs text-neutral-500">Recordamos tu cámara preferida. Para conservar el permiso, permite la cámara para este sitio en tu navegador; la duración depende del navegador.</p>
+          <p className="text-xs text-neutral-500">Al abrir el escáner usamos la cámara trasera; si no está disponible, usamos la frontal. Para conservar el permiso, permite la cámara para este sitio en tu navegador; la duración depende del navegador.</p>
         </div>
       </div>
     </section>

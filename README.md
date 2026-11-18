@@ -13,9 +13,14 @@
 - Roles, perfiles compartidos y selector de contexto: [`docs/ROLES_Y_CONTEXTOS.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/ROLES_Y_CONTEXTOS.md)
 
 ## Deploy Actual
+El retorno a Vercel se documenta en
+[Retorno a Vercel y Supabase](docs/RETORNO_VERCEL_SUPABASE.md).
+El frontend y la API públicos usan Vercel; los datos y las fotos privadas usan
+Supabase. El QR se comparte mediante PostgreSQL y no requiere Redis.
+
 - Frontend: `https://proyectoappgym-frontend.vercel.app`
-- Backend API de feria: `https://gymhub-api-feria.onrender.com`
-- API Docs: `https://gymhub-api-feria.onrender.com/api/docs/`
+- Backend API: `https://proyectoappgym-backend.vercel.app`
+- API Docs: `https://www.pulsocr.me/api/docs/`
 - Base de datos: Supabase PostgreSQL.
 
 ## Arranque rápido
@@ -45,35 +50,39 @@ después ejecuta el despliegue real:
 ```
 
 El script aplica y audita las migraciones de Supabase, despliega el backend Vercel
-de respaldo y el frontend, y termina validando el dominio público contra el backend
-activo en Render. Render tiene el autodespliegue desactivado; publica ahí el mismo
-commit desde su Dashboard antes de considerar completada la release. Usa `--help`
-para omitir etapas.
+y el frontend, y termina validando el dominio público contra la API de Vercel.
+Usa `--help` para omitir etapas. Render no forma parte de esta publicación.
 
 Para reconstruir las demos numeradas sin tocar cuentas reales, ejecuta primero
 `python manage.py restablecer_demo` y confirma después con
 `python manage.py restablecer_demo --yes`.
 
-## Entorno de feria
+## Desarrollo local con recarga automatica en Windows
 
-Para una demostración pública sin clientes reales, conserva Vercel para el
-frontend y Supabase para PostgreSQL. Render usa [`render.yaml`](render.yaml)
-como Blueprint gratuito de feria: despliega solo la API, usa cache local e IA
-determinista y no crea Redis, Celery Worker ni Celery Beat.
-
-En Windows, la tarea nativa `Pulso-Render-KeepAlive` ejecuta
-[`tools/keep-render-awake.ps1`](tools/keep-render-awake.ps1) al iniciar sesión y
-repite la petición a `/health/ready/` cada 10 minutos. El registro queda en
-`logs/render-keepalive.log` (ignorado por Git). Para quitarla:
+Si Docker Desktop no permite montar la carpeta WSL, ejecuta desde PowerShell en la
+raiz del repositorio:
 
 ```powershell
-Unregister-ScheduledTask -TaskName 'Pulso-Render-KeepAlive' -Confirm:$false
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\gym-watch.ps1
 ```
 
-Los rewrites de [`frontend/vercel.json`](frontend/vercel.json) ya apuntan al
-backend de Render. Mantén el backend de Vercel disponible como respaldo durante
-la feria y despierta Render con una petición a `/health/ready/` antes de iniciar
-la demostración.
+El script levanta `backend` y `frontend` con Docker Compose y observa los archivos
+cada segundo. Sincroniza los cambios de codigo con los contenedores para que Vite
+actualice la vista en `http://localhost:3000/routines`; reinicia Django cuando
+cambia el backend y reconstruye la imagen si cambian dependencias o Dockerfiles.
+Manten la terminal abierta mientras trabajas y usa `Ctrl+C` para detener la
+observacion. Los contenedores siguen encendidos.
+
+## Entorno de feria
+
+La demo usa Vercel para frontend y API, Supabase para PostgreSQL y Storage
+privado, caché compartida en PostgreSQL e IA determinista. Los rewrites de
+[`frontend/vercel.json`](frontend/vercel.json) apuntan a la API Vercel. Las fotos
+admiten hasta 2 MB y se descargan mediante URLs firmadas S3 v4.
+
+El mantenimiento diario usa Vercel Cron; no se necesitan Redis, Celery Worker,
+Beat ni el keep-alive de Windows. [`render.yaml`](render.yaml) se conserva como
+referencia del despliegue anterior. Ver [operación actual](docs/RETORNO_VERCEL_SUPABASE.md).
 
 ### Arranque local sin Docker
 
@@ -115,8 +124,8 @@ El segundo comando debe responder `401` si no hay sesión; eso confirma que el p
 - El estado exacto para continuar el desarrollo y los pendientes priorizados están en [`docs/TODO.md`](/mnt/c/dev/proyectoappgym/docs/TODO.md).
 - El alcance funcional a validar manualmente está congelado en [`docs/MVP_FUNCIONAL.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/MVP_FUNCIONAL.md).
 - El orden ejecutable de validación antes de entregar está en [`docs/RELEASE_CHECKLIST.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/RELEASE_CHECKLIST.md).
-- [`render.yaml`](/mnt/c/dev/proyectos/proyectoappgym/render.yaml) declara la API persistente, Celery, Beat y Redis. Render es el destino preparado para la migración del backend; Vercel sigue como backend activo hasta completar los gates y cambiar el rewrite.
-- Render puede solicitar información de pago aun cuando se seleccione el nivel gratuito; la condición de estudiante no elimina esa validación. Sin presupuesto, no se debe introducir una tarjeta: Vercel + Supabase continúa siendo la alternativa activa.
+- [`render.yaml`](render.yaml) conserva la API de feria anterior; no declara Worker, Beat ni Redis y no participa en la publicación actual.
+- Vercel y Supabase son los proveedores activos; comprobar sus cuotas gratuitas antes de ampliar la demo.
 
 ## Integración Frontend/Backend
 - En desarrollo Docker, deja `VITE_API_BASE_URL=` vacío para que Vite use proxy interno hacia `backend`.
@@ -126,7 +135,23 @@ El segundo comando debe responder `401` si no hay sesión; eso confirma que el p
 - Las membresías admiten periodos diarios, semanales, quincenales, mensuales, trimestrales y anuales. El primer pago activa la vigencia y cada pago confirmado genera el siguiente cobro pendiente.
 - Define `CRON_SECRET` en el backend de Vercel para proteger el mantenimiento diario de vigencias, mora y recordatorios.
 - Si frontend y backend viven en dominios distintos, define `VITE_API_BASE_URL`, `CORS_ALLOWED_ORIGINS` y `CSRF_TRUSTED_ORIGINS` de forma explícita.
-- Para migrar a Render, registra `api.pulsocr.me` como dominio personalizado de `gymhub-api`, configura el CNAME indicado por Render en Namecheap y define `VITE_API_BASE_URL=https://api.pulsocr.me` solo después de validar `/health/ready/` y autenticación.
+- Mantén `VITE_API_BASE_URL=` vacío y el destino de los rewrites alineado con `ACTIVE_BACKEND_PUBLIC_URL`.
 - Las cookies JWT del backend ahora se controlan por entorno con `AUTH_COOKIE_SECURE`, `AUTH_COOKIE_SAMESITE`, `AUTH_COOKIE_DOMAIN` y `AUTH_COOKIE_PATH`.
 - El frontend obtiene CSRF desde `/auth/csrf/`; toda mutación autenticada por cookie requiere `X-CSRFToken`.
 - El chat IA funciona gratis con un motor contextual por reglas y puede mejorar su redacción con un LLM local opcional; la configuración operativa vive en [`docs/OPERACION.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/OPERACION.md) y [`gymhub/README.md`](/mnt/c/dev/proyectos/proyectoappgym/gymhub/README.md).
+
+### Rendimiento de la lista de clientes
+
+El listado pagina y ordena por riesgo en PostgreSQL, sin consultar planes o
+membresias individualmente para cada cliente. Los resultados conservan las
+reglas de riesgo, permisos y estados comerciales.
+
+El backend utiliza `psycopg[binary,pool]` para reutilizar conexiones entre
+peticiones, incluidas las conexiones del servidor de desarrollo. El pool tiene
+una conexion minima y hasta cuatro por proceso; no almacena respuestas ni
+retrasa la actualizacion de pagos. `DB_POOL_ENABLED` vale `True` por defecto.
+`DB_POOL_MAX_SIZE` permite ajustar el maximo por proceso; considerar tambien
+los procesos web y Celery al calcular el limite de conexiones. Con el pool
+activo, `CONN_MAX_AGE` es `0`. Para deshabilitarlo, configurar
+`DB_POOL_ENABLED=False`; entonces vuelve a aplicarse `DB_CONN_MAX_AGE`.
+Reconstruir las imagenes backend y workers tras actualizar dependencias.

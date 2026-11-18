@@ -3,7 +3,6 @@ import hashlib
 import secrets
 from datetime import timedelta
 
-from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
@@ -17,7 +16,7 @@ from rest_framework.settings import api_settings
 from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
 
-from .models import Attendance
+from .models import Attendance, TokenAccesoQr
 from .serializers import AttendanceSerializer, CheckInSerializer
 from users.models import AuditLog
 from users.models import MemberProfile
@@ -27,9 +26,13 @@ logger = logging.getLogger(__name__)
 MEMBER_QR_TOKEN_TTL_SECONDS = 120
 
 
-def member_qr_cache_key(token):
-    digest = hashlib.sha256(token.encode('utf-8')).hexdigest()
-    return f'attendance:member-qr:{digest}'
+def resumen_token_qr(token):
+    return hashlib.sha256(token.encode('utf-8')).hexdigest()
+
+
+def consumir_token_qr(registro):
+    registro.consumido_en = timezone.now()
+    registro.save(update_fields=['consumido_en'])
 
 
 def create_qr_membership_block_alert(member, admin_user, access):
@@ -156,6 +159,7 @@ class CheckInView(APIView):
     permission_classes = [IsAuthenticated, IsAdministrator]
     throttle_classes = [CheckInThrottle]
 
+    @transaction.atomic
     def post(self, request):
         serializer = CheckInSerializer(data=request.data)
         if not serializer.is_valid():
@@ -168,12 +172,17 @@ class CheckInView(APIView):
 
         qr_token = serializer.validated_data.get('qr_token', '').strip()
         if qr_token:
-            member_id = cache.get(member_qr_cache_key(qr_token))
-            if member_id is None:
+            registro_qr = TokenAccesoQr.objects.select_for_update().filter(
+                resumen=resumen_token_qr(qr_token),
+                vence_en__gt=timezone.now(),
+                consumido_en__isnull=True,
+            ).first()
+            if registro_qr is None:
                 return Response(
                     {'error': 'El codigo QR vencio o ya fue utilizado. Solicita uno nuevo al cliente.'},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+            member_id = registro_qr.cliente_id
         else:
             member_id = serializer.validated_data.get('member_id')
         if not member_id:
@@ -189,7 +198,7 @@ class CheckInView(APIView):
         if not access['allowed'] and not commercial_override:
             if qr_token and access['reason'] != 'member_inactive':
                 create_qr_membership_block_alert(member, request.user, access)
-                cache.delete(member_qr_cache_key(qr_token))
+                consumir_token_qr(registro_qr)
             return Response(
                 {
                     'blocked': True,
@@ -254,7 +263,7 @@ class CheckInView(APIView):
             notes=notes,
         )
         if qr_token:
-            cache.delete(member_qr_cache_key(qr_token))
+            consumir_token_qr(registro_qr)
         if gym_class_id:
             ClassEnrollment.objects.filter(
                 member=member, gym_class=gym_class
@@ -301,12 +310,10 @@ class MemberAttendanceQrView(APIView):
             )
 
         token = secrets.token_urlsafe(32)
-        cache.set(
-            member_qr_cache_key(token),
-            member.id,
-            timeout=MEMBER_QR_TOKEN_TTL_SECONDS,
-        )
         expires_at = timezone.now() + timedelta(seconds=MEMBER_QR_TOKEN_TTL_SECONDS)
+        TokenAccesoQr.objects.create(
+            resumen=resumen_token_qr(token), cliente=member, vence_en=expires_at,
+        )
         return Response({
             'token': token,
             'expires_at': expires_at,

@@ -41,16 +41,16 @@ export function AuthLayout() {
           <img src="/marca/pulso-banner.png" alt="PULSO: gestión deportiva desde tu computadora y tu teléfono" width={1600} height={900} className="w-full rounded-2xl border border-white/20 bg-white shadow-2xl" />
         </div>
       </section>
-      <section className="relative flex w-full flex-col justify-center border-neutral-200 px-6 py-20 dark:border-white/10 sm:px-10 lg:w-[460px] lg:border-l xl:w-[500px]">
+      <section className="relative flex w-full flex-col justify-center border-neutral-200 px-6 py-8 dark:border-white/10 sm:px-10 sm:py-10 lg:w-[460px] lg:border-l lg:py-8 xl:w-[500px]">
         <div className="mx-auto w-full max-w-sm">
-          <div className="mb-10">
+          <div className="mb-6">
             <BrandWordmark />
-            <div className="mt-7 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-neutral-500 dark:text-neutral-400">
+            <div className="mt-4 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-neutral-500 dark:text-neutral-400">
               <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Tu próximo paso empieza aquí
             </div>
           </div>
           <Outlet />
-          <p className="mt-10 border-t border-neutral-200 pt-5 text-xs text-neutral-500 dark:border-white/10 dark:text-neutral-400">PULSO · El ritmo sigue aquí.</p>
+          <p className="mt-5 border-t border-neutral-200 pt-3 text-xs text-neutral-500 dark:border-white/10 dark:text-neutral-400">PULSO · El ritmo sigue aquí.</p>
         </div>
       </section>
     </div>

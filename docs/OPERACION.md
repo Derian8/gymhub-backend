@@ -3,6 +3,13 @@
 > La fuente principal de operación y soporte es [`RUNBOOK.md`](/mnt/c/dev/proyectos/proyectoappgym/RUNBOOK.md). Este documento conserva detalle técnico complementario.
 
 ## Requisitos
+Para la demo pública en Vercel, consultar
+[Retorno a Vercel y Supabase](RETORNO_VERCEL_SUPABASE.md).
+Usa PostgreSQL para QR y caché compartida (`USE_DB_CACHE=True`), un pool de
+0–1 conexiones por instancia y el cron diario protegido por `CRON_SECRET`.
+Las imágenes nuevas admiten hasta 2 MB y requieren Storage privado externo.
+Redis y Beat siguen siendo opciones del entorno local, no requisitos de esa demo.
+
 - Docker y Docker Compose
 - Si usas WSL, habilita la integración de la distro en Docker Desktop y verifica que el engine Linux esté levantado
 - Variables de entorno en `.env` de la raíz
@@ -47,7 +54,7 @@ Para un despliegue real con HTTPS, no reutilices sin cambios el `.env.prod.examp
 - `python manage.py restablecer_demo --yes`: recrea trainer1/member1 y elimina demos numeradas adicionales.
 - `python manage.py reemplazar_rutinas_interval_timer --confirmar-borrado`: elimina rutinas y plantillas de entrenamiento, sesiones e historial de ejercicios; conserva el catálogo multimedia y planes vacíos archivados que sostienen datos nutricionales, y carga cuatro plantillas de ejemplo con 3×10–12 y descanso de 60 s.
 - `./deploy-supabase-vercel.sh --dry-run`: muestra el flujo de publicación sin modificar Supabase ni Vercel.
-- `./deploy-supabase-vercel.sh`: migra y audita Supabase, despliega el backend Vercel de respaldo y el frontend, y valida el backend activo de Render a través del dominio público.
+- `./deploy-supabase-vercel.sh`: migra y audita Supabase, despliega backend y frontend en Vercel y valida sus rewrites desde el dominio público.
 
 El despliegue automatizado se detiene ante el primer error. También acepta
 `--sin-migraciones`, `--sin-backend`, `--sin-frontend` y `--sin-validacion` para
@@ -85,7 +92,7 @@ Para E2E con Playwright:
 
 ## Variables Operativas Relevantes
 - `ACTIVE_FRONTEND_PUBLIC_URL`: dominio de producción que valida el release; por defecto `https://www.pulsocr.me`.
-- `ACTIVE_BACKEND_PUBLIC_URL`: destino real de los rewrites públicos; por defecto `https://gymhub-api-feria.onrender.com`.
+- `ACTIVE_BACKEND_PUBLIC_URL`: destino real de los rewrites públicos; por defecto `https://proyectoappgym-backend.vercel.app`.
 - `DJANGO_SECRET_KEY`
 - `AUTH_COOKIE_SECURE`
 - `AUTH_COOKIE_SAMESITE`
@@ -150,11 +157,11 @@ En Vercel, `gymhub/vercel.json` invoca diariamente `/api/internal/daily-membersh
 
 ## Consideraciones De Despliegue
 - `render.yaml` declara solamente la API web en Render; usa caché local y no declara Redis, Celery Worker ni Celery Beat.
-- El servicio Render activo tiene `autoDeployTrigger: off`; después de publicar el commit en GitHub, despliega ese commit desde Render Dashboard.
+- La API activa está en Vercel; Render queda como referencia histórica y no requiere publicación.
 - Render usa el Session Pooler de Supabase (`5432`); `6543` se reserva para serverless.
 - El predeploy aplica migraciones y `auditar_esquema` valida tablas y columnas.
-- El despliegue de feria mantiene `USE_S3_STORAGE=False`; media no tiene persistencia en Render hasta configurar almacenamiento externo.
-- La API limita las imágenes subidas a 5 MB y valida que sean JPG, PNG o WebP reales antes de enviarlas al almacenamiento.
+- La demo mantiene `USE_S3_STORAGE=True`: bucket privado `gymhub-media`, firmas `s3v4` y credenciales S3 sensibles exclusivamente en backend.
+- La API y el bucket limitan las imágenes a 2 MB y admiten JPG, PNG y WebP.
 - Las consultas de miembros y panel del frontend reutilizan respuestas durante 30 segundos y desactivan refetch por foco; las mutaciones invalidan esas consultas para mantener la información actualizada sin multiplicar llamadas a la API.
 - Antes de cambiar el frontend a `api.pulsocr.me`, valida la API directamente y conserva el rewrite de Vercel como plan de reversión.
 - El flujo Docker local usa `runserver` para recarga rápida.
@@ -166,3 +173,19 @@ En Vercel, `gymhub/vercel.json` invoca diariamente `/api/internal/daily-membersh
 - Para pruebas E2E desde contenedores, incluye `host.docker.internal` en `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS` y `CSRF_TRUSTED_ORIGINS`.
 - Si usas frontend y backend en orígenes distintos, alinea `VITE_API_BASE_URL`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS` y la política de cookies antes de probar login.
 - En Vercel, elimina `VITE_API_BASE_URL` y usa `VITE_API_TIMEOUT_MS=60000`. `./gym-connection-check` falla si el bundle vuelve a apuntar al backend absoluto mientras la CSP mantiene `connect-src 'self'`.
+
+### Rendimiento de la lista de clientes
+
+El listado pagina y ordena por riesgo en PostgreSQL, sin consultar planes o
+membresias individualmente para cada cliente. Los resultados conservan las
+reglas de riesgo, permisos y estados comerciales.
+
+El backend utiliza `psycopg[binary,pool]` para reutilizar conexiones entre
+peticiones, incluidas las conexiones del servidor de desarrollo. El pool tiene
+una conexion minima y hasta cuatro por proceso; no almacena respuestas ni
+retrasa la actualizacion de pagos. `DB_POOL_ENABLED` vale `True` por defecto.
+`DB_POOL_MAX_SIZE` permite ajustar el maximo por proceso; considerar tambien
+los procesos web y Celery al calcular el limite de conexiones. Con el pool
+activo, `CONN_MAX_AGE` es `0`. Para deshabilitarlo, configurar
+`DB_POOL_ENABLED=False`; entonces vuelve a aplicarse `DB_CONN_MAX_AGE`.
+Reconstruir las imagenes backend y workers tras actualizar dependencias.

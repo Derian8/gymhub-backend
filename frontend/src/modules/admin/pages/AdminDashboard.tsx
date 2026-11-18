@@ -13,6 +13,8 @@ export function AdminDashboard() {
     <div className="pulso-inicio page-enter space-y-5 sm:space-y-8" data-testid="admin-dashboard">
       <PageHeader
         title="Inicio"
+        subtitle="Consulta el estado del gimnasio y las tareas pendientes."
+        accionEnLinea
         action={(
           <Link
             to="/attendance"
@@ -20,7 +22,7 @@ export function AdminDashboard() {
             className="btn-primary flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-3 py-2 text-xs sm:px-4 sm:text-sm"
             data-testid="admin-register-attendance"
           >
-            <QrCode size={17} /> Registrar asistencia
+            <QrCode size={17} /><span className="sr-only sm:not-sr-only">Registrar asistencia</span>
           </Link>
         )}
       />

@@ -1,3 +1,4 @@
+import { obtenerEstadoMembresia } from '@/shared/lib/estadoMembresia'
 import { useParams, Link, useLocation } from 'react-router-dom'
 import { Phone, Calendar, Mail, Dumbbell, CreditCard, CheckSquare, AlertTriangle, Activity, Ruler, Scale, PencilLine } from 'lucide-react'
 import { useMemberActivePrescriptionQuery, useMemberDetailQuery, useActivateMemberMutation, useMemberDashboardQuery, useMemberPhysicalSummaryQuery } from '../hooks/useMembers'
@@ -21,41 +22,6 @@ const MEMBERSHIP_PERIOD_LABELS: Record<MemberSubscription['recurrence_type'], st
   monthly: 'mes',
   quarterly: 'trimestre',
   annual: 'año',
-}
-
-function getMembershipStatusCopy(summary: ReturnType<typeof useMemberDashboardQuery>['data']) {
-  if (summary?.payment_status === 'paid') {
-    return {
-      label: 'Membresía vigente',
-      variant: 'success' as const,
-      detail: summary.days_until_due != null
-        ? `${summary.days_until_due} día(s) restantes antes del próximo vencimiento.`
-        : 'El acceso comercial está al día.',
-    }
-  }
-  if (summary?.payment_status === 'late') {
-    return {
-      label: 'Membresía vencida',
-      variant: 'error' as const,
-      detail: summary.days_overdue != null
-        ? `${summary.days_overdue} día(s) de atraso. Regulariza el cobro para recuperar el estado vigente.`
-        : 'Hay un cobro vencido pendiente de regularizar.',
-    }
-  }
-  if (summary?.payment_status === 'pending' && summary.days_until_due != null && summary.days_until_due <= 7) {
-    return {
-      label: 'Membresía por vencer',
-      variant: 'warning' as const,
-      detail: `Vence en ${summary.days_until_due} día(s). Renueva esta semana para mantener el acceso vigente.`,
-    }
-  }
-  return {
-    label: 'Membresía por confirmar',
-    variant: 'warning' as const,
-    detail: summary?.days_until_due != null
-      ? `${summary.days_until_due} día(s) restantes antes del próximo vencimiento.`
-      : 'Confirma la membresía y el cobro desde facturación.',
-  }
 }
 
 export function MemberDetailPage() {
@@ -191,13 +157,7 @@ export function MemberDetailPage() {
       ? 'success'
       : 'warning'
   const membership = member.membresia_actual
-  const membershipStatus = membership
-    ? getMembershipStatusCopy(dashboardSummary)
-    : {
-        label: 'Sin membresía',
-        variant: 'neutral' as const,
-        detail: 'Crea la membresía comercial desde facturación para definir precio, vencimiento y acceso.',
-      }
+  const membershipStatus = obtenerEstadoMembresia(member)
 
   return (
     <div data-testid="member-detail-page" className="page-enter">

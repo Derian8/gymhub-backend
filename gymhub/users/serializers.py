@@ -8,11 +8,13 @@ from django.contrib.auth.password_validation import validate_password
 
 from .models import (
     MemberProfile,
+    ConfiguracionSistema,
     PerfilGimnasio,
     AuditLog,
-    requiere_cambio_contrasena_efectivo,
 )
-from .services import get_member_prescription_status, get_member_risk_snapshot
+from .services import (
+    get_member_prescription_status, get_member_risk_snapshot, obtener_estado_cliente,
+)
 from billing.models import MembershipPlan
 from billing.services import current_member_membership, membership_access, refresh_membership_status
 from .validators import validate_image_upload
@@ -46,7 +48,16 @@ class UserSerializer(serializers.ModelSerializer):
         return profile.id if profile else None
 
     def get_requiere_cambio_contrasena(self, obj):
-        return requiere_cambio_contrasena_efectivo(obj)
+        if not obj.requiere_cambio_contrasena:
+            return False
+        if obj.role == 'member':
+            clave = 'exigir_cambio_contrasena_cliente'
+            if clave not in self.context:
+                self.context[clave] = (
+                    ConfiguracionSistema.principal().exigir_cambio_contrasena_cliente
+                )
+            return self.context[clave]
+        return True
 
     def get_perfiles_disponibles(self, obj):
         if obj.is_staff:
@@ -182,8 +193,10 @@ class MemberProfileSerializer(serializers.ModelSerializer):
     suscripcion_activa_id = serializers.SerializerMethodField()
     precio_suscripcion_actual = serializers.SerializerMethodField()
     membresia_actual = serializers.SerializerMethodField()
+    id_cobro_abierto = serializers.SerializerMethodField()
     estado_comercial = serializers.SerializerMethodField()
     accion_comercial = serializers.SerializerMethodField()
+    estado_cliente = serializers.SerializerMethodField()
 
     class Meta:
         model = MemberProfile
@@ -196,13 +209,21 @@ class MemberProfileSerializer(serializers.ModelSerializer):
             'days_since_last_checkin', 'days_since_last_session', 'days_since_last_progress',
             'estado_prescripcion', 'tiene_plan_activo', 'prescripcion_lista_para_member',
             'membership_plan_nombre', 'suscripcion_activa_id', 'precio_suscripcion_actual',
-            'membresia_actual',
-            'estado_comercial', 'accion_comercial',
+            'membresia_actual', 'id_cobro_abierto',
+            'estado_comercial', 'accion_comercial', 'estado_cliente',
         )
         read_only_fields = ('id', 'user', 'email', 'full_name')
 
+    def get_estado_cliente(self, obj):
+        if hasattr(obj, 'estado_cliente_cache'):
+            return obj.estado_cliente_cache
+        return obtener_estado_cliente(obj, self._active_subscription(obj))
+
     def get_full_name(self, obj):
         return obj.user.get_full_name() or obj.user.email
+
+    def get_id_cobro_abierto(self, obj):
+        return getattr(obj, 'id_cobro_abierto', None)
 
     def get_trainer_asignado_nombre(self, obj):
         if not obj.trainer_asignado:
@@ -298,12 +319,17 @@ class MemberProfileSerializer(serializers.ModelSerializer):
         if not subscription:
             return 'bloqueado'
         refresh_membership_status(subscription)
-        return 'por_vencer' if subscription.status == 'expiring' else 'al_dia'
+        return 'al_dia'
 
     def get_accion_comercial(self, obj):
         return 'contactar_administrador' if self.get_estado_comercial(obj) != 'al_dia' else None
 
     def to_representation(self, instance):
+        if hasattr(instance, 'exigir_cambio_contrasena_cliente_cache'):
+            exigir_cambio = instance.exigir_cambio_contrasena_cliente_cache
+            self.context['exigir_cambio_contrasena_cliente'] = (
+                exigir_cambio if exigir_cambio is not None else True
+            )
         data = super().to_representation(instance)
         request = self.context.get('request')
         user = getattr(request, 'user', None)
@@ -317,20 +343,12 @@ class MemberProfileSerializer(serializers.ModelSerializer):
         risk = self._risk(obj)
         refresh_membership_status(subscription)
         today = timezone.localdate()
-        access_allowed = False
-        access_reason = 'payment_required'
-        if obj.is_active and subscription.status not in ('pending', 'expired', 'suspended', 'cancelled') and subscription.current_period_end:
-            if today <= subscription.current_period_end:
-                access_allowed = True
-                access_reason = None
-            else:
-                days_after_period = (today - subscription.current_period_end).days
-                access_allowed = days_after_period <= subscription.grace_period_days
-                access_reason = None if access_allowed else 'payment_overdue'
-        elif not obj.is_active:
-            access_reason = 'member_inactive'
+        acceso = membership_access(obj)
+        access_allowed = acceso['allowed']
+        access_reason = acceso['reason']
 
         return {
+            'estado_cliente': self.get_estado_cliente(obj),
             'subscription_id': subscription.id,
             'plan_id': subscription.plan_id,
             'plan_name': subscription.membership_name,

@@ -14,7 +14,14 @@ class ProgressLogSerializer(serializers.ModelSerializer):
 
 
 class ExerciseLogSerializer(serializers.ModelSerializer):
-    exercise_name = serializers.CharField(source='exercise.name', read_only=True)
+    exercise_name = serializers.SerializerMethodField()
+
+    def get_exercise_name(self, obj):
+        ejercicios = obj.session.detalle_iniciado.get('ejercicios', [])
+        return next(
+            (item['nombre'] for item in ejercicios if item['id'] == obj.exercise_id),
+            obj.exercise.name,
+        )
     class Meta:
         model = ExerciseLog
         fields = (
@@ -41,17 +48,27 @@ class BulkExerciseLogSerializer(serializers.Serializer):
 
 class WorkoutSessionSerializer(serializers.ModelSerializer):
     exercise_logs = ExerciseLogSerializer(many=True, read_only=True)
-    workout_day_name = serializers.CharField(source='workout_day.name', read_only=True)
-    plan_name = serializers.CharField(source='workout_day.plan.name', read_only=True)
+    workout_day_name = serializers.SerializerMethodField()
+    plan_name = serializers.SerializerMethodField()
+
+    def get_workout_day_name(self, obj):
+        return obj.detalle_iniciado.get('dia_nombre') or obj.workout_day.name
+
+    def get_plan_name(self, obj):
+        return obj.detalle_iniciado.get('plan_nombre') or obj.workout_day.plan.name
 
     class Meta:
         model = WorkoutSession
         fields = (
             'id', 'member', 'workout_day', 'attendance',
             'started_at', 'completed_at', 'overall_feeling',
-            'is_completed', 'trainer_notes', 'exercise_logs', 'workout_day_name', 'plan_name'
+            'is_completed', 'motivo_cierre', 'trainer_notes', 'exercise_logs',
+            'workout_day_name', 'plan_name', 'detalle_iniciado',
         )
-        read_only_fields = ('id', 'started_at', 'completed_at', 'is_completed')
+        read_only_fields = (
+            'id', 'started_at', 'completed_at', 'is_completed',
+            'motivo_cierre', 'detalle_iniciado',
+        )
 
 
 class CreateWorkoutSessionSerializer(serializers.Serializer):

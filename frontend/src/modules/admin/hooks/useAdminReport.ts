@@ -7,15 +7,16 @@ export function useAdminReport(filters: ReportFilters) {
   return useQuery({
     queryKey: QUERY_KEYS.ADMIN_REPORT(filters as unknown as Record<string, string>),
     queryFn: () => adminApi.report(filters),
-    refetchInterval: 60_000,
+    staleTime: 120_000,
   })
 }
 
-export function useAdminDashboard() {
+export function useAdminDashboard(enabled = true) {
   return useQuery({
     queryKey: QUERY_KEYS.ADMIN_DASHBOARD,
     queryFn: adminApi.dashboard,
-    refetchInterval: 60_000,
+    staleTime: 120_000,
+    enabled,
   })
 }
 

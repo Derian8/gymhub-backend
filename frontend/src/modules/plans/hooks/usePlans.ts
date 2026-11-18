@@ -100,12 +100,21 @@ export function useTrainingTemplatesQuery(enabled = true) {
   })
 }
 
+export function useTrainingTemplateSummariesQuery(params: Record<string, string>, enabled = true) {
+  return useQuery({
+    queryKey: ['plan-template-summaries', params],
+    queryFn: () => plansApi.trainingTemplateSummaries(params),
+    enabled,
+  })
+}
+
 export function useCreateTrainingTemplateMutation() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (payload: TrainingTemplatePayload) => plansApi.createTrainingTemplate(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_TEMPLATES })
+      queryClient.invalidateQueries({ queryKey: ['plan-template-summaries'] })
       toast.success('Rutina guardada en la biblioteca')
     },
     onError: (error) => toast.error(extractApiError(error)),
@@ -152,6 +161,8 @@ export function useQuickRoutineAssignmentMutation() {
     onSuccess: (plan) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN_DASHBOARD })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLANS })
+      queryClient.invalidateQueries({ queryKey: ['plan-template-summaries'] })
+      queryClient.invalidateQueries({ queryKey: ['assignment-state', plan.member] })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLANS_SUMMARY })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERS })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_DETAIL(plan.member) })
@@ -483,6 +494,7 @@ export function useSavePlanAsTemplateMutation(memberId?: number) {
     mutationFn: ({ planId, payload }: { planId: number; payload?: Record<string, unknown> }) => plansApi.savePlanAsTemplate(planId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_TEMPLATES })
+      queryClient.invalidateQueries({ queryKey: ['plan-template-summaries'] })
       if (memberId) {
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_PROGRAM(memberId) })
       }
@@ -514,10 +526,11 @@ export function useUpdateTrainingTemplateMutation() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ templateId, payload }: { templateId: number; payload: TrainingTemplateUpdatePayload }) =>
+    mutationFn: ({ templateId, payload }: { templateId: number; payload: Partial<TrainingTemplateUpdatePayload> }) =>
       plansApi.updateTrainingTemplate(templateId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_TEMPLATES })
+      queryClient.invalidateQueries({ queryKey: ['plan-template-summaries'] })
       toast.success('Plantilla de entrenamiento actualizada')
     },
     onError: (error) => toast.error(extractApiError(error)),

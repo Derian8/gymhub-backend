@@ -5,7 +5,7 @@ from django.db.models import Count, Q
 from django.utils import timezone
 
 from attendance.models import Attendance
-from billing.services import current_member_membership, refresh_membership_status
+from billing.services import current_member_membership, refresh_membership_status, obtener_estado_cliente
 from users.models import MemberProfile
 
 from .models import (
@@ -60,7 +60,7 @@ def active_membership_status(member, today=None):
 
 def has_active_membership(member, today=None):
     status, subscription = active_membership_status(member, today=today)
-    return status in {'active', 'expiring'}, subscription
+    return obtener_estado_cliente(member, subscription, on_date=today) == 'membresia_activa', subscription
 
 
 def has_current_justified_absence(member, today=None):
@@ -168,6 +168,7 @@ def alert_context(alert, today=None):
         'member_phone': member.phone,
         'member_photo': member.photo.url if member.photo else None,
         'membership_status': status,
+        'estado_cliente': obtener_estado_cliente(member, subscription, on_date=today),
         'membership_name': subscription.membership_name if subscription else None,
         'membership_end_date': subscription.current_period_end.isoformat() if subscription and subscription.current_period_end else None,
         'days_inactive': days_inactive,
@@ -380,7 +381,7 @@ def filter_alerts(queryset, params):
             context = alert_context(alert, today=today)
             if priority_filter != 'all' and context['priority'] != priority_filter:
                 continue
-            if membership_filter != 'all' and context['membership_status'] != membership_filter:
+            if membership_filter != 'all' and membership_filter not in (context['membership_status'], context['estado_cliente']):
                 continue
             ids.append(alert.id)
         queryset = queryset.filter(id__in=ids)

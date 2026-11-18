@@ -1,3 +1,4 @@
+import { obtenerEstadoMembresia } from '@/shared/lib/estadoMembresia'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -48,22 +49,9 @@ export function MemberDashboard() {
     [activePrescription?.dias],
   )
 
-  const membershipExpiring = data?.payment_status === 'pending' && data.days_until_due != null && data.days_until_due <= 7
-  const membershipBadge = data?.payment_status === 'paid'
-    ? { variant: 'success' as const, label: 'Membresía vigente' }
-    : data?.payment_status === 'late'
-      ? { variant: 'error' as const, label: 'Membresía vencida' }
-      : membershipExpiring
-        ? { variant: 'warning' as const, label: 'Membresía por vencer' }
-        : { variant: 'warning' as const, label: 'Membresía por confirmar' }
-  const membershipTone = data?.payment_status === 'paid' ? 'success' : data?.payment_status === 'late' ? 'danger' : 'warning'
-  const membershipHelp = data?.payment_status === 'paid'
-    ? (data.days_until_due != null ? `${data.days_until_due} día(s) restantes antes del próximo vencimiento.` : 'Tu acceso comercial está al día.')
-    : data?.payment_status === 'late'
-      ? (data.days_overdue != null ? `${data.days_overdue} día(s) de atraso. Contacta al gym o registra el pago para regularizarla.` : 'Hay un cobro vencido pendiente.')
-      : membershipExpiring
-        ? `Tu membresía vence en ${data.days_until_due} día(s). Renueva esta semana para mantener tu acceso.`
-        : (data?.days_until_due != null ? `${data.days_until_due} día(s) restantes antes del próximo vencimiento.` : 'Consulta con tu administrador si necesitas actualizar la membresía.')
+  const membershipBadge = obtenerEstadoMembresia(data)
+  const membershipTone = membershipBadge.estado === 'membresia_activa' ? 'success' : 'danger'
+  const membershipHelp = membershipBadge.detail
 
   const membershipHero = (
     <section className="card relative overflow-hidden p-6 md:p-8" data-testid="card-membership">

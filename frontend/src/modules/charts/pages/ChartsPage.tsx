@@ -1,3 +1,4 @@
+import { ESTADOS_CLIENTE } from '@/shared/lib/estadoMembresia'
 import { useMemo, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { Link } from 'react-router-dom'
@@ -46,14 +47,9 @@ const PAYMENT_LABELS: Record<string, string> = {
   sin_dato: 'Sin dato',
 }
 
-const MEMBERSHIP_LABELS: Record<string, string> = {
-  active: 'Activa',
-  expiring: 'Próxima a vencer',
-  expired: 'Vencida',
-  suspended: 'Suspendida',
-  pending: 'Pendiente',
-  none: 'Sin membresía',
-}
+const MEMBERSHIP_LABELS: Record<string, string> = Object.fromEntries(
+  Object.entries(ESTADOS_CLIENTE).map(([estado, datos]) => [estado, datos.label]),
+)
 
 const FOLLOWUP_LABELS: Record<string, string> = {
   ok: 'Al día',
@@ -378,10 +374,9 @@ function TrainerChartsView({
               data-testid="trainer-chart-membership"
             >
               <option value="all">Todas</option>
-              <option value="active">Activa</option>
-              <option value="expiring">Próxima a vencer</option>
-              <option value="expired">Vencida</option>
-              <option value="suspended">Suspendida</option>
+              <option value="membresia_activa">Membresía activa</option>
+              <option value="membresia_inactiva">Membresía inactiva</option>
+              <option value="cliente_inactivo">Cliente inactivo (+30 días)</option>
             </select>
           </label>
           <label className="space-y-1">

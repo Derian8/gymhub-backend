@@ -1,86 +1,61 @@
-# Infraestructura De Feria
+# Infraestructura de feria
 
-## Arquitectura Actual
+## Arquitectura actual — 2026-11-18
 
 ```mermaid
 flowchart LR
-    U[Visitante] --> D[pulsocr.me]
-    D --> V[Vercel<br/>Frontend React/Vite]
-    V -->|rewrites /auth /api /health /media| R[Render Free<br/>gymhub-api-feria]
-    R --> S[Supabase Free<br/>PostgreSQL]
-    R --> C[Cache local<br/>locmem://]
-    W[Windows Task Scheduler<br/>Pulso-Render-KeepAlive] -->|cada 10 minutos| D
-    N[Namecheap DNS<br/>pulsocr.me] --> D
+    U[Visitante] --> V[Vercel: React/Vite]
+    V -->|rewrites del mismo origen| B[Vercel: Django]
+    B --> D[Supabase: PostgreSQL]
+    B --> S[Supabase: Storage privado]
+    U -->|URLs firmadas para imágenes| S
+    C[Vercel Cron diario] --> B
 ```
-
-## Componentes
 
 | Componente | Servicio | Uso |
 |---|---|---|
 | Dominio y DNS | Namecheap | `pulsocr.me` y `www.pulsocr.me` |
-| Frontend | Vercel | Aplicación React/Vite |
-| Rewrites | [`frontend/vercel.json`](../frontend/vercel.json) | Enruta las rutas del frontend hacia Render |
-| Backend | Render Free | Django, Gunicorn y Docker |
-| Base de datos | Supabase Free | PostgreSQL mediante Session Pooler |
-| Cache y tareas | Render local | `locmem://`, sin Redis/Celery persistentes |
-| Keep-alive | Windows | Ping a `/health/ready/` cada 10 minutos |
+| Frontend y API | Vercel Hobby | React/Vite y Django |
+| Rewrites | [Configuración del frontend](../frontend/vercel.json) | API Vercel bajo el dominio público |
+| Base de datos | Supabase Free | Transaction Pooler, SSL, pool local de 0–1 conexiones |
+| Fotos, logos y QR de pago | Supabase Storage | Bucket privado `gymhub-media`, máximo 2 MB, firmas S3 v4 |
+| Caché y tokens QR | PostgreSQL | Caché compartida y consumo transaccional del QR |
+| Mantenimiento | Vercel Cron | Membresías, planes programados, inactividad y limpieza |
+| IA | Django | Proveedor determinista |
 
-## Flujo De Una Petición
+## URLs
 
-1. El visitante abre `https://pulsocr.me`.
-2. Vercel entrega el frontend.
-3. Las rutas `/auth/*`, `/api/*`, `/health/*` y `/media/*` se reescriben hacia
-   `https://gymhub-api-feria.onrender.com`.
-4. Django consulta Supabase PostgreSQL cuando la operación lo requiere.
-5. Render responde a través del mismo dominio público de Pulso.
+- Sitio: https://www.pulsocr.me
+- API: https://proyectoappgym-backend.vercel.app
+- Salud pública: https://www.pulsocr.me/health/ready/
+- Documentación API: https://www.pulsocr.me/api/docs/
 
-## URLs Operativas
+Render dejó de ser el destino de los rewrites. Su servicio y [Blueprint](../render.yaml)
+se conservan como referencia del despliegue anterior. El keep-alive de Windows
+ya no es necesario; su tarea debe permanecer deshabilitada.
 
-- Frontend: `https://pulsocr.me`
-- API Render: `https://gymhub-api-feria.onrender.com`
-- Health público: `https://pulsocr.me/health/ready/`
-- Esquema API: `https://pulsocr.me/api/schema/`
-- Dashboard Render: servicio `gymhub-api-feria`
-- Proyecto Supabase: `GymApp`
+## Validación
 
-## Secretos Y Archivos Locales
+Se probaron login de administrador y cliente, perfiles, QR persistente, gráficas,
+subida de foto por la API pública, lectura posterior, URL firmada y rechazo sin
+firma. Los datos de prueba de fotos fueron retirados y el perfil demo restaurado.
+El mantenimiento protegido respondió HTTP 200. El esquema API, la base, la caché,
+los rewrites, el bundle y la CSP pasaron la validación pública.
 
-- Contraseña de Supabase: `.secrets/supabase-password.txt`
-- La carpeta `.secrets/` está excluida por [`.gitignore`](../.gitignore).
-- La contraseña nunca debe escribirse en documentación versionada, GitHub,
-  capturas ni mensajes.
-- El archivo [`render.yaml`](../render.yaml) declara `DATABASE_URL` como
-  `sync: false`; el valor real se mantiene en las variables privadas de Render.
+## Cuotas observadas en Supabase
 
-## Keep-Alive De Windows
+Dashboard de la organización, ciclo 16 noviembre–16 diciembre 2026:
 
-La tarea `Pulso-Render-KeepAlive` se inicia al iniciar sesión en Windows y
-ejecuta [`tools/keep-render-awake.ps1`](../tools/keep-render-awake.ps1).
+- Plan Free, sin sobrepasar cuotas.
+- Base: 0.034 / 0.5 GB (7 %).
+- Egress: 0.024 / 5 GB.
+- Egress con caché: 0 / 5 GB.
+- Storage: 0 / 1 GB según la actualización del dashboard.
 
-- Intervalo: 10 minutos.
-- Endpoint: `https://www.pulsocr.me/health/ready/`.
-- Registro: `logs/render-keepalive.log`.
-- Requiere que la PC esté encendida y conectada.
-- Si la PC permanece apagada, Render puede entrar en suspensión.
+El dashboard advierte que puede tardar una hora en actualizarse. Las sesiones
+Django no se contabilizan como usuarios de Supabase Auth. Las cuotas de Vercel
+siguen requiriendo consultar su dashboard; no inferir consumo cero del error
+`costs_not_found` de la API de facturación.
 
-Para consultar la tarea:
-
-```powershell
-Get-ScheduledTask -TaskName 'Pulso-Render-KeepAlive'
-```
-
-Para eliminarla:
-
-```powershell
-Unregister-ScheduledTask -TaskName 'Pulso-Render-KeepAlive' -Confirm:$false
-```
-
-## Limitaciones Conocidas
-
-- Render Free puede suspender el servicio tras inactividad y la primera
-  petición puede tardar aproximadamente 50 segundos.
-- El keep-alive de Windows no funciona con la PC apagada.
-- Vercel se conserva como respaldo de emergencia, pero el rewrite activo apunta
-  a Render.
-- Redis, Celery Worker y Celery Beat persistentes no forman parte del entorno
-  gratuito de feria.
+Ver [operación del retorno](RETORNO_VERCEL_SUPABASE.md) y
+[guía Supabase/Vercel](SUPABASE_VERCEL.md).

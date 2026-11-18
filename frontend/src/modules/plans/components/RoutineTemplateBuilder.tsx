@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type React from 'react'
+import { Link } from 'react-router-dom'
 import { Copy, Plus, Trash2, X } from 'lucide-react'
 import { GOAL_LABELS, MUSCLE_GROUP_OPTIONS } from '@/shared/lib/utils'
 import type {
@@ -82,9 +83,10 @@ interface RoutineTemplateBuilderProps {
   template?: TrainingTemplate | null
   onSaved?: (template: TrainingTemplate) => void
   assignAfterSave?: boolean
+  modoPagina?: boolean
 }
 
-export function RoutineTemplateBuilder({ open, onClose, template, onSaved, assignAfterSave = false }: RoutineTemplateBuilderProps) {
+export function RoutineTemplateBuilder({ open, onClose, template, onSaved, assignAfterSave = false, modoPagina = false }: RoutineTemplateBuilderProps) {
   const [nombre, setNombre] = useState('')
   const [descripcion, setDescripcion] = useState('')
   const [objetivo, setObjetivo] = useState<GoalType>('general')
@@ -100,6 +102,7 @@ export function RoutineTemplateBuilder({ open, onClose, template, onSaved, assig
   const guardando = crear.isPending || actualizar.isPending
   const ejerciciosTotales = dias.reduce((total, dia) => total + dia.ejercicios.length, 0)
   const catalogo = useMemo(() => catalogoQuery.data?.results ?? [], [catalogoQuery.data])
+  const opcionesCatalogo = catalogo.slice(0, 40)
   const maquinas = (maquinasQuery.data?.results ?? []).filter((maquina) => maquina.is_active)
 
   useEffect(() => {
@@ -134,7 +137,7 @@ export function RoutineTemplateBuilder({ open, onClose, template, onSaved, assig
       nivel_adherencia_recomendado: nivel,
       dias_por_semana_sugeridos: diasPorSemana,
       modo_ejecucion: modo,
-      esta_activa: true,
+      esta_activa: template?.esta_activa ?? true,
       dias: dias.map((dia, index) => ({
         ...dia,
         orden: index,
@@ -158,13 +161,14 @@ export function RoutineTemplateBuilder({ open, onClose, template, onSaved, assig
   ))
 
   return (
-    <div className="fixed inset-0 z-[60] overflow-y-auto bg-neutral-950/70 p-3 sm:p-6" role="dialog" aria-modal="true" aria-label={template ? 'Editar rutina' : 'Crear rutina'}>
-      <div className="mx-auto max-w-6xl rounded-2xl border border-neutral-200 bg-white shadow-2xl dark:border-neutral-800 dark:bg-neutral-950">
+    <div className={modoPagina ? 'page-enter mx-auto max-w-6xl pb-8' : 'fixed inset-0 z-[60] overflow-y-auto bg-neutral-950/70 p-3 sm:p-6'} role={modoPagina ? undefined : 'dialog'} aria-modal={modoPagina ? undefined : true} aria-label={template ? 'Editar rutina' : 'Crear rutina'}>
+      <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
         <header className="sticky top-0 z-10 flex items-start justify-between gap-4 rounded-t-2xl border-b border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
           <div>
             <p className="label-base">Biblioteca de rutinas</p>
             <h2 className="mt-1 font-heading text-2xl font-bold">{template ? 'Editar rutina' : 'Crear rutina desde cero'}</h2>
             <p className="mt-1 text-sm text-neutral-500">Diseña una vez, guárdala y úsala para varios clientes.</p>
+            {modoPagina && <Link className="mt-2 inline-block text-sm font-semibold text-primary" to="/routines/exercises" target="_blank" rel="noreferrer">Gestionar catálogo de ejercicios ↗</Link>}
           </div>
           <button type="button" className="btn-secondary !p-2" aria-label="Cerrar" onClick={onClose}><X size={18} /></button>
         </header>
@@ -232,8 +236,8 @@ export function RoutineTemplateBuilder({ open, onClose, template, onSaved, assig
                               } : { catalogo_ejercicio: null, catalogo_detalle: null })
                             }}>
                               <option value="">Ejercicio manual</option>
-                              {selectedCatalog && !catalogo.some((item) => item.id === selectedCatalog.id) ? <option value={selectedCatalog.id}>{selectedCatalog.nombre}</option> : null}
-                              {catalogo.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
+                              {selectedCatalog && !opcionesCatalogo.some((item) => item.id === selectedCatalog.id) ? <option value={selectedCatalog.id}>{selectedCatalog.nombre}</option> : null}
+                              {opcionesCatalogo.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
                             </select>
                             <div className="mt-2 flex items-center gap-3 rounded-lg border border-neutral-200 p-2 dark:border-neutral-700">
                               {imagen ? <img className="h-16 w-16 rounded-lg object-cover" src={imagen} alt={`Referencia visual de ${ejercicio.nombre || selectedCatalog?.nombre || 'ejercicio'}`} onError={(event) => { event.currentTarget.style.display = 'none' }} /> : <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-center text-[10px] font-semibold text-primary">Sin imagen asociada</span>}

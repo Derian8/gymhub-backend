@@ -4,13 +4,13 @@ from django.core.exceptions import ValidationError
 from PIL import Image, UnidentifiedImageError
 
 
-MAX_IMAGE_UPLOAD_BYTES = 5 * 1024 * 1024
+MAX_IMAGE_UPLOAD_BYTES = 2 * 1024 * 1024
 ALLOWED_IMAGE_FORMATS = frozenset({'JPEG', 'PNG', 'WEBP'})
 
 
 def validate_image_upload(uploaded_file):
     if uploaded_file.size > MAX_IMAGE_UPLOAD_BYTES:
-        raise ValidationError('La imagen no puede superar los 5 MB.')
+        raise ValidationError('La imagen no puede superar los 2 MB.')
 
     try:
         image = Image.open(uploaded_file)

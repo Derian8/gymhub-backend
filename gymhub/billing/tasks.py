@@ -13,12 +13,18 @@ logger = logging.getLogger(__name__)
 def run_daily_membership_maintenance():
     from billing.services import run_daily_billing_maintenance
     from plans.tasks import activar_planes_programados
+    from alerts.tasks import check_member_inactivity
+    from attendance.models import TokenAccesoQr
+    from django.core.management import call_command
 
     result = run_daily_billing_maintenance()
     training_plans = activar_planes_programados()
     membership_alerts = check_membership_status_alerts()
     upcoming = check_upcoming_payments()
     overdue = check_overdue_payments()
+    inactivity = check_member_inactivity()
+    tokens_eliminados, _ = TokenAccesoQr.objects.filter(vence_en__lte=timezone.now()).delete()
+    call_command('flushexpiredtokens', verbosity=0)
     return {
         **result,
         'records_updated': overdue['updated'],
@@ -26,6 +32,8 @@ def run_daily_membership_maintenance():
         'upcoming_notifications': upcoming['notifications_created'],
         'overdue_notifications': overdue['notifications_created'],
         'scheduled_plans_activated': training_plans['activated'],
+        'inactivity_alerts_created': inactivity['alerts_created'],
+        'qr_tokens_deleted': tokens_eliminados,
     }
 
 

@@ -1,3 +1,4 @@
+import { obtenerEstadoMembresia } from '@/shared/lib/estadoMembresia'
 import React, { useEffect, useMemo, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, CalendarClock, CheckCircle, Dumbbell, Flame, Loader2, NotebookTabs, Play, Target } from 'lucide-react'
@@ -524,7 +525,7 @@ function TodayWorkoutPageContent() {
         >
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex items-start gap-3">
-              <SymbolFrame size="md" tone={dashboardSummary?.payment_status === 'late' ? 'danger' : dashboardSummary?.payment_status === 'paid' ? 'success' : 'warning'}>
+              <SymbolFrame size="md" tone={obtenerEstadoMembresia(dashboardSummary).estado === 'membresia_activa' ? 'success' : 'danger'}>
                 <CalendarClock size={18} />
               </SymbolFrame>
               <div>
@@ -533,8 +534,8 @@ function TodayWorkoutPageContent() {
                   {dashboardSummary?.membership_plan_name || 'Sin membresía asignada'}
                 </h2>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <Badge variant={dashboardSummary?.payment_status === 'paid' ? 'success' : dashboardSummary?.payment_status === 'late' ? 'error' : 'warning'}>
-                    {dashboardSummary?.payment_status === 'paid' ? 'Vigente' : dashboardSummary?.payment_status === 'late' ? 'Vencida' : 'Pendiente'}
+                  <Badge variant={obtenerEstadoMembresia(dashboardSummary).variant}>
+                    {obtenerEstadoMembresia(dashboardSummary).label}
                   </Badge>
                   <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">
                     {dashboardSummary?.membership_access_allowed ? 'Acceso permitido' : 'Acceso requiere revisión'}

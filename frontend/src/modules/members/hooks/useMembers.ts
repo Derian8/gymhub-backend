@@ -10,11 +10,13 @@ interface MembersParams {
   search?: string
   payment_status?: string
   commercial_status?: string
+  estado_cliente?: string
   inactivity?: string
   risk_level?: string
   prescription_status?: string
   ordering?: string
   page?: number
+  page_size?: number
 }
 
 export function useMembersQuery(params?: MembersParams, enabled = true) {

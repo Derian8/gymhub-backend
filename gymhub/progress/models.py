@@ -48,7 +48,7 @@ class WorkoutSession(models.Model):
     )
     workout_day = models.ForeignKey(
         'plans.WorkoutDay',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='sessions'
     )
     attendance = models.ForeignKey(
@@ -65,6 +65,15 @@ class WorkoutSession(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(5)]
     )
     is_completed = models.BooleanField(default=False)
+    motivo_cierre = models.CharField(
+        max_length=12, blank=True,
+        choices=[
+            ('automatica', 'Automática'),
+            ('anticipada', 'Anticipada'),
+            ('manual', 'Manual'),
+        ],
+    )
+    detalle_iniciado = models.JSONField(default=dict, blank=True)
     trainer_notes = models.TextField(blank=True)
 
     class Meta:
@@ -73,6 +82,30 @@ class WorkoutSession(models.Model):
             models.Index(fields=['member', 'is_completed', 'started_at']),
             models.Index(fields=['workout_day', 'started_at']),
         ]
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.workout_day_id and not self.detalle_iniciado:
+            dia = self.workout_day
+            self.detalle_iniciado = {
+                'plan_nombre': dia.plan.name,
+                'dia_nombre': dia.name,
+                'ejercicios': [
+                    {
+                        'id': ejercicio.id,
+                        'nombre': ejercicio.name,
+                        'tipo': ejercicio.exercise_type,
+                        'series': ejercicio.sets,
+                        'repeticiones': ejercicio.reps_range,
+                        'minutos': ejercicio.target_minutes,
+                        'descanso_segundos': ejercicio.rest_seconds,
+                        'peso_sugerido_kg': ejercicio.weight_suggestion_kg,
+                        'notas_tecnicas': ejercicio.technique_notes,
+                        'catalogo': ejercicio.detalle_catalogo_asignado,
+                    }
+                    for ejercicio in dia.exercises.order_by('order', 'id')
+                ],
+            }
+        return super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.member} — {self.workout_day} @ {self.started_at.date()}"
@@ -86,7 +119,7 @@ class ExerciseLog(models.Model):
     )
     exercise = models.ForeignKey(
         'plans.Exercise',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='logs'
     )
     sets_completed = models.PositiveIntegerField(default=0)

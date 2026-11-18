@@ -18,6 +18,8 @@ import type {
   DuplicateWorkoutDayPayload,
   ExercisePayload,
   TrainingTemplate,
+  TrainingTemplateSummary,
+  RoutineAssignmentState,
   TrainingTemplatePayload,
   CompleteTrainingPlanPayload,
   TrainingPlansSummary,
@@ -26,6 +28,10 @@ import type {
 } from '@/shared/types'
 
 export const plansApi = {
+  assignmentState: async (memberId: number): Promise<RoutineAssignmentState> => {
+    const { data } = await apiClient.get('/api/plans/assignment-state/', { params: { member_id: memberId } })
+    return data
+  },
   list: async (params?: Record<string, string>): Promise<PaginatedResponse<TrainingPlan>> => {
     const { data } = await apiClient.get('/api/plans/', { params })
     return data
@@ -78,6 +84,21 @@ export const plansApi = {
 
   catalogExercises: async (params?: Record<string, string>): Promise<PaginatedResponse<CatalogExercise>> => {
     const { data } = await apiClient.get('/api/catalogo-ejercicios/', { params })
+    return data
+  },
+
+  catalogExercise: async (id: number): Promise<CatalogExercise> => {
+    const { data } = await apiClient.get(`/api/catalogo-ejercicios/${id}/`)
+    return data
+  },
+
+  createCatalogExercise: async (payload: Partial<CatalogExercise>): Promise<CatalogExercise> => {
+    const { data } = await apiClient.post('/api/catalogo-ejercicios/', payload)
+    return data
+  },
+
+  updateCatalogExercise: async (id: number, payload: Partial<CatalogExercise>): Promise<CatalogExercise> => {
+    const { data } = await apiClient.patch(`/api/catalogo-ejercicios/${id}/`, payload)
     return data
   },
 
@@ -183,7 +204,30 @@ export const plansApi = {
   },
 
   trainingTemplates: async (): Promise<PaginatedResponse<TrainingTemplate>> => {
-    const { data } = await apiClient.get('/api/plan-templates/')
+    const results: TrainingTemplate[] = []
+    let page = 1
+    let response: PaginatedResponse<TrainingTemplate>
+    do {
+      const { data } = await apiClient.get<PaginatedResponse<TrainingTemplate>>('/api/plan-templates/', { params: { page } })
+      response = data
+      results.push(...data.results)
+      page += 1
+    } while (response.next)
+    return { ...response, results, next: null }
+  },
+
+  trainingTemplateSummaries: async (params: Record<string, string>): Promise<PaginatedResponse<TrainingTemplateSummary>> => {
+    const { data } = await apiClient.get('/api/plan-templates/', { params: { ...params, resumen: '1' } })
+    return data
+  },
+
+  trainingTemplate: async (id: number): Promise<TrainingTemplate> => {
+    const { data } = await apiClient.get(`/api/plan-templates/${id}/`)
+    return data
+  },
+
+  templateClients: async (id: number, historial = false, page = 1): Promise<PaginatedResponse<TrainingPlan>> => {
+    const { data } = await apiClient.get(`/api/plan-templates/${id}/clientes/`, { params: { historial: historial ? 1 : 0, page } })
     return data
   },
 
@@ -202,7 +246,7 @@ export const plansApi = {
     return data
   },
 
-  updateTrainingTemplate: async (templateId: number, payload: TrainingTemplateUpdatePayload): Promise<TrainingTemplate> => {
+  updateTrainingTemplate: async (templateId: number, payload: Partial<TrainingTemplateUpdatePayload>): Promise<TrainingTemplate> => {
     const { data } = await apiClient.patch(`/api/plan-templates/${templateId}/`, payload)
     return data
   },

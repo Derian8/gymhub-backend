@@ -2,7 +2,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.middleware.csrf import get_token
-from django.db.models import Q, Case, When, IntegerField, Prefetch
+from django.db.models import Q, Case, When, IntegerField, Prefetch, OuterRef, Subquery, Exists, Value
 from django.utils import timezone
 from django.utils.text import slugify
 import secrets
@@ -10,6 +10,7 @@ from rest_framework import status, viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.exceptions import MethodNotAllowed, PermissionDenied, ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.authentication import SessionAuthentication
@@ -21,7 +22,7 @@ from progress.services import build_member_physical_summary
 from billing.models import MemberSubscription
 from billing.serializers import MemberMembershipSerializer, PaymentRecordSerializer
 from billing.services import default_grace_days, initialize_subscription, mark_payment_paid
-from .models import MemberProfile, PerfilGimnasio
+from .models import ConfiguracionSistema, MemberProfile, PerfilGimnasio
 from .audit import registrar_auditoria
 from .permissions import (
     IsAdministrator,
@@ -38,14 +39,20 @@ from .serializers import (
 from .prescription_services import get_member_prescription_summary
 from .services import (
     annotate_member_metrics,
+    anotar_prioridad_clientes,
+    anotar_estado_clientes,
     get_active_prescription,
     get_member_dashboard_summary,
-    get_member_prescription_status,
-    get_member_risk_snapshot,
     get_admin_overview,
 )
 
 User = get_user_model()
+
+
+class PaginacionClientes(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 
 class LoginThrottle(AnonRateThrottle):
@@ -309,6 +316,7 @@ class MemberViewSet(viewsets.ModelViewSet):
     Filtros: ?search= ?payment_status= ?inactivity=
     """
     serializer_class = MemberProfileSerializer
+    pagination_class = PaginacionClientes
     filter_backends = [filters.SearchFilter]
     search_fields = ['user__email', 'user__first_name', 'user__last_name', 'phone']
 
@@ -432,7 +440,15 @@ class MemberViewSet(viewsets.ModelViewSet):
                 'subscriptions',
                 queryset=MemberSubscription.objects.select_related('plan').order_by('-is_active', '-start_date', '-id'),
             ),
+        ).annotate(
+            exigir_cambio_contrasena_cliente_cache=Subquery(
+                ConfiguracionSistema.objects.filter(pk=1).values(
+                    'exigir_cambio_contrasena_cliente',
+                )[:1],
+            ),
         ).order_by('id'))
+
+        qs = anotar_estado_clientes(qs)
 
         # El contexto cliente siempre queda limitado al perfil personal.
         if usa_contexto_cliente(self.request):
@@ -452,11 +468,32 @@ class MemberViewSet(viewsets.ModelViewSet):
         prescription_status = self.request.query_params.get('prescription_status')
         ordering = self.request.query_params.get('ordering')
 
+        estado_cliente = self.request.query_params.get('estado_cliente')
+        if estado_cliente in (
+            'membresia_activa', 'membresia_inactiva', 'cliente_inactivo',
+        ):
+            qs = qs.filter(estado_cliente_cache=estado_cliente)
+
         if payment_status:
             from billing.models import PaymentRecord
-            member_ids = PaymentRecord.objects.filter(
-                status=payment_status
-            ).values_list('schedule__member_id', flat=True).distinct()
+            cobros = PaymentRecord.objects.filter(schedule__is_active=True)
+            if payment_status == 'overdue':
+                cobros = cobros.filter(
+                    status__in=['pending', 'late'],
+                    schedule__due_date__lt=timezone.localdate(),
+                )
+            elif payment_status == 'due_soon':
+                from datetime import timedelta
+                cobros = cobros.filter(
+                    status='pending',
+                    schedule__due_date__range=(
+                        timezone.localdate(),
+                        timezone.localdate() + timedelta(days=7),
+                    ),
+                )
+            else:
+                cobros = cobros.filter(status=payment_status)
+            member_ids = cobros.values_list('schedule__member_id', flat=True).distinct()
             qs = qs.filter(id__in=member_ids)
 
         if commercial_status == 'al_dia':
@@ -464,6 +501,7 @@ class MemberViewSet(viewsets.ModelViewSet):
             from billing.services import membership_access
             overdue_ids = set(PaymentRecord.objects.filter(
                 status__in=['pending', 'late'],
+                schedule__is_active=True,
                 schedule__due_date__lt=timezone.localdate(),
             ).values_list('schedule__member_id', flat=True))
             current_ids = [
@@ -483,42 +521,56 @@ class MemberViewSet(viewsets.ModelViewSet):
             ).values_list('member_id', flat=True).distinct()
             qs = qs.exclude(id__in=active_member_ids)
 
-        if risk_level in ('low', 'medium', 'high'):
-            ids = [member.id for member in qs if get_member_risk_snapshot(member)['nivel_riesgo'] == risk_level]
-            qs = qs.filter(id__in=ids)
+        if (
+            risk_level in ('low', 'medium', 'high')
+            or prescription_status in ('sin_plan', 'incompleta', 'lista')
+            or ordering in ('riesgo_desc', 'riesgo_asc', 'prescripcion')
+        ):
+            qs = anotar_prioridad_clientes(qs)
+
+        if risk_level == 'high':
+            qs = qs.filter(puntuacion_riesgo__gte=70)
+        elif risk_level == 'medium':
+            qs = qs.filter(puntuacion_riesgo__gte=35, puntuacion_riesgo__lt=70)
+        elif risk_level == 'low':
+            qs = qs.filter(puntuacion_riesgo__lt=35)
 
         if prescription_status in ('sin_plan', 'incompleta', 'lista'):
-            ids = [member.id for member in qs if get_member_prescription_status(member)['estado'] == prescription_status]
-            qs = qs.filter(id__in=ids)
+            prioridad = {'sin_plan': 0, 'incompleta': 1, 'lista': 2}
+            qs = qs.filter(prioridad_prescripcion=prioridad[prescription_status])
 
-        if ordering in ('riesgo_desc', 'riesgo_asc', 'prescripcion'):
-            if ordering == 'prescripcion':
-                priority = {'sin_plan': 0, 'incompleta': 1, 'lista': 2}
-                sorted_ids = [
-                    member.id for member in sorted(
-                        qs,
-                        key=lambda member: (
-                            priority[get_member_prescription_status(member)['estado']],
-                            -(get_member_risk_snapshot(member)['riesgo_adherencia']),
-                            member.id,
-                        ),
-                    )
-                ]
-            else:
-                reverse = ordering == 'riesgo_desc'
-                sorted_ids = [
-                    member.id for member in sorted(
-                        qs,
-                        key=lambda member: get_member_risk_snapshot(member)['riesgo_adherencia'],
-                        reverse=reverse,
-                    )
-                ]
-            if sorted_ids:
-                preserve_order = Case(
-                    *[When(id=member_id, then=position) for position, member_id in enumerate(sorted_ids)],
+        if ordering == 'cobro':
+            from datetime import timedelta
+            from billing.models import PaymentRecord
+
+            siguiente_cobro = PaymentRecord.objects.filter(
+                schedule__member_id=OuterRef('pk'),
+                schedule__is_active=True,
+                status__in=['pending', 'late'],
+            ).order_by('schedule__due_date', 'id')
+            qs = qs.annotate(
+                id_cobro_abierto=Subquery(siguiente_cobro.values('id')[:1]),
+                fecha_cobro=Subquery(siguiente_cobro.values('schedule__due_date')[:1]),
+                estado_cobro=Subquery(siguiente_cobro.values('status')[:1]),
+                tiene_suscripcion=Exists(MemberSubscription.objects.filter(
+                    member_id=OuterRef('pk'), is_active=True,
+                )),
+            ).annotate(
+                prioridad_cobro=Case(
+                    When(Q(estado_cobro='late') | Q(fecha_cobro__lt=timezone.localdate()), then=Value(0)),
+                    When(fecha_cobro__lte=timezone.localdate() + timedelta(days=7), then=Value(1)),
+                    When(fecha_cobro__isnull=False, then=Value(2)),
+                    When(tiene_suscripcion=False, then=Value(3)),
+                    default=Value(4),
                     output_field=IntegerField(),
-                )
-                qs = qs.filter(id__in=sorted_ids).order_by(preserve_order)
+                ),
+            ).order_by('prioridad_cobro', 'fecha_cobro', 'id')
+        elif ordering == 'prescripcion':
+            qs = qs.order_by('prioridad_prescripcion', '-puntuacion_riesgo', 'id')
+        elif ordering == 'riesgo_desc':
+            qs = qs.order_by('-puntuacion_riesgo', 'id')
+        elif ordering == 'riesgo_asc':
+            qs = qs.order_by('puntuacion_riesgo', 'id')
 
         return qs
 

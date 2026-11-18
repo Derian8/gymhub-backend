@@ -10,6 +10,7 @@ function invalidateMembershipViews(queryClient: ReturnType<typeof useQueryClient
   queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PAYMENT_SCHEDULES_ALL })
   queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PAYMENT_RECORDS_ALL })
   queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERS })
+  queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN_DASHBOARD })
   queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TRAINER_OVERVIEW })
   if (memberId) {
     queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_DETAIL(memberId) })
@@ -17,17 +18,19 @@ function invalidateMembershipViews(queryClient: ReturnType<typeof useQueryClient
   }
 }
 
-export function usePaymentRecordsQuery(params?: Record<string, string>) {
+export function usePaymentRecordsQuery(params?: Record<string, string>, enabled = true) {
   return useQuery({
     queryKey: QUERY_KEYS.PAYMENT_RECORDS(params),
     queryFn: () => billingApi.paymentRecords(params),
+    enabled,
   })
 }
 
-export function useMembershipPlansQuery() {
+export function useMembershipPlansQuery(enabled = true) {
   return useQuery({
     queryKey: QUERY_KEYS.MEMBERSHIP_PLANS,
     queryFn: billingApi.membershipPlans,
+    enabled,
   })
 }
 
@@ -53,17 +56,19 @@ export function usePaymentSchedulesQuery(params?: Record<string, string>) {
   })
 }
 
-export function useMemberSubscriptionsQuery(params?: Record<string, string>) {
+export function useMemberSubscriptionsQuery(params?: Record<string, string>, enabled = true) {
   return useQuery({
     queryKey: QUERY_KEYS.MEMBER_SUBSCRIPTIONS(params),
     queryFn: () => billingApi.memberSubscriptions(params),
+    enabled,
   })
 }
 
-export function useMemberMembershipsQuery(params?: Record<string, string>) {
+export function useMemberMembershipsQuery(params?: Record<string, string>, enabled = true) {
   return useQuery({
     queryKey: QUERY_KEYS.MEMBER_MEMBERSHIPS(params),
     queryFn: () => billingApi.memberMemberships(params),
+    enabled,
   })
 }
 

@@ -17,6 +17,11 @@ import { ChangePasswordPage } from '@/modules/auth/pages/ChangePasswordPage'
 import { AdminDashboard } from '@/modules/admin/pages/AdminDashboard'
 import { ReportsPage } from '@/modules/admin/pages/ReportsPage'
 import { AdminRoutinesPage } from '@/modules/admin/pages/AdminRoutinesPage'
+import { RoutineAssignmentPage } from '@/modules/admin/pages/RoutineAssignmentPage'
+import { RoutineEditorPage } from '@/modules/admin/pages/RoutineEditorPage'
+import { RoutineClientsPage } from '@/modules/admin/pages/RoutineClientsPage'
+import { CatalogExercisesPage } from '@/modules/admin/pages/CatalogExercisesPage'
+import { CatalogExerciseEditorPage } from '@/modules/admin/pages/CatalogExerciseEditorPage'
 import { AdminUsersPage } from '@/modules/admin/pages/AdminUsersPage'
 
 // Members
@@ -169,6 +174,13 @@ function App() {
         <Route path="/members/new" element={<ProtectedRoute requiredRole="admin"><NewMemberPage /></ProtectedRoute>} />
 
         <Route path="/routines" element={<ProtectedRoute requiredRole="admin"><AdminRoutinesPage /></ProtectedRoute>} />
+        <Route path="/routines/assign" element={<ProtectedRoute requiredRole="admin"><RoutineAssignmentPage /></ProtectedRoute>} />
+        <Route path="/routines/new" element={<ProtectedRoute requiredRole="admin"><RoutineEditorPage /></ProtectedRoute>} />
+        <Route path="/routines/:id/edit" element={<ProtectedRoute requiredRole="admin"><RoutineEditorPage /></ProtectedRoute>} />
+        <Route path="/routines/:id/clientes" element={<ProtectedRoute requiredRole="admin"><RoutineClientsPage /></ProtectedRoute>} />
+        <Route path="/routines/exercises" element={<ProtectedRoute requiredRole="admin"><CatalogExercisesPage /></ProtectedRoute>} />
+        <Route path="/routines/exercises/new" element={<ProtectedRoute requiredRole="admin"><CatalogExerciseEditorPage /></ProtectedRoute>} />
+        <Route path="/routines/exercises/:id/edit" element={<ProtectedRoute requiredRole="admin"><CatalogExerciseEditorPage /></ProtectedRoute>} />
         <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><AdminUsersPage /></ProtectedRoute>} />
 
         {/* Plans */}
@@ -210,6 +222,7 @@ function App() {
         <Route path="/progress" element={<ProgressPage />} />
         <Route path="/sessions" element={<ProgressPage />} />
         <Route path="/history" element={<ProtectedRoute requiredRole="member"><WorkoutHistoryPage /></ProtectedRoute>} />
+        <Route path="/members/:memberId/history" element={<ProtectedRoute requiredRole="admin"><WorkoutHistoryPage /></ProtectedRoute>} />
 
         {/* Billing */}
         <Route path="/billing" element={<ProtectedRoute requiredRole="admin"><BillingPage /></ProtectedRoute>} />

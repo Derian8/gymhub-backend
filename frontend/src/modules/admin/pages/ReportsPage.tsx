@@ -24,14 +24,18 @@ export function ReportsPage() {
 
   return (
     <div className="page-enter space-y-8">
-      <PageHeader title="Reportes" subtitle="Control comercial y de accesos físicos con exportes del período seleccionado." />
+      <PageHeader
+        title="Reportes"
+        subtitle="Control comercial y de accesos físicos del período seleccionado."
+        accionEnLinea
+        action={<a className="btn-primary" href={adminApi.exportUrl(filters, 'pdf')}><ReceiptText size={16} /><span className="sr-only sm:not-sr-only">Descargar PDF</span></a>}
+      />
       <section className="card flex flex-wrap items-end gap-4 p-5">
         <label><span className="label-base">Desde</span><input className="input-base mt-2 block" type="date" value={filters.fecha_inicio} onChange={(event) => setFilters((current) => ({ ...current, fecha_inicio: event.target.value }))} /></label>
         <label><span className="label-base">Hasta</span><input className="input-base mt-2 block" type="date" value={filters.fecha_fin} onChange={(event) => setFilters((current) => ({ ...current, fecha_fin: event.target.value }))} /></label>
         <div className="ml-auto flex flex-wrap gap-2">
           <a className="btn-secondary" href={adminApi.exportUrl(filters, 'csv', 'pagos')}><Download size={16} /> CSV pagos</a>
           <a className="btn-secondary" href={adminApi.exportUrl(filters, 'csv', 'accesos')}><Download size={16} /> CSV accesos</a>
-          <a className="btn-primary" href={adminApi.exportUrl(filters, 'pdf')}><ReceiptText size={16} /> PDF</a>
         </div>
       </section>
 

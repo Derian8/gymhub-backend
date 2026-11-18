@@ -64,4 +64,53 @@ describe('LoginPage', () => {
     )
     expect(getByTestId('login-submit')).toBeDisabled()
   })
+
+  it('prepara el acceso demo sin iniciar sesión automáticamente', async () => {
+    const user = userEvent.setup()
+    const { getByRole, getByTestId } = renderWithProviders(<LoginPage />)
+    await user.click(getByRole('button', { name: /Accesos demo/ }))
+    await user.click(getByRole('button', { name: 'Usar acceso de administrador' }))
+    expect(getByTestId('email-input')).toHaveValue('admin@gymhub.com')
+    expect(getByTestId('password-input')).toHaveValue('PulsoAdmin2026!')
+    expect(getByTestId('login-submit')).toHaveFocus()
+    expect(loginMock).not.toHaveBeenCalled()
+    await user.click(getByTestId('login-submit'))
+    expect(loginMock).toHaveBeenCalledWith({ email: 'admin@gymhub.com', password: 'PulsoAdmin2026!' })
+  })
+
+  it('prepara las credenciales vigentes del cliente demo', async () => {
+    const user = userEvent.setup()
+    const { getByRole, getByTestId } = renderWithProviders(<LoginPage />)
+    await user.click(getByRole('button', { name: /Accesos demo/ }))
+    await user.click(getByRole('button', { name: 'Usar acceso de cliente' }))
+    expect(getByTestId('email-input')).toHaveValue('member1@gymhub.com')
+    expect(getByTestId('password-input')).toHaveValue('PulsoCliente2026!')
+  })
+
+  it('copia las credenciales demo y confirma la acción', async () => {
+    const user = userEvent.setup()
+    const copiar = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined)
+    const { getByRole } = renderWithProviders(<LoginPage />)
+    await user.click(getByRole('button', { name: /Accesos demo/ }))
+    await user.click(getByRole('button', { name: 'Copiar credenciales de administrador' }))
+    expect(copiar).toHaveBeenCalledWith('Correo: admin@gymhub.com\nContraseña: PulsoAdmin2026!')
+    expect(getByRole('status')).toHaveTextContent('Credenciales de administrador copiadas.')
+  })
+
+  it('permite usar el formulario cuando el navegador rechaza copiar', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValueOnce(new Error('sin permiso'))
+    const { getByRole, getByTestId } = renderWithProviders(<LoginPage />)
+    await user.click(getByRole('button', { name: /Accesos demo/ }))
+    await user.click(getByRole('button', { name: 'Copiar credenciales de administrador' }))
+    expect(getByRole('status')).toHaveTextContent('No se pudo copiar.')
+    await user.click(getByRole('button', { name: 'Usar acceso de administrador' }))
+    expect(getByTestId('email-input')).toHaveValue('admin@gymhub.com')
+  })
+
+  it('mantiene los accesos demo colapsados inicialmente', () => {
+    const { getByRole, queryByRole } = renderWithProviders(<LoginPage />)
+    expect(getByRole('button', { name: /Accesos demo/ })).toHaveAttribute('aria-expanded', 'false')
+    expect(queryByRole('article', { name: 'Acceso demo de administrador' })).not.toBeInTheDocument()
+  })
 })

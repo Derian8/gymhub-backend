@@ -22,6 +22,7 @@ class CatalogoEjercicioSerializer(serializers.ModelSerializer):
             'atribucion_media', 'version_origen', 'esta_activo',
             'es_catalogo_base',
         )
+        read_only_fields = ('identificador_origen', 'es_catalogo_base', 'version_origen')
 
 
 class GymMachineSerializer(serializers.ModelSerializer):
@@ -32,7 +33,7 @@ class GymMachineSerializer(serializers.ModelSerializer):
 
 class ExerciseSerializer(serializers.ModelSerializer):
     machine_detail = GymMachineSerializer(source='machine', read_only=True)
-    catalogo_detalle = CatalogoEjercicioSerializer(source='catalogo_ejercicio', read_only=True)
+    catalogo_detalle = serializers.SerializerMethodField()
     previous_log = serializers.SerializerMethodField()
     imagen_visual_url = serializers.SerializerMethodField()
     video_display_url = serializers.SerializerMethodField()
@@ -100,17 +101,28 @@ class ExerciseSerializer(serializers.ModelSerializer):
     def get_imagen_visual_url(self, obj):
         if obj.imagen_referencia_url:
             return obj.imagen_referencia_url
+        if obj.detalle_catalogo_asignado:
+            return obj.detalle_catalogo_asignado.get('animacion_url') or obj.detalle_catalogo_asignado.get('imagen_url') or ''
         if obj.catalogo_ejercicio:
             return obj.catalogo_ejercicio.animacion_url or obj.catalogo_ejercicio.imagen_url
         return ''
 
+    def get_catalogo_detalle(self, obj):
+        if obj.detalle_catalogo_asignado:
+            return obj.detalle_catalogo_asignado
+        if obj.catalogo_ejercicio:
+            return CatalogoEjercicioSerializer(obj.catalogo_ejercicio).data
+        return None
+
     def get_video_display_url(self, obj):
+        if obj.detalle_catalogo_asignado:
+            return obj.detalle_catalogo_asignado.get('video_url') or obj.video_url or ''
         if obj.catalogo_ejercicio and obj.catalogo_ejercicio.video_url:
             return obj.catalogo_ejercicio.video_url
         return obj.video_url or ''
 
     def get_video_pendiente(self, obj):
-        return not bool(obj.video_url or (obj.catalogo_ejercicio and obj.catalogo_ejercicio.video_url))
+        return not bool(self.get_video_display_url(obj))
 
     def get_previous_log(self, obj):
         member = self.context.get('member')
@@ -219,11 +231,11 @@ class TrainingPlanSerializer(serializers.ModelSerializer):
             'archived_at', 'finished_at', 'workout_days',
             'member_name', 'member_email', 'member_photo',
             'numero_version', 'publicado_en', 'publicado_por', 'plan_origen',
-            'modo_ejecucion', 'indice_bloque_actual',
+            'modo_ejecucion', 'indice_bloque_actual', 'plantilla_origen',
         )
         read_only_fields = (
             'trainer', 'archived_at', 'finished_at', 'numero_version',
-            'publicado_en', 'publicado_por', 'plan_origen',
+            'publicado_en', 'publicado_por', 'plan_origen', 'plantilla_origen',
         )
 
     def get_member_name(self, obj):
@@ -487,6 +499,7 @@ class PlantillaDiaEntrenamientoSerializer(serializers.ModelSerializer):
 class PlantillaEntrenamientoSerializer(serializers.ModelSerializer):
     dias = PlantillaDiaEntrenamientoSerializer(many=True, required=True)
     trainer_nombre = serializers.SerializerMethodField()
+    clientes_vigentes = serializers.IntegerField(read_only=True, default=0)
 
     def validate_dias(self, value):
         if not value:
@@ -525,9 +538,22 @@ class PlantillaEntrenamientoSerializer(serializers.ModelSerializer):
             'id', 'trainer', 'trainer_nombre', 'nombre', 'descripcion',
             'objetivo', 'nivel_adherencia_recomendado', 'dias_por_semana_sugeridos',
             'es_compartida', 'modo_ejecucion',
-            'esta_activa', 'creada_en', 'dias',
+            'esta_activa', 'creada_en', 'dias', 'clientes_vigentes',
         )
         read_only_fields = ('trainer', 'creada_en')
 
     def get_trainer_nombre(self, obj):
         return obj.trainer.get_full_name() or obj.trainer.email
+
+
+class PlantillaResumenSerializer(serializers.ModelSerializer):
+    clientes_vigentes = serializers.IntegerField(read_only=True, default=0)
+    dias_count = serializers.IntegerField(read_only=True, default=0)
+    ejercicios_count = serializers.IntegerField(read_only=True, default=0)
+
+    class Meta:
+        model = PlantillaEntrenamiento
+        fields = (
+            'id', 'nombre', 'descripcion', 'objetivo', 'esta_activa',
+            'clientes_vigentes', 'dias_count', 'ejercicios_count',
+        )

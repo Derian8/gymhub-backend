@@ -1,7 +1,10 @@
 from rest_framework import serializers
 from users.validators import validate_image_upload
 from .models import MembershipPlan, MemberSubscription, PaymentSchedule, PaymentRecord, PaymentMethod, PaymentInstruction, SeguimientoCobro
-from .services import default_grace_days, membership_access, membership_summary, refresh_membership_status
+from .services import (
+    default_grace_days, membership_access, membership_summary,
+    refresh_membership_status, current_member_membership, obtener_estado_cliente,
+)
 from users.permissions import tiene_perfil_administrador
 
 
@@ -31,7 +34,14 @@ class MembershipPlanSerializer(serializers.ModelSerializer):
         return obj.trainer.get_full_name() or obj.trainer.email
 
 
-class MemberSubscriptionSerializer(serializers.ModelSerializer):
+class EstadoClienteMixin(serializers.Serializer):
+    estado_cliente = serializers.SerializerMethodField()
+
+    def get_estado_cliente(self, obj):
+        return obtener_estado_cliente(obj.member, current_member_membership(obj.member))
+
+
+class MemberSubscriptionSerializer(EstadoClienteMixin, serializers.ModelSerializer):
     access_allowed = serializers.SerializerMethodField()
     days_overdue = serializers.SerializerMethodField()
 
@@ -46,7 +56,7 @@ class MemberSubscriptionSerializer(serializers.ModelSerializer):
             'cancellation_reason', 'commercial_notes',
             'motivo_ajuste_precio',
             'current_period_start', 'current_period_end',
-            'access_allowed', 'days_overdue',
+            'access_allowed', 'days_overdue', 'estado_cliente',
         )
         read_only_fields = (
             'trainer', 'next_billing_date', 'renewal_date',
@@ -64,7 +74,7 @@ class MemberSubscriptionSerializer(serializers.ModelSerializer):
         return membership_access(obj.member)['days_overdue']
 
 
-class MemberMembershipSerializer(serializers.ModelSerializer):
+class MemberMembershipSerializer(EstadoClienteMixin, serializers.ModelSerializer):
     membership_plan = serializers.PrimaryKeyRelatedField(
         source='plan',
         queryset=MembershipPlan.objects.all(),
@@ -91,6 +101,7 @@ class MemberMembershipSerializer(serializers.ModelSerializer):
             'auto_renew', 'created_at', 'updated_at', 'cancelled_at', 'notes',
             'motivo_ajuste_precio',
             'days_remaining', 'can_check_in', 'next_payment', 'last_payment',
+            'estado_cliente',
             'recurrence_type', 'grace_period_days',
         )
         read_only_fields = (
@@ -188,13 +199,16 @@ class PaymentRecordSerializer(serializers.ModelSerializer):
     days_overdue = serializers.SerializerMethodField()
     due_date = serializers.DateField(source='schedule.due_date', read_only=True)
     subscription_id = serializers.IntegerField(source='schedule.subscription_id', read_only=True)
+    member_id = serializers.IntegerField(source='schedule.member_id', read_only=True)
+    member_name = serializers.SerializerMethodField()
     plan_name = serializers.SerializerMethodField()
     receipt_number = serializers.SerializerMethodField()
 
     class Meta:
         model = PaymentRecord
         fields = (
-            'id', 'schedule', 'subscription_id', 'due_date', 'amount', 'paid_at',
+            'id', 'schedule', 'subscription_id', 'member_id', 'member_name',
+            'due_date', 'amount', 'paid_at',
             'status', 'method_used', 'payment_reference',
             'metodo_registrado', 'registrado_por',
             'receipt_issued_at', 'receipt_number', 'notes',
@@ -213,6 +227,10 @@ class PaymentRecordSerializer(serializers.ModelSerializer):
 
     def get_plan_name(self, obj):
         return obj.schedule.resolved_membership_name
+
+    def get_member_name(self, obj):
+        usuario = obj.schedule.member.user
+        return usuario.get_full_name() or usuario.email
 
     def get_receipt_number(self, obj):
         if not obj.receipt_issued_at:

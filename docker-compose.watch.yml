@@ -1,0 +1,11 @@
+# Docker Desktop sin integracion WSL: gym-watch.ps1 sincroniza los cambios.
+services:
+  backend:
+    volumes: !override
+      - media_data:/app/media
+      - static_data:/app/staticfiles
+  frontend:
+    volumes: !override []
+    command: [npm, run, dev]
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000
