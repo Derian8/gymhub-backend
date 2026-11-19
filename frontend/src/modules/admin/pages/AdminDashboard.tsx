@@ -41,26 +41,26 @@ export function AdminDashboard() {
           </header>
 
           <div className="grid divide-y divide-neutral-200 dark:divide-neutral-800 xl:grid-cols-[0.85fr_1.15fr] xl:divide-x xl:divide-y-0">
-            <div className="space-y-5 p-4 sm:p-6">
+            <div className="min-w-0 space-y-5 p-4 sm:p-6">
               <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">Clientes</h3>
-              <Link to="/members" aria-label={`Clientes activos: ${data.commercial.active_clients}`} className="group flex items-center justify-between gap-3 rounded-xl py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+              <Link to="/members" aria-label={`Clientes activos: ${data.commercial.active_clients}`} className="group flex min-w-0 items-center justify-between gap-3 rounded-xl py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                 <span className="flex min-w-0 items-center gap-3">
                   <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400"><Users size={19} /></span>
-                  <span className="min-w-0"><span className="block font-semibold">Clientes activos</span><span className="mt-0.5 block truncate text-sm text-neutral-500">Perfiles registrados en el gimnasio</span></span>
+                  <span className="min-w-0"><span className="block font-semibold">Clientes activos</span><span className="mt-0.5 block break-words text-sm leading-5 text-neutral-500 sm:truncate">Perfiles registrados en el gimnasio</span></span>
                 </span>
                 <span className="flex shrink-0 items-center gap-2 text-lg font-bold tabular-nums text-neutral-900 dark:text-white">{data.commercial.active_clients}<ChevronRight size={18} className="text-neutral-400 transition group-hover:translate-x-0.5 group-hover:text-primary" /></span>
               </Link>
 
               <Link to="/billing?payment_status=paid" aria-label={`Clientes al día: ${data.commercial.current_clients} de ${data.commercial.active_clients}`} className="group block rounded-xl py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-                <span className="flex items-center justify-between gap-3 text-sm"><span className="font-medium">Membresías al día</span><span className="font-semibold tabular-nums text-neutral-900 dark:text-white">{data.commercial.current_clients} de {data.commercial.active_clients}</span></span>
+                <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm"><span className="font-medium">Membresías al día</span><span className="shrink-0 font-semibold tabular-nums text-neutral-900 dark:text-white">{data.commercial.current_clients} de {data.commercial.active_clients}</span></span>
                 <span className="mt-2 block h-2 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800" role="progressbar" aria-label="Clientes al día" aria-valuemin={0} aria-valuemax={100} aria-valuenow={data.commercial.current_clients_pct}>
                   <span className="block h-full rounded-full bg-emerald-500 transition-[width] duration-500" style={{ width: `${data.commercial.current_clients_pct}%` }} />
                 </span>
-                <span className="mt-1.5 flex items-center justify-between gap-2 text-xs text-neutral-500"><span>{data.commercial.current_clients_pct}% de los clientes</span><span className="inline-flex items-center gap-1 font-semibold text-primary">Abrir Pagos <ArrowUpRight size={13} /></span></span>
+                <span className="mt-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-neutral-500"><span>{data.commercial.current_clients_pct}% de los clientes</span><span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap font-semibold text-primary">Abrir Pagos <ArrowUpRight size={13} /></span></span>
               </Link>
             </div>
 
-            <div className="space-y-3 p-4 sm:p-6">
+            <div className="min-w-0 space-y-3 p-4 sm:p-6">
               <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">Por atender</h3>
               <div className="divide-y divide-neutral-200 dark:divide-neutral-800">
                 {data.commercial.overdue_count > 0 && (
@@ -125,9 +125,9 @@ function SummaryAction({ to, title, detail, count, icon, tone }: {
 
   return (
     <Link to={to} aria-label={`${title}: ${count}. ${detail}`} className="group flex items-center justify-between gap-3 py-3.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-      <span className="flex min-w-0 items-center gap-3">
+      <span className="flex min-w-0 flex-1 items-center gap-3">
         <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${tones[tone]}`}>{icon}</span>
-        <span className="min-w-0"><span className="block font-semibold text-neutral-900 dark:text-white">{title}</span><span className="mt-0.5 block truncate text-sm text-neutral-500">{detail}</span></span>
+        <span className="min-w-0"><span className="block break-words font-semibold leading-5 text-neutral-900 dark:text-white">{title}</span><span className="mt-0.5 block break-words text-xs leading-5 text-neutral-500 sm:truncate sm:text-sm">{detail}</span></span>
       </span>
       <span className="flex shrink-0 items-center gap-2"><span className={`min-w-7 rounded-full px-2 py-1 text-center text-xs font-bold tabular-nums ${tones[tone]}`}>{count}</span><ChevronRight size={18} className="text-neutral-400 transition group-hover:translate-x-0.5 group-hover:text-primary" /></span>
     </Link>

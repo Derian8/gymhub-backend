@@ -138,7 +138,7 @@ El segundo comando debe responder `401` si no hay sesión; eso confirma que el p
 - Mantén `VITE_API_BASE_URL=` vacío y el destino de los rewrites alineado con `ACTIVE_BACKEND_PUBLIC_URL`.
 - Las cookies JWT del backend ahora se controlan por entorno con `AUTH_COOKIE_SECURE`, `AUTH_COOKIE_SAMESITE`, `AUTH_COOKIE_DOMAIN` y `AUTH_COOKIE_PATH`.
 - El frontend obtiene CSRF desde `/auth/csrf/`; toda mutación autenticada por cookie requiere `X-CSRFToken`.
-- El chat IA funciona gratis con un motor contextual por reglas y puede mejorar su redacción con un LLM local opcional; la configuración operativa vive en [`docs/OPERACION.md`](/mnt/c/dev/proyectos/proyectoappgym/docs/OPERACION.md) y [`gymhub/README.md`](/mnt/c/dev/proyectos/proyectoappgym/gymhub/README.md).
+- El chat IA funciona gratis con un motor contextual por reglas y puede mejorar su redacción con Ollama local o Gemini API opcional (nivel gratuito sujeto a límites de Google); la configuración operativa vive en [docs/OPERACION.md](./docs/OPERACION.md) y [gymhub/README.md](./gymhub/README.md).
 
 ### Rendimiento de la lista de clientes
 

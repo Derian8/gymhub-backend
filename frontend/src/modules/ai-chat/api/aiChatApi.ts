@@ -6,6 +6,8 @@ import type {
   AIChatResponse,
   AIChatSendMessageRequest,
   AIChatSendMessageResponse,
+  AgenteAdministracionRequest,
+  AgenteAdministracionResponse,
 } from '@/shared/types'
 
 export const aiChatApi = {
@@ -30,6 +32,11 @@ export const aiChatApi = {
 
   sendTrainerMessage: async (payload: AIChatSendMessageRequest): Promise<AIChatSendMessageResponse> => {
     const { data } = await apiClient.post('/api/ai-chat/send-message/', payload)
+    return data
+  },
+
+  adminAgent: async (payload: AgenteAdministracionRequest): Promise<AgenteAdministracionResponse> => {
+    const { data } = await apiClient.post('/api/ai-chat/agente-administracion/', payload)
     return data
   },
 }

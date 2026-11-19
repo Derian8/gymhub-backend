@@ -1225,9 +1225,9 @@ export interface AIChatResponse {
   conversation_id?: number
   mode?: AIChatMode
   fallback_used?: boolean
-  engine_mode?: 'deterministic' | 'local_hybrid'
+  engine_mode?: 'deterministic' | 'local_hybrid' | 'gemini_hybrid'
   local_llm_used?: boolean
-  response_source?: 'rules' | 'local_model'
+  response_source?: 'rules' | 'local_model' | 'gemini'
   suggested_prompts?: string[]
   remaining_messages?: number
   limit?: number
@@ -1237,6 +1237,25 @@ export interface AIChatResponse {
   priority_detected?: 'payment' | 'adherence' | 'workout' | 'nutrition' | 'general' | ''
   intent_detected?: 'payment' | 'adherence' | 'workout' | 'nutrition' | 'client_message' | 'full_analysis' | 'general' | ''
   error?: boolean
+}
+
+export interface AgenteAdministracionRequest {
+  pregunta: string
+}
+
+export interface AgenteAdministracionResponse {
+  respuesta: string
+  fuente: 'gemini' | 'rules'
+  respaldo_activo: boolean
+  codigo_proveedor: number | null
+  agentes_consultados: string[]
+  agentes: Array<{
+    id: string
+    nombre: string
+    prioridad: 'alta' | 'media' | 'normal'
+    hallazgo: string
+    siguiente_paso: string
+  }>
 }
 
 export interface AIChatSendMessageRequest {
@@ -1260,9 +1279,9 @@ export interface AIChatContext {
   remaining_messages: number | null
   requires_member_selection: boolean
   fallback_available: boolean
-  engine_mode: 'deterministic' | 'local_hybrid'
+  engine_mode: 'deterministic' | 'local_hybrid' | 'gemini_hybrid'
   local_llm_available: boolean
-  response_source: 'rules' | 'local_model'
+  response_source: 'rules' | 'local_model' | 'gemini'
   suggested_prompts: string[]
   member: {
     id: number

@@ -212,6 +212,7 @@ REST_FRAMEWORK = {
         'login': '10/min',
         'register': '5/hour',
         'refresh': '30/hour',
+        'ai_admin_agent': '10/hour',
     },
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_FILTER_BACKENDS': [
@@ -332,6 +333,8 @@ AI_LOCAL_BACKEND = env('AI_LOCAL_BACKEND', default='ollama')
 AI_LOCAL_MODEL = env('AI_LOCAL_MODEL', default='llama3.2:3b')
 AI_LOCAL_BASE_URL = env('AI_LOCAL_BASE_URL', default='http://host.docker.internal:11434')
 AI_LOCAL_TIMEOUT_MS = env.int('AI_LOCAL_TIMEOUT_MS', default=2500)
+GEMINI_API_KEY = env('GEMINI_API_KEY', default='')
+GEMINI_MODEL = env('GEMINI_MODEL', default='gemini-3.8-flash')
 OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
 OPENAI_MODEL = env('OPENAI_MODEL', default='gpt-4.1-mini')
 OPENAI_MAX_TOKENS = env.int('OPENAI_MAX_TOKENS', default=300)

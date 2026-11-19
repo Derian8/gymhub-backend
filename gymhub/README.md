@@ -7,7 +7,7 @@ migración, caché compartida, cron y comprobaciones previas al cambio público.
 
 - **Backend**: Django 5.1+, DRF, simplejwt (httpOnly cookies), Supabase PostgreSQL
 - **Cola**: Celery 5+, django-celery-beat, Redis 7+
-- **IA**: motor contextual gratuito por reglas + mejora opcional con Ollama local
+- **IA**: motor contextual gratuito por reglas + mejora opcional con Ollama local o Gemini API (nivel gratuito sujeto a límites de Google)
 - **Infra**: Docker local; Vercel para la API; Supabase PostgreSQL y Storage privado con firmas S3 v4
 - **Docs API**: drf-spectacular (Swagger UI en `/api/docs/`)
 
@@ -87,6 +87,7 @@ docker compose exec backend python manage.py createsuperuser
 | POST | `/api/ai-chat/` | Chat IA contextual por rol |
 | GET | `/api/ai-chat/history/` | Historial de conversación IA |
 | GET | `/api/ai-chat/context/` | Contexto estructurado, asistente trainer, preguntas rápidas y límites |
+| POST | `/api/ai-chat/agente-administracion/` | Agentes especialistas de cobranza, retención, entrenamiento y crecimiento; solo lectura, 10 solicitudes por hora |
 
 ## Tipos de gráficas
 `attendance_monthly` · `retention_rate` · `payment_status` · `physical_progress` · `exercise_progression`
@@ -109,11 +110,13 @@ docker compose exec backend pytest tests/ -v
 | `REDIS_URL` | URL base; Django deriva bases separadas para broker, resultados y caché |
 | `USE_S3_STORAGE` | Activa media privada mediante storage S3 compatible |
 | `S3_*` | Credenciales, endpoint, bucket, región y expiración de URLs firmadas |
-| `AI_PROVIDER` | `deterministic` o `local_hybrid` (default: `deterministic`) |
+| `AI_PROVIDER` | `deterministic`, `local_hybrid` o `gemini_hybrid` (default: `deterministic`) |
 | `AI_LOCAL_BACKEND` | Backend local opcional para mejorar redacción (default: `ollama`) |
 | `AI_LOCAL_MODEL` | Modelo local a usar si el backend está disponible |
 | `AI_LOCAL_BASE_URL` | URL base del backend local (default: `http://host.docker.internal:11434`) |
 | `AI_LOCAL_TIMEOUT_MS` | Timeout del modelo local en milisegundos |
+| `GEMINI_API_KEY` | Clave privada de Google AI Studio; nunca se envía al frontend |
+| `GEMINI_MODEL` | Modelo Gemini (default: `gemini-3.8-flash`) |
 | `AI_DAILY_LIMIT_PER_USER` | Límite diario de mensajes IA por miembro (default: 20) |
 | `AI_DAILY_LIMIT_MEMBER` | Límite diario efectivo para members (default: `AI_DAILY_LIMIT_PER_USER`) |
 | `AI_DAILY_LIMIT_TRAINER` | Límite diario de mensajes IA para trainers (default: 60) |
@@ -124,6 +127,10 @@ docker compose exec backend pytest tests/ -v
 | `DB_DISABLE_SERVER_SIDE_CURSORS` | Desactiva cursores persistentes para el pool transaccional de Supabase |
 | `DEMO_TRAINER_PASSWORD` | Clave privada usada al crear/restablecer trainer1 |
 | `DEMO_MEMBER_PASSWORD` | Clave privada usada al crear/restablecer member1 |
+
+Para probar Gemini en un demo, crea una API key en [Google AI Studio](https://aistudio.google.com/app/apikey), configura `GEMINI_API_KEY` y `AI_PROVIDER=gemini_hybrid` en el `.env` de la raíz y reinicia el backend. El nivel gratuito y sus cuotas dependen de la región, el modelo y las políticas vigentes de Google. Usa datos ficticios para el demo: el contexto de miembros se envía a Google para generar cada respuesta.
+
+El panel de agentes usa llamadas de funciones permitidas sobre métricas agregadas del gimnasio. Las herramientas no envían nombres ni correos, y no pueden editar pagos, membresías ni rutinas. La pregunta del administrador también se envía a Google; evita incluir datos personales. Si Gemini no está disponible, el endpoint devuelve el análisis local por reglas.
 
 `seed_data` exige ambas claves. `restablecer_demo` es dry-run sin `--yes`;
 al confirmarlo elimina demos numeradas adicionales, reconstruye trainer1/member1

@@ -35,7 +35,15 @@ export function Topbar({ onMenuClick, sidebarCollapsed }: TopbarProps) {
       )}
     >
       <div className="lg:hidden">
-        <BrandWordmark compact />
+        <Link
+          to={user ? homePathForUser(user, activeContext) : '/'}
+          aria-label="Ir a Inicio"
+          title="Inicio"
+          data-testid="topbar-home-link"
+          className="inline-flex rounded-lg transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          <BrandWordmark compact />
+        </Link>
       </div>
 
       {/* Kept for compatibility with the drawer flow; the mobile bottom navigation is the primary entry point. */}

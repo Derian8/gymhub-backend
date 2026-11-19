@@ -38,6 +38,10 @@ class AIChatInputSerializer(serializers.Serializer):
     conversation_id = serializers.IntegerField(required=False, min_value=1)
 
 
+class AgenteAdministracionInputSerializer(serializers.Serializer):
+    pregunta = serializers.CharField(required=False, allow_blank=True, max_length=600)
+
+
 class AIChatSendMessageSerializer(serializers.Serializer):
     member_id = serializers.IntegerField(min_value=1)
     message_text = serializers.CharField(min_length=1, max_length=2000)

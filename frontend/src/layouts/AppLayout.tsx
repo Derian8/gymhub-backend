@@ -5,6 +5,7 @@ import { Topbar } from './Topbar'
 import { MobileBottomNav } from './MobileBottomNav'
 import { cn } from '@/shared/lib/utils'
 import { BackendStatusBanner } from '@/shared/components/BackendStatusBanner'
+import { AdminAgentLauncher } from '@/modules/ai-chat/components/AdminAgentLauncher'
 
 export function AppLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -47,6 +48,7 @@ export function AppLayout() {
           </div>
         </main>
       </div>
+      <AdminAgentLauncher />
     </div>
   )
 }

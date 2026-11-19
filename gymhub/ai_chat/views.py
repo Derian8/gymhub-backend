@@ -8,6 +8,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from alerts.models import Notification
@@ -17,10 +18,18 @@ from users.services import (
     get_member_dashboard_summary,
     get_member_prescription_status,
 )
+from users.permissions import IsAdministrator
 
-from .engine import generate_chat_response, get_engine_mode, is_local_llm_available
+from .agentes_administracion import generar_analisis_administrativo
+from .engine import generate_chat_response, get_engine_mode, is_gemini_available, is_local_llm_available
 from .models import AIChatConversation, AIChatMessage
-from .serializers import AIChatContextSerializer, AIChatInputSerializer, AIChatMessageSerializer, AIChatSendMessageSerializer
+from .serializers import (
+    AIChatContextSerializer,
+    AIChatInputSerializer,
+    AIChatMessageSerializer,
+    AIChatSendMessageSerializer,
+    AgenteAdministracionInputSerializer,
+)
 from .trainer_context import build_trainer_assistant_context
 
 logger = logging.getLogger(__name__)
@@ -233,7 +242,7 @@ def _get_conversation(user, member, mode, conversation_id=None):
 def _build_context_payload(user, member, mode, conversation):
     remaining, limit = _remaining_messages(user, mode)
     engine_mode = get_engine_mode()
-    local_llm_available = is_local_llm_available()
+    local_llm_available = is_local_llm_available() or is_gemini_available()
 
     if member is None:
         payload = {
@@ -272,7 +281,11 @@ def _build_context_payload(user, member, mode, conversation):
         'fallback_available': True,
         'engine_mode': engine_mode,
         'local_llm_available': local_llm_available,
-        'response_source': 'local_model' if local_llm_available and engine_mode == 'local_hybrid' else 'rules',
+        'response_source': (
+            'gemini' if engine_mode == 'gemini_hybrid' and is_gemini_available()
+            else 'local_model' if local_llm_available and engine_mode == 'local_hybrid'
+            else 'rules'
+        ),
         'suggested_prompts': _get_suggested_prompts(mode, summary, analysis_context),
         'intent_detected': '',
         'member': _serialize_member_context(member, summary, prescription_status),
@@ -393,7 +406,7 @@ class AIChatView(APIView):
             'message_id': message.id,
             'conversation_id': conversation.id,
             'mode': mode,
-            'fallback_used': generation.engine_mode == 'local_hybrid' and generation.response_source == 'rules',
+            'fallback_used': generation.engine_mode in ('local_hybrid', 'gemini_hybrid') and generation.response_source == 'rules',
             'engine_mode': generation.engine_mode,
             'local_llm_used': generation.local_llm_used,
             'response_source': generation.response_source,
@@ -405,6 +418,20 @@ class AIChatView(APIView):
             'remaining_messages': updated_remaining,
             'limit': limit,
         }, status=status.HTTP_200_OK)
+
+
+class AgenteAdministracionView(APIView):
+    permission_classes = [IsAuthenticated, IsAdministrator]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'ai_admin_agent'
+
+    def post(self, request):
+        serializer = AgenteAdministracionInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        pregunta = serializer.validated_data.get('pregunta', '').strip()
+        if not pregunta:
+            pregunta = 'Prioriza los puntos de administración que requieren atención hoy.'
+        return Response(generar_analisis_administrativo(request.user, pregunta))
 
 
 class AIChatSendMessageView(APIView):

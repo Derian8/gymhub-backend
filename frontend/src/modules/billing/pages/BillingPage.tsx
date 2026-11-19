@@ -1,7 +1,7 @@
 import { ESTADOS_CLIENTE, obtenerEstadoMembresia } from '@/shared/lib/estadoMembresia'
 import { Link, useSearchParams } from 'react-router-dom'
 import { BASE_URL } from '@/shared/api/client'
-import { ArrowRight, Banknote, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, CreditCard, History, ReceiptText, RotateCcw, Search, UserPlus, Users, Wallet } from 'lucide-react'
+import { ArrowDown, ArrowRight, ArrowUp, ArrowUpDown, Banknote, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, CreditCard, History, ReceiptText, RotateCcw, Search, UserPlus, Users, Wallet } from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
   useCancelMemberMembershipMutation,
@@ -31,6 +31,8 @@ type CobroFormState = {
 }
 
 type PaymentPortfolioFilter = string
+type PortfolioSortField = 'cliente' | 'membresia' | 'fecha' | 'estado'
+type SortDirection = 'asc' | 'desc'
 type BillingSection = 'portfolio' | 'history' | 'catalog'
 type MembershipCreationMode = 'custom' | 'catalog_plan'
 
@@ -74,6 +76,30 @@ function getPortfolioPlanName(member: MemberProfile) {
   return member.membresia_actual?.plan_name || 'Sin membresía'
 }
 
+function getPortfolioDueDate(member: MemberProfile) {
+  const membership = member.membresia_actual
+  if (!membership) return ''
+  const hasCharge = Boolean(member.id_cobro_abierto) && (membership.payment_status !== 'paid' || membership.status === 'expired')
+  return hasCharge ? membership.next_billing_date || '' : membership.current_period_end || membership.next_billing_date || ''
+}
+
+function PortfolioSortHeading({ title, field, sortedField, direction, onSort, className = '' }: {
+  title: string
+  field: PortfolioSortField
+  sortedField: PortfolioSortField
+  direction: SortDirection
+  onSort: (field: PortfolioSortField) => void
+  className?: string
+}) {
+  const selected = field === sortedField
+  const Icon = selected ? (direction === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown
+  return <th scope="col" className={`px-3 py-3 sm:px-5 ${className}`} aria-sort={selected ? (direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+    <button type="button" className="inline-flex min-h-11 items-center gap-2 rounded-lg font-semibold text-neutral-700 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:text-neutral-200" onClick={() => onSort(field)} aria-label={`Ordenar por ${title.toLowerCase()}${selected ? (direction === 'asc' ? ', descendente' : ', ascendente') : ''}`}>
+      {title}<Icon size={15} className={selected ? 'text-primary' : 'text-neutral-400'} aria-hidden="true" />
+    </button>
+  </th>
+}
+
 export function BillingPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const memberId = searchParams.get('member')
@@ -82,6 +108,7 @@ export function BillingPage() {
   const [portfolioSearch, setPortfolioSearch] = useState(() => searchParams.get('search') || '')
   const [portfolioPaymentFilter, setPortfolioPaymentFilter] = useState<PaymentPortfolioFilter>(() => {
     const estado = searchParams.get('estado_cliente')
+    if (estado === 'overdue') return 'membresia_inactiva'
     if (['membresia_activa', 'membresia_inactiva', 'cliente_inactivo'].includes(estado ?? '')) return estado as PaymentPortfolioFilter
     const anterior = searchParams.get('payment_status')
     return anterior === 'paid' ? 'membresia_activa' : anterior ? 'membresia_inactiva' : ''
@@ -92,6 +119,7 @@ export function BillingPage() {
   })
   const [portfolioPage, setPortfolioPage] = useState(() => Math.max(1, Number(searchParams.get('page')) || 1))
   const [portfolioPageSize, setPortfolioPageSize] = useState(() => [10, 20, 50, 100].includes(Number(searchParams.get('page_size'))) ? Number(searchParams.get('page_size')) : 20)
+  const [scrollToOverdueResults, setScrollToOverdueResults] = useState(false)
   const [historyPage, setHistoryPage] = useState(1)
   const [historySearch, setHistorySearch] = useState('')
   const [paymentDraft, setPaymentDraft] = useState<CobroFormState>({ payment_reference: '', notes: '', method: 'cash' })
@@ -107,6 +135,15 @@ export function BillingPage() {
     if (portfolioPageSize !== 20) next.set('page_size', String(portfolioPageSize))
     if (next.toString() !== searchParams.toString()) setSearchParams(next, { replace: true })
   }, [memberId, section, portfolioSearch, portfolioPaymentFilter, portfolioPage, portfolioPageSize, searchParams, setSearchParams])
+
+  useEffect(() => {
+    if (!scrollToOverdueResults || section !== 'portfolio' || portfolioPaymentFilter !== 'membresia_inactiva') return
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById('billing-portfolio-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      setScrollToOverdueResults(false)
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [scrollToOverdueResults, section, portfolioPaymentFilter])
 
   const memberPortfolioParams = useMemo(
     () => ({
@@ -131,24 +168,9 @@ export function BillingPage() {
     memberPortfolioParams,
     !memberId && section === 'portfolio',
   )
-  const portfolioCountParams = useMemo(
-    () => ({ search: portfolioSearch.trim() || undefined, page: 1, page_size: 1 }),
-    [portfolioSearch],
-  )
-  const shouldCountPortfolioMembers = !memberId && section === 'portfolio' && !portfolioPaymentFilter
-  const { data: activePortfolioCount } = useMembersQuery(
-    { ...portfolioCountParams, estado_cliente: 'membresia_activa' },
-    shouldCountPortfolioMembers,
-  )
-  const { data: inactiveMembershipCount } = useMembersQuery(
-    { ...portfolioCountParams, estado_cliente: 'membresia_inactiva' },
-    shouldCountPortfolioMembers,
-  )
   const portfolioCount = portfolioPaymentFilter
     ? membersPortfolio?.count ?? (isLoadingMembersPortfolio ? null : 0)
-    : activePortfolioCount && inactiveMembershipCount
-      ? activePortfolioCount.count + inactiveMembershipCount.count
-      : null
+    : membersPortfolio?.results.filter((member) => member.estado_cliente !== 'cliente_inactivo').length ?? null
   const { data: plans } = useMembershipPlansQuery(Boolean(memberId || section === 'catalog'))
   const activePlans = useMemo(() => plans?.results.filter((plan) => plan.is_active !== false) || [], [plans])
   const { data: subscriptions } = useMemberSubscriptionsQuery(filtros, Boolean(memberId))
@@ -235,7 +257,7 @@ export function BillingPage() {
       />
 
       {!memberId && <div className="mb-7 grid gap-3 sm:grid-cols-2">
-        <button type="button" onClick={() => { setSection('portfolio'); setPortfolioPaymentFilter('overdue'); setPortfolioPage(1) }} className="card flex items-center justify-between gap-3 p-4 text-left transition-colors hover:border-red-400/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Ver cobros vencidos">
+        <button type="button" onClick={() => { setSection('portfolio'); setPortfolioPaymentFilter('membresia_inactiva'); setPortfolioPage(1); setScrollToOverdueResults(true) }} className="card flex items-center justify-between gap-3 p-4 text-left transition-colors hover:border-red-400/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Ver membresías inactivas por cobro vencido">
           <span className="flex items-center gap-3"><span className="rounded-xl bg-red-500/10 p-2.5 text-red-500"><Banknote size={20} /></span><span><span className="block text-sm font-semibold text-neutral-900 dark:text-white">Cobros vencidos</span><span className="block text-xs text-neutral-500">{overview ? `${overview.commercial.overdue_count} por atender` : 'Cargando…'}</span></span></span>
           <span className="flex items-center gap-2 font-heading text-lg font-bold text-red-500">{overview ? formatCurrency(overview.commercial.overdue_amount) : '—'} <ArrowRight size={17} /></span>
         </button>
@@ -639,19 +661,42 @@ function MembershipPortfolio({
   onPaymentFilterChange: (value: PaymentPortfolioFilter) => void
 }) {
   const hasActiveFilter = Boolean(search.trim() || paymentFilter)
+  const [sortedField, setSortedField] = useState<PortfolioSortField>('fecha')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const sortBy = (field: PortfolioSortField) => {
+    if (field === sortedField) setSortDirection((direction) => direction === 'asc' ? 'desc' : 'asc')
+    else {
+      setSortedField(field)
+      setSortDirection('asc')
+    }
+  }
+  const sortedMembers = useMemo(() => [...members].sort((a, b) => {
+    const values: Record<PortfolioSortField, [string, string]> = {
+      cliente: [a.full_name, b.full_name],
+      membresia: [getPortfolioPlanName(a), getPortfolioPlanName(b)],
+      fecha: [getPortfolioDueDate(a), getPortfolioDueDate(b)],
+      estado: [getMembershipBadge(a).label, getMembershipBadge(b).label],
+    }
+    const [valueA, valueB] = values[sortedField]
+    const compared = sortedField === 'fecha'
+      ? valueA.localeCompare(valueB)
+      : valueA.localeCompare(valueB, 'es', { sensitivity: 'base', numeric: true })
+    return (sortDirection === 'asc' ? compared : -compared) || a.id - b.id
+  }), [members, sortedField, sortDirection])
   return (
     <section className="card mb-8 overflow-hidden" data-testid="membership-portfolio">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-neutral-200 p-5 dark:border-neutral-800 sm:p-6">
         <div><p className="label-base">Cartera de clientes</p><h2 className="font-heading text-xl font-bold text-neutral-900 dark:text-white">Clientes y cobros</h2><p className="mt-1 text-sm text-neutral-500">Los cargos más urgentes aparecen primero.</p></div>
-        <Badge variant="neutral">{totalCount === null ? '… clientes' : `${totalCount} ${totalCount === 1 ? 'cliente' : 'clientes'}`}</Badge>
+        <Badge variant="neutral">{totalCount === null ? '… clientes' : paymentFilter ? `${totalCount} ${totalCount === 1 ? 'cliente' : 'clientes'}` : `${totalCount} en página`}</Badge>
       </div>
       <div className="grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_190px] sm:p-5">
         <label className="relative"><Search size={17} className="pointer-events-none absolute left-3 top-3.5 text-neutral-400" /><span className="sr-only">Buscar cliente</span><input className="input pl-10" data-testid="billing-member-search" placeholder="Buscar cliente por nombre o correo" value={search} onChange={(event) => onSearchChange(event.target.value)} /></label>
         <label><span className="sr-only">Filtrar cobros</span><select className="input" data-testid="billing-payment-filter" value={paymentFilter} onChange={(event) => onPaymentFilterChange(event.target.value as PaymentPortfolioFilter)}><option value="">Todos los clientes</option><option value="membresia_activa">Membresía activa</option><option value="membresia_inactiva">Membresía inactiva</option><option value="cliente_inactivo">Cliente inactivo (+30 días)</option></select></label>
       </div>
+      <div id="billing-portfolio-results" className="scroll-mt-24">
       {isLoading ? <div className="px-4 pb-4"><table className="w-full"><tbody>{Array.from({ length: 5 }).map((_, index) => <TableRowSkeleton key={index} cols={3} />)}</tbody></table></div> : !members.length ? <div className="px-4 pb-5"><EmptyState icon={<Users size={38} />} title={hasActiveFilter ? 'Sin resultados' : 'Sin clientes'} description={hasActiveFilter ? 'Prueba otro nombre o cambia el filtro.' : 'Los clientes registrados aparecerán aquí.'} /></div> : <table className="w-full table-fixed text-left text-sm">
-        <thead className="border-y border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900"><tr><th scope="col" className="px-3 py-3 sm:px-5">Cliente</th><th scope="col" className="hidden w-1/4 px-3 py-3 md:table-cell">Membresía</th><th scope="col" className="hidden w-36 px-3 py-3 lg:table-cell">Fecha</th><th scope="col" className="hidden w-32 px-3 py-3 sm:table-cell">Estado</th><th scope="col" className="w-16 px-2 py-3 text-center sm:w-20 sm:px-4">Acción</th></tr></thead>
-        <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">{members.map((member) => {
+        <thead className="border-y border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900"><tr><PortfolioSortHeading title="Cliente" field="cliente" sortedField={sortedField} direction={sortDirection} onSort={sortBy} /><PortfolioSortHeading title="Membresía" field="membresia" sortedField={sortedField} direction={sortDirection} onSort={sortBy} className="hidden w-1/4 md:table-cell" /><PortfolioSortHeading title="Fecha" field="fecha" sortedField={sortedField} direction={sortDirection} onSort={sortBy} className="hidden w-36 lg:table-cell" /><PortfolioSortHeading title="Estado" field="estado" sortedField={sortedField} direction={sortDirection} onSort={sortBy} className="hidden w-32 sm:table-cell" /><th scope="col" className="w-16 px-2 py-3 text-center sm:w-20 sm:px-4">Acción</th></tr></thead>
+        <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">{sortedMembers.map((member) => {
           const membership = member.membresia_actual
           const badge = getMembershipBadge(member)
           const hasCharge = Boolean(member.id_cobro_abierto) && (membership?.payment_status !== 'paid' || membership?.status === 'expired')
@@ -666,6 +711,7 @@ function MembershipPortfolio({
           </tr>
         })}</tbody>
       </table>}
+      </div>
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-neutral-200 px-4 py-3 text-sm dark:border-neutral-800 sm:px-5"><label className="flex items-center gap-2 text-neutral-500">Filas por página<select className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-neutral-900 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white" value={pageSize} onChange={(event) => onPageSizeChange(Number(event.target.value))}>{[10, 20, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}</select></label><div className="flex items-center gap-2"><span className="text-neutral-500">Página {page}</span><button type="button" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 disabled:opacity-40 dark:border-neutral-800" aria-label="Página anterior" disabled={!hasPrevious} onClick={() => onPageChange(page - 1)}><ChevronLeft size={18} /></button><button type="button" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 disabled:opacity-40 dark:border-neutral-800" aria-label="Página siguiente" disabled={!hasNext} onClick={() => onPageChange(page + 1)}><ChevronRight size={18} /></button></div></div>
     </section>
   )

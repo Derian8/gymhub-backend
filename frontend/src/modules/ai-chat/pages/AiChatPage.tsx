@@ -171,7 +171,11 @@ export function AiChatPage() {
                 <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
                   {context?.mode === 'trainer_member' ? 'Asistente del trainer' : 'PULSO AI'}
                 </span>
-                {context?.engine_mode === 'deterministic' ? (
+                {context?.engine_mode === 'gemini_hybrid' ? (
+                  <Badge variant={context.local_llm_available ? 'success' : 'warning'}>
+                    {context.local_llm_available ? 'Gemini configurado' : 'Gemini sin configurar'}
+                  </Badge>
+                ) : context?.engine_mode === 'deterministic' ? (
                   <Badge variant="info">Asistente contextual</Badge>
                 ) : (
                   <Badge variant="success">Mejora local activa</Badge>
@@ -473,7 +477,11 @@ function ChatContextPanel({
           <p className="mt-2 text-xs text-neutral-500">Objetivo nutricional: {context.summary.nutrition_goal}</p>
         ) : null}
         <p className="mt-2 text-xs text-neutral-500" data-testid="chat-engine-status">
-          {context.engine_mode === 'deterministic'
+          {context.engine_mode === 'gemini_hybrid'
+            ? context.local_llm_available
+              ? 'Motor activo: reglas + Gemini configurado'
+              : 'Motor activo: reglas; configura la clave de Gemini en el servidor'
+            : context.engine_mode === 'deterministic'
             ? 'Motor activo: asistente contextual gratuito'
             : context.local_llm_available
               ? 'Motor activo: reglas + mejora local'

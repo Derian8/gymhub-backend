@@ -21,7 +21,7 @@ INTENT_RISKS = 'risks'
 INTENT_NEXT_ACTION = 'next_action'
 INTENT_GENERAL = 'general'
 
-SUPPORTED_ENGINE_MODES = ('deterministic', 'local_hybrid')
+SUPPORTED_ENGINE_MODES = ('deterministic', 'local_hybrid', 'gemini_hybrid')
 
 
 @dataclass
@@ -57,6 +57,14 @@ def get_local_base_url():
 
 def get_local_timeout_ms():
     return getattr(settings, 'AI_LOCAL_TIMEOUT_MS', 2500)
+
+
+def is_gemini_configured():
+    return bool(getattr(settings, 'GEMINI_API_KEY', ''))
+
+
+def is_gemini_available():
+    return get_engine_mode() == 'gemini_hybrid' and is_gemini_configured()
 
 
 def is_local_llm_configured():
@@ -141,7 +149,7 @@ def generate_chat_response(mode, member, summary, prescription_status, analysis_
     )
     deterministic_content = deterministic_response['content']
     engine_mode = get_engine_mode()
-    if engine_mode != 'local_hybrid':
+    if engine_mode not in ('local_hybrid', 'gemini_hybrid'):
         return ChatGenerationResult(
             content=deterministic_content,
             engine_mode='deterministic',
@@ -153,7 +161,9 @@ def generate_chat_response(mode, member, summary, prescription_status, analysis_
             intent_detected=deterministic_response['intent_detected'],
         )
 
-    rewritten = _rewrite_with_local_llm(
+    use_gemini = engine_mode == 'gemini_hybrid'
+    rewrite = _rewrite_with_gemini if use_gemini else _rewrite_with_local_llm
+    rewritten = rewrite(
         mode=mode,
         member=member,
         summary=summary,
@@ -166,9 +176,9 @@ def generate_chat_response(mode, member, summary, prescription_status, analysis_
     if rewritten:
         return ChatGenerationResult(
             content=rewritten,
-            engine_mode='local_hybrid',
+            engine_mode=engine_mode,
             local_llm_used=True,
-            response_source='local_model',
+            response_source='gemini' if use_gemini else 'local_model',
             sendable=deterministic_response['sendable'],
             message_text=deterministic_response['message_text'],
             priority_detected=deterministic_response['priority_detected'],
@@ -177,7 +187,7 @@ def generate_chat_response(mode, member, summary, prescription_status, analysis_
 
     return ChatGenerationResult(
         content=deterministic_content,
-        engine_mode='local_hybrid',
+        engine_mode=engine_mode,
         local_llm_used=False,
         response_source='rules',
         sendable=deterministic_response['sendable'],
@@ -675,6 +685,46 @@ def _trainer_recommended_action(summary, prescription_status, analysis_context, 
         f"Prioriza {summary['siguiente_accion'].lower()} y verifica si {_prescription_guidance(prescription_status).lower()}. "
         "Después decide si toca intervenir adherencia, pago o nutrición."
     )
+
+
+def _rewrite_with_gemini(mode, member, summary, analysis_context, trainer_assistant, transcript, user_message, deterministic_response):
+    api_key = getattr(settings, 'GEMINI_API_KEY', '')
+    if not api_key:
+        return None
+
+    model = getattr(settings, 'GEMINI_MODEL', 'gemini-3.8-flash')
+    payload = {
+        'contents': [{'parts': [{'text': _build_local_prompt(
+            mode,
+            member,
+            summary,
+            analysis_context,
+            trainer_assistant,
+            transcript,
+            user_message,
+            deterministic_response,
+        )}]}],
+        'generationConfig': {'temperature': 0.3, 'maxOutputTokens': 500},
+    }
+    endpoint = f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent'
+    try:
+        req = request.Request(
+            endpoint,
+            data=json.dumps(payload).encode('utf-8'),
+            headers={'Content-Type': 'application/json', 'x-goog-api-key': api_key},
+            method='POST',
+        )
+        with request.urlopen(req, timeout=20) as response:
+            if response.status != 200:
+                return None
+            body = json.loads(response.read().decode('utf-8'))
+            parts = body.get('candidates', [{}])[0].get('content', {}).get('parts', [])
+            text = '\n'.join(part.get('text', '') for part in parts).strip()
+            return text or None
+    except (error.URLError, TimeoutError, OSError, ValueError, IndexError, KeyError, json.JSONDecodeError):
+        # Do not log the exception: urllib errors can include the key-bearing URL.
+        logger.info('No se pudo usar Gemini para ai_chat.')
+        return None
 
 
 def _rewrite_with_local_llm(mode, member, summary, analysis_context, trainer_assistant, transcript, user_message, deterministic_response):
