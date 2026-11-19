@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DIRECTORIO_RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+exec docker compose -f "${DIRECTORIO_RAIZ}/docker-compose.yml" exec -T \
+  -e "DATABASE_URL=${DATABASE_URL:?Falta DATABASE_URL}" \
+  -e "DB_CONN_MAX_AGE=${DB_CONN_MAX_AGE:-0}" \
+  -e "DB_DISABLE_SERVER_SIDE_CURSORS=${DB_DISABLE_SERVER_SIDE_CURSORS:-True}" \
+  -e "REDIS_URL=${REDIS_URL:-locmem://}" \
+  -e "DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:?Falta DJANGO_SECRET_KEY}" \
+  backend python "$@"

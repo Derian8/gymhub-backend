@@ -117,6 +117,10 @@ if [[ "${EJECUTAR_MIGRACIONES}" == true ]]; then
     PYTHON_DJANGO="${GYMHUB_PYTHON}"
   elif [[ -x "${DIRECTORIO_RAIZ}/.venv/bin/python" ]]; then
     PYTHON_DJANGO="${DIRECTORIO_RAIZ}/.venv/bin/python"
+  elif command -v docker >/dev/null 2>&1 \
+    && [[ -n "$(docker compose ps -q backend 2>/dev/null)" ]] \
+    && [[ -x "${DIRECTORIO_RAIZ}/tools/python_gymhub_contenedor" ]]; then
+    PYTHON_DJANGO="${DIRECTORIO_RAIZ}/tools/python_gymhub_contenedor"
   else
     PYTHON_DJANGO="$(command -v python3 || true)"
   fi
