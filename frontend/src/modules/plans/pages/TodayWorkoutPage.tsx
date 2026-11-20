@@ -1,7 +1,6 @@
-import { obtenerEstadoMembresia } from '@/shared/lib/estadoMembresia'
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, CalendarClock, CheckCircle, Dumbbell, Flame, Loader2, NotebookTabs, Play, Target } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Dumbbell, Flame, Loader2, NotebookTabs, Pause, Play, Target } from 'lucide-react'
 
 import { useTodayWorkoutQuery, useWeeklyPlanQuery, useCreateSessionMutation, useCompleteSessionMutation, useBulkExerciseLogsMutation, useRegisterExerciseProgressMutation } from '../hooks/usePlans'
 import { EmptyState, Badge } from '@/shared/components/UI'
@@ -10,7 +9,7 @@ import { SymbolFrame } from '@/shared/components/Brand'
 import { DAY_OF_WEEK_LABELS, formatDate, formatPesoSugerido, MUSCLE_LABELS, cn } from '@/shared/lib/utils'
 import type { CompleteWorkoutSessionPayload, Exercise, ExerciseLogPayload } from '@/shared/types'
 import { getResolvedContext, useAuthStore } from '@/shared/store/authStore'
-import { useMemberActivePrescriptionQuery, useMemberDashboardQuery } from '@/modules/members/hooks/useMembers'
+import { useMemberActivePrescriptionQuery } from '@/modules/members/hooks/useMembers'
 import { useMemberAttendanceToday } from '@/modules/attendance/hooks/useAttendance'
 import { ExerciseVideo } from '../components/ExerciseVideo'
 
@@ -48,7 +47,8 @@ function parseOptionalMeasurement(value: string) {
 
 function getExercisePrescriptionLabel(exercise: Exercise) {
   if (exercise.exercise_type === 'timed') {
-    return `${exercise.target_minutes ?? 0} min`
+    const duracion = exercise.duracion_trabajo_segundos
+    return duracion ? `${exercise.sets ?? 1} × ${duracion}s` : `${exercise.target_minutes ?? 0} min`
   }
   return `${exercise.sets ?? 0}×${exercise.reps_range}`
 }
@@ -83,11 +83,10 @@ function TodayWorkoutPageContent() {
     isLoading: isLoadingWeeklyView,
     isError: isWeeklyViewError,
   } = useWeeklyPlanQuery(planId, !!planId && hasAttendanceToday)
-  const { data: dashboardSummary } = useMemberDashboardQuery(isMember ? memberId : 0)
-  const { mutate: createSession, isPending: isCreating } = useCreateSessionMutation()
-  const { mutate: completeSession, isPending: isCompleting } = useCompleteSessionMutation()
+  const { mutate: createSession, isPending: isCreating } = useCreateSessionMutation(planId, memberId)
+  const { mutate: completeSession, isPending: isCompleting } = useCompleteSessionMutation(planId, memberId)
   const { mutate: bulkLogs, isPending: isSaving } = useBulkExerciseLogsMutation()
-  const { mutate: registerExerciseProgress, isPending: isRegisteringExercise } = useRegisterExerciseProgressMutation(planId)
+  const { mutate: registerExerciseProgress, isPending: isRegisteringExercise } = useRegisterExerciseProgressMutation(planId, memberId)
 
   const [sessionId, setSessionId] = useState<number | null>(null)
   const [sessionStarted, setSessionStarted] = useState(false)
@@ -95,6 +94,7 @@ function TodayWorkoutPageContent() {
   const [overallFeeling, setOverallFeeling] = useState(4)
   const [measurementDraft, setMeasurementDraft] = useState<MeasurementDraft>(emptyMeasurementDraft)
   const [sessionCompletedToday, setSessionCompletedToday] = useState(false)
+  const [sesionRecienTerminada, setSesionRecienTerminada] = useState(false)
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState<string | null>(null)
   const [isDaySelectorOpen, setIsDaySelectorOpen] = useState(false)
   const [exerciseStates, setExerciseStates] = useState<Record<number, 'realizado' | 'omitido'>>({})
@@ -118,7 +118,7 @@ function TodayWorkoutPageContent() {
       if (exercise.exercise_type === 'timed') {
         initialLogs[exercise.id] = {
           exercise_id: exercise.id,
-          minutes_completed: exercise.target_minutes || undefined,
+          minutes_completed: exercise.target_minutes || Math.ceil((exercise.duracion_trabajo_segundos ?? 0) * (exercise.sets ?? 1) / 60),
         }
         return
       }
@@ -162,7 +162,7 @@ function TodayWorkoutPageContent() {
           if (exercise.exercise_type === 'timed') {
             initialLogs[exercise.id] = {
               exercise_id: exercise.id,
-              minutes_completed: exercise.target_minutes || undefined,
+              minutes_completed: exercise.target_minutes || Math.ceil((exercise.duracion_trabajo_segundos ?? 0) * (exercise.sets ?? 1) / 60),
             }
             return
           }
@@ -285,6 +285,7 @@ function TodayWorkoutPageContent() {
         if (result.session_completed) {
           setSessionStarted(false)
           setSessionCompletedToday(true)
+          setSesionRecienTerminada(true)
         }
       },
     })
@@ -296,6 +297,7 @@ function TodayWorkoutPageContent() {
       onSuccess: () => {
         setSessionStarted(false)
         setSessionCompletedToday(true)
+        setSesionRecienTerminada(true)
         setIsFinishConfirmOpen(false)
       },
     })
@@ -325,7 +327,7 @@ function TodayWorkoutPageContent() {
     : null
   const tituloPrincipal = mostrarFallbackSemanal
     ? 'Hoy no tienes bloque puntual'
-    : `${DAY_OF_WEEK_LABELS[workoutDay?.day_of_week || 'mon']} · ${workoutDay?.name}`
+    : `Bloque ${workoutDay?.day_label ?? ''} · ${workoutDay?.name ?? ''}`
 
   useEffect(() => {
     if (!tieneProgramaActivo) {
@@ -384,6 +386,15 @@ function TodayWorkoutPageContent() {
 
   if (hasCriticalQueryError || lacksTrainingContext || (!isMember && isTodayWorkoutError)) {
     return <MemberTrainingFallback />
+  }
+
+  if (isMember && sesionRecienTerminada) {
+    return <section className="page-enter mx-auto max-w-2xl rounded-[1.75rem] border border-emerald-200 bg-white p-8 text-center shadow-sm dark:border-emerald-900 dark:bg-neutral-950" aria-live="polite">
+      <CheckCircle size={56} className="mx-auto text-emerald-500" />
+      <h1 className="mt-4 font-heading text-3xl font-black">Bloque completado</h1>
+      <p className="mt-3 text-neutral-600 dark:text-neutral-300">Tu progreso quedó guardado. La próxima vez continuarás con el siguiente bloque de la rutina.</p>
+      <div className="mt-6 flex flex-wrap justify-center gap-3"><Link className="btn-secondary" to="/today">Volver a Inicio</Link><button type="button" className="btn-primary" onClick={() => setSesionRecienTerminada(false)}>Ver siguiente bloque</button></div>
+    </section>
   }
 
   if (!workoutDay?.id && !isMember) {
@@ -450,14 +461,14 @@ function TodayWorkoutPageContent() {
               <Dumbbell size={25} />
             </SymbolFrame>
             <div>
-              <p className="label-base text-primary">Tu rutina de hoy</p>
+              <p className="label-base text-primary">Tu siguiente bloque</p>
               <h1 className="mt-1 text-4xl font-heading font-black leading-none text-neutral-900 dark:text-white md:text-5xl">
               {tituloPrincipal}
               </h1>
               <p className="mt-3 max-w-xl text-sm text-neutral-600 dark:text-neutral-300">
                 {mostrarFallbackSemanal
                   ? 'Hoy no hay bloque asignado. Mantén visible tu semana para seguir el orden del plan.'
-                  : 'Tu siguiente paso está aquí: registra tu entrada y sigue la rutina que preparó tu trainer.'}
+                  : 'Continúa la secuencia de tu rutina a tu propio ritmo.'}
               </p>
             </div>
           </div>
@@ -475,7 +486,7 @@ function TodayWorkoutPageContent() {
                 </SymbolFrame>
                 <div>
                   <p className="text-sm font-semibold">Rutina completada hoy</p>
-                  <p className="text-xs opacity-80">Este bloque se habilitará de nuevo cuando vuelva a tocar este día de la semana.</p>
+                  <p className="text-xs opacity-80">La siguiente sesión continuará con el próximo bloque.</p>
                 </div>
               </div>
             ) : !sessionStarted ? (
@@ -518,48 +529,6 @@ function TodayWorkoutPageContent() {
         ) : null}
       </section>
 
-      {isMember ? (
-        <section
-          className="rounded-[1.75rem] border border-primary/25 bg-primary/5 p-5 shadow-sm dark:border-primary/20 dark:bg-primary/10"
-          data-testid="today-membership-spotlight"
-        >
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <SymbolFrame size="md" tone={obtenerEstadoMembresia(dashboardSummary).estado === 'membresia_activa' ? 'success' : 'danger'}>
-                <CalendarClock size={18} />
-              </SymbolFrame>
-              <div>
-                <p className="label-base">Membresía actual</p>
-                <h2 className="font-heading text-2xl font-black text-neutral-900 dark:text-white">
-                  {dashboardSummary?.membership_plan_name || 'Sin membresía asignada'}
-                </h2>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <Badge variant={obtenerEstadoMembresia(dashboardSummary).variant}>
-                    {obtenerEstadoMembresia(dashboardSummary).label}
-                  </Badge>
-                  <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">
-                    {dashboardSummary?.membership_access_allowed ? 'Acceso permitido' : 'Acceso requiere revisión'}
-                  </span>
-                </div>
-                <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-300">
-                  {dashboardSummary?.membership_expires_at
-                    ? `Vence el ${formatDate(dashboardSummary.membership_expires_at)}.`
-                    : 'Fecha de vencimiento no disponible.'}
-                  {' '}
-                  {dashboardSummary?.days_overdue != null
-                    ? `${dashboardSummary.days_overdue} día(s) vencida.`
-                    : dashboardSummary?.days_until_due != null
-                      ? `${dashboardSummary.days_until_due} día(s) restantes.`
-                      : ''}
-                </p>
-              </div>
-            </div>
-            <Link to="/membership" className="btn-primary" data-testid="today-membership-link">
-              Ver mi membresía
-            </Link>
-          </div>
-        </section>
-      ) : null}
 
       {!mostrarFallbackSemanal ? (
         isMember && sessionStarted ? (
@@ -1052,7 +1021,7 @@ function SelectedDayDetail({
                 <StaticMetric label="Máquina" value={exercise.machine_detail?.name || 'Libre'} />
                 <StaticMetric
                   label="Prescripción"
-                  value={exercise.exercise_type === 'timed' ? `${exercise.target_minutes ?? 0} min` : `${exercise.sets ?? 0}×${exercise.reps_range}`}
+                  value={getExercisePrescriptionLabel(exercise)}
                 />
                 <StaticMetric label="Descanso" value={`${exercise.rest_seconds}s`} />
                 <StaticMetric
@@ -1093,6 +1062,74 @@ interface ExerciseCardProps {
   log?: ExerciseLogEntry
   active: boolean
   onUpdate: (field: string, value: number) => void
+}
+
+function TemporizadorIntervalo({ ejercicio }: { ejercicio: Exercise }) {
+  const rondas = ejercicio.sets ?? 1
+  const trabajo = ejercicio.duracion_trabajo_segundos ?? (ejercicio.target_minutes ?? 1) * 60
+  const descanso = ejercicio.rest_seconds ?? 0
+  const [estado, setEstado] = useState<{
+    fase: 'listo' | 'preparacion' | 'trabajo' | 'descanso' | 'terminado'
+    ronda: number
+    restante: number
+    ejecutando: boolean
+  }>({ fase: 'listo', ronda: 1, restante: trabajo, ejecutando: false })
+  const finFase = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (!estado.ejecutando) return
+    const intervalo = window.setInterval(() => {
+      const restante = Math.max(0, Math.ceil(((finFase.current ?? Date.now()) - Date.now()) / 1000))
+      if (restante > 0) {
+        setEstado((actual) => actual.restante === restante ? actual : { ...actual, restante })
+        return
+      }
+      setEstado((actual) => {
+        if (actual.fase === 'preparacion' || actual.fase === 'descanso') {
+          finFase.current = Date.now() + trabajo * 1000
+          return { fase: 'trabajo', ronda: actual.ronda, restante: trabajo, ejecutando: true }
+        }
+        if (actual.fase === 'trabajo' && actual.ronda < rondas) {
+          const siguiente = descanso > 0 ? descanso : trabajo
+          finFase.current = Date.now() + siguiente * 1000
+          return { fase: descanso > 0 ? 'descanso' : 'trabajo', ronda: actual.ronda + 1, restante: siguiente, ejecutando: true }
+        }
+        finFase.current = null
+        return { ...actual, fase: 'terminado', restante: 0, ejecutando: false }
+      })
+    }, 200)
+    return () => window.clearInterval(intervalo)
+  }, [estado.ejecutando, estado.fase, trabajo, descanso, rondas])
+
+  const alternar = () => {
+    if (estado.fase === 'terminado') return
+    if (estado.ejecutando) {
+      const restante = Math.max(1, Math.ceil(((finFase.current ?? Date.now()) - Date.now()) / 1000))
+      finFase.current = null
+      setEstado({ ...estado, restante, ejecutando: false })
+      return
+    }
+    const fase = estado.fase === 'listo' ? 'preparacion' : estado.fase
+    const restante = estado.fase === 'listo' ? 3 : estado.restante
+    finFase.current = Date.now() + restante * 1000
+    setEstado({ ...estado, fase, restante, ejecutando: true })
+  }
+
+  const etiqueta = {
+    listo: 'Listo para comenzar', preparacion: 'Prepárate', trabajo: 'Trabajo',
+    descanso: 'Descanso', terminado: 'Tiempo cumplido',
+  }[estado.fase]
+  const minutos = Math.floor(estado.restante / 60).toString().padStart(2, '0')
+  const segundos = (estado.restante % 60).toString().padStart(2, '0')
+
+  return <div className="rounded-2xl border border-primary/25 bg-primary/5 p-5 text-center sm:col-span-2" aria-live="polite">
+    <p className="text-sm font-bold uppercase tracking-widest text-primary">{etiqueta}</p>
+    <p className="mt-1 font-heading text-6xl font-black tabular-nums sm:text-7xl">{minutos}:{segundos}</p>
+    <p className="mt-2 text-sm text-neutral-500">Ronda {estado.ronda} de {rondas} · {trabajo}s de trabajo · {descanso}s de descanso</p>
+    <button type="button" className="btn-primary mx-auto mt-4 inline-flex min-h-12 items-center gap-2" onClick={alternar} disabled={estado.fase === 'terminado'}>
+      {estado.ejecutando ? <><Pause size={18} /> Pausar</> : <><Play size={18} /> {estado.fase === 'listo' ? 'Iniciar intervalo' : 'Reanudar'}</>}
+    </button>
+  </div>
 }
 
 function ClientRoutineFlow({
@@ -1156,7 +1193,7 @@ function ClientRoutineFlow({
           </div>
         ) : null}
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          {esTiempo ? <StaticMetric label="Duración" value={`${actual.target_minutes ?? 0} min`} /> : <><StaticMetric label="Series" value={String(actual.sets ?? 0)} /><StaticMetric label="Repeticiones" value={actual.reps_range} /></>}
+          {esTiempo ? <TemporizadorIntervalo key={actual.id} ejercicio={actual} /> : <><StaticMetric label="Series" value={String(actual.sets ?? 0)} /><StaticMetric label="Repeticiones" value={actual.reps_range} /></>}
           <StaticMetric label="Descanso" value={`${actual.rest_seconds}s`} />
           <StaticMetric label="Equipo" value={actual.machine_detail?.name || 'Ejercicio libre'} />
           {!esTiempo ? <StaticMetric label="Peso sugerido" value={actual.weight_suggestion_kg != null ? formatPesoSugerido(actual.weight_suggestion_kg, actual.weight_suggestion_unit) : 'Según indicación'} /> : null}
@@ -1224,7 +1261,8 @@ function ExerciseCard({ exercise, log, active, onUpdate }: ExerciseCardProps) {
           <p className="text-[11px] uppercase tracking-wide text-neutral-500">Prescripción del trainer</p>
           {isTimed ? (
             <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-              <StaticMetric label="Duración objetivo" value={`${exercise.target_minutes ?? 0} min`} />
+              <StaticMetric label="Duración objetivo" value={exercise.duracion_trabajo_segundos ? `${exercise.duracion_trabajo_segundos}s por ronda` : `${exercise.target_minutes ?? 0} min`} />
+              <StaticMetric label="Rondas" value={String(exercise.sets ?? 1)} />
               <StaticMetric label="Máquina" value={exercise.machine_detail?.name || 'Libre'} />
               <StaticMetric label="Descanso" value={`${exercise.rest_seconds}s`} />
               <StaticMetric label="Tipo" value="Cardio por tiempo" />
@@ -1258,7 +1296,7 @@ function ExerciseCard({ exercise, log, active, onUpdate }: ExerciseCardProps) {
               <div className="mt-3 grid grid-cols-1 gap-3">
                 <LogStepper
                   label="Minutos realizados"
-                  value={log.minutes_completed || exercise.target_minutes || 0}
+                  value={log.minutes_completed || exercise.target_minutes || Math.ceil((exercise.duracion_trabajo_segundos ?? 0) * (exercise.sets ?? 1) / 60)}
                   onChange={(value) => onUpdate('minutes_completed', value)}
                   step={1}
                   min={0}

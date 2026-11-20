@@ -35,6 +35,14 @@ it('registra varios clientes sin reabrir la cámara ni duplicar el QR', async ()
   expect(detenerPista).not.toHaveBeenCalled()
 })
 
+it('muestra la entrada ya registrada sin tratarla como error', async () => {
+  const enviar = vi.fn().mockResolvedValue('Entrada ya registrada hoy. Puedes escanear al siguiente cliente.')
+  render(<AdminQrScanner isSubmitting={false} onSubmit={enviar} />)
+  await waitFor(() => expect(decodificar).toHaveBeenCalledTimes(1))
+  await act(async () => { decodificar.mock.calls[0][2]({ getText: () => 'cliente-a' }) })
+  expect(screen.getByText('Entrada ya registrada hoy. Puedes escanear al siguiente cliente.')).toBeInTheDocument()
+})
+
 it('libera la cámara al cambiar y vuelve a la trasera al abrir el escáner', async () => {
   localStorage.setItem('pulso-camara-asistencia', 'user')
   const vista = render(<AdminQrScanner isSubmitting={false} onSubmit={vi.fn()} />)

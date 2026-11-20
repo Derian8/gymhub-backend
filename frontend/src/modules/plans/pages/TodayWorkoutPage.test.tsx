@@ -241,7 +241,7 @@ describe('TodayWorkoutPage', () => {
     expect(getAllByText('Carlos Mendoza').length).toBeGreaterThan(0)
     expect(getAllByText('Hipertrofia base').length).toBeGreaterThan(0)
     expect(getByTestId('workout-primary')).toBeInTheDocument()
-    expect(getByTestId('workout-primary')).toHaveTextContent('Tu rutina de hoy')
+    expect(getByTestId('workout-primary')).toHaveTextContent('Tu siguiente bloque')
     expect(getByTestId('today-workout-summary')).toHaveTextContent('Ejercicios')
     expect(getByTestId('today-workout-summary')).toHaveTextContent('Hipertrofia base')
     expect(getByTestId('start-session-btn')).toHaveTextContent('Iniciar rutina')
@@ -267,25 +267,17 @@ describe('TodayWorkoutPage', () => {
       expect.objectContaining({ onSuccess: expect.any(Function) }),
     ))
     await user.click(getByTestId('skip-exercise'))
-    await waitFor(() => expect(getByText('Rutina completada hoy')).toBeInTheDocument())
+    await waitFor(() => expect(getByText('Bloque completado')).toBeInTheDocument())
 
     expect(queryByTestId('complete-session-btn')).not.toBeInTheDocument()
   })
 
-  it('shows the member membership summary after the workout action', () => {
-    const { getByTestId } = renderWithProviders(<TodayWorkoutPage />)
+  it('keeps the workout action without the membership card moved to profile', () => {
+    const { getByTestId, queryByText } = renderWithProviders(<TodayWorkoutPage />)
 
-    expect(getByTestId('today-membership-spotlight')).toHaveTextContent('Membresía actual')
-    expect(getByTestId('today-membership-spotlight')).toHaveTextContent('Plan semanal')
-    expect(getByTestId('today-membership-spotlight')).toHaveTextContent('Pendiente')
-    expect(getByTestId('today-membership-spotlight')).toHaveTextContent('Acceso permitido')
-    expect(getByTestId('today-membership-spotlight')).toHaveTextContent('Vence el 28/03/2026')
-    expect(getByTestId('today-membership-spotlight')).toHaveTextContent('2 día(s) restantes')
-    expect(getByTestId('today-membership-link')).toHaveAttribute('href', '/membership')
-    expect(
-      getByTestId('workout-primary').compareDocumentPosition(getByTestId('today-membership-spotlight'))
-      & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy()
+    expect(getByTestId('workout-primary')).toBeInTheDocument()
+    expect(queryByText('Membresía actual')).not.toBeInTheDocument()
+    expect(queryByText('Ver mi membresía')).not.toBeInTheDocument()
   })
 
   it('allows opening another day while keeping today as the main workout', async () => {

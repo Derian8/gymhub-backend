@@ -171,7 +171,15 @@ export function AiChatPage() {
                 <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
                   {context?.mode === 'trainer_member' ? 'Asistente del trainer' : 'PULSO AI'}
                 </span>
-                {context?.engine_mode === 'gemini_hybrid' ? (
+                {context?.engine_mode === 'copilot_hybrid' ? (
+                  <Badge variant={context.local_llm_available ? 'success' : 'warning'}>
+                    GitHub Copilot · respaldo OpenRouter
+                  </Badge>
+                ) : context?.engine_mode === 'openrouter_hybrid' ? (
+                  <Badge variant={context.local_llm_available ? 'success' : 'warning'}>
+                    {context.local_llm_available ? 'OpenRouter configurado' : 'OpenRouter sin configurar'}
+                  </Badge>
+                ) : context?.engine_mode === 'gemini_hybrid' ? (
                   <Badge variant={context.local_llm_available ? 'success' : 'warning'}>
                     {context.local_llm_available ? 'Gemini configurado' : 'Gemini sin configurar'}
                   </Badge>
@@ -477,7 +485,13 @@ function ChatContextPanel({
           <p className="mt-2 text-xs text-neutral-500">Objetivo nutricional: {context.summary.nutrition_goal}</p>
         ) : null}
         <p className="mt-2 text-xs text-neutral-500" data-testid="chat-engine-status">
-          {context.engine_mode === 'gemini_hybrid'
+          {context.engine_mode === 'copilot_hybrid'
+            ? 'Motor configurado: GitHub Copilot → OpenRouter → reglas'
+            : context.engine_mode === 'openrouter_hybrid'
+            ? context.local_llm_available
+              ? 'Motor activo: reglas + OpenRouter configurado'
+              : 'Motor activo: reglas; configura la clave de OpenRouter en el servidor'
+            : context.engine_mode === 'gemini_hybrid'
             ? context.local_llm_available
               ? 'Motor activo: reglas + Gemini configurado'
               : 'Motor activo: reglas; configura la clave de Gemini en el servidor'

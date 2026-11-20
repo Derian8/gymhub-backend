@@ -14,6 +14,7 @@ import { progressApi } from '@/modules/progress/api/progressApi'
 import { toast } from 'sonner'
 import type { MemberSubscription, ProgressLog } from '@/shared/types'
 import { membersApi } from '../api/membersApi'
+import { attendanceApi } from '@/modules/attendance/api/attendanceApi'
 
 const MEMBERSHIP_PERIOD_LABELS: Record<MemberSubscription['recurrence_type'], string> = {
   daily: 'día',
@@ -36,6 +37,11 @@ export function MemberDetailPage() {
   const { mutate: activate, isPending: isActivating } = useActivateMemberMutation()
   const { user } = useAuthStore()
   const isAdmin = Boolean(user?.is_staff)
+  const regenerarQr = useMutation({
+    mutationFn: () => attendanceApi.regenerarQr(memberId),
+    onSuccess: () => toast.success('QR regenerado. El cliente debe volver a abrir su carnet; el anterior ya no funciona.'),
+    onError: (error) => toast.error(extractApiError(error)),
+  })
   const [isMeasurementFormOpen, setIsMeasurementFormOpen] = useState(false)
   const [temporaryPassword, setTemporaryPassword] = useState('')
   const accountAction = useMutation({ mutationFn: async (action: 'password' | 'deactivate' | 'reactivate') => {
@@ -189,6 +195,9 @@ export function MemberDetailPage() {
               </button>
             )}
             {isAdmin && <button className="btn-secondary" type="button" onClick={() => accountAction.mutate('password')}>Nueva contraseña temporal</button>}
+            {isAdmin && <button className="btn-secondary" type="button" disabled={regenerarQr.isPending} onClick={() => {
+              if (window.confirm('¿Regenerar el QR del cliente? Las copias anteriores dejarán de funcionar.')) regenerarQr.mutate()
+            }}>{regenerarQr.isPending ? 'Regenerando QR…' : 'Regenerar QR'}</button>}
             {isAdmin && member.is_active ? <button className="btn-secondary" type="button" onClick={() => accountAction.mutate('deactivate')}>Dar de baja</button> : null}
           </div>
         }

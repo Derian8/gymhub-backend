@@ -48,6 +48,7 @@ class WorkoutSession(models.Model):
     )
     workout_day = models.ForeignKey(
         'plans.WorkoutDay',
+        null=True, blank=True,
         on_delete=models.PROTECT,
         related_name='sessions'
     )
@@ -74,6 +75,8 @@ class WorkoutSession(models.Model):
         ],
     )
     detalle_iniciado = models.JSONField(default=dict, blank=True)
+    origen = models.CharField(max_length=10, default='plan', choices=[('plan', 'Plan'), ('libre', 'Libre')])
+    progreso_guiado = models.JSONField(default=dict, blank=True)
     trainer_notes = models.TextField(blank=True)
 
     class Meta:
@@ -97,6 +100,7 @@ class WorkoutSession(models.Model):
                         'series': ejercicio.sets,
                         'repeticiones': ejercicio.reps_range,
                         'minutos': ejercicio.target_minutes,
+                        'duracion_trabajo_segundos': ejercicio.duracion_trabajo_segundos,
                         'descanso_segundos': ejercicio.rest_seconds,
                         'peso_sugerido_kg': ejercicio.weight_suggestion_kg,
                         'notas_tecnicas': ejercicio.technique_notes,

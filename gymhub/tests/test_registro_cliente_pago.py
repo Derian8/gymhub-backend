@@ -23,10 +23,10 @@ def test_temporary_password_requires_surname_and_birth_date():
 
 @pytest.mark.django_db
 class TestRegistroClientePago:
-    def test_entrenador_no_puede_registrar_ni_cobrar(
-        self, trainer_client, trainer_profile, membership_plan,
+    def test_cliente_no_puede_registrar_ni_cobrar(
+        self, member_client, trainer_profile, membership_plan,
     ):
-        response = trainer_client.post('/api/members/registro-con-pago/', {
+        response = member_client.post('/api/members/registro-con-pago/', {
             'nombres': 'Cliente',
             'apellidos': 'Bloqueado',
             'correo_electronico': 'bloqueado@test.com',

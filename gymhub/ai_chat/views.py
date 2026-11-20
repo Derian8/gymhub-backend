@@ -21,7 +21,14 @@ from users.services import (
 from users.permissions import IsAdministrator
 
 from .agentes_administracion import generar_analisis_administrativo
-from .engine import generate_chat_response, get_engine_mode, is_gemini_available, is_local_llm_available
+from .engine import (
+    esta_copilot_configurado,
+    esta_openrouter_configurado,
+    generate_chat_response,
+    get_engine_mode,
+    is_gemini_available,
+    is_local_llm_available,
+)
 from .models import AIChatConversation, AIChatMessage
 from .serializers import (
     AIChatContextSerializer,
@@ -242,7 +249,7 @@ def _get_conversation(user, member, mode, conversation_id=None):
 def _build_context_payload(user, member, mode, conversation):
     remaining, limit = _remaining_messages(user, mode)
     engine_mode = get_engine_mode()
-    local_llm_available = is_local_llm_available() or is_gemini_available()
+    local_llm_available = is_local_llm_available() or is_gemini_available() or esta_openrouter_configurado() or esta_copilot_configurado()
 
     if member is None:
         payload = {
@@ -282,7 +289,9 @@ def _build_context_payload(user, member, mode, conversation):
         'engine_mode': engine_mode,
         'local_llm_available': local_llm_available,
         'response_source': (
-            'gemini' if engine_mode == 'gemini_hybrid' and is_gemini_available()
+            'copilot' if esta_copilot_configurado()
+            else 'openrouter' if esta_openrouter_configurado()
+            else 'gemini' if engine_mode == 'gemini_hybrid' and is_gemini_available()
             else 'local_model' if local_llm_available and engine_mode == 'local_hybrid'
             else 'rules'
         ),
@@ -406,7 +415,7 @@ class AIChatView(APIView):
             'message_id': message.id,
             'conversation_id': conversation.id,
             'mode': mode,
-            'fallback_used': generation.engine_mode in ('local_hybrid', 'gemini_hybrid') and generation.response_source == 'rules',
+            'fallback_used': (generation.engine_mode in ('local_hybrid', 'gemini_hybrid', 'openrouter_hybrid', 'copilot_hybrid') and generation.response_source == 'rules') or (generation.engine_mode == 'copilot_hybrid' and generation.response_source != 'copilot'),
             'engine_mode': generation.engine_mode,
             'local_llm_used': generation.local_llm_used,
             'response_source': generation.response_source,

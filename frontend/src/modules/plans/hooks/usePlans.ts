@@ -566,7 +566,7 @@ export function useRefreshTrainingTemplateMutation() {
   })
 }
 
-export function useCreateSessionMutation() {
+export function useCreateSessionMutation(planId?: number, memberId?: number) {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -575,13 +575,16 @@ export function useCreateSessionMutation() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WORKOUT_SESSIONS })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLANS })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERS })
+      if (planId) queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_TODAY(planId) })
+      if (planId) queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_WEEKLY(planId) })
+      if (memberId) queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_ACTIVE_PRESCRIPTION(memberId) })
       toast.success('Sesión de entrenamiento iniciada')
     },
     onError: (error) => toast.error(extractApiError(error)),
   })
 }
 
-export function useCompleteSessionMutation() {
+export function useCompleteSessionMutation(planId?: number, memberId?: number) {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -591,6 +594,9 @@ export function useCompleteSessionMutation() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WORKOUT_SESSIONS })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLANS })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERS })
+      if (planId) queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_TODAY(planId) })
+      if (planId) queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_WEEKLY(planId) })
+      if (memberId) queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_ACTIVE_PRESCRIPTION(memberId) })
       toast.success('¡Sesión completada! Excelente trabajo')
     },
     onError: (error) => toast.error(extractApiError(error)),
@@ -610,7 +616,7 @@ export function useBulkExerciseLogsMutation() {
   })
 }
 
-export function useRegisterExerciseProgressMutation(planId?: number) {
+export function useRegisterExerciseProgressMutation(planId?: number, memberId?: number) {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -619,6 +625,8 @@ export function useRegisterExerciseProgressMutation(planId?: number) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WORKOUT_SESSIONS })
       if (planId) queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_TODAY(planId) })
+      if (planId) queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLAN_WEEKLY(planId) })
+      if (memberId) queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_ACTIVE_PRESCRIPTION(memberId) })
     },
     onError: (error) => toast.error(extractApiError(error)),
   })

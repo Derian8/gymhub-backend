@@ -4,9 +4,16 @@ from celery import shared_task
 from django.conf import settings
 from django.core.mail import send_mail
 from django.utils import timezone
+from django.db import transaction
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+@shared_task(name='billing.tasks.procesar_correos_pendientes')
+def procesar_correos_pendientes():
+    from billing.correos import procesar_correos
+    return procesar_correos()
 
 
 @shared_task(name='billing.tasks.run_daily_membership_maintenance')
@@ -25,6 +32,8 @@ def run_daily_membership_maintenance():
     inactivity = check_member_inactivity()
     tokens_eliminados, _ = TokenAccesoQr.objects.filter(vence_en__lte=timezone.now()).delete()
     call_command('flushexpiredtokens', verbosity=0)
+    from billing.correos import procesar_correos
+    transaction.on_commit(procesar_correos, robust=True)
     return {
         **result,
         'records_updated': overdue['updated'],
@@ -44,6 +53,7 @@ def _notification_recipients(member):
 
 
 @shared_task(name='billing.tasks.check_upcoming_payments')
+@transaction.atomic
 def check_upcoming_payments():
     """
     Crontab: hour=9, minute=0
@@ -94,7 +104,7 @@ def check_upcoming_payments():
                     message=f"Hola {member.user.get_full_name() or member.user.email},\n\nTu pago del plan '{plan_name}' vence el {due_date}.",
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[member.user.email],
-                    fail_silently=True,
+                    fail_silently=False,
                 )
             except (SMTPException, OSError):
                 logger.exception(
@@ -156,6 +166,7 @@ def check_membership_status_alerts():
 
 
 @shared_task(name='billing.tasks.check_overdue_payments')
+@transaction.atomic
 def check_overdue_payments():
     """
     Crontab: hour=9, minute=30
@@ -238,7 +249,7 @@ def check_overdue_payments():
                     message=f"Hola {member.user.get_full_name() or member.user.email},\n\nTu pago del plan '{plan_name}' está vencido hace {days_overdue} días.",
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[member.user.email],
-                    fail_silently=True,
+                    fail_silently=False,
                 )
             except (SMTPException, OSError):
                 logger.exception(

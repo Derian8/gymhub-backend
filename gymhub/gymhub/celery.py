@@ -9,6 +9,10 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 app.autodiscover_tasks()
 
 app.conf.beat_schedule = {
+    'procesar-correos-pendientes': {
+        'task': 'billing.tasks.procesar_correos_pendientes',
+        'schedule': crontab(minute='*/5'),
+    },
     'check-member-inactivity': {
         'task': 'alerts.tasks.check_member_inactivity',
         'schedule': crontab(hour=8, minute=0),

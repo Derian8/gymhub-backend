@@ -230,9 +230,9 @@ class Command(BaseCommand):
     def _crear_plantilla(self, entrenador, rutina, catalogo):
         descripcion = (
             f"Ejemplo basado en la secuencia observada de Interval Timer. "
-            f"Categoría: {rutina['categoria']}. Prescripción inicial de gimnasio: "
-            '3 series de 10–12 repeticiones y 60 segundos de descanso; '
-            'ajusta la carga y las repeticiones con el instructor.'
+            f"Categoría: {rutina['categoria']}. Prescripción inicial por intervalos: "
+            '1 ronda de 30 segundos de trabajo y 10 segundos de descanso; '
+            'ajusta cada intervalo con el instructor.'
         )
         plantilla = PlantillaEntrenamiento.objects.create(
             trainer=entrenador,
@@ -269,13 +269,14 @@ class Command(BaseCommand):
                 catalogo_ejercicio=ejercicio_catalogo,
                 nombre=nombre,
                 grupo_muscular=grupo,
-                tipo_ejercicio='strength',
-                series=3,
-                rango_repeticiones='10-12',
+                tipo_ejercicio='timed',
+                series=1,
+                rango_repeticiones='',
                 minutos_objetivo=None,
+                duracion_trabajo_segundos=30,
                 peso_sugerido_kg=None,
                 unidad_peso_sugerido='kg',
-                descanso_segundos=60,
+                descanso_segundos=10,
                 notas_tecnicas='',
                 orden=posicion,
             )

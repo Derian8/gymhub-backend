@@ -80,10 +80,10 @@ export function AdminAgentsPanel() {
       {data ? (
         <div className="mt-5 border-t border-neutral-200/80 pt-4 dark:border-neutral-800" aria-live="polite">
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <Badge variant={data.fuente === 'gemini' ? 'success' : 'info'}>
-              {data.fuente === 'gemini' ? 'Gemini' : 'Respaldo por reglas'}
+            <Badge variant={data.fuente !== 'rules' ? 'success' : 'info'}>
+              {data.fuente === 'copilot' ? 'GitHub Copilot' : data.fuente === 'openrouter' ? 'OpenRouter' : data.fuente === 'gemini' ? 'Gemini' : 'Respaldo por reglas'}
             </Badge>
-            {data.codigo_proveedor ? <span className="text-xs text-neutral-500">Gemini respondió HTTP {data.codigo_proveedor}; se usó el análisis local.</span> : null}
+            {data.respaldo_activo ? <span className="text-xs text-neutral-500">La IA no está disponible en este momento; el análisis usa las reglas del gimnasio.</span> : null}
           </div>
           <p className="whitespace-pre-line text-sm leading-6 text-neutral-700 dark:text-neutral-200">{data.respuesta}</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

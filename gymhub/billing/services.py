@@ -254,8 +254,32 @@ def membership_summary(member):
     }
 
 
+def calcular_vigencia_pago(cobro, hoy=None):
+    """Previsualiza el periodo que se confirma al cobrar una membresía."""
+    hoy = hoy or timezone.localdate()
+    calendario = cobro.schedule
+    suscripcion = calendario.subscription
+    if not suscripcion:
+        return None
+    inicio = calendario.period_start or calendario.due_date
+    fin = calendario.period_end or period_end(inicio, suscripcion.recurrence_type)
+    reinicia = fin < hoy or (hoy - inicio).days > suscripcion.grace_period_days
+    if reinicia:
+        inicio = hoy
+        if suscripcion.current_period_end and suscripcion.current_period_end >= hoy:
+            inicio = suscripcion.current_period_end + timedelta(days=1)
+        fin = period_end(inicio, suscripcion.recurrence_type)
+    elif inicio > hoy and not (
+        suscripcion.current_period_end and suscripcion.current_period_end >= hoy
+    ):
+        inicio = hoy
+        fin = period_end(inicio, suscripcion.recurrence_type)
+    return {'inicio': inicio, 'fin': fin, 'reinicia': reinicia}
+
+
 @transaction.atomic
-def mark_payment_paid(record, reference='', notes='', method='cash', recorded_by=None):
+def mark_payment_paid(record, reference='', notes='', method='cash', recorded_by=None,
+                      aplicacion='activar'):
     record = PaymentRecord.objects.select_for_update().get(pk=record.pk)
     record = PaymentRecord.objects.select_related(
         'schedule__subscription', 'schedule__member', 'schedule__plan'
@@ -264,6 +288,24 @@ def mark_payment_paid(record, reference='', notes='', method='cash', recorded_by
         return record, None
     if record.status == 'void':
         raise ValueError('Este cobro fue anulado y no debe registrarse como pagado.')
+    if not isinstance(aplicacion, str) or aplicacion not in {'activar', 'deuda'}:
+        raise ValueError('Selecciona cómo aplicar el pago.')
+    subscription = record.schedule.subscription
+    if subscription:
+        subscription = MemberSubscription.objects.select_for_update().get(pk=subscription.pk)
+        record.schedule.subscription = subscription
+        if subscription.status == 'cancelled':
+            raise ValueError('No puedes registrar pagos en una suscripción cancelada.')
+        if aplicacion == 'activar':
+            if not record.schedule.member.is_active:
+                raise ValueError('Reactiva el perfil del cliente antes de cobrar y activar su membresía.')
+            if MemberSubscription.objects.filter(
+                member=record.schedule.member, is_active=True,
+            ).filter(
+                Q(start_date__gt=subscription.start_date)
+                | Q(start_date=subscription.start_date, id__gt=subscription.pk),
+            ).exclude(status='cancelled').exists():
+                raise ValueError('Este cargo pertenece a una membresía anterior. Selecciona solo pagar deuda.')
     valid_methods = {'cash', 'sinpe', 'transfer', 'other'}
     if method not in valid_methods:
         raise ValueError('Selecciona un método de pago válido.')
@@ -284,12 +326,13 @@ def mark_payment_paid(record, reference='', notes='', method='cash', recorded_by
     schedule = record.schedule
     schedule.is_active = False
     schedule.save(update_fields=['is_active'])
-    subscription = schedule.subscription
     next_schedule = None
-    if subscription:
-        subscription = MemberSubscription.objects.select_for_update().get(pk=subscription.pk)
-        start = schedule.period_start or schedule.due_date
-        end = schedule.period_end or period_end(start, subscription.recurrence_type)
+    if subscription and aplicacion == 'activar':
+        vigencia = calcular_vigencia_pago(record)
+        start, end = vigencia['inicio'], vigencia['fin']
+        schedule.period_start = start
+        schedule.period_end = end
+        schedule.save(update_fields=['period_start', 'period_end'])
         if subscription.current_period_end is None or end > subscription.current_period_end:
             subscription.current_period_start = start
             subscription.current_period_end = end
@@ -306,11 +349,14 @@ def mark_payment_paid(record, reference='', notes='', method='cash', recorded_by
             next_schedule, _ = create_pending_charge(subscription, next_start)
 
     from billing.models import SeguimientoCobro
-    SeguimientoCobro.objects.filter(
-        cliente=schedule.member,
-        estado__in=['nuevo', 'en_seguimiento'],
-    ).update(estado='resuelto', administrador=recorded_by)
+    if aplicacion == 'activar':
+        SeguimientoCobro.objects.filter(
+            cliente=schedule.member,
+            estado__in=['nuevo', 'en_seguimiento'],
+        ).update(estado='resuelto', administrador=recorded_by)
 
+    from .correos import encolar_comprobante
+    encolar_comprobante(record)
     return record, next_schedule
 
 
@@ -342,6 +388,12 @@ def renew_membership(subscription, start_date=None):
     if subscription.current_period_end and start <= subscription.current_period_end:
         start = subscription.current_period_end + timedelta(days=1)
     schedule, record = create_pending_charge(subscription, start)
+    while record.status == 'paid':
+        start = max(
+            (schedule.period_end or period_end(start, subscription.recurrence_type))
+            + timedelta(days=1), timezone.localdate(),
+        )
+        schedule, record = create_pending_charge(subscription, start)
     subscription.is_active = True
     subscription.status = 'pending'
     subscription.next_billing_date = start

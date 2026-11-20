@@ -96,13 +96,13 @@ describe('useBilling membership invalidations', () => {
   })
 
   it('refreshes member membership state after marking the first payment as paid', async () => {
-    vi.mocked(billingApi.markPaymentAsPaid).mockResolvedValue({ id: 80, status: 'paid' } as never)
+    vi.mocked(billingApi.markPaymentAsPaid).mockResolvedValue({ id: 80, status: 'paid', membresia_confirmada: { can_check_in: true } } as never)
     const queryClient = makeQueryClient()
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
 
     renderMutation(<MarkPaymentPaidHarness memberId={15} />, queryClient)
 
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Pago registrado y recibo emitido'))
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Pago registrado · membresía activa'))
     expectMembershipInvalidations(invalidateSpy, 15)
   })
 })

@@ -7,7 +7,7 @@ type Orientacion = 'user' | 'environment'
 
 interface AdminQrScannerProps {
   isSubmitting: boolean
-  onSubmit: (token: string) => Promise<void>
+  onSubmit: (token: string) => Promise<void | string>
 }
 
 export function AdminQrScanner({ isSubmitting, onSubmit }: AdminQrScannerProps) {
@@ -66,13 +66,13 @@ export function AdminQrScanner({ isSubmitting, onSubmit }: AdminQrScannerProps) 
           void (async () => {
             let registrado = false
             try {
-              await enviarRef.current(token)
+              const mensajeEntrada = await enviarRef.current(token)
               registrado = true
-              if (activo) establecerMensaje('Asistencia registrada. Puedes escanear al siguiente cliente.')
+              if (activo) establecerMensaje(mensajeEntrada || 'Asistencia registrada. Puedes escanear al siguiente cliente.')
             } catch {
-              if (activo) establecerMensaje('No se pudo registrar. Revisa el aviso y solicita un QR nuevo si venció.')
+              if (activo) establecerMensaje('No se pudo registrar. Revisa el aviso y verifica el QR o la membresía del cliente.')
             } finally {
-              ultimoRef.current = { token, hasta: registrado ? Infinity : Date.now() + 5000 }
+              ultimoRef.current = { token, hasta: Date.now() + (registrado ? 30_000 : 5000) }
               procesandoRef.current = false
             }
           })()

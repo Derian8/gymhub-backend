@@ -1,6 +1,34 @@
+import uuid
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
+
+
+class CorreoPendiente(models.Model):
+    """Aceptado significa recibido por Resend, no entregado al destinatario."""
+    clave = models.CharField(max_length=120, unique=True)
+    identificador = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    contenido = models.JSONField()
+    estado = models.CharField(max_length=20, default='pendiente', choices=[
+        ('pendiente', 'Pendiente'), ('aceptado', 'Aceptado por Resend'),
+        ('fallido', 'Fallido'), ('revisar', 'Revisión manual'),
+    ])
+    intentos = models.PositiveIntegerField(default=0)
+    primer_intento = models.DateTimeField(null=True, blank=True)
+    proximo_intento = models.DateTimeField(null=True, blank=True)
+    identificador_proveedor = models.CharField(max_length=120, blank=True)
+    ultimo_error = models.CharField(max_length=120, blank=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_aceptacion = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'correos_pendientes'
+        ordering = ['fecha_creacion']
+        indexes = [models.Index(
+            fields=['estado', 'proximo_intento'],
+            name='correo_estado_intento_idx',
+        )]
 
 PAYMENT_STATUS_CHOICES = [
     ('paid', 'Paid'),

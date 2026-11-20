@@ -38,7 +38,7 @@ export const billingApi = {
 
   markPaymentAsPaid: async (
     id: number,
-    payload: Pick<PaymentRecord, 'payment_reference' | 'notes'> & { method: 'cash' | 'sinpe' | 'transfer' | 'other' },
+    payload: Pick<PaymentRecord, 'payment_reference' | 'notes'> & { method: 'cash' | 'sinpe' | 'transfer' | 'other'; aplicacion?: 'activar' | 'deuda' },
   ): Promise<PaymentRecord> => {
     const { data } = await apiClient.post(`/api/payment-records/${id}/mark-paid/`, payload)
     return data

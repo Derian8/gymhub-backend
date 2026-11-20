@@ -25,7 +25,7 @@ function AdminQrAttendancePage() {
     <div className="page-enter mx-auto max-w-4xl" data-testid="checkin-page">
       <PageHeader
         title="Registrar asistencia"
-        subtitle="Escanea el código QR temporal del cliente para registrar su entrada."
+        subtitle="Escanea el código QR del cliente para registrar su entrada."
         backTo="/dashboard/admin"
         backLabel="Volver a Inicio"
       />
@@ -33,7 +33,8 @@ function AdminQrAttendancePage() {
         isSubmitting={isPending}
         onSubmit={async (qrToken) => {
           try {
-            await checkIn({ qr_token: qrToken })
+            const entrada = await checkIn({ qr_token: qrToken })
+            return entrada.entrada_ya_registrada ? 'Entrada ya registrada hoy. Puedes escanear al siguiente cliente.' : undefined
           } catch (error) {
             const response = (error as { response?: { data?: { blocked?: boolean; member_id?: number } } }).response?.data
             if (response?.blocked && response.member_id) {

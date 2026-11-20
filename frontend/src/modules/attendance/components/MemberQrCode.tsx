@@ -1,30 +1,23 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Expand, Loader2, RefreshCw, X } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { attendanceApi } from '../api/attendanceApi'
 import { QUERY_KEYS } from '@/shared/constants/queryKeys'
+import { useAuthStore } from '@/shared/store/authStore'
 
 export function MemberQrCode({ entradaConfirmada = false }: { entradaConfirmada?: boolean }) {
   const dialogo = useRef<HTMLDialogElement>(null)
-  const [ahora, establecerAhora] = useState(Date.now())
+  const usuarioId = useAuthStore((estado) => estado.user?.id)
   const { data: codigo, isPending: preparando, refetch: renovar, isFetching: renovando } = useQuery({
-    queryKey: QUERY_KEYS.MEMBER_ATTENDANCE_QR,
+    queryKey: [...QUERY_KEYS.MEMBER_ATTENDANCE_QR, usuarioId],
     queryFn: attendanceApi.memberQrToken,
     staleTime: 0,
-    refetchInterval: 45_000,
     refetchOnWindowFocus: true,
     retry: false,
   })
 
-  useEffect(() => {
-    if (!codigo?.expires_at) return
-    const demora = Date.parse(codigo.expires_at) - Date.now()
-    const temporizador = window.setTimeout(() => establecerAhora(Date.now()), Math.max(0, demora) + 20)
-    return () => window.clearTimeout(temporizador)
-  }, [codigo?.expires_at])
-
-  const codigoVigente = codigo?.token && Date.parse(codigo.expires_at) > ahora
+  const codigoVigente = codigo?.token
 
   const mostrarCodigo = (ampliado = false) => preparando ? (
     <p role="status" className="flex min-h-48 items-center justify-center gap-2 text-sm text-neutral-700"><Loader2 size={18} className="animate-spin" /> Preparando tu QR...</p>
@@ -32,7 +25,7 @@ export function MemberQrCode({ entradaConfirmada = false }: { entradaConfirmada?
     <QRCodeSVG value={codigo.token} size={ampliado ? 360 : 176} level="M" includeMargin className={ampliado ? 'h-auto w-full' : 'h-44 w-44'} role="img" aria-label={ampliado ? 'QR de entrada ampliado' : 'QR de entrada'} />
   ) : (
     <div role="status" className="flex min-h-48 flex-col items-center justify-center text-center text-neutral-700">
-      <p className="max-w-52 text-sm">{codigo ? 'Tu QR venció. Genera uno nuevo.' : 'No pudimos generar tu QR.'}</p>
+      <p className="max-w-52 text-sm">No pudimos cargar tu QR.</p>
       <button type="button" onClick={() => void renovar()} disabled={renovando} className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-neutral-950 hover:bg-neutral-100 disabled:opacity-60"><RefreshCw size={15} className={renovando ? 'animate-spin' : ''} />{renovando ? 'Generando...' : 'Reintentar'}</button>
     </div>
   )

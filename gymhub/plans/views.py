@@ -50,11 +50,26 @@ class PaginacionBibliotecaRutinas(PageNumberPagination):
 
 
 def get_today_workout_day(plan):
-    """Resuelve únicamente el bloque asignado al día local actual."""
+    """Retoma el bloque en curso o propone el siguiente bloque de la secuencia."""
     if not plan:
         return None
-    weekday = timezone.localdate().strftime('%a').lower()[:3]
-    return plan.workout_days.filter(day_of_week=weekday).order_by('order', 'id').first()
+    from progress.models import WorkoutSession
+
+    bloques = list(plan.workout_days.order_by('order', 'id'))
+    if not bloques:
+        return None
+    pendiente = WorkoutSession.objects.filter(
+        member=plan.member, workout_day__plan=plan, is_completed=False,
+    ).order_by('-started_at', '-id').first()
+    if pendiente:
+        return pendiente.workout_day
+    ultimo = WorkoutSession.objects.filter(
+        member=plan.member, workout_day__plan=plan, is_completed=True,
+    ).order_by('-completed_at', '-id').first()
+    if ultimo:
+        posicion = next((i for i, bloque in enumerate(bloques) if bloque.id == ultimo.workout_day_id), -1)
+        return bloques[(posicion + 1) % len(bloques)]
+    return bloques[0]
 
 
 def assert_plan_editable(plan):
@@ -157,8 +172,9 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
         data['descripcion_general'] = plan.notes
         data['modo_ejecucion'] = plan.modo_ejecucion
         if plan.modo_ejecucion == 'cycle':
-            total = plan.workout_days.count()
-            data['posicion_ciclo'] = plan.indice_bloque_actual % total + 1 if total else 0
+            bloques = list(plan.workout_days.order_by('order', 'id').values_list('id', flat=True))
+            total = len(bloques)
+            data['posicion_ciclo'] = bloques.index(workout_day.id) + 1 if total else 0
             data['total_bloques_ciclo'] = total
         return Response(data)
 
@@ -181,18 +197,19 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
             day_date = week_start + timedelta(days=i)
             weekday = day_date.strftime('%a').lower()[:3]
             workout_day = next((day for day in workout_days if day.day_of_week == weekday), None)
+            sesion_del_dia = WorkoutSession.objects.filter(
+                member=plan.member, workout_day__plan=plan, started_at__date=day_date,
+            ).select_related('workout_day').order_by('-started_at', '-id').first()
+            if sesion_del_dia:
+                workout_day = sesion_del_dia.workout_day
+            elif day_date == today:
+                workout_day = get_today_workout_day(plan)
 
             session = None
             is_completed = False
-            if workout_day:
-                session_qs = WorkoutSession.objects.filter(
-                    member=plan.member,
-                    workout_day=workout_day,
-                    started_at__date=day_date
-                ).first()
-                if session_qs:
-                    session = session_qs.id
-                    is_completed = session_qs.is_completed
+            if sesion_del_dia:
+                session = sesion_del_dia.id
+                is_completed = sesion_del_dia.is_completed
 
             result.append({
                 'date': day_date,
@@ -256,9 +273,11 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                         series=exercise.sets,
                         rango_repeticiones=exercise.reps_range,
                         minutos_objetivo=exercise.target_minutes,
+                        duracion_trabajo_segundos=exercise.duracion_trabajo_segundos,
                         peso_sugerido_kg=exercise.weight_suggestion_kg,
                         unidad_peso_sugerido=exercise.weight_suggestion_unit,
                         descanso_segundos=exercise.rest_seconds,
+                        descanso_entre_ejercicios_segundos=exercise.descanso_entre_ejercicios_segundos,
                         notas_tecnicas=exercise.technique_notes,
                         orden=exercise.order,
                     )
@@ -545,10 +564,12 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                             sets=source_exercise.sets,
                             reps_range=source_exercise.reps_range,
                             target_minutes=source_exercise.target_minutes,
+                            duracion_trabajo_segundos=source_exercise.duracion_trabajo_segundos,
                             machine=source_exercise.machine,
                             weight_suggestion_kg=source_exercise.weight_suggestion_kg,
                             weight_suggestion_unit=source_exercise.weight_suggestion_unit,
                             rest_seconds=source_exercise.rest_seconds,
+                            descanso_entre_ejercicios_segundos=source_exercise.descanso_entre_ejercicios_segundos,
                             technique_notes=source_exercise.technique_notes,
                             order=source_exercise.order,
                         )
@@ -589,9 +610,11 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                             sets=template_exercise.series,
                             reps_range=template_exercise.rango_repeticiones,
                             target_minutes=template_exercise.minutos_objetivo,
+                            duracion_trabajo_segundos=template_exercise.duracion_trabajo_segundos,
                             weight_suggestion_kg=template_exercise.peso_sugerido_kg,
                             weight_suggestion_unit=template_exercise.unidad_peso_sugerido,
                             rest_seconds=template_exercise.descanso_segundos,
+                            descanso_entre_ejercicios_segundos=template_exercise.descanso_entre_ejercicios_segundos,
                             technique_notes=template_exercise.notas_tecnicas,
                             order=template_exercise.orden,
                         )
@@ -668,9 +691,11 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                         sets=exercise_data.get('sets'),
                         reps_range=exercise_data.get('reps_range', ''),
                         target_minutes=exercise_data.get('target_minutes'),
+                        duracion_trabajo_segundos=exercise_data.get('duracion_trabajo_segundos'),
                         weight_suggestion_kg=exercise_data.get('weight_suggestion_kg'),
                         weight_suggestion_unit=exercise_data.get('weight_suggestion_unit', 'kg'),
                         rest_seconds=exercise_data.get('rest_seconds', 60),
+                        descanso_entre_ejercicios_segundos=exercise_data.get('descanso_entre_ejercicios_segundos', 0),
                         technique_notes=exercise_data.get('technique_notes', ''),
                         order=exercise_data.get('order', 0),
                     )
@@ -729,10 +754,12 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                         sets=exercise.sets,
                         reps_range=exercise.reps_range,
                         target_minutes=exercise.target_minutes,
+                        duracion_trabajo_segundos=exercise.duracion_trabajo_segundos,
                         machine=exercise.machine,
                         weight_suggestion_kg=exercise.weight_suggestion_kg,
                         weight_suggestion_unit=exercise.weight_suggestion_unit,
                         rest_seconds=exercise.rest_seconds,
+                        descanso_entre_ejercicios_segundos=exercise.descanso_entre_ejercicios_segundos,
                         technique_notes=exercise.technique_notes,
                         order=exercise.order,
                     )
@@ -824,10 +851,12 @@ class TrainingPlanViewSet(viewsets.ModelViewSet):
                         sets=source_exercise.sets,
                         reps_range=source_exercise.reps_range,
                         target_minutes=source_exercise.target_minutes,
+                        duracion_trabajo_segundos=source_exercise.duracion_trabajo_segundos,
                         machine=source_exercise.machine,
                         weight_suggestion_kg=source_exercise.weight_suggestion_kg,
                         weight_suggestion_unit=source_exercise.weight_suggestion_unit,
                         rest_seconds=source_exercise.rest_seconds,
+                        descanso_entre_ejercicios_segundos=source_exercise.descanso_entre_ejercicios_segundos,
                         technique_notes=source_exercise.technique_notes,
                         order=source_exercise.order,
                     )
@@ -937,10 +966,12 @@ class WorkoutDayViewSet(viewsets.ModelViewSet):
                     sets=exercise.sets,
                     reps_range=exercise.reps_range,
                     target_minutes=exercise.target_minutes,
+                    duracion_trabajo_segundos=exercise.duracion_trabajo_segundos,
                     machine=exercise.machine,
                     weight_suggestion_kg=exercise.weight_suggestion_kg,
                     weight_suggestion_unit=exercise.weight_suggestion_unit,
                     rest_seconds=exercise.rest_seconds,
+                    descanso_entre_ejercicios_segundos=exercise.descanso_entre_ejercicios_segundos,
                     technique_notes=exercise.technique_notes,
                     order=exercise.order,
                 )
@@ -1162,9 +1193,11 @@ class PlantillaEntrenamientoViewSet(viewsets.ModelViewSet):
                         series=exercise.sets,
                         rango_repeticiones=exercise.reps_range,
                         minutos_objetivo=exercise.target_minutes,
+                        duracion_trabajo_segundos=exercise.duracion_trabajo_segundos,
                         peso_sugerido_kg=exercise.weight_suggestion_kg,
                         unidad_peso_sugerido=exercise.weight_suggestion_unit,
                         descanso_segundos=exercise.rest_seconds,
+                        descanso_entre_ejercicios_segundos=exercise.descanso_entre_ejercicios_segundos,
                         notas_tecnicas=exercise.technique_notes,
                         orden=exercise.order,
                     )
@@ -1236,9 +1269,11 @@ class PlantillaEntrenamientoViewSet(viewsets.ModelViewSet):
                         sets=template_exercise.series,
                         reps_range=template_exercise.rango_repeticiones,
                         target_minutes=template_exercise.minutos_objetivo,
+                        duracion_trabajo_segundos=template_exercise.duracion_trabajo_segundos,
                         weight_suggestion_kg=template_exercise.peso_sugerido_kg,
                         weight_suggestion_unit=template_exercise.unidad_peso_sugerido,
                         rest_seconds=template_exercise.descanso_segundos,
+                        descanso_entre_ejercicios_segundos=template_exercise.descanso_entre_ejercicios_segundos,
                         technique_notes=template_exercise.notas_tecnicas,
                         order=template_exercise.orden,
                     )

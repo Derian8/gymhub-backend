@@ -1,5 +1,15 @@
+import uuid
+
 from django.db import models
 from django.utils import timezone
+
+
+class CredencialAccesoQr(models.Model):
+    cliente = models.OneToOneField('users.MemberProfile', on_delete=models.CASCADE)
+    codigo = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+
+    class Meta:
+        db_table = 'credenciales_acceso_qr'
 
 
 class TokenAccesoQr(models.Model):

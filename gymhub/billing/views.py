@@ -1,4 +1,3 @@
-import io
 import logging
 
 from django.core.exceptions import ObjectDoesNotExist
@@ -490,6 +489,7 @@ class PaymentRecordViewSet(viewsets.ReadOnlyModelViewSet):
         reference = request.data.get('payment_reference', '').strip()
         method = request.data.get('method', 'cash').strip().lower()
         notes = request.data.get('notes', '').strip()
+        aplicacion = request.data.get('aplicacion', 'activar')
         try:
             record, _ = mark_payment_paid(
                 record,
@@ -497,6 +497,7 @@ class PaymentRecordViewSet(viewsets.ReadOnlyModelViewSet):
                 notes=notes,
                 method=method,
                 recorded_by=request.user,
+                aplicacion=aplicacion,
             )
         except ValueError as exc:
             return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
@@ -510,53 +511,25 @@ class PaymentRecordViewSet(viewsets.ReadOnlyModelViewSet):
                 'member_id': record.schedule.member_id,
                 'subscription_id': record.schedule.subscription_id,
                 'amount': str(record.amount),
+                'aplicacion': aplicacion,
                 'payment_reference': record.payment_reference,
                 'method': record.metodo_registrado,
                 'receipt_number': PaymentRecordSerializer(record).data.get('receipt_number'),
             },
         )
-        return Response(PaymentRecordSerializer(record).data)
+        return Response({
+            **PaymentRecordSerializer(record).data,
+            'membresia_confirmada': membership_summary(record.schedule.member),
+        })
 
     @action(detail=True, methods=['get'], url_path='receipt')
     def receipt(self, request, pk=None):
         record = self.get_object()
         if record.status != 'paid':
             raise ValidationError({'payment': 'El comprobante se genera después de registrar el pago.'})
-        try:
-            from reportlab.pdfgen import canvas
-        except ImportError as exc:
-            raise ValidationError({'receipt': 'El generador de PDF no está disponible.'}) from exc
+        from .comprobantes import generar_comprobante
 
-        gym_profile = None
-        trainer = record.schedule.member.trainer_asignado
-        if trainer:
-            gym_profile = getattr(trainer, 'perfil_gimnasio', None)
-        buffer = io.BytesIO()
-        pdf = canvas.Canvas(buffer)
-        y = 800
-        rows = [
-            ((gym_profile.nombre if gym_profile else 'PULSO'), 16),
-            ('Comprobante interno de pago', 14),
-            (f'Comprobante: REC-{record.receipt_issued_at:%Y%m%d}-{record.id}', 10),
-            (f'Miembro: {record.schedule.member.user.get_full_name() or record.schedule.member.user.email}', 10),
-            (f'Concepto: {record.schedule.resolved_membership_name or "Membresía"}', 10),
-            (f'Monto: ₡{record.amount}', 10),
-            (f'Método: {record.get_metodo_registrado_display() or "No indicado"}', 10),
-            (f'Referencia: {record.payment_reference or "No aplica"}', 10),
-            (f'Fecha: {record.paid_at:%d/%m/%Y %H:%M}', 10),
-            ('Este comprobante es de control interno y no constituye factura electrónica.', 9),
-        ]
-        for value, size in rows:
-            pdf.setFont('Helvetica-Bold' if size >= 14 else 'Helvetica', size)
-            pdf.drawString(55, y, value)
-            y -= 32 if size >= 14 else 22
-        if gym_profile:
-            contact = ' · '.join(filter(None, [gym_profile.telefono, gym_profile.correo, gym_profile.direccion]))
-            if contact:
-                pdf.drawString(55, y - 10, contact[:100])
-        pdf.showPage()
-        pdf.save()
-        response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+        response = HttpResponse(generar_comprobante(record), content_type='application/pdf')
         response['Content-Disposition'] = f'inline; filename="comprobante-{record.id}.pdf"'
         return response
 

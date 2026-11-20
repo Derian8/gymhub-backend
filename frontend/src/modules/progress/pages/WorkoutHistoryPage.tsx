@@ -63,15 +63,22 @@ export function WorkoutHistoryPage() {
 }
 
 function HistorySession({ session }: { session: WorkoutSession }) {
-  const done = session.exercise_logs?.filter((log) => log.estado === 'realizado').length ?? 0
-  const skipped = session.exercise_logs?.filter((log) => log.estado === 'omitido').length ?? 0
+  const registros = session.progreso_guiado?.registros
+  const series = Object.entries(registros ?? {})
+  const totalSeries = (id: string) => session.detalle_iniciado?.ejercicios?.find((ejercicio) => String(ejercicio.id) === id)?.series ?? 1
+  const done = registros ? series.filter(([id, items]) => items.filter((item) => item === 'realizado').length === totalSeries(id)).length : session.exercise_logs?.filter((log) => log.estado === 'realizado').length ?? 0
+  const skipped = registros ? series.filter(([id, items]) => items.length === totalSeries(id) && items.every((item) => item === 'omitido')).length : session.exercise_logs?.filter((log) => log.estado === 'omitido').length ?? 0
+  const parciales = series.filter(([id, items]) => items.includes('realizado') && items.filter((item) => item === 'realizado').length < totalSeries(id)).length
   return <article className="card p-4" data-testid={`history-session-${session.id}`}>
     <div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-semibold">{session.workout_day_name || 'Entrenamiento'}</h3><p className="text-sm text-neutral-500">{session.plan_name || 'Plan asignado'} · {formatDate(session.started_at)}</p></div><span className={session.is_completed ? 'text-sm font-medium text-emerald-600' : 'text-sm font-medium text-amber-600'}>{session.is_completed ? 'Completado' : 'En progreso'}</span></div>
-    <p className="mt-2 text-xs text-neutral-500">{done} realizados · {skipped} omitidos{session.motivo_cierre === 'anticipada' ? ' · Finalizada antes de tiempo' : ''}</p>
+    <p className="mt-2 text-xs text-neutral-500">{session.origen === 'libre' ? 'Rutina libre · ' : ''}{done} realizados · {skipped} omitidos{parciales ? ` · ${parciales} parciales` : ''}{session.motivo_cierre === 'anticipada' ? ' · Finalizada antes de tiempo' : ''}</p>
     {session.overall_feeling && <p className="mt-2 text-sm">Sensación: {session.overall_feeling}/5</p>}
     <details className="mt-3"><summary className="cursor-pointer text-sm font-semibold text-primary">Ver detalle de la sesión</summary><ul className="mt-3 space-y-2 text-sm">{session.detalle_iniciado?.ejercicios?.map((exercise) => {
       const log = session.exercise_logs?.find((item) => item.exercise === exercise.id)
-      return <li key={exercise.id} className="rounded-lg bg-neutral-50 p-3 dark:bg-neutral-900"><span className="font-semibold">{exercise.nombre}</span> · {log ? log.estado === 'omitido' ? 'Omitido' : 'Realizado' : 'Pendiente'}<span className="block text-xs text-neutral-500">{exercise.tipo === 'timed' ? `${exercise.minutos ?? 0} min` : `${exercise.series ?? 0} series · ${exercise.repeticiones ?? ''} repeticiones`}{exercise.descanso_segundos ? ` · ${exercise.descanso_segundos} s descanso` : ''}</span></li>
+      const pasos = registros?.[String(exercise.id)]
+      const realizadas = pasos?.filter((estado) => estado === 'realizado').length ?? 0
+      const estado = pasos ? realizadas === (exercise.series ?? 1) ? 'Realizado' : realizadas ? 'Parcial' : pasos.includes('omitido') ? 'Omitido' : 'Pendiente' : log ? log.estado === 'omitido' ? 'Omitido' : 'Realizado' : 'Pendiente'
+      return <li key={exercise.id} className="rounded-lg bg-neutral-50 p-3 dark:bg-neutral-900"><span className="font-semibold">{exercise.nombre}</span> · {estado}<span className="block text-xs text-neutral-500">{exercise.tipo === 'timed' ? `${exercise.duracion_trabajo_segundos ?? (exercise.minutos ?? 0) * 60} s por serie` : `${exercise.series ?? 0} series · ${exercise.repeticiones ?? ''} repeticiones`}{exercise.descanso_segundos ? ` · ${exercise.descanso_segundos} s descanso` : ''}{pasos ? ` · ${realizadas}/${exercise.series ?? 1} series realizadas` : ''}</span></li>
     }) ?? session.exercise_logs?.map((log) => <li key={log.id}>{log.exercise_name || `Ejercicio ${log.exercise}`} · {log.estado === 'omitido' ? 'Omitido' : 'Realizado'}</li>)}</ul></details>
   </article>
 }

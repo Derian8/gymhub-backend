@@ -2,7 +2,7 @@ from rest_framework import serializers
 from users.validators import validate_image_upload
 from .models import MembershipPlan, MemberSubscription, PaymentSchedule, PaymentRecord, PaymentMethod, PaymentInstruction, SeguimientoCobro
 from .services import (
-    default_grace_days, membership_access, membership_summary,
+    calcular_vigencia_pago, default_grace_days, membership_access, membership_summary,
     refresh_membership_status, current_member_membership, obtener_estado_cliente,
 )
 from users.permissions import tiene_perfil_administrador
@@ -196,6 +196,7 @@ class PaymentScheduleSerializer(serializers.ModelSerializer):
 
 
 class PaymentRecordSerializer(serializers.ModelSerializer):
+    vigencia_pago = serializers.SerializerMethodField()
     days_overdue = serializers.SerializerMethodField()
     due_date = serializers.DateField(source='schedule.due_date', read_only=True)
     subscription_id = serializers.IntegerField(source='schedule.subscription_id', read_only=True)
@@ -212,11 +213,23 @@ class PaymentRecordSerializer(serializers.ModelSerializer):
             'status', 'method_used', 'payment_reference',
             'metodo_registrado', 'registrado_por',
             'receipt_issued_at', 'receipt_number', 'notes',
-            'days_overdue', 'plan_name'
+            'days_overdue', 'plan_name', 'vigencia_pago'
         )
         read_only_fields = (
             'paid_at', 'receipt_issued_at', 'metodo_registrado', 'registrado_por',
         )
+
+    def get_vigencia_pago(self, obj):
+        if obj.status not in ('pending', 'late'):
+            return None
+        vigencia = calcular_vigencia_pago(obj)
+        if not vigencia:
+            return None
+        return {
+            **vigencia,
+            'inicio': vigencia['inicio'].isoformat(),
+            'fin': vigencia['fin'].isoformat(),
+        }
 
     def get_days_overdue(self, obj):
         from django.utils import timezone

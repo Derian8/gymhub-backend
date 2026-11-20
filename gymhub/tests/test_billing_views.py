@@ -6,7 +6,7 @@ from rest_framework import status
 
 @pytest.mark.django_db
 class TestBillingViews:
-    def test_trainer_cannot_see_membership_plans(self, trainer_client, trainer_profile):
+    def test_administrador_puede_ver_catalogo_completo(self, trainer_client, trainer_profile):
         from django.contrib.auth import get_user_model
         from billing.models import MembershipPlan
         own_plan = MembershipPlan.objects.create(
@@ -22,7 +22,7 @@ class TestBillingViews:
             username='trainer_billing_other',
             email='trainer-billing-other@test.com',
             password='trainer123!',
-            role='trainer',
+            role='admin',
         )
         other_trainer = other_user
         MembershipPlan.objects.create(
@@ -37,7 +37,7 @@ class TestBillingViews:
 
         assert resp.status_code == status.HTTP_200_OK
         results = resp.data.get('results', resp.data)
-        assert results == []
+        assert {plan['name'] for plan in results} == {'Plan propio', 'Plan ajeno'}
 
     def test_admin_can_create_member_subscription_with_agreed_price(
         self,
@@ -435,9 +435,9 @@ class TestBillingViews:
         assert schedule.recurrence_type == recurrence_type
         assert schedule.period_start == timezone.now().date()
 
-    def test_trainer_cannot_create_subscription_for_member_of_another_trainer(
+    def test_cliente_no_puede_crear_suscripcion_ajena(
         self,
-        trainer_client,
+        member_client,
         trainer_profile,
         membership_plan,
     ):
@@ -449,7 +449,7 @@ class TestBillingViews:
             username='trainer_forbidden',
             email='trainer-forbidden@test.com',
             password='trainer123!',
-            role='trainer',
+            role='admin',
         )
         other_trainer = other_trainer_user
         other_member_user = User.objects.create_user(
@@ -464,7 +464,7 @@ class TestBillingViews:
         other_member.is_active = True
         other_member.save(update_fields=['membership_plan', 'trainer_asignado', 'is_active'])
 
-        resp = trainer_client.post('/api/member-subscriptions/', {
+        resp = member_client.post('/api/member-subscriptions/', {
             'member': other_member.id,
             'plan': membership_plan.id,
             'agreed_price': '62.50',

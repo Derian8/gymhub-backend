@@ -6,6 +6,7 @@ from .views import (
     PaymentMethodViewSet, PaymentInstructionViewSet, SeguimientoCobroViewSet
 )
 from .cron_views import DailyMembershipMaintenanceView
+from .vistas_correos import EstadoCorreosView
 from .reports import AdminDashboardView, AdminReportExportView, AdminReportOverviewView
 
 router = DefaultRouter()
@@ -19,6 +20,7 @@ router.register(r'payment-instructions', PaymentInstructionViewSet, basename='pa
 router.register(r'collection-follow-ups', SeguimientoCobroViewSet, basename='collection-follow-up')
 
 urlpatterns = [
+    path('admin/correos/', EstadoCorreosView.as_view(), name='estado-correos'),
     path(
         'internal/daily-membership-maintenance/',
         DailyMembershipMaintenanceView.as_view(),

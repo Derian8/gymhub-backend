@@ -5,6 +5,13 @@ import { useAuthStore } from '@/shared/store/authStore'
 
 const updateMeMock = vi.fn()
 
+vi.mock('@/modules/members/hooks/useMembers', () => ({
+  useMemberDashboardQuery: () => ({ data: {
+    membership_plan_name: 'Mensual', estado_cliente: 'membresia_activa',
+    membership_access_allowed: true, membership_expires_at: '2026-12-11', days_until_due: 23,
+  } }),
+}))
+
 vi.mock('@/modules/auth/hooks/useAuthMutations', () => ({
   useUpdateMeMutation: () => ({
     mutate: updateMeMock,
@@ -67,5 +74,20 @@ describe('ProfilePage', () => {
       first_name: 'Carla',
       last_name: 'Mendoza',
     })
+  })
+
+  it('shows the membership card and its link in the client profile', () => {
+    useAuthStore.setState({
+      user: { ...useAuthStore.getState().user!, role: 'member', is_staff: false, memberprofile_id: 12 },
+      activeContext: 'cliente',
+    })
+    const { getByTestId } = renderWithProviders(<ProfilePage />)
+    const tarjeta = getByTestId('profile-membership-spotlight')
+    expect(tarjeta).toHaveTextContent('Mensual')
+    expect(tarjeta).toHaveTextContent('Membresía activa')
+    expect(tarjeta).toHaveTextContent('Acceso permitido')
+    expect(tarjeta).toHaveTextContent('Vence el 11/12/2026')
+    expect(tarjeta).toHaveTextContent('23 día(s) restantes')
+    expect(getByTestId('profile-membership-link')).toHaveAttribute('href', '/membership')
   })
 })

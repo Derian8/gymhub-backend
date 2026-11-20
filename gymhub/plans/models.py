@@ -297,6 +297,10 @@ class Exercise(models.Model):
         null=True, blank=True,
         validators=[MinValueValidator(1), MaxValueValidator(600)]
     )
+    duracion_trabajo_segundos = models.PositiveIntegerField(
+        null=True, blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(36000)]
+    )
     machine = models.ForeignKey(
         GymMachine,
         null=True, blank=True,
@@ -316,6 +320,7 @@ class Exercise(models.Model):
         default=60,
         validators=[MaxValueValidator(600)]
     )
+    descanso_entre_ejercicios_segundos = models.PositiveIntegerField(default=0, validators=[MaxValueValidator(600)])
     technique_notes = models.TextField(blank=True)
     order = models.PositiveIntegerField(default=0)
 
@@ -353,10 +358,10 @@ class Exercise(models.Model):
         super().clean()
 
         if self.exercise_type == 'timed':
-            if not self.target_minutes:
-                raise ValidationError({'target_minutes': 'Los ejercicios por tiempo requieren minutos objetivo.'})
-            if self.sets is not None:
-                raise ValidationError({'sets': 'Los ejercicios por tiempo no usan series.'})
+            if not (self.target_minutes or self.duracion_trabajo_segundos):
+                raise ValidationError({'duracion_trabajo_segundos': 'Indica la duración del trabajo en segundos o minutos.'})
+            if self.target_minutes and self.duracion_trabajo_segundos:
+                raise ValidationError({'duracion_trabajo_segundos': 'Elige segundos o minutos, no ambos.'})
             if self.reps_range:
                 raise ValidationError({'reps_range': 'Los ejercicios por tiempo no usan repeticiones.'})
         else:
@@ -366,10 +371,13 @@ class Exercise(models.Model):
                 raise ValidationError({'reps_range': 'Las repeticiones son obligatorias para ejercicios de fuerza.'})
             if self.target_minutes is not None:
                 raise ValidationError({'target_minutes': 'Los ejercicios de fuerza no usan minutos objetivo.'})
+            if self.duracion_trabajo_segundos is not None:
+                raise ValidationError({'duracion_trabajo_segundos': 'Los ejercicios de fuerza no usan duración de trabajo.'})
 
     def __str__(self):
         if self.exercise_type == 'timed':
-            return f"{self.name} ({self.muscle_group}) — {self.target_minutes} min"
+            duracion = f'{self.duracion_trabajo_segundos} s' if self.duracion_trabajo_segundos else f'{self.target_minutes} min'
+            return f"{self.name} ({self.muscle_group}) — {duracion}"
         return f"{self.name} ({self.muscle_group}) — {self.sets}×{self.reps_range}"
 
 
@@ -396,6 +404,7 @@ class PlantillaEntrenamiento(models.Model):
     dias_por_semana_sugeridos = models.PositiveIntegerField(default=3)
     esta_activa = models.BooleanField(default=True)
     es_compartida = models.BooleanField(default=True)
+    disponible_clientes = models.BooleanField(default=False)
     modo_ejecucion = models.CharField(
         max_length=10, choices=MODO_EJECUCION_CHOICES, default='cycle'
     )
@@ -469,6 +478,10 @@ class PlantillaEjercicio(models.Model):
         null=True, blank=True,
         validators=[MinValueValidator(1), MaxValueValidator(600)]
     )
+    duracion_trabajo_segundos = models.PositiveIntegerField(
+        null=True, blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(36000)]
+    )
     peso_sugerido_kg = models.FloatField(
         null=True, blank=True,
         validators=[MinValueValidator(0)]
@@ -482,6 +495,7 @@ class PlantillaEjercicio(models.Model):
         default=60,
         validators=[MaxValueValidator(600)]
     )
+    descanso_entre_ejercicios_segundos = models.PositiveIntegerField(default=0, validators=[MaxValueValidator(600)])
     notas_tecnicas = models.TextField(blank=True)
     orden = models.PositiveIntegerField(default=0)
 
@@ -493,10 +507,10 @@ class PlantillaEjercicio(models.Model):
         super().clean()
 
         if self.tipo_ejercicio == 'timed':
-            if not self.minutos_objetivo:
-                raise ValidationError({'minutos_objetivo': 'Los ejercicios por tiempo requieren minutos objetivo.'})
-            if self.series is not None:
-                raise ValidationError({'series': 'Los ejercicios por tiempo no usan series.'})
+            if not (self.minutos_objetivo or self.duracion_trabajo_segundos):
+                raise ValidationError({'duracion_trabajo_segundos': 'Indica la duración del trabajo en segundos o minutos.'})
+            if self.minutos_objetivo and self.duracion_trabajo_segundos:
+                raise ValidationError({'duracion_trabajo_segundos': 'Elige segundos o minutos, no ambos.'})
             if self.rango_repeticiones:
                 raise ValidationError({'rango_repeticiones': 'Los ejercicios por tiempo no usan repeticiones.'})
         else:
@@ -506,6 +520,8 @@ class PlantillaEjercicio(models.Model):
                 raise ValidationError({'rango_repeticiones': 'Las repeticiones son obligatorias para ejercicios de fuerza.'})
             if self.minutos_objetivo is not None:
                 raise ValidationError({'minutos_objetivo': 'Los ejercicios de fuerza no usan minutos objetivo.'})
+            if self.duracion_trabajo_segundos is not None:
+                raise ValidationError({'duracion_trabajo_segundos': 'Los ejercicios de fuerza no usan duración de trabajo.'})
 
     def __str__(self):
         return self.nombre

@@ -52,10 +52,10 @@ class WorkoutSessionSerializer(serializers.ModelSerializer):
     plan_name = serializers.SerializerMethodField()
 
     def get_workout_day_name(self, obj):
-        return obj.detalle_iniciado.get('dia_nombre') or obj.workout_day.name
+        return obj.detalle_iniciado.get('dia_nombre') or (obj.workout_day.name if obj.workout_day_id else 'Rutina libre')
 
     def get_plan_name(self, obj):
-        return obj.detalle_iniciado.get('plan_nombre') or obj.workout_day.plan.name
+        return obj.detalle_iniciado.get('plan_nombre') or (obj.workout_day.plan.name if obj.workout_day_id else 'Rutina libre')
 
     class Meta:
         model = WorkoutSession
@@ -63,11 +63,12 @@ class WorkoutSessionSerializer(serializers.ModelSerializer):
             'id', 'member', 'workout_day', 'attendance',
             'started_at', 'completed_at', 'overall_feeling',
             'is_completed', 'motivo_cierre', 'trainer_notes', 'exercise_logs',
-            'workout_day_name', 'plan_name', 'detalle_iniciado',
+            'workout_day_name', 'plan_name', 'detalle_iniciado', 'origen', 'progreso_guiado',
         )
         read_only_fields = (
             'id', 'started_at', 'completed_at', 'is_completed',
             'motivo_cierre', 'detalle_iniciado',
+            'origen', 'progreso_guiado',
         )
 
 

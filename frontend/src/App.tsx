@@ -4,7 +4,7 @@ import { AppLayout } from '@/layouts/AppLayout'
 import { AuthLayout } from '@/layouts/AuthLayout'
 import { ProtectedRoute, PublicRoute } from '@/shared/components/RouteGuards'
 import { useAuth } from '@/shared/hooks/useAuth'
-import { useAuthStore } from '@/shared/store/authStore'
+import { getResolvedContext, useAuthStore } from '@/shared/store/authStore'
 import { useBackendStatusStore } from '@/shared/store/backendStatusStore'
 import { getProductionRedirectUrl, shouldRedirectPreviewToProduction, syncClientBuildState } from '@/shared/lib/runtimeInfo'
 import { ThemeManager } from '@/shared/components/ThemeManager'
@@ -32,6 +32,7 @@ import { NewMemberPage } from '@/modules/members/pages/NewMemberPage'
 // Plans
 import { PlanDetailPage } from '@/modules/plans/pages/PlanDetailPage'
 import { TodayWorkoutPage } from '@/modules/plans/pages/TodayWorkoutPage'
+import { EntrenamientoClientePage } from '@/modules/plans/pages/EntrenamientoClientePage'
 import { WorkoutDayDetailPage } from '@/modules/plans/pages/WorkoutDayDetailPage'
 import { MemberProgramRedirectPage, PlanEditorPage } from '@/modules/plans/pages/PlanEditorPage'
 
@@ -51,6 +52,12 @@ import { MemberMembershipPage } from '@/modules/billing/pages/MemberMembershipPa
 import { ProfilePage } from '@/modules/profile/pages/ProfilePage'
 
 const PUBLIC_PATHS = new Set(['/login', '/'])
+
+function PaginaEntrenamiento() {
+  const { user, activeContext } = useAuthStore()
+  return getResolvedContext(user, activeContext) === 'cliente'
+    ? <EntrenamientoClientePage /> : <TodayWorkoutPage />
+}
 
 function PreviewRedirectGuard({ pathname, search, hash }: { pathname: string; search: string; hash: string }) {
   useEffect(() => {
@@ -193,11 +200,11 @@ function App() {
           }
         />
         <Route path="/plans" element={<ProtectedRoute requiredRole="admin"><Navigate to="/routines?tab=asignadas" replace /></ProtectedRoute>} />
-        <Route path="/plans/my" element={<ProtectedRoute requiredRole="member"><TodayWorkoutPage /></ProtectedRoute>} />
+        <Route path="/plans/my" element={<ProtectedRoute requiredRole="member"><PaginaEntrenamiento /></ProtectedRoute>} />
         <Route path="/plans/:planId/days/:dayId" element={<WorkoutDayDetailPage />} />
         <Route path="/plans/:id/edit" element={<ProtectedRoute requiredRole="admin"><PlanEditorPage /></ProtectedRoute>} />
         <Route path="/plans/:id" element={<PlanDetailPage />} />
-        <Route path="/plans/:id/today" element={<TodayWorkoutPage />} />
+        <Route path="/plans/:id/today" element={<PaginaEntrenamiento />} />
 
         {/* Attendance */}
         <Route path="/attendance" element={<ProtectedRoute requiredRole="admin"><CheckInPage /></ProtectedRoute>} />

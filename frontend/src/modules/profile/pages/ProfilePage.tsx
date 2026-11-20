@@ -1,3 +1,4 @@
+import { TarjetaMembresiaCliente } from '../components/TarjetaMembresiaCliente'
 import { useEffect, useState, type ReactNode } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -5,7 +6,7 @@ import apiClient from '@/shared/api/client'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { User, Mail, Lock, Loader2, Save, Activity, CreditCard, ClipboardList } from 'lucide-react'
+import { User, Mail, Lock, Loader2, Save, Activity, ClipboardList } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { getAvailableProfiles, getResolvedContext, useAuthStore } from '@/shared/store/authStore'
 import { PageHeader, Avatar, Badge } from '@/shared/components/UI'
@@ -197,7 +198,8 @@ export function ProfilePage() {
           </form>
         </section>
       </div>
-      {currentContext === 'cliente' ? <section className="card mt-6 p-6"><h2 className="font-heading text-lg font-bold">Accesos de mi cuenta</h2><div className="mt-4 flex flex-wrap gap-3"><Link className="btn-secondary inline-flex items-center gap-2" to="/membership"><CreditCard size={16} /> Membresía</Link><Link className="btn-secondary inline-flex items-center gap-2" to="/progress"><Activity size={16} /> Progreso físico</Link><Link className="btn-secondary inline-flex items-center gap-2" to="/attendance/check-in"><ClipboardList size={16} /> Asistencia</Link></div></section> : null}
+      {currentContext === 'cliente' ? <TarjetaMembresiaCliente clienteId={user.memberprofile_id || 0} /> : null}
+      {currentContext === 'cliente' ? <section className="card mt-6 p-6"><h2 className="font-heading text-lg font-bold">Accesos de mi cuenta</h2><div className="mt-4 flex flex-wrap gap-3"><Link className="btn-secondary inline-flex items-center gap-2" to="/progress"><Activity size={16} /> Progreso físico</Link><Link className="btn-secondary inline-flex items-center gap-2" to="/attendance/check-in"><ClipboardList size={16} /> Asistencia</Link></div></section> : null}
       <div className="mt-6 flex justify-end"><button className="btn-secondary" onClick={() => logout()} disabled={isLoggingOut}>{isLoggingOut ? 'Cerrando sesión…' : 'Cerrar sesión'}</button></div>
       {currentContext === 'administrador' ? <section className="card mt-6 p-6"><h3 className="font-heading text-lg font-bold">Identidad del gimnasio</h3><p className="mt-1 text-sm text-neutral-500">Estos datos aparecen en comprobantes internos y pantallas administrativas.</p><div className="mt-5 grid gap-4 sm:grid-cols-2">{Object.entries(gym).map(([key, value]) => <label key={key} className={key === 'direccion' ? 'sm:col-span-2' : ''}><span className="label-base">{{ nombre: 'Nombre', telefono: 'Teléfono', correo: 'Correo', direccion: 'Dirección' }[key as keyof typeof gym]}</span><input className="input-base mt-2 w-full" value={value} onChange={(event) => setGym((current) => ({ ...current, [key]: event.target.value }))} /></label>)}<label className="sm:col-span-2"><span className="label-base">Logo del gimnasio</span><input className="input-base mt-2 w-full" type="file" accept="image/*" onChange={(event) => setGymLogo(event.target.files?.[0] ?? null)} /></label></div><div className="mt-5 flex justify-end"><button className="btn-primary" onClick={() => saveGym.mutate()} disabled={saveGym.isPending}>Guardar gimnasio</button></div></section> : null}
     </div>

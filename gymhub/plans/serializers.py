@@ -44,12 +44,11 @@ class ExerciseSerializer(serializers.ModelSerializer):
         sets = attrs.get('sets', getattr(self.instance, 'sets', None))
         reps_range = attrs.get('reps_range', getattr(self.instance, 'reps_range', ''))
         target_minutes = attrs.get('target_minutes', getattr(self.instance, 'target_minutes', None))
+        duracion_segundos = attrs.get('duracion_trabajo_segundos', getattr(self.instance, 'duracion_trabajo_segundos', None))
 
         if exercise_type == 'timed':
-            if not target_minutes:
-                raise serializers.ValidationError({'target_minutes': 'Este campo es requerido para ejercicios por tiempo.'})
-            if sets is not None:
-                raise serializers.ValidationError({'sets': 'Los ejercicios por tiempo no usan series.'})
+            if not (target_minutes or duracion_segundos) or (target_minutes and duracion_segundos):
+                raise serializers.ValidationError({'duracion_trabajo_segundos': 'Indica segundos o minutos de trabajo.'})
             if reps_range:
                 raise serializers.ValidationError({'reps_range': 'Los ejercicios por tiempo no usan repeticiones.'})
         else:
@@ -59,6 +58,8 @@ class ExerciseSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({'reps_range': 'Este campo es requerido para ejercicios de fuerza.'})
             if target_minutes is not None:
                 raise serializers.ValidationError({'target_minutes': 'Los ejercicios de fuerza no usan minutos objetivo.'})
+            if duracion_segundos is not None:
+                raise serializers.ValidationError({'duracion_trabajo_segundos': 'Los ejercicios de fuerza no usan duración de trabajo.'})
 
         actualiza_referencia = any(field in attrs for field in ('name', 'catalogo_ejercicio', 'imagen_referencia_url'))
         catalogo = attrs.get('catalogo_ejercicio', getattr(self.instance, 'catalogo_ejercicio', None))
@@ -92,8 +93,8 @@ class ExerciseSerializer(serializers.ModelSerializer):
         model = Exercise
         fields = (
             'id', 'workout_day', 'catalogo_ejercicio', 'catalogo_detalle', 'name', 'muscle_group', 'exercise_type',
-            'sets', 'reps_range', 'target_minutes', 'machine', 'machine_detail',
-            'weight_suggestion_kg', 'weight_suggestion_unit', 'rest_seconds', 'technique_notes', 'order',
+            'sets', 'reps_range', 'target_minutes', 'duracion_trabajo_segundos', 'machine', 'machine_detail',
+            'weight_suggestion_kg', 'weight_suggestion_unit', 'rest_seconds', 'descanso_entre_ejercicios_segundos', 'technique_notes', 'order',
             'imagen_referencia_url', 'imagen_visual_url', 'previous_log',
             'video_url', 'video_display_url', 'video_pendiente',
         )
@@ -251,13 +252,15 @@ class NestedExerciseInputSerializer(serializers.Serializer):
     sets = serializers.IntegerField(required=False, allow_null=True, min_value=1, max_value=20)
     reps_range = serializers.CharField(required=False, allow_blank=True, max_length=10)
     target_minutes = serializers.IntegerField(required=False, allow_null=True, min_value=1, max_value=600)
+    duracion_trabajo_segundos = serializers.IntegerField(required=False, allow_null=True, min_value=1, max_value=36000)
     machine = serializers.IntegerField(required=False, allow_null=True)
     weight_suggestion_kg = serializers.FloatField(required=False, allow_null=True, min_value=0)
     weight_suggestion_unit = serializers.ChoiceField(
         choices=Exercise._meta.get_field('weight_suggestion_unit').choices,
         default='kg',
     )
-    rest_seconds = serializers.IntegerField(default=60, min_value=1, max_value=600)
+    rest_seconds = serializers.IntegerField(default=60, min_value=0, max_value=600)
+    descanso_entre_ejercicios_segundos = serializers.IntegerField(default=0, min_value=0, max_value=600)
     technique_notes = serializers.CharField(required=False, allow_blank=True)
     order = serializers.IntegerField(default=0, min_value=0)
 
@@ -443,16 +446,17 @@ class PlantillaEjercicioSerializer(serializers.ModelSerializer):
     video_display_url = serializers.SerializerMethodField()
 
     def validate(self, attrs):
-        tipo = attrs.get('tipo_ejercicio', 'strength')
-        series = attrs.get('series')
-        repeticiones = attrs.get('rango_repeticiones', '')
-        minutos = attrs.get('minutos_objetivo')
+        tipo = attrs.get('tipo_ejercicio', getattr(self.instance, 'tipo_ejercicio', 'strength'))
+        series = attrs.get('series', getattr(self.instance, 'series', None))
+        repeticiones = attrs.get('rango_repeticiones', getattr(self.instance, 'rango_repeticiones', ''))
+        minutos = attrs.get('minutos_objetivo', getattr(self.instance, 'minutos_objetivo', None))
+        duracion_segundos = attrs.get('duracion_trabajo_segundos', getattr(self.instance, 'duracion_trabajo_segundos', None))
         imagen = attrs.get('imagen_referencia_url', '')
         video = attrs.get('url_video', '')
-        if tipo == 'timed' and (not minutos or series is not None or repeticiones):
-            raise serializers.ValidationError('Los ejercicios por tiempo requieren minutos y no usan series ni repeticiones.')
-        if tipo != 'timed' and (not series or not repeticiones or minutos is not None):
-            raise serializers.ValidationError('Los ejercicios de fuerza requieren series y repeticiones, y no usan minutos.')
+        if tipo == 'timed' and (not (minutos or duracion_segundos) or (minutos and duracion_segundos) or repeticiones):
+            raise serializers.ValidationError('Indica segundos o minutos de trabajo y deja las repeticiones vacías.')
+        if tipo != 'timed' and (not series or not repeticiones or minutos is not None or duracion_segundos is not None):
+            raise serializers.ValidationError('Los ejercicios de fuerza requieren series y repeticiones, sin duración de trabajo.')
         if imagen and not imagen.startswith('https://'):
             raise serializers.ValidationError({'imagen_referencia_url': 'La imagen debe usar una URL HTTPS.'})
         if video and not (video.startswith('https://www.youtube.com/') or video.startswith('https://youtu.be/')):
@@ -464,7 +468,7 @@ class PlantillaEjercicioSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'dia', 'catalogo_ejercicio', 'catalogo_detalle', 'maquina_detalle',
             'imagen_visual_url', 'video_display_url', 'nombre', 'grupo_muscular', 'tipo_ejercicio', 'series',
-            'rango_repeticiones', 'minutos_objetivo', 'peso_sugerido_kg', 'unidad_peso_sugerido', 'descanso_segundos',
+            'rango_repeticiones', 'minutos_objetivo', 'duracion_trabajo_segundos', 'peso_sugerido_kg', 'unidad_peso_sugerido', 'descanso_segundos', 'descanso_entre_ejercicios_segundos',
             'notas_tecnicas', 'orden', 'imagen_referencia_url', 'url_video', 'maquina',
         )
         read_only_fields = ('id', 'dia', 'catalogo_detalle')
@@ -537,7 +541,7 @@ class PlantillaEntrenamientoSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'trainer', 'trainer_nombre', 'nombre', 'descripcion',
             'objetivo', 'nivel_adherencia_recomendado', 'dias_por_semana_sugeridos',
-            'es_compartida', 'modo_ejecucion',
+            'es_compartida', 'modo_ejecucion', 'disponible_clientes',
             'esta_activa', 'creada_en', 'dias', 'clientes_vigentes',
         )
         read_only_fields = ('trainer', 'creada_en')

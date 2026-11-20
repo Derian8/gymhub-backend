@@ -1,7 +1,6 @@
 import logging
 import hashlib
-import secrets
-from datetime import timedelta
+import uuid
 
 from django.db import IntegrityError, transaction
 from django.db.models import Q
@@ -16,14 +15,13 @@ from rest_framework.settings import api_settings
 from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
 
-from .models import Attendance, TokenAccesoQr
+from .models import Attendance, CredencialAccesoQr, TokenAccesoQr
 from .serializers import AttendanceSerializer, CheckInSerializer
 from users.models import AuditLog
 from users.models import MemberProfile
 from users.permissions import IsAdministrator, IsMember, usa_contexto_cliente
 
 logger = logging.getLogger(__name__)
-MEMBER_QR_TOKEN_TTL_SECONDS = 120
 
 
 def resumen_token_qr(token):
@@ -171,18 +169,27 @@ class CheckInView(APIView):
         notes = serializer.validated_data.get('notes', '').strip()
 
         qr_token = serializer.validated_data.get('qr_token', '').strip()
+        registro_qr = None
         if qr_token:
-            registro_qr = TokenAccesoQr.objects.select_for_update().filter(
+            # Bloquea la credencial durante la lectura para serializar entradas y revocaciones.
+            credencial = None
+            try:
+                codigo = uuid.UUID(qr_token)
+            except ValueError:
+                pass
+            else:
+                credencial = CredencialAccesoQr.objects.select_for_update().filter(codigo=codigo).first()
+            registro_qr = None if credencial else TokenAccesoQr.objects.select_for_update().filter(
                 resumen=resumen_token_qr(qr_token),
                 vence_en__gt=timezone.now(),
                 consumido_en__isnull=True,
             ).first()
-            if registro_qr is None:
+            if credencial is None and registro_qr is None:
                 return Response(
-                    {'error': 'El codigo QR vencio o ya fue utilizado. Solicita uno nuevo al cliente.'},
+                    {'error': 'El QR no es válido o fue reemplazado. Solicita al cliente su QR actual.'},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            member_id = registro_qr.cliente_id
+            member_id = credencial.cliente_id if credencial else registro_qr.cliente_id
         else:
             member_id = serializer.validated_data.get('member_id')
         if not member_id:
@@ -198,7 +205,8 @@ class CheckInView(APIView):
         if not access['allowed'] and not commercial_override:
             if qr_token and access['reason'] != 'member_inactive':
                 create_qr_membership_block_alert(member, request.user, access)
-                consumir_token_qr(registro_qr)
+                if registro_qr:
+                    consumir_token_qr(registro_qr)
             return Response(
                 {
                     'blocked': True,
@@ -221,6 +229,8 @@ class CheckInView(APIView):
             attendance_date=today,
         ).first()
         if existing:
+            if qr_token:
+                return Response({**AttendanceSerializer(existing).data, 'entrada_ya_registrada': True})
             return Response(
                 {
                     'error': 'Ya existe un registro de asistencia para hoy.',
@@ -262,7 +272,7 @@ class CheckInView(APIView):
             attendance_date=today,
             notes=notes,
         )
-        if qr_token:
+        if registro_qr:
             consumir_token_qr(registro_qr)
         if gym_class_id:
             ClassEnrollment.objects.filter(
@@ -296,7 +306,7 @@ class CheckInView(APIView):
 
 
 class MemberAttendanceQrView(APIView):
-    """Emite un token opaco, temporal y de un solo uso para el check-in del cliente."""
+    """Reutiliza la credencial personal hasta que un administrador la regenere."""
 
     permission_classes = [IsAuthenticated, IsMember]
 
@@ -309,16 +319,33 @@ class MemberAttendanceQrView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        token = secrets.token_urlsafe(32)
-        expires_at = timezone.now() + timedelta(seconds=MEMBER_QR_TOKEN_TTL_SECONDS)
-        TokenAccesoQr.objects.create(
-            resumen=resumen_token_qr(token), cliente=member, vence_en=expires_at,
-        )
+        credencial, _ = CredencialAccesoQr.objects.get_or_create(cliente=member)
         return Response({
-            'token': token,
-            'expires_at': expires_at,
-            'expires_in_seconds': MEMBER_QR_TOKEN_TTL_SECONDS,
+            'token': str(credencial.codigo),
+            'expires_at': None,
+            'expires_in_seconds': None,
         })
+
+
+class RegenerarQrClienteView(APIView):
+    permission_classes = [IsAuthenticated, IsAdministrator]
+
+    @transaction.atomic
+    def post(self, request, cliente_id):
+        try:
+            cliente = MemberProfile.objects.select_for_update().get(pk=cliente_id)
+        except MemberProfile.DoesNotExist:
+            return Response({'error': 'Cliente no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        CredencialAccesoQr.objects.update_or_create(
+            cliente=cliente, defaults={'codigo': uuid.uuid4()},
+        )
+        TokenAccesoQr.objects.filter(cliente=cliente).delete()
+        AuditLog.objects.create(
+            user=request.user, action_type='ADMIN_QR_REGENERATED',
+            target_model='MemberProfile', target_id=str(cliente.id),
+            ip_address=request.META.get('REMOTE_ADDR'),
+        )
+        return Response({'regenerado': True})
 
 
 class MemberRoutineEntryView(APIView):

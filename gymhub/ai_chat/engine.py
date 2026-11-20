@@ -5,6 +5,9 @@ from urllib import error, request
 
 from django.conf import settings
 
+from .openrouter import consultar_openrouter
+from .proveedor_copilot import consultar_copilot
+
 logger = logging.getLogger(__name__)
 
 
@@ -21,7 +24,7 @@ INTENT_RISKS = 'risks'
 INTENT_NEXT_ACTION = 'next_action'
 INTENT_GENERAL = 'general'
 
-SUPPORTED_ENGINE_MODES = ('deterministic', 'local_hybrid', 'gemini_hybrid')
+SUPPORTED_ENGINE_MODES = ('deterministic', 'local_hybrid', 'gemini_hybrid', 'openrouter_hybrid', 'copilot_hybrid')
 
 
 @dataclass
@@ -65,6 +68,14 @@ def is_gemini_configured():
 
 def is_gemini_available():
     return get_engine_mode() == 'gemini_hybrid' and is_gemini_configured()
+
+
+def esta_openrouter_configurado():
+    return get_engine_mode() == 'openrouter_hybrid' and bool(getattr(settings, 'OPENROUTER_API_KEY', ''))
+
+
+def esta_copilot_configurado():
+    return get_engine_mode() == 'copilot_hybrid' and bool(getattr(settings, 'COPILOT_GITHUB_TOKEN', ''))
 
 
 def is_local_llm_configured():
@@ -149,7 +160,7 @@ def generate_chat_response(mode, member, summary, prescription_status, analysis_
     )
     deterministic_content = deterministic_response['content']
     engine_mode = get_engine_mode()
-    if engine_mode not in ('local_hybrid', 'gemini_hybrid'):
+    if engine_mode not in ('local_hybrid', 'gemini_hybrid', 'openrouter_hybrid', 'copilot_hybrid'):
         return ChatGenerationResult(
             content=deterministic_content,
             engine_mode='deterministic',
@@ -162,23 +173,38 @@ def generate_chat_response(mode, member, summary, prescription_status, analysis_
         )
 
     use_gemini = engine_mode == 'gemini_hybrid'
-    rewrite = _rewrite_with_gemini if use_gemini else _rewrite_with_local_llm
-    rewritten = rewrite(
-        mode=mode,
-        member=member,
-        summary=summary,
-        analysis_context=analysis_context,
-        trainer_assistant=trainer_assistant,
-        transcript=transcript,
-        user_message=user_message,
-        deterministic_response=deterministic_content,
+    rewrite = (
+        _reescribir_con_openrouter if engine_mode in ('openrouter_hybrid', 'copilot_hybrid')
+        else _rewrite_with_gemini if use_gemini else _rewrite_with_local_llm
     )
+    fuente_copilot = False
+    rewritten = None
+    if engine_mode == 'copilot_hybrid':
+        try:
+            rewritten, _ = consultar_copilot(_build_local_prompt(
+                mode, member, summary, analysis_context, trainer_assistant,
+                transcript, user_message, deterministic_content,
+            ))
+            fuente_copilot = True
+        except ValueError:
+            logger.info('Copilot no disponible para chat; usando OpenRouter.')
+    if not rewritten:
+        rewritten = rewrite(
+            mode=mode,
+            member=member,
+            summary=summary,
+            analysis_context=analysis_context,
+            trainer_assistant=trainer_assistant,
+            transcript=transcript,
+            user_message=user_message,
+            deterministic_response=deterministic_content,
+        )
     if rewritten:
         return ChatGenerationResult(
             content=rewritten,
             engine_mode=engine_mode,
             local_llm_used=True,
-            response_source='gemini' if use_gemini else 'local_model',
+            response_source='copilot' if fuente_copilot else 'openrouter' if engine_mode in ('openrouter_hybrid', 'copilot_hybrid') else 'gemini' if use_gemini else 'local_model',
             sendable=deterministic_response['sendable'],
             message_text=deterministic_response['message_text'],
             priority_detected=deterministic_response['priority_detected'],
@@ -685,6 +711,19 @@ def _trainer_recommended_action(summary, prescription_status, analysis_context, 
         f"Prioriza {summary['siguiente_accion'].lower()} y verifica si {_prescription_guidance(prescription_status).lower()}. "
         "Después decide si toca intervenir adherencia, pago o nutrición."
     )
+
+
+def _reescribir_con_openrouter(mode, member, summary, analysis_context, trainer_assistant, transcript, user_message, deterministic_response):
+    try:
+        prompt = _build_local_prompt(
+            mode, member, summary, analysis_context, trainer_assistant,
+            transcript, user_message, deterministic_response,
+        )
+        salida = consultar_openrouter([{'role': 'user', 'content': prompt}])
+        return (salida.get('content') or '').strip() or None
+    except (error.URLError, TimeoutError, OSError, ValueError, IndexError, KeyError, TypeError):
+        logger.info('No se pudo usar OpenRouter para ai_chat.')
+        return None
 
 
 def _rewrite_with_gemini(mode, member, summary, analysis_context, trainer_assistant, transcript, user_message, deterministic_response):

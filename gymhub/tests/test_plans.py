@@ -512,7 +512,7 @@ class TestTodayWorkout:
         resp2 = member_client.get(f'/api/plans/{training_plan.id}/today-workout/')
         assert resp1.data['id'] == resp2.data['id']
 
-    def test_today_workout_uses_local_business_day(self, member_client, training_plan, monkeypatch):
+    def test_today_workout_preserves_sequence_with_local_business_day(self, member_client, training_plan, monkeypatch):
         from attendance.models import Attendance
         from django.utils import timezone as django_timezone
         from plans.models import WorkoutDay
@@ -541,7 +541,7 @@ class TestTodayWorkout:
         resp = member_client.get(f'/api/plans/{training_plan.id}/today-workout/')
 
         assert resp.status_code == status.HTTP_200_OK
-        assert resp.data['id'] == expected_day.id
+        assert resp.data['id'] == training_plan.workout_days.order_by('order', 'id').first().id
 
 
 @pytest.mark.django_db
@@ -592,9 +592,9 @@ class TestWorkoutSessions:
         })
 
         assert resp.status_code == status.HTTP_400_BAD_REQUEST
-        assert 'programada para hoy' in resp.data['workout_day_id']
+        assert 'bloque actual' in resp.data['workout_day_id']
 
-    def test_member_cannot_register_or_complete_a_non_current_session(
+    def test_member_resumes_open_block_and_cannot_complete_it_twice(
         self, member_client, member_profile, training_plan, workout_day_a
     ):
         from progress.models import WorkoutSession
@@ -614,11 +614,12 @@ class TestWorkoutSessions:
             'logs': [{'exercise_id': exercise.id}],
         }, format='json')
 
-        assert progress_resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert progress_resp.status_code == status.HTTP_200_OK
+        assert progress_resp.data['session_completed'] is True
         assert complete_resp.status_code == status.HTTP_400_BAD_REQUEST
         assert bulk_resp.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_dual_profile_client_context_cannot_register_another_day(
+    def test_client_cannot_register_another_block_but_administrator_can(
         self, member_client, member_user, member_profile, training_plan, workout_day_a
     ):
         from users.models import User
@@ -640,17 +641,20 @@ class TestWorkoutSessions:
             format='json',
             HTTP_X_GYMHUB_CONTEXT='cliente',
         )
-        trainer_response = member_client.post(
+        from rest_framework.test import APIClient
+        administrador_client = APIClient()
+        administrador_client.force_authenticate(administrador)
+        trainer_response = administrador_client.post(
             '/api/workout-sessions/',
             {'workout_day_id': other_day.id, 'member_id': member_profile.id},
             format='json',
         )
 
         assert client_response.status_code == status.HTTP_400_BAD_REQUEST
-        assert client_response.data['workout_day_id'] == 'Solo puedes registrar la rutina programada para hoy.'
+        assert client_response.data['workout_day_id'] == 'Solo puedes registrar el bloque actual de tu rutina.'
         assert trainer_response.status_code == status.HTTP_201_CREATED
 
-    def test_member_cycle_plan_still_uses_the_current_calendar_day(
+    def test_member_cycle_plan_starts_first_block_until_there_is_history(
         self, member_client, training_plan, workout_day_a
     ):
         training_plan.modo_ejecucion = 'cycle'
@@ -668,7 +672,7 @@ class TestWorkoutSessions:
         assert denied_resp.status_code == status.HTTP_400_BAD_REQUEST
         assert allowed_resp.status_code == status.HTTP_201_CREATED
 
-    def test_member_cannot_start_a_cycle_block_without_a_calendar_day(
+    def test_member_can_start_a_cycle_block_without_a_calendar_day(
         self, member_client, training_plan, workout_day_a
     ):
         training_plan.modo_ejecucion = 'cycle'
@@ -680,7 +684,7 @@ class TestWorkoutSessions:
             'workout_day_id': workout_day_a.id,
         })
 
-        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert resp.status_code == status.HTTP_201_CREATED
 
     def test_create_workout_session(self, member_client, member_profile, workout_day_a):
         """POST /api/workout-sessions/ crea sesión."""
@@ -772,9 +776,9 @@ class TestWorkoutSessions:
         assert created_resp.status_code == status.HTTP_201_CREATED
         assert complete_resp.status_code == status.HTTP_200_OK
         assert repeated_resp.status_code == status.HTTP_400_BAD_REQUEST
-        assert 'ya fue completada' in repeated_resp.data['error']
+        assert 'bloque actual' in repeated_resp.data['workout_day_id']
 
-    def test_today_workout_reports_completed_session_state(self, member_client, training_plan):
+    def test_today_workout_proposes_next_block_after_completion(self, member_client, training_plan):
         today_weekday = date.today().strftime('%a').lower()[:3]
         workout_day = training_plan.workout_days.get(day_of_week=today_weekday)
 
@@ -789,11 +793,12 @@ class TestWorkoutSessions:
         resp = member_client.get(f'/api/plans/{training_plan.id}/today-workout/')
 
         assert resp.status_code == status.HTTP_200_OK
-        assert resp.data['today_session_id'] == create_resp.data['id']
-        assert resp.data['today_session_completed'] is True
+        assert resp.data['id'] != workout_day.id
+        assert resp.data['today_session_id'] is None
+        assert resp.data['today_session_completed'] is False
         assert resp.data['today_session_started'] is False
 
-    def test_today_workout_includes_previous_completed_exercise_log(self, member_client, training_plan):
+    def test_workout_day_detail_includes_previous_completed_exercise_log(self, member_client, training_plan):
         from progress.models import WorkoutSession, ExerciseLog
 
         today_weekday = date.today().strftime('%a').lower()[:3]
@@ -816,7 +821,7 @@ class TestWorkoutSessions:
         exercise.weight_suggestion_kg = 60
         exercise.save(update_fields=['weight_suggestion_kg'])
 
-        resp = member_client.get(f'/api/plans/{training_plan.id}/today-workout/')
+        resp = member_client.get(f'/api/workout-days/{workout_day.id}/')
 
         assert resp.status_code == status.HTTP_200_OK
         payload = next(item for item in resp.data['exercises'] if item['id'] == exercise.id)
@@ -1063,6 +1068,8 @@ class TestWeeklyView:
 @pytest.mark.django_db
 class TestWorkoutDayWeekdayValidation:
     def test_trainer_can_duplicate_full_day_to_available_weekday(self, trainer_client, training_plan):
+        training_plan.status = 'draft'
+        training_plan.save(update_fields=['status'])
         source = training_plan.workout_days.order_by('order').first()
         source_exercises = list(source.exercises.order_by('order'))
         occupied = set(training_plan.workout_days.values_list('day_of_week', flat=True))

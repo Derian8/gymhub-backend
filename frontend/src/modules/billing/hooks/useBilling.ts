@@ -5,17 +5,22 @@ import { QUERY_KEYS } from '@/shared/constants/queryKeys'
 import { extractApiError } from '@/shared/lib/utils'
 
 function invalidateMembershipViews(queryClient: ReturnType<typeof useQueryClient>, memberId?: number) {
-  queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_SUBSCRIPTIONS_ALL })
-  queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_MEMBERSHIPS_ALL })
-  queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PAYMENT_SCHEDULES_ALL })
-  queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PAYMENT_RECORDS_ALL })
-  queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERS })
-  queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN_DASHBOARD })
-  queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TRAINER_OVERVIEW })
+  const actualizaciones = [
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_SUBSCRIPTIONS_ALL }),
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_MEMBERSHIPS_ALL }),
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PAYMENT_SCHEDULES_ALL }),
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PAYMENT_RECORDS_ALL }),
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBERS }),
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN_DASHBOARD }),
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TRAINER_OVERVIEW }),
+  ]
   if (memberId) {
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_DETAIL(memberId) })
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_DASHBOARD(memberId) })
+    actualizaciones.push(
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_DETAIL(memberId) }),
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEMBER_DASHBOARD(memberId) }),
+    )
   }
+  return Promise.all(actualizaciones)
 }
 
 export function usePaymentRecordsQuery(params?: Record<string, string>, enabled = true) {
@@ -159,11 +164,14 @@ export function useMarkPaymentAsPaidMutation(memberId?: number) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: { payment_reference: string; notes: string; method?: 'cash' | 'sinpe' | 'transfer' | 'other' } }) =>
+    mutationFn: ({ id, payload }: { id: number; payload: { payment_reference: string; notes: string; method?: 'cash' | 'sinpe' | 'transfer' | 'other'; aplicacion?: 'activar' | 'deuda' } }) =>
       billingApi.markPaymentAsPaid(id, { ...payload, method: payload.method ?? 'cash' }),
-    onSuccess: () => {
-      invalidateMembershipViews(queryClient, memberId)
-      toast.success('Pago registrado y recibo emitido')
+    onSuccess: async (pago, variables) => {
+      const actualizacion = invalidateMembershipViews(queryClient, memberId)
+      toast.success(variables.payload.aplicacion === 'deuda' ? 'Deuda pagada y recibo emitido' : pago.membresia_confirmada?.can_check_in
+        ? 'Pago registrado · membresía activa'
+        : 'Pago registrado y recibo emitido')
+      await actualizacion
     },
     onError: (error) => toast.error(extractApiError(error)),
   })

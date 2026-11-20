@@ -1,6 +1,7 @@
 import { ESTADOS_CLIENTE, obtenerEstadoMembresia } from '@/shared/lib/estadoMembresia'
 import { Link, useSearchParams } from 'react-router-dom'
 import { BASE_URL } from '@/shared/api/client'
+import { EstadoCorreos } from '../components/EstadoCorreos'
 import { ArrowDown, ArrowRight, ArrowUp, ArrowUpDown, Banknote, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, CreditCard, History, ReceiptText, RotateCcw, Search, UserPlus, Users, Wallet } from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
@@ -25,6 +26,7 @@ import { formatCurrency, formatDate } from '@/shared/lib/utils'
 import type { MemberMembership, MemberProfile, MemberSubscription, PaymentRecord } from '@/shared/types'
 
 type CobroFormState = {
+  aplicacion?: 'activar' | 'deuda'
   payment_reference: string
   notes: string
   method: 'cash' | 'sinpe' | 'transfer' | 'other'
@@ -315,6 +317,13 @@ export function BillingPage() {
         isSubmitting={markPaymentAsPaid.isPending}
       />}
 
+      {memberId && markPaymentAsPaid.data?.member_id === memberIdNumber && markPaymentAsPaid.data?.membresia_confirmada?.can_check_in && (
+        <div role="status" className="card flex items-center gap-3 border-emerald-500/30 p-4">
+          <CheckCircle2 size={22} className="shrink-0 text-emerald-500" />
+          <div><p className="font-semibold text-neutral-900 dark:text-white">Pago confirmado · Membresía activa</p><p className="text-sm text-neutral-500">Acceso habilitado{markPaymentAsPaid.data.membresia_confirmada.end_date ? ` hasta el ${formatDate(markPaymentAsPaid.data.membresia_confirmada.end_date)}` : ''}. El recibo está disponible en el historial.</p></div>
+        </div>
+      )}
+
       {memberId && (
         <div className="mb-8">
           <p className="label-base">Paso 2 · Membresía</p>
@@ -508,6 +517,7 @@ export function BillingPage() {
         </div>
       )}
 
+      {section === 'history' && <EstadoCorreos />}
       {(memberId || section === 'history') && <PaymentHistory
         records={records?.results || []}
         count={records?.count || 0}
@@ -604,10 +614,12 @@ function CobroPendiente({ records, selectedPayment, isLoading, draft, onDraftCha
         </div>
       </div>
       {isScheduled && !allowAdvance ? <div className="flex flex-col justify-center gap-3 rounded-2xl border border-neutral-200 p-5 dark:border-neutral-800"><p className="text-sm text-neutral-600 dark:text-neutral-300">Vence el <strong>{formatDate(selectedPayment.due_date)}</strong>. Puedes recibir este pago antes si el cliente lo solicita.</p><button type="button" className="btn-secondary" onClick={() => setAllowAdvance(true)}>Cobrar por adelantado</button></div> : <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); onMarkPaid() }}>
+        {selectedPayment.days_overdue > 0 && selectedPayment.vigencia_pago && <label className="block space-y-1"><span className="label-base">Aplicar pago</span><select className="input" value={draft.aplicacion ?? 'activar'} onChange={(event) => onDraftChange({ ...draft, aplicacion: event.target.value as 'activar' | 'deuda' })}><option value="activar">Cobrar y activar membresía</option><option value="deuda">Solo pagar deuda anterior</option></select></label>}
+        {selectedPayment.vigencia_pago && <div className="rounded-xl bg-emerald-500/10 p-3 text-sm text-neutral-700 dark:text-neutral-200">{draft.aplicacion === 'deuda' ? 'Este pago salda el cargo anterior; no modifica la vigencia de la membresía.' : <><p className="font-semibold">Vigencia: {formatDate(selectedPayment.vigencia_pago.inicio)} al {formatDate(selectedPayment.vigencia_pago.fin)}</p><p className="mt-1 text-xs">{selectedPayment.vigencia_pago.reinicia ? 'El atraso supera la tolerancia del plan. Se inicia un periodo nuevo.' : 'Se conserva la continuidad de tu membresía.'} El pago confirma la membresía al instante.</p></>}</div>}
         <label className="block space-y-1"><span className="label-base">Medio de pago</span><select className="input" value={draft.method} onChange={(event) => onDraftChange({ ...draft, method: event.target.value as CobroFormState['method'] })}><option value="cash">Efectivo</option><option value="sinpe">SINPE Móvil</option><option value="transfer">Transferencia</option><option value="other">Otro</option></select></label>
         <label className="block space-y-1"><span className="label-base">Referencia {draft.method === 'cash' ? '(opcional)' : '(obligatoria)'}</span><input className="input" value={draft.payment_reference} onChange={(event) => onDraftChange({ ...draft, payment_reference: event.target.value })} placeholder={draft.method === 'sinpe' ? 'Número de comprobante SINPE' : 'Número de transacción'} required={draft.method !== 'cash'} /></label>
         <details className="text-sm text-neutral-500"><summary className="cursor-pointer py-1">Agregar nota</summary><textarea className="input mt-2 min-h-20" value={draft.notes} onChange={(event) => onDraftChange({ ...draft, notes: event.target.value })} placeholder="Detalle interno del cobro" /></details>
-        <button type="submit" className="btn-primary inline-flex w-full items-center justify-center gap-2" disabled={isSubmitting || (draft.method !== 'cash' && !draft.payment_reference.trim())} data-testid={`mark-paid-${selectedPayment.id}`}><CheckCircle2 size={18} />{isSubmitting ? 'Registrando…' : 'Confirmar pago y emitir recibo'}</button>
+        <button type="submit" className="btn-primary inline-flex w-full items-center justify-center gap-2" disabled={isSubmitting || (draft.method !== 'cash' && !draft.payment_reference.trim())} data-testid={`mark-paid-${selectedPayment.id}`}><CheckCircle2 size={18} />{isSubmitting ? 'Confirmando…' : draft.aplicacion === 'deuda' ? 'Confirmar pago de deuda' : 'Confirmar pago y activar'}</button>
       </form>}
     </div>}
   </section>

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type React from 'react'
 import { AlertTriangle, Copy, Plus, Trash2, X } from 'lucide-react'
 import { Avatar, Badge } from '@/shared/components/UI'
-import { DAY_OF_WEEK_LABELS, GOAL_LABELS, MUSCLE_GROUP_OPTIONS, formatDate, pesoSugeridoEnKg, pesoSugeridoParaMostrar } from '@/shared/lib/utils'
+import { GOAL_LABELS, MUSCLE_GROUP_OPTIONS, formatDate, pesoSugeridoEnKg, pesoSugeridoParaMostrar } from '@/shared/lib/utils'
 import { useAssignTrainerMutation, useMembersQuery } from '@/modules/members/hooks/useMembers'
 import { useCatalogExercisesQuery, useCreateCompletePlanMutation, useGymMachinesQuery, useTrainingTemplatesQuery } from '../hooks/usePlans'
 import type {
@@ -81,9 +81,9 @@ function normalizeExercise(exercise: Omit<ExercisePayload, 'workout_day'>): Omit
     return {
       ...exercise,
       exercise_type: 'timed',
-      sets: null,
+      sets: exercise.sets ?? 1,
       reps_range: '',
-      target_minutes: exercise.target_minutes ?? 10,
+      target_minutes: exercise.duracion_trabajo_segundos ? null : exercise.target_minutes ?? 10,
       weight_suggestion_kg: null,
       weight_suggestion_unit: exercise.weight_suggestion_unit,
     }
@@ -94,6 +94,7 @@ function normalizeExercise(exercise: Omit<ExercisePayload, 'workout_day'>): Omit
     sets: exercise.sets ?? 3,
     reps_range: exercise.reps_range || '8-12',
     target_minutes: null,
+    duracion_trabajo_segundos: null,
   }
 }
 
@@ -230,10 +231,12 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
         sets: exercise.series,
         reps_range: exercise.rango_repeticiones,
         target_minutes: exercise.minutos_objetivo,
+          duracion_trabajo_segundos: exercise.duracion_trabajo_segundos ?? null,
         machine: exercise.maquina ?? null,
         weight_suggestion_kg: exercise.peso_sugerido_kg,
         weight_suggestion_unit: exercise.unidad_peso_sugerido,
         rest_seconds: exercise.descanso_segundos,
+        descanso_entre_ejercicios_segundos: exercise.descanso_entre_ejercicios_segundos ?? 0,
         technique_notes: exercise.notas_tecnicas,
         order: exerciseIndex,
       })),
@@ -503,9 +506,10 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
                             </select>
                           </Field>
                           {exercise.exercise_type === 'timed' ? (
-                            <Field label="Minutos">
-                              <input className="input" type="number" min={1} value={exercise.target_minutes ?? 10} onChange={(event) => updateExercise(dayIndex, exerciseIndex, { target_minutes: Number(event.target.value) || 1 })} />
-                            </Field>
+                            <>
+                              <Field label="Series"><input className="input" type="number" min={1} max={20} value={exercise.sets ?? 1} onChange={(event) => updateExercise(dayIndex, exerciseIndex, { sets: Number(event.target.value) || 1 })} /></Field>
+                              <Field label="Trabajo (segundos)"><input className="input" type="number" min={1} max={36000} value={exercise.duracion_trabajo_segundos ?? (exercise.target_minutes ?? 10) * 60} onChange={(event) => updateExercise(dayIndex, exerciseIndex, { duracion_trabajo_segundos: Number(event.target.value) || 1, target_minutes: null })} /></Field>
+                            </>
                           ) : (
                             <>
                               <Field label="Series">
@@ -517,8 +521,9 @@ export function TrainingPlanWizard({ open, onClose, preselectedMember, onCreated
                             </>
                           )}
                           <Field label="Descanso">
-                            <input className="input" type="number" min={1} value={exercise.rest_seconds} onChange={(event) => updateExercise(dayIndex, exerciseIndex, { rest_seconds: Number(event.target.value) || 60 })} />
+                            <input className="input" type="number" min={0} max={600} value={exercise.rest_seconds} onChange={(event) => updateExercise(dayIndex, exerciseIndex, { rest_seconds: Number(event.target.value) || 0 })} />
                           </Field>
+                          <Field label="Descanso al terminar el ejercicio (segundos)"><input className="input" type="number" min={0} max={600} value={exercise.descanso_entre_ejercicios_segundos ?? 0} onChange={(event) => updateExercise(dayIndex, exerciseIndex, { descanso_entre_ejercicios_segundos: Number(event.target.value) || 0 })} /></Field>
                           <Field label="Máquina">
                             <select
                               className="input"

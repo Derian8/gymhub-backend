@@ -6,6 +6,9 @@ from django.conf import settings
 
 from users.services import get_admin_overview
 
+from .openrouter import consultar_openrouter
+from .proveedor_copilot import consultar_copilot
+
 logger = logging.getLogger(__name__)
 
 _DECLARACIONES_HERRAMIENTAS = [
@@ -37,20 +40,23 @@ def generar_analisis_administrativo(usuario, pregunta):
     resumen = get_admin_overview(usuario)
     agentes = _construir_agentes(resumen)
     respuesta_reglas = _resumir_por_reglas(agentes)
-    api_key = getattr(settings, 'GEMINI_API_KEY', '')
+    proveedor = getattr(settings, 'AI_PROVIDER', '')
+    usa_copilot = proveedor == 'copilot_hybrid'
+    usa_openrouter = proveedor in ('openrouter_hybrid', 'copilot_hybrid')
+    api_key = getattr(settings, 'OPENROUTER_API_KEY' if usa_openrouter else 'GEMINI_API_KEY', '')
 
-    if not api_key or getattr(settings, 'AI_PROVIDER', '') != 'gemini_hybrid':
+    if (not api_key and not usa_copilot) or proveedor not in ('gemini_hybrid', 'openrouter_hybrid', 'copilot_hybrid'):
         return _resultado(respuesta_reglas, agentes, [], 'rules', None)
 
     try:
-        respuesta, consultados = _consultar_gemini(pregunta, resumen, api_key)
-        return _resultado(respuesta, agentes, consultados, 'gemini', None)
+        respuesta, consultados, fuente = _consultar_proveedores(pregunta, resumen, api_key, usa_openrouter, usa_copilot)
+        return _resultado(respuesta, agentes, consultados, fuente, None)
     except error.HTTPError as exc:
         # No registrar cuerpo ni URL del proveedor para evitar filtrar credenciales.
-        logger.info('Gemini no disponible para agentes administrativos (HTTP %s).', exc.code)
+        logger.info('Proveedor IA no disponible para agentes administrativos (HTTP %s).', exc.code)
         return _resultado(respuesta_reglas, agentes, [], 'rules', exc.code)
     except (error.URLError, TimeoutError, OSError, ValueError, KeyError, IndexError, TypeError, json.JSONDecodeError):
-        logger.info('No se pudo generar análisis Gemini para agentes administrativos.')
+        logger.info('No se pudo generar análisis IA para agentes administrativos.')
         return _resultado(respuesta_reglas, agentes, [], 'rules', None)
 
 
@@ -116,10 +122,16 @@ def _resultado(respuesta, agentes, consultados, fuente, codigo_error):
     }
 
 
-def _consultar_gemini(pregunta, resumen, api_key):
+def _consultar_gemini(pregunta, resumen, api_key, usa_openrouter=False):
+    respuesta, consultados, _ = _consultar_proveedores(pregunta, resumen, api_key, usa_openrouter)
+    return respuesta, consultados
+
+
+def _consultar_proveedores(pregunta, resumen, api_key, usa_openrouter=False, usa_copilot=False):
     model = getattr(settings, 'GEMINI_MODEL', 'gemini-3.8-flash')
     herramientas = {
         'consultar_cobranza': lambda: {
+            'moneda': 'CRC',
             'cobros_vencidos': resumen.get('payments_overdue', 0),
             'proximos_vencimientos': resumen.get('payments_due_soon', 0),
             'miembros_en_mora': resumen.get('members_in_mora', 0),
@@ -138,6 +150,7 @@ def _consultar_gemini(pregunta, resumen, api_key):
             'sesiones_completadas_esta_semana': resumen.get('sessions_completed_this_week', 0),
         },
         'consultar_crecimiento': lambda: {
+            'moneda': 'CRC',
             'miembros_activos': resumen.get('total_active_members', 0),
             'altas_este_mes': resumen.get('new_members_this_month', 0),
             'ingresos_este_mes': resumen.get('revenue_this_month', 0),
@@ -149,11 +162,24 @@ def _consultar_gemini(pregunta, resumen, api_key):
 Responde en español, en máximo 5 puntos breves y accionables.
 Usa las herramientas para consultar hechos actuales antes de recomendar; consulta solo las áreas relacionadas con la pregunta.
 No inventes cifras ni atribuyas causalidad. Distingue hechos de recomendaciones.
+Los montos del gimnasio están en colones costarricenses (CRC, símbolo ₡); no los presentes como dólares ni conviertas monedas.
 Las herramientas son solo de lectura: no cambies pagos, membresías, rutinas ni datos de miembros.
 Los resultados contienen agregados y no incluyen nombres, correos ni datos personales.
 
 Pregunta del administrador: {pregunta}
 """
+    if usa_copilot:
+        try:
+            respuesta, consultados = consultar_copilot(
+                prompt, {nombre: herramienta() for nombre, herramienta in herramientas.items()},
+                _DECLARACIONES_HERRAMIENTAS,
+            )
+            return respuesta, consultados, 'copilot'
+        except ValueError:
+            logger.info('Copilot no disponible; consultando OpenRouter de respaldo.')
+    if usa_openrouter:
+        respuesta, consultados = _consultar_herramientas_openrouter(prompt, herramientas)
+        return respuesta, consultados, 'openrouter'
     contenidos = [{'role': 'user', 'parts': [{'text': prompt}]}]
     consultados = []
 
@@ -181,7 +207,7 @@ Pregunta del administrador: {pregunta}
                 parte.get('text', '') for parte in contenido_modelo.get('parts', [])
             ).strip()
             if texto:
-                return texto, list(dict.fromkeys(consultados))
+                return texto, list(dict.fromkeys(consultados)), 'gemini'
             break
 
         contenidos.append(contenido_modelo)
@@ -201,3 +227,40 @@ Pregunta del administrador: {pregunta}
         contenidos.append({'role': 'user', 'parts': respuestas})
 
     raise ValueError('Gemini no produjo una respuesta final.')
+
+
+def _consultar_herramientas_openrouter(prompt, herramientas):
+    declaraciones = [
+        {
+            'type': 'function',
+            'function': {
+                'name': declaracion['name'],
+                'description': declaracion['description'],
+                'parameters': {'type': 'object', 'properties': {}, 'additionalProperties': False},
+            },
+        }
+        for declaracion in _DECLARACIONES_HERRAMIENTAS
+    ]
+    mensajes = [{'role': 'user', 'content': prompt}]
+    consultados = []
+    for _ in range(3):
+        salida = consultar_openrouter(mensajes, declaraciones, exigir_herramienta=not consultados)
+        llamadas = salida.get('tool_calls') or []
+        if not llamadas:
+            texto = (salida.get('content') or '').strip()
+            if texto and consultados:
+                return texto, consultados
+            raise ValueError('No se obtuvo un análisis basado en herramientas.')
+        mensajes.append(salida)
+        for llamada in llamadas:
+            nombre = llamada['function']['name']
+            herramienta = herramientas.get(nombre)
+            resultado = herramienta() if herramienta else {'error': 'herramienta_no_disponible'}
+            if herramienta and nombre not in consultados:
+                consultados.append(nombre)
+            mensajes.append({
+                'role': 'tool',
+                'tool_call_id': llamada['id'],
+                'content': json.dumps(resultado, ensure_ascii=False, default=str),
+            })
+    raise ValueError('OpenRouter no produjo una respuesta final.')

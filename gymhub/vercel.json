@@ -1,4 +1,5 @@
 {
+  "buildCommand": "python preparar_vercel.py",
   "crons": [
     {
       "path": "/api/internal/daily-membership-maintenance/",

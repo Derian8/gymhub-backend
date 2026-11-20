@@ -39,12 +39,12 @@ def assert_client_current_workout_day(workout_day):
     current_workout_day = get_today_workout_day(workout_day.plan)
     if not current_workout_day or current_workout_day.id != workout_day.id:
         raise ValidationError({
-            'workout_day_id': 'Solo puedes registrar la rutina programada para hoy.',
+            'workout_day_id': 'Solo puedes registrar el bloque actual de tu rutina.',
         })
 
 
 def completar_sesion(session, datos=None):
-    """Completa una sesión bloqueada y avanza el ciclo si corresponde."""
+    """Completa una sesión bloqueada y avanza la secuencia de bloques."""
     datos = datos or {}
     session.is_completed = True
     if not session.motivo_cierre:
@@ -55,13 +55,14 @@ def completar_sesion(session, datos=None):
     if datos.get('trainer_notes'):
         session.trainer_notes = datos['trainer_notes']
     session.save()
+    if not session.workout_day_id or session.origen == 'libre':
+        return
     plan = session.workout_day.plan
-    if plan.modo_ejecucion == 'cycle':
-        plan = type(plan).objects.select_for_update().get(pk=plan.pk)
-        bloques = plan.workout_days.count()
-        if bloques:
-            plan.indice_bloque_actual = (plan.indice_bloque_actual + 1) % bloques
-            plan.save(update_fields=['indice_bloque_actual'])
+    plan = type(plan).objects.select_for_update().get(pk=plan.pk)
+    bloques = list(plan.workout_days.order_by('order', 'id').values_list('id', flat=True))
+    if bloques:
+        plan.indice_bloque_actual = (bloques.index(session.workout_day_id) + 1) % len(bloques)
+        plan.save(update_fields=['indice_bloque_actual'])
 
 
 class ProgressLogViewSet(viewsets.ModelViewSet):
@@ -211,6 +212,7 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
         end = timezone.make_aware(next_month, timezone.get_current_timezone())
         return queryset.filter(started_at__gte=start, started_at__lt=end)
 
+    @transaction.atomic
     def create(self, request, *args, **kwargs):
         input_ser = CreateWorkoutSessionSerializer(data=request.data)
         if not input_ser.is_valid():
@@ -237,6 +239,7 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
         user = request.user
         if usa_contexto_cliente(request):
             member = user.memberprofile
+            type(member).objects.select_for_update().get(pk=member.pk)
             if attendance is None:
                 attendance = Attendance.objects.filter(
                     member=member,
@@ -269,6 +272,11 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
             raise ValidationError({'attendance_id': 'La asistencia no corresponde al miembro.'})
         assert_workout_access(member, attendance)
 
+        if usa_contexto_cliente(request):
+            abierta = WorkoutSession.objects.filter(member=member, is_completed=False).first()
+            if abierta:
+                return Response(WorkoutSessionSerializer(abierta).data)
+
         existing_session = WorkoutSession.objects.filter(
             member=member,
             workout_day=workout_day,
@@ -280,8 +288,8 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
                 return Response(
                     {
                         'error': (
-                            'La rutina de hoy ya fue completada. '
-                            'Podras volver a realizarla cuando este dia corresponda otra vez.'
+                        'Este bloque ya fue completado hoy. '
+                        'Consulta el siguiente bloque de tu rutina.'
                         )
                     },
                     status=status.HTTP_400_BAD_REQUEST,
@@ -302,6 +310,8 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
     def complete(self, request, pk=None):
         """PATCH /api/workout-sessions/{id}/complete/"""
         session = self.get_object()
+        if session.progreso_guiado or not session.workout_day_id:
+            raise ValidationError('Usa los controles de ejecución guiada de esta sesión.')
         assert_workout_access(session.member, session.attendance)
         if usa_contexto_cliente(request):
             assert_client_current_workout_day(session.workout_day)
@@ -354,6 +364,8 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
     def progreso_ejercicio(self, request, pk=None):
         """Registra una decisión simple del cliente para un ejercicio de su sesión."""
         session = self.get_object()
+        if session.progreso_guiado or not session.workout_day_id:
+            raise ValidationError('Usa los controles de ejecución guiada de esta sesión.')
         assert_workout_access(session.member, session.attendance)
         if usa_contexto_cliente(request):
             assert_client_current_workout_day(session.workout_day)
@@ -380,7 +392,8 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
             valores = {'estado': estado}
             if estado == 'realizado':
                 if exercise.exercise_type == 'timed':
-                    valores.update(sets_completed=0, reps_completed=0, minutes_completed=exercise.target_minutes or 0, weight_used_kg=None)
+                    minutos = exercise.target_minutes or ((exercise.duracion_trabajo_segundos or 0) * (exercise.sets or 1) + 59) // 60
+                    valores.update(sets_completed=exercise.sets or 1, reps_completed=0, minutes_completed=minutos, weight_used_kg=None)
                 else:
                     primera_repeticion = (exercise.reps_range or '0').split('-')[0].strip()
                     valores.update(
@@ -429,6 +442,8 @@ class BulkExerciseLogView(APIView):
             return Response({'error': 'Sesión no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
 
         # Verificar dueño, staff o trainer asignado.
+        if session.progreso_guiado or not session.workout_day_id:
+            raise ValidationError('Usa los controles de ejecución guiada de esta sesión.')
         user = request.user
         contexto_cliente = usa_contexto_cliente(request)
         if contexto_cliente and session.member.user != user:

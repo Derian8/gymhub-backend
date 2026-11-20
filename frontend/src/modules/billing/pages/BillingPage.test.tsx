@@ -13,15 +13,17 @@ let subscriptionsMock: Array<Record<string, unknown>> = []
 let membershipsMock: Array<Record<string, unknown>> = []
 let membersMock: Array<Record<string, unknown>> = []
 let membersQueryParams: Array<Record<string, unknown> | undefined> = []
+let tieneCobroPendiente = false
+let pagoConfirmado: Record<string, unknown> | undefined
 
 vi.mock('../hooks/useBilling', () => ({
-  usePaymentRecordsQuery: () => ({
+  usePaymentRecordsQuery: (params?: Record<string, string>) => ({
     data: {
-      results: [
+      results: params?.outstanding && !tieneCobroPendiente ? [] : [
         { id: 1, schedule: 1, due_date: '2026-03-05', amount: '50.00', paid_at: '2026-03-05T12:00:00Z', status: 'paid', method_used: 1, payment_reference: 'TRX-001', receipt_issued_at: '2026-03-05T12:01:00Z', receipt_number: 'REC-20260305-1', notes: '', days_overdue: 0, plan_name: 'Premium' },
         { id: 2, schedule: 2, due_date: '2026-03-10', amount: '60.00', paid_at: null, status: 'pending', method_used: null, payment_reference: '', receipt_issued_at: null, receipt_number: null, notes: 'Pendiente', days_overdue: 0, plan_name: 'Premium' },
         { id: 3, schedule: 3, due_date: '2026-03-01', paid_at: null, amount: '70.00', status: 'late', method_used: null, payment_reference: '', receipt_issued_at: null, receipt_number: null, notes: '', days_overdue: 5, plan_name: 'Premium' },
-      ],
+      ].filter((pago) => !params?.outstanding || pago.status !== 'paid').map((pago) => ({ ...pago, vigencia_pago: { inicio: '2026-11-19', fin: '2026-12-18', reinicia: true } })),
     },
     isLoading: false,
   }),
@@ -65,7 +67,7 @@ vi.mock('../hooks/useBilling', () => ({
   useCreateMembershipPlanMutation: () => ({ mutate: vi.fn(), isPending: false }),
   useArchiveMembershipPlanMutation: () => ({ mutate: vi.fn(), isPending: false }),
   useUpdateMembershipPlanMutation: () => ({ mutate: vi.fn(), isPending: false }),
-  useMarkPaymentAsPaidMutation: () => ({ mutate: markPaymentAsPaidMock, isPending: false }),
+  useMarkPaymentAsPaidMutation: () => ({ mutate: markPaymentAsPaidMock, isPending: false, data: pagoConfirmado }),
 }))
 
 vi.mock('@/modules/members/hooks/useMembers', () => ({
@@ -91,6 +93,8 @@ describe('BillingPage', () => {
     suspendMembershipMock.mockReset()
     cancelMembershipMock.mockReset()
     markPaymentAsPaidMock.mockReset()
+    tieneCobroPendiente = false
+    pagoConfirmado = undefined
     subscriptionsMock = []
     membershipsMock = []
     membersQueryParams = []
@@ -100,6 +104,7 @@ describe('BillingPage', () => {
         user: null,
         email: 'maria@test.com',
         full_name: 'Maria Perez',
+        estado_cliente: 'membresia_activa',
         membership_plan: 8,
         phone: '8888-9999',
         birth_date: null,
@@ -150,27 +155,24 @@ describe('BillingPage', () => {
     const { getAllByText, getByTestId, getByText, queryByText } = renderWithProviders(<BillingPage />)
 
     expect(getByTestId('billing-page')).toBeInTheDocument()
-    expect(getAllByText('Pendientes').length).toBeGreaterThan(0)
-    expect(getByText('Recibos emitidos')).toBeInTheDocument()
-    expect(getAllByText('En mora').length).toBeGreaterThan(0)
-    fireEvent.click(getByText('Historial de cobros'))
+    expect(getByText('Cobros vencidos')).toBeInTheDocument()
+    expect(getByText('Próximos 7 días')).toBeInTheDocument()
+    fireEvent.click(getByText('Historial'))
     expect(getByTestId('payment-row-1')).toBeInTheDocument()
     expect(getByTestId('payment-row-2')).toBeInTheDocument()
     expect(getByTestId('payment-row-3')).toBeInTheDocument()
-    expect(getAllByText('Premium').length).toBeGreaterThan(0)
+    expect(getAllByText(/Premium/).length).toBeGreaterThan(0)
     expect(queryByText('Planes de membresía configurables')).not.toBeInTheDocument()
     fireEvent.click(getByText('Cartera'))
-    expect(getByTestId('membership-portfolio')).toHaveTextContent('Cartera de membresías')
-    expect(getByTestId('membership-portfolio')).toHaveTextContent('Membresías por miembro')
+    expect(getByTestId('membership-portfolio')).toHaveTextContent('Cartera de clientes')
+    expect(getByTestId('membership-portfolio')).toHaveTextContent('Clientes y cobros')
     expect(getByTestId('billing-member-search')).toBeInTheDocument()
-    expect(getByTestId('membership-portfolio')).toHaveTextContent('2 resultado(s)')
+    expect(getByTestId('membership-portfolio')).toHaveTextContent('2 en página')
     expect(getByTestId('portfolio-member-15')).toHaveTextContent('Maria Perez')
-    expect(getByTestId('portfolio-member-15')).toHaveTextContent('#55')
     expect(getByTestId('portfolio-member-15')).toHaveTextContent('₡79 000')
-    expect(getByTestId('portfolio-member-15')).toHaveTextContent('Vigente')
+    expect(getByTestId('portfolio-member-15')).toHaveTextContent('Activa')
     expect(getByTestId('portfolio-member-16')).toHaveTextContent('Cliente Plan Sin Cobro')
     expect(getByTestId('portfolio-member-16')).toHaveTextContent('Sin membresía')
-    expect(getByTestId('portfolio-member-16')).toHaveTextContent('Sin precio')
   })
 
   it('filters billing membership portfolio by search and unpaid status', () => {
@@ -178,23 +180,23 @@ describe('BillingPage', () => {
 
     fireEvent.change(getByTestId('billing-member-search'), { target: { value: 'Derian' } })
     expect(membersQueryParams.at(-1)).toEqual(expect.objectContaining({
-      ordering: 'riesgo_desc',
+      ordering: 'cobro',
       search: 'Derian',
-      payment_status: undefined,
+      estado_cliente: undefined,
     }))
 
-    fireEvent.click(getByTestId('billing-payment-filter-pending'))
+    fireEvent.change(getByTestId('billing-payment-filter'), { target: { value: 'membresia_inactiva' } })
     expect(membersQueryParams.at(-1)).toEqual(expect.objectContaining({
-      ordering: 'riesgo_desc',
+      ordering: 'cobro',
       search: 'Derian',
-      payment_status: 'pending',
+      estado_cliente: 'membresia_inactiva',
     }))
 
-    fireEvent.click(getByTestId('billing-payment-filter-late'))
+    fireEvent.change(getByTestId('billing-payment-filter'), { target: { value: 'cliente_inactivo' } })
     expect(membersQueryParams.at(-1)).toEqual(expect.objectContaining({
-      ordering: 'riesgo_desc',
+      ordering: 'cobro',
       search: 'Derian',
-      payment_status: 'late',
+      estado_cliente: 'cliente_inactivo',
     }))
   })
 
@@ -202,17 +204,17 @@ describe('BillingPage', () => {
     membersMock = []
     const { getByTestId, getByText } = renderWithProviders(<BillingPage />)
 
-    fireEvent.click(getByTestId('billing-payment-filter-pending'))
+    fireEvent.change(getByTestId('billing-payment-filter'), { target: { value: 'membresia_inactiva' } })
 
-    expect(getByText('No hay miembros con ese filtro')).toBeInTheDocument()
+    expect(getByText('Sin resultados')).toBeInTheDocument()
   })
 
   it('shows member-specific header when member filter is present', () => {
     const { getByTestId, getByText, queryByText } = renderWithProviders(<BillingPage />, { route: '/billing?member=15' })
 
-    expect(getByText('Facturación del miembro')).toBeInTheDocument()
-    expect(getByText('Cobros, recibos y estado comercial del miembro seleccionado')).toBeInTheDocument()
-    expect(getByText('Membresía del miembro')).toBeInTheDocument()
+    expect(getByText('Pagos de cliente')).toBeInTheDocument()
+    expect(getByText('Confirma la entrada del pago y consulta su membresía.')).toBeInTheDocument()
+    expect(getByText('Membresía y vigencia')).toBeInTheDocument()
     expect(queryByText(/Plan asignado:/)).not.toBeInTheDocument()
     expect(getByTestId('membership-mode-catalog')).toHaveTextContent('Membresía del catálogo')
     expect(getByTestId('membership-mode-custom')).toHaveTextContent('Membresía personalizada')
@@ -299,6 +301,7 @@ describe('BillingPage', () => {
   })
 
   it('registers a payment from the billing table', () => {
+    tieneCobroPendiente = true
     const { getByTestId } = renderWithProviders(<BillingPage />, { route: '/billing?member=15' })
 
     fireEvent.change(getByTestId('mark-paid-2').parentElement?.querySelector('input') as HTMLInputElement, {
@@ -316,6 +319,23 @@ describe('BillingPage', () => {
         payment_reference: 'REF-200',
         notes: 'Transferencia verificada',
       },
-    })
+    }, expect.any(Object))
+  })
+
+  it('permite saldar deuda sin prometer activación y envía la decisión', () => {
+    tieneCobroPendiente = true
+    const { getByLabelText, getByRole, getByText } = renderWithProviders(<BillingPage />, { route: '/billing?member=15&payment=3' })
+    expect(getByText(/Vigencia:/)).toHaveTextContent('19/11/2026 al 18/12/2026')
+    fireEvent.change(getByLabelText('Aplicar pago'), { target: { value: 'deuda' } })
+    expect(getByText(/no modifica la vigencia/)).toBeInTheDocument()
+    fireEvent.click(getByRole('button', { name: 'Confirmar pago de deuda' }))
+    expect(markPaymentAsPaidMock).toHaveBeenCalledWith(expect.objectContaining({ id: 3, payload: expect.objectContaining({ aplicacion: 'deuda' }) }), expect.any(Object))
+  })
+
+  it('confirma acceso y vencimiento con la respuesta del cobro', () => {
+    pagoConfirmado = { member_id: 15, membresia_confirmada: { can_check_in: true, end_date: '2026-12-18' } }
+    const { getByRole } = renderWithProviders(<BillingPage />, { route: '/billing?member=15' })
+    expect(getByRole('status')).toHaveTextContent('Pago confirmado · Membresía activa')
+    expect(getByRole('status')).toHaveTextContent('18/12/2026')
   })
 })

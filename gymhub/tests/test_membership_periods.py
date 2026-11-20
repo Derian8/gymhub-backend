@@ -2,6 +2,7 @@ from datetime import date, timedelta
 
 import pytest
 from django.test import override_settings
+from freezegun import freeze_time
 from rest_framework.test import APIClient
 
 from billing.services import (
@@ -33,6 +34,7 @@ def test_short_period_default_grace_days():
 
 
 @pytest.mark.django_db
+@freeze_time('2026-07-05 18:00:00')
 def test_payment_activates_period_and_creates_next_charge(
     member_profile, membership_plan, trainer_profile
 ):
@@ -71,6 +73,7 @@ def test_payment_activates_period_and_creates_next_charge(
 
 
 @pytest.mark.django_db
+@freeze_time('2026-07-13 18:00:00')
 def test_payment_with_nullable_schedule_plan_does_not_fail(
     member_profile, trainer_profile
 ):
@@ -134,7 +137,7 @@ def test_payment_retry_does_not_duplicate_next_charge(
 
 
 @pytest.mark.django_db
-def test_access_uses_subscription_grace(member_profile, membership_plan, trainer_profile):
+def test_membresia_vencida_no_otorga_acceso_aunque_tenga_gracia(member_profile, membership_plan, trainer_profile):
     from billing.models import MemberSubscription
 
     subscription = MemberSubscription.objects.create(
@@ -154,7 +157,7 @@ def test_access_uses_subscription_grace(member_profile, membership_plan, trainer
         current_period_end=date.today() - timedelta(days=1),
     )
 
-    assert membership_access(member_profile)['allowed'] is True
+    assert membership_access(member_profile)['allowed'] is False
     subscription.current_period_end = date.today() - timedelta(days=2)
     subscription.save(update_fields=['current_period_end'])
     assert membership_access(member_profile)['allowed'] is False

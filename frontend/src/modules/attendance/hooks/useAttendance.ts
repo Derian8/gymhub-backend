@@ -56,9 +56,9 @@ export function useCheckInMutation() {
 
   return useMutation({
     mutationFn: (payload?: { notes?: string; member_id?: number; qr_token?: string; override_reason?: string; trainer_override?: boolean }) => attendanceApi.checkIn(payload),
-    onSuccess: () => {
+    onSuccess: (entrada) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ATTENDANCE })
-      toast.success('Asistencia registrada. El cliente ya puede abrir su rutina de hoy.')
+      toast.success(entrada.entrada_ya_registrada ? 'Entrada ya registrada hoy.' : 'Asistencia registrada. El cliente ya puede abrir su rutina de hoy.')
     },
     onError: (error) => {
       toast.error(extractApiError(error))

@@ -26,6 +26,8 @@ export function ReportsPage() {
     <div className="page-enter space-y-8">
       <PageHeader
         title="Reportes"
+        backTo="/billing"
+        backLabel="Volver"
         subtitle="Control comercial y de accesos físicos del período seleccionado."
         accionEnLinea
         action={<a className="btn-primary" href={adminApi.exportUrl(filters, 'pdf')}><ReceiptText size={16} /><span className="sr-only sm:not-sr-only">Descargar PDF</span></a>}

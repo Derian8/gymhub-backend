@@ -1,5 +1,27 @@
 # Retorno a Vercel y Supabase
 
+## QR fijo — 2026-11-19
+
+Se aplicó `attendance.0007_credencial_acceso_qr` en Supabase y se publicó la API
+y el frontend con QR fijo. Se conservó un respaldo privado de PostgreSQL previo
+a la migración. La auditoría confirmó consistencia de 51 modelos y 56 tablas.
+La publicación conserva los archivos de la versión anterior y agrega únicamente
+los cambios del QR; las modificaciones locales de rutinas quedan fuera del despliegue.
+
+El QR se guarda en `credenciales_acceso_qr`, no caduca por tiempo ni por lectura,
+y se puede invalidar con **Regenerar QR** en la ficha administrativa del cliente.
+Cada lectura valida cliente y membresía antes de registrar la asistencia o
+devolver la del día con `entrada_ya_registrada: true`. El cliente debe volver a
+abrir su carnet después de una regeneración. Los tokens temporales anteriores
+conservan su vencimiento y uso único durante la transición.
+
+El paquete publicado pasó 8 pruebas backend de QR, 21 pruebas frontend y
+TypeScript. La validación pública confirmó PostgreSQL, caché, rewrites,
+autenticación same-origin, CSP y permiso de cámara.
+La cuenta demo recibió el mismo QR desde dos sesiones independientes. También
+se verificaron el rechazo de códigos desconocidos, el bloqueo de consultas sin
+autenticación y la presencia de **Regenerar QR** en el frontend publicado.
+
 ## Estado publicado — 2026-11-18
 
 El frontend público y la API usan Vercel. Las fotos usan Supabase Storage privado
@@ -39,7 +61,7 @@ anterior se conserva como referencia, sin tráfico del frontend.
 - `AI_PROVIDER=deterministic`.
 - Cookies seguras, `SameSite=Lax`, frontend con `VITE_API_BASE_URL` vacío y rewrites.
 
-Los tokens QR se guardan solo como hash en `tokens_acceso_qr`; vencen a los
+Los tokens QR temporales anteriores se guardan solo como hash en `tokens_acceso_qr`; vencen a los
 120 segundos. El escaneo bloquea la fila y registra el consumo en la misma
 transacción que la asistencia. La caché local deja de determinar su validez.
 

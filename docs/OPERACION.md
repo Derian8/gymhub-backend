@@ -17,6 +17,15 @@ Redis y Beat siguen siendo opciones del entorno local, no requisitos de esa demo
 - Redis 7+
 
 ## Puesta En Marcha Local
+El QR del cliente es fijo y no caduca por tiempo ni por lectura. Se crea al abrir
+el carnet y permanece en `credenciales_acceso_qr`; el cron solo elimina los tokens
+temporales anteriores vencidos. Cada lectura requiere administración autenticada
+y valida el estado del cliente y la membresía antes de registrar o devolver la entrada del día.
+Para invalidar copias, abre la ficha del cliente y pulsa **Regenerar QR**. El cliente
+debe volver a abrir su carnet para obtener el código actual; el evento queda auditado.
+Aplica `docker compose exec backend python manage.py migrate` antes de activar esta versión
+del backend y actualiza el frontend junto con él.
+
 Desde la raíz del repositorio:
 
 ```bash
@@ -119,6 +128,8 @@ Para E2E con Playwright:
 - `OPENAI_API_KEY`
 - `GEMINI_API_KEY`
 - `GEMINI_MODEL`
+- `OPENROUTER_API_KEY` (alias: `OPEN_ROUTER`)
+- `OPENROUTER_MODEL` (default: `openrouter/free`; solo modelos gratuitos)
 - `EMERGENT_LLM_KEY`
 - `OPENAI_MODEL`
 - `AI_PROVIDER`
@@ -191,3 +202,168 @@ los procesos web y Celery al calcular el limite de conexiones. Con el pool
 activo, `CONN_MAX_AGE` es `0`. Para deshabilitarlo, configurar
 `DB_POOL_ENABLED=False`; entonces vuelve a aplicarse `DB_CONN_MAX_AGE`.
 Reconstruir las imagenes backend y workers tras actualizar dependencias.
+
+## Demo de IA con OpenRouter
+
+Configura `OPENROUTER_API_KEY` (también se acepta `OPEN_ROUTER`),
+`AI_PROVIDER=openrouter_hybrid` y `OPENROUTER_MODEL=openrouter/free` en `.env`.
+Recrea el backend con `docker compose up -d --no-deps --force-recreate backend`
+para cargar las variables nuevas. El agente de administración consulta herramientas
+permitidas de solo lectura y conserva el respaldo por reglas ante cuotas o errores.
+Solo se admiten el router gratuito y modelos cuyo identificador termine en `:free`.
+Cada análisis puede necesitar hasta tres solicitudes al proveedor. No hay reintentos
+automáticos por errores del proveedor, para conservar la cuota de la demo.
+
+En Vercel, guarda la clave como variable sensible de Production del proyecto backend
+(nunca como variable `VITE_`), configura el proveedor y modelo, y despliega de nuevo.
+El frontend debe desplegarse también para mostrar la etiqueta OpenRouter.
+Los chats de miembros e instructores comparten su contexto con OpenRouter; usa
+usuarios y datos ficticios en la feria. El agente administrativo envía métricas
+agregadas y la pregunta del administrador; evita datos personales en la pregunta.
+
+## Copilot con respaldo OpenRouter
+
+`AI_PROVIDER=copilot_hybrid` activa GitHub Copilot (modelo `auto` compatible
+con Copilot Student), después OpenRouter gratuito y finalmente reglas.
+`COPILOT_GITHUB_TOKEN` es un token privado fine-grained con permiso de cuenta
+Copilot Requests; guárdalo en `.env` y como secreto Production del backend Vercel.
+`COPILOT_TIMEOUT_SECONDS=45` limita la espera antes del respaldo.
+
+El SDK está fijado a `github-copilot-sdk==1.0.35`. Descarga su runtime compatible
+en una caché temporal del servidor; el primer arranque puede tardar más.
+Cada consulta usa un directorio temporal y un entorno sin secretos de la base de
+datos. Se deshabilitan herramientas incorporadas, archivos, shell, Git y skills;
+el agente administrativo solo recibe herramientas con métricas agregadas.
+El token tiene vencimiento: renueva la variable privada antes de que caduque.
+Los créditos de la suscripción Copilot se consumen con las consultas; no se
+habilita gasto adicional. Los fallos usan OpenRouter y luego reglas.
+Después de cambiar estas variables, recrea el backend local y redespliega Vercel.
+## Ejecución de rutinas del cliente
+
+Con una entrada de hoy sin salida registrada, «Mi entrenamiento» permite seguir
+el siguiente bloque del plan o elegir una rutina libre. El administrador habilita
+esta última opción con «Disponible como rutina libre para clientes» al editar la
+rutina; las existentes permanecen privadas hasta habilitarlas explícitamente.
+La ejecución libre se guarda en el historial sin adelantar el plan asignado.
+
+El administrador configura series, repeticiones o segundos de trabajo, descanso
+entre series y descanso opcional entre ejercicios. El cliente ve la demostración
+antes de comenzar cada ejercicio. En fuerza confirma «Serie completada»; en tiempo
+el reloj avanza por preparación, trabajo y descanso. Puede pausar, saltar descansos,
+omitir series o ejercicios y finalizar con confirmación sin perder lo realizado.
+El historial distingue trabajo completo, parcial y omitido. Las repeticiones
+prescritas no se presentan como una medición real del cliente.
+
+Cada transición se guarda en el servidor con revisión e identificador de petición.
+Al ocultar la página se solicita pausa; al recuperar un reloj activo se pausa antes
+de mostrarlo. Una interrupción brusca conserva la última transición confirmada;
+la aplicación no da por hechas varias series mientras estuvo suspendida.
+Se requiere conexión para confirmar y avanzar; un fallo permite reintentar el mismo
+registro sin duplicarlo. Las sesiones conservan su prescripción al iniciarse.
+
+Antes de desplegar el frontend, aplicar las migraciones de `plans` y `progress`
+con `manage.py migrate`. Los endpoints nuevos son `GET/POST /api/entrenamiento-cliente/`
+y `POST /api/entrenamiento-cliente/{id}/accion/`. La consulta y las acciones se
+limitan al cliente autenticado. La salida del gimnasio se registra por separado.
+
+Vercel instala `requirements.txt`, que contiene las mismas dependencias que `requirements-prod.txt`.
+Para desarrollar y ejecutar pytest, instala `pip install -r requirements-test.txt`.
+Esto reduce el paquete y evita que las herramientas de prueba compitan con la
+caché temporal del runtime Copilot. No se requiere cambiar el plan de Vercel.
+## Correos de demo con Resend Free
+
+Los comprobantes PDF de pagos confirmados (incluido el registro inicial), los
+recordatorios de pago y los avisos de mora usan una cola persistente en la tabla
+`correos_pendientes`. Los envíos están desactivados por defecto.
+
+1. Crear una cuenta en https://resend.com/signup y conservar el plan **Free**:
+   3.000 correos/mes y 100/día. No activar planes de pago.
+2. Crear una API key de envío y guardarla únicamente en el entorno del backend.
+3. Configurar `RESEND_HABILITADO=True`, `RESEND_API_KEY`,
+   `DEFAULT_FROM_EMAIL=PULSO <onboarding@resend.dev>`, `RESEND_MODO_DEMO=True`
+   y `RESEND_DESTINATARIO_DEMO` con el correo de la cuenta Resend. El demo
+   redirige todos los correos a ese buzón, incluidos los comprobantes: utilizar
+   datos ficticios. Nunca poner claves privadas en variables `VITE_*`.
+4. Aplicar `python manage.py migrate` y reiniciar/desplegar el backend.
+5. Confirmar un pago demo y comprobar el PDF adjunto y el registro de Resend.
+   La aceptación del proveedor no demuestra entrega al buzón.
+
+Para enviar a clientes hay que verificar un dominio en Resend, configurar su
+remitente y cambiar `RESEND_MODO_DEMO=False`. Cambiar el destinatario demo no
+redirige correos que ya estaban en cola; requieren revisión manual.
+
+Cada comprobante se encola una vez por pago, junto con la transacción. Los avisos
+se encolan junto con sus notificaciones. La red se usa después del commit.
+Los fallos del proveedor no revierten pagos. Los comprobantes intentan enviarse
+inmediatamente; Celery Beat procesa pendientes cada cinco minutos. El cron diario
+existente de Vercel también procesa hasta diez pendientes después del commit.
+En Vercel sin worker persistente, ejecutar `python manage.py procesar_correos`
+para reintentar antes de 23 horas: el cron diario por sí solo no garantiza esa
+ventana. No se agrega un cron frecuente incompatible con Vercel Hobby.
+
+El backend limita sus aceptaciones a 90 en 24 horas y 2.700 en 31 días para dejar
+margen al plan gratuito; otros envíos desde la cuenta también consumen cuota.
+Los errores de red, HTTP 429 y HTTP 5xx se reintentan con espera creciente. Los
+HTTP restantes requieren revisar la configuración. Se conserva la misma petición
+y clave de idempotencia; tras 23 horas desde el primer intento se marca `revisar`
+para evitar reenvíos fuera de la ventana de 24 horas de Resend. Antes de resolver
+un resultado ambiguo, consultar el panel del proveedor.
+
+Estados: `pendiente`, `fallido`, `revisar`, `aceptado`. Se guarda el identificador
+de Resend, pero no se implementan webhooks de entrega o rebote. La cola contiene
+correo, texto y adjuntos financieros; limitar el acceso a administradores y
+aplicar la política de retención del gimnasio. No registra claves ni cuerpos de
+error del proveedor. Bienvenida y recuperación de contraseña quedan fuera de
+esta integración de comprobantes y cobros.
+El build de Vercel ejecuta preparar_vercel.py para retirar exclusivamente los
+ directorios de pruebas de NumPy y Matplotlib instalados. Conserva el código y
+ los recursos de producción y deja espacio temporal para el runtime de Copilot.
+
+
+El paso de empaquetado también retira mpl-data/sample_data (datos de ejemplo
+de Matplotlib). La validación final debe incluir una consulta autenticada cuya
+fuente sea copilot; el respaldo puede responder aunque Copilot no arranque.
+
+
+### Seguimiento y recuperación desde Pagos
+
+En **Pagos → Historial**, el panel **Correos de pagos** muestra configuración,
+modo demo, pendientes, aceptados por Resend y mensajes que requieren revisión.
+**Procesar correos pendientes** procesa hasta diez mensajes respetando la espera
+entre reintentos y las cuotas. Esta opción permite recuperar el demo de Vercel
+sin contratar otro servicio ni agregar un cron frecuente. La API administrativa
+`GET/POST /api/admin/correos/` requiere una cuenta staff y no expone destinatarios,
+contenidos ni claves. Un HTTP 503 al procesar indica configuración incompleta.
+
+El primer intento y una reserva de dos minutos se confirman antes de usar HTTP.
+Si el worker se interrumpe, otro proceso recupera esa reserva una vez vencida,
+con el mismo contenido y clave de idempotencia. La red no mantiene abierta una
+transacción de base de datos. Los correos nunca intentados pueden esperar en
+cola más de un día; la ventana de 23 horas solo comienza al intentar enviarlos.
+Los mensajes `revisar` no se reenvían desde el panel: consultar el proveedor antes
+de resolver manualmente un resultado ambiguo. La vista Django Admin muestra el
+identificador y el error técnico sin exponer el contenido financiero.
+### Demo de correos publicado — 2026-11-19
+
+Cuenta de Resend creada mediante GitHub; plan transaccional de $0/mes y sin
+método de pago. Se generó una clave de solo envío, guardada en archivos privados
+y como variable cifrada del backend de Vercel. El modo demo está activo y dirige
+todos los correos a `imasisc@ctpplatanares.ed.cr`; no se envían a clientes reales.
+
+Se publicaron la API y el frontend a partir de sus versiones activas, incorporando
+solo la integración de correos y el panel de seguimiento. La tabla
+`correos_pendientes` ya existía en Supabase; el plan de migración no tenía acciones
+pendientes. Se probó el comprobante del pago demo 79 sin alterar cobros: Resend
+confirmó `delivered` con PDF adjunto. Una segunda solicitud mantuvo un solo
+intento y el mismo identificador de proveedor, sin duplicar el correo.
+
+La validación pública confirmó HTTP 200 para el estado administrativo y el PDF.
+**Pagos → Historial → Correos de pagos** muestra el modo demo, los contadores y
+la acción para procesar pendientes. El paquete publicado pasó 19 pruebas de
+correo, TypeScript y build; el frontend local pasó 15 pruebas de pagos y correos.
+Los fallos anteriores de pruebas de roles y gracia se ajustaron a las reglas
+vigentes; se corrigió además el reloj de las fixtures de autenticación.
+
+El envío a destinatarios distintos del buzón demo requiere verificar un dominio
+y desactivar expresamente `RESEND_MODO_DEMO`. La aplicación registra aceptación
+por el proveedor; la entrega de esta prueba se verificó en el panel de Resend.

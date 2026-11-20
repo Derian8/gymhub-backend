@@ -580,11 +580,13 @@ export interface Exercise {
   sets: number | null
   reps_range: string
   target_minutes: number | null
+  duracion_trabajo_segundos?: number | null
   machine: number | null
   machine_detail?: GymMachine | null
   weight_suggestion_kg: number | null
   weight_suggestion_unit?: WeightSuggestionUnit
   rest_seconds: number
+  descanso_entre_ejercicios_segundos?: number
   technique_notes: string
   order: number
   previous_log?: PreviousExerciseLog | null
@@ -699,9 +701,11 @@ export interface TrainingTemplateExercise {
   series: number | null
   rango_repeticiones: string
   minutos_objetivo: number | null
+  duracion_trabajo_segundos?: number | null
   peso_sugerido_kg: number | null
   unidad_peso_sugerido?: WeightSuggestionUnit
   descanso_segundos: number
+  descanso_entre_ejercicios_segundos?: number
   notas_tecnicas: string
   orden: number
 }
@@ -728,6 +732,7 @@ export interface TrainingTemplate {
   dias_por_semana_sugeridos: number
   esta_activa: boolean
   es_compartida?: boolean
+  disponible_clientes?: boolean
   modo_ejecucion?: 'weekly' | 'cycle'
   creada_en: string
   dias: TrainingTemplateDay[]
@@ -745,6 +750,7 @@ export interface RoutineAssignmentState {
 }
 
 export interface TrainingTemplateUpdatePayload {
+  disponible_clientes?: boolean
   nombre: string
   descripcion: string
   objetivo: GoalType
@@ -761,13 +767,13 @@ export type TrainingTemplateDayPayload = Pick<TrainingTemplateDay, 'nombre' | 'e
 
 export type TrainingTemplateExercisePayload = Pick<TrainingTemplateExercise,
   'catalogo_ejercicio' | 'imagen_referencia_url' | 'url_video' | 'maquina' | 'nombre' |
-  'grupo_muscular' | 'tipo_ejercicio' | 'series' | 'rango_repeticiones' | 'minutos_objetivo' |
-  'peso_sugerido_kg' | 'unidad_peso_sugerido' | 'descanso_segundos' | 'notas_tecnicas' | 'orden'
+  'grupo_muscular' | 'tipo_ejercicio' | 'series' | 'rango_repeticiones' | 'minutos_objetivo' | 'duracion_trabajo_segundos' |
+  'peso_sugerido_kg' | 'unidad_peso_sugerido' | 'descanso_segundos' | 'descanso_entre_ejercicios_segundos' | 'notas_tecnicas' | 'orden'
 >
 
 export type TrainingTemplatePayload = Pick<TrainingTemplateUpdatePayload,
   'nombre' | 'descripcion' | 'objetivo' | 'nivel_adherencia_recomendado' |
-  'dias_por_semana_sugeridos' | 'esta_activa'
+  'dias_por_semana_sugeridos' | 'esta_activa' | 'disponible_clientes'
 > & {
   modo_ejecucion: 'weekly' | 'cycle'
   dias: TrainingTemplateDayPayload[]
@@ -831,6 +837,7 @@ export interface DuplicateWorkoutDayPayload {
 }
 
 export interface ExercisePayload {
+  descanso_entre_ejercicios_segundos?: number
   workout_day: number
   catalogo_ejercicio?: number | null
   imagen_referencia_url?: string
@@ -841,6 +848,7 @@ export interface ExercisePayload {
   sets: number | null
   reps_range: string
   target_minutes: number | null
+  duracion_trabajo_segundos?: number | null
   machine?: number | null
   weight_suggestion_kg?: number | null
   weight_suggestion_unit?: WeightSuggestionUnit
@@ -951,15 +959,18 @@ export interface ProgressLog {
 }
 
 export interface WorkoutSession {
+  origen?: 'plan' | 'libre'
+  progreso_guiado?: ProgresoGuiado
   id: number
   motivo_cierre?: 'automatica' | 'anticipada' | 'manual' | ''
   detalle_iniciado?: {
+    prescripcion?: Exercise[]
     plan_nombre?: string
     dia_nombre?: string
-    ejercicios?: Array<{ id: number; nombre: string; tipo?: string; series?: number | null; repeticiones?: string; minutos?: number | null; descanso_segundos?: number; catalogo?: Partial<CatalogExercise> }>
+    ejercicios?: Array<{ id: number; nombre: string; tipo?: string; series?: number | null; repeticiones?: string; minutos?: number | null; duracion_trabajo_segundos?: number | null; descanso_segundos?: number; catalogo?: Partial<CatalogExercise> }>
   }
   member: number
-  workout_day: number
+  workout_day: number | null
   attendance: number | null
   started_at: string
   completed_at: string | null
@@ -969,6 +980,17 @@ export interface WorkoutSession {
   exercise_logs?: ExerciseLog[]
   workout_day_name?: string
   plan_name?: string
+}
+
+export interface ProgresoGuiado {
+  revision: number
+  indice: number
+  fase: 'previa' | 'preparacion' | 'trabajo' | 'descanso' | 'descanso_ejercicio' | 'terminado'
+  registros: Record<string, Array<'realizado' | 'omitido'>>
+  restante: number
+  fin_fase: string | null
+  pausado: boolean
+  ultima_accion: string | null
 }
 
 export interface ExerciseLog {
@@ -1037,6 +1059,8 @@ export interface PaymentSchedule {
 }
 
 export interface PaymentRecord {
+  vigencia_pago?: { inicio: string; fin: string; reinicia: boolean } | null
+  membresia_confirmada?: { can_check_in: boolean; end_date: string | null; estado_cliente: string }
   id: number
   schedule: number
   subscription_id?: number | null
@@ -1225,9 +1249,9 @@ export interface AIChatResponse {
   conversation_id?: number
   mode?: AIChatMode
   fallback_used?: boolean
-  engine_mode?: 'deterministic' | 'local_hybrid' | 'gemini_hybrid'
+  engine_mode?: 'deterministic' | 'local_hybrid' | 'gemini_hybrid' | 'openrouter_hybrid' | 'copilot_hybrid'
   local_llm_used?: boolean
-  response_source?: 'rules' | 'local_model' | 'gemini'
+  response_source?: 'rules' | 'local_model' | 'gemini' | 'openrouter' | 'copilot'
   suggested_prompts?: string[]
   remaining_messages?: number
   limit?: number
@@ -1245,7 +1269,7 @@ export interface AgenteAdministracionRequest {
 
 export interface AgenteAdministracionResponse {
   respuesta: string
-  fuente: 'gemini' | 'rules'
+  fuente: 'gemini' | 'openrouter' | 'copilot' | 'rules'
   respaldo_activo: boolean
   codigo_proveedor: number | null
   agentes_consultados: string[]
@@ -1279,9 +1303,9 @@ export interface AIChatContext {
   remaining_messages: number | null
   requires_member_selection: boolean
   fallback_available: boolean
-  engine_mode: 'deterministic' | 'local_hybrid' | 'gemini_hybrid'
+  engine_mode: 'deterministic' | 'local_hybrid' | 'gemini_hybrid' | 'openrouter_hybrid' | 'copilot_hybrid'
   local_llm_available: boolean
-  response_source: 'rules' | 'local_model' | 'gemini'
+  response_source: 'rules' | 'local_model' | 'gemini' | 'openrouter' | 'copilot'
   suggested_prompts: string[]
   member: {
     id: number

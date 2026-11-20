@@ -12,7 +12,7 @@ import type {
 
 export const aiChatApi = {
   send: async (payload: AIChatRequest): Promise<AIChatResponse> => {
-    const { data } = await apiClient.post('/api/ai-chat/', payload)
+    const { data } = await apiClient.post('/api/ai-chat/', payload, { timeout: 110000 })
     return data
   },
 
@@ -36,7 +36,7 @@ export const aiChatApi = {
   },
 
   adminAgent: async (payload: AgenteAdministracionRequest): Promise<AgenteAdministracionResponse> => {
-    const { data } = await apiClient.post('/api/ai-chat/agente-administracion/', payload)
+    const { data } = await apiClient.post('/api/ai-chat/agente-administracion/', payload, { timeout: 110000 })
     return data
   },
 }

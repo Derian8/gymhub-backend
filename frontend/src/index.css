@@ -327,6 +327,13 @@
 .btn-primary:hover:not(:disabled) {
   background-color: #b50016;
 }
+.rutina-pasos {
+  --primary: 181 0 22;
+}
+.rutina-volver,
+.rutina-volver:hover:not(:disabled) {
+  background-color: #b50016;
+}
 .pestanas-pagos {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

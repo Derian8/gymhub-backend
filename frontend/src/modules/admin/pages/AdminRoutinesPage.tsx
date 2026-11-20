@@ -16,7 +16,7 @@ function AccionesRutina({ rutina }: { rutina: TrainingTemplateSummary }) {
   const clases = 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-40'
 
   return (
-    <div className="grid grid-cols-2 justify-items-center gap-0 sm:flex sm:justify-end" aria-label={'Acciones de ' + rutina.nombre}>
+    <div className="flex flex-nowrap items-center justify-end gap-0" aria-label={'Acciones de ' + rutina.nombre}>
       <Link className={clases} to={'/routines/' + rutina.id + '/edit'} aria-label={'Editar ' + rutina.nombre} title="Editar rutina">
         <PencilLine size={18} aria-hidden="true" />
       </Link>
@@ -148,7 +148,7 @@ export function AdminRoutinesPage() {
                     <td className="hidden break-words px-3 py-3 xl:table-cell sm:px-4">{GOAL_LABELS[rutina.objetivo] ?? rutina.objetivo}</td>
                     <td className="hidden break-words px-3 py-3 xl:table-cell sm:px-4">{estructuraRutina(rutina)}</td>
                     <td className="hidden px-3 py-3 sm:table-cell sm:px-4"><span className={'badge ' + (rutina.esta_activa ? 'badge-success' : 'badge-neutral')}>{rutina.esta_activa ? 'Activa' : 'Inactiva'}</span></td>
-                    <td className="px-2 py-2 sm:px-3"><AccionesRutina rutina={rutina} /></td>
+                    <td className="px-2 py-2 align-middle sm:px-3"><AccionesRutina rutina={rutina} /></td>
                   </tr>
                 ))}
               </tbody>

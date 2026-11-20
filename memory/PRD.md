@@ -90,6 +90,9 @@ Frontend SPA completo para el sistema de gestión de gimnasio GymHub. Construido
 - Desactivar una rutina o ejercicio impide nuevas asignaciones desde esa fuente. Los planes ya asignados siguen disponibles.
 - Asignar una rutina crea un plan independiente y conserva una copia de los datos de cada ejercicio. Los cambios de biblioteca y catálogo afectan a las asignaciones futuras. Un cambio para un cliente concreto requiere una revisión explícita de su plan.
 - Cada sesión conserva una copia del nombre del plan, el día y los ejercicios al iniciarse. El historial mensual muestra decisiones Realizado/Omitir, prescripción y tipo de cierre. Al completar una sesión, el histórico queda cerrado.
+- La creación y edición de rutinas siguen un asistente de cuatro pasos: objetivo, modalidad, ejercicios por bloque y revisión. El objetivo ofrece sugerencias del catálogo con imagen según categoría o grupo muscular; el instructor decide qué incluir y ajusta la prescripción.
+- La modalidad flexible recorre bloques A → B → C sin día fijo. La semanal muestra días sugeridos, pero una ausencia tampoco salta bloques. Cada cliente retoma una sesión pendiente o recibe el bloque siguiente al último completado.
+- Los ejercicios por tiempo admiten rondas y duración de trabajo en segundos, además de descanso en segundos. El cliente ve un ejercicio a la vez y un temporizador de preparación, trabajo y descanso que puede pausar. Realizado u Omitir sigue siendo una decisión explícita y se registra de inmediato.
 
 ## Backlog / Próximas Fases
 - P0 completado: Recorrido transaccional de API contra Supabase para registro, pago, comprobante, acceso y reportes
@@ -124,3 +127,31 @@ que exista una baja manual. La clasificacion no modifica la cuenta de acceso
 ni elimina datos historicos. El listado filtra con `estado_cliente` y devuelve
 ese mismo estado para sus etiquetas; los filtros de cobros de facturacion
 mantienen su uso independiente.
+
+## Ejecución de rutinas del cliente
+
+Con una entrada de hoy sin salida registrada, «Mi entrenamiento» permite seguir
+el siguiente bloque del plan o elegir una rutina libre. El administrador habilita
+esta última opción con «Disponible como rutina libre para clientes» al editar la
+rutina; las existentes permanecen privadas hasta habilitarlas explícitamente.
+La ejecución libre se guarda en el historial sin adelantar el plan asignado.
+
+El administrador configura series, repeticiones o segundos de trabajo, descanso
+entre series y descanso opcional entre ejercicios. El cliente ve la demostración
+antes de comenzar cada ejercicio. En fuerza confirma «Serie completada»; en tiempo
+el reloj avanza por preparación, trabajo y descanso. Puede pausar, saltar descansos,
+omitir series o ejercicios y finalizar con confirmación sin perder lo realizado.
+El historial distingue trabajo completo, parcial y omitido. Las repeticiones
+prescritas no se presentan como una medición real del cliente.
+
+Cada transición se guarda en el servidor con revisión e identificador de petición.
+Al ocultar la página se solicita pausa; al recuperar un reloj activo se pausa antes
+de mostrarlo. Una interrupción brusca conserva la última transición confirmada;
+la aplicación no da por hechas varias series mientras estuvo suspendida.
+Se requiere conexión para confirmar y avanzar; un fallo permite reintentar el mismo
+registro sin duplicarlo. Las sesiones conservan su prescripción al iniciarse.
+
+Antes de desplegar el frontend, aplicar las migraciones de `plans` y `progress`
+con `manage.py migrate`. Los endpoints nuevos son `GET/POST /api/entrenamiento-cliente/`
+y `POST /api/entrenamiento-cliente/{id}/accion/`. La consulta y las acciones se
+limitan al cliente autenticado. La salida del gimnasio se registra por separado.

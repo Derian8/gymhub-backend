@@ -56,7 +56,7 @@ export function AdminDashboard() {
                 <span className="mt-2 block h-2 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800" role="progressbar" aria-label="Clientes al día" aria-valuemin={0} aria-valuemax={100} aria-valuenow={data.commercial.current_clients_pct}>
                   <span className="block h-full rounded-full bg-emerald-500 transition-[width] duration-500" style={{ width: `${data.commercial.current_clients_pct}%` }} />
                 </span>
-                <span className="mt-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-neutral-500"><span>{data.commercial.current_clients_pct}% de los clientes</span><span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap font-semibold text-primary">Abrir Pagos <ArrowUpRight size={13} /></span></span>
+                <span className="mt-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-neutral-500"><span>{data.commercial.current_clients_pct}% de los clientes</span><span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-primary transition-colors group-hover:bg-primary/10" aria-hidden="true"><ArrowUpRight size={16} /></span></span>
               </Link>
             </div>
 

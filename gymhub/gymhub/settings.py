@@ -335,6 +335,10 @@ AI_LOCAL_BASE_URL = env('AI_LOCAL_BASE_URL', default='http://host.docker.interna
 AI_LOCAL_TIMEOUT_MS = env.int('AI_LOCAL_TIMEOUT_MS', default=2500)
 GEMINI_API_KEY = env('GEMINI_API_KEY', default='')
 GEMINI_MODEL = env('GEMINI_MODEL', default='gemini-3.8-flash')
+OPENROUTER_API_KEY = env('OPENROUTER_API_KEY', default='') or env('OPEN_ROUTER', default='')
+OPENROUTER_MODEL = env('OPENROUTER_MODEL', default='openrouter/free')
+COPILOT_GITHUB_TOKEN = env('COPILOT_GITHUB_TOKEN', default='')
+COPILOT_TIMEOUT_SECONDS = env.int('COPILOT_TIMEOUT_SECONDS', default=45)
 OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
 OPENAI_MODEL = env('OPENAI_MODEL', default='gpt-4.1-mini')
 OPENAI_MAX_TOKENS = env.int('OPENAI_MAX_TOKENS', default=300)
@@ -349,6 +353,15 @@ INACTIVITY_DAYS_THRESHOLD = env.int('INACTIVITY_DAYS_THRESHOLD', default=30)
 PAYMENT_GRACE_DAYS = env.int('PAYMENT_GRACE_DAYS', default=7)
 
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@gymhub.com')
+RESEND_HABILITADO = env.bool('RESEND_HABILITADO', default=False)
+RESEND_API_KEY = env('RESEND_API_KEY', default='')
+RESEND_MODO_DEMO = env.bool('RESEND_MODO_DEMO', default=True)
+RESEND_DESTINATARIO_DEMO = env('RESEND_DESTINATARIO_DEMO', default='')
+RESEND_LIMITE_DIARIO = env.int('RESEND_LIMITE_DIARIO', default=90)
+EMAIL_BACKEND = (
+    'billing.correos.ResendEmailBackend' if RESEND_HABILITADO
+    else 'django.core.mail.backends.dummy.EmailBackend'
+)
 CRON_SECRET = env('CRON_SECRET', default='')
 
 # DRF Spectacular
