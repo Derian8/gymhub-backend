@@ -158,7 +158,7 @@ export function AdminRoutinesPage() {
           <div className="card px-6 py-12 text-center">
             <h3 className="font-semibold">No hay rutinas con estos filtros</h3>
             <p className="mt-1 text-sm text-neutral-500">Prueba otra búsqueda o crea una rutina nueva.</p>
-            <Link className="btn-primary mt-4" to="/routines/new"><Plus size={17} /> Crear rutina</Link>
+            <Link className="btn-primary mt-4 inline-flex items-center justify-center gap-2 whitespace-nowrap" to="/routines/new"><Plus size={17} /> Crear rutina</Link>
           </div>
         )}
 
