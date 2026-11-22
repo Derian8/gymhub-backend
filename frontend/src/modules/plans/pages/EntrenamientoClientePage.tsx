@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, CheckCircle, Clock3, Dumbbell, ImageOff, Loader2, Pause, Play, Volume2, VolumeX } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, ArrowRight, CheckCircle, Clock3, Dumbbell, ImageOff, Loader2, Pause, Play, Volume2, VolumeX } from 'lucide-react'
 import { entrenamientoApi, type AccionEntrenamiento, type OpcionEntrenamiento } from '../api/entrenamientoApi'
 import { ExerciseVideo } from '../components/ExerciseVideo'
 import { extractApiError, formatPesoSugerido } from '@/shared/lib/utils'
@@ -14,7 +15,7 @@ function prescripcion(ejercicio: Exercise) {
     : `${ejercicio.sets} series · ${ejercicio.reps_range} repeticiones`
 }
 
-function CronometroRutina({ sesion }: { sesion: WorkoutSession }) {
+function CronometroRutina({ sesion, compacto = false }: { sesion: WorkoutSession; compacto?: boolean }) {
   const [ahora, establecerAhora] = useState(Date.now)
   useEffect(() => {
     if (sesion.is_completed) return
@@ -26,9 +27,9 @@ function CronometroRutina({ sesion }: { sesion: WorkoutSession }) {
   const horas = Math.floor(segundos / 3600)
   const tiempo = [ ...(horas ? [horas] : []), Math.floor(segundos / 60) % 60, segundos % 60 ]
     .map((valor) => String(valor).padStart(2, '0')).join(':')
-  return <section aria-label="Tiempo de la rutina" className="flex items-center justify-between gap-3 rounded-2xl bg-neutral-100 px-4 py-3 dark:bg-neutral-900">
-    <div><p className="flex items-center gap-2 text-sm font-semibold"><Clock3 size={17} />Tiempo total de rutina</p><p className="mt-1 text-xs text-neutral-500">Incluye descansos y pausas</p></div>
-    <span aria-label="Tiempo total transcurrido" className="text-2xl font-bold tabular-nums">{tiempo}</span>
+  return <section aria-label="Tiempo de la rutina" title="Tiempo total de rutina. Incluye descansos y pausas." className={compacto ? 'flex items-center gap-2 text-sm' : 'flex items-center justify-between gap-3 rounded-2xl bg-neutral-100 px-4 py-3 dark:bg-neutral-900'}>
+    <div><p className="flex items-center gap-2 text-sm font-semibold"><Clock3 size={17} aria-hidden="true" /><span className={compacto ? 'sr-only' : ''}>Tiempo total de rutina</span></p><p className={compacto ? 'sr-only' : 'mt-1 text-xs text-neutral-500'}>Incluye descansos y pausas</p></div>
+    <span aria-label="Tiempo total transcurrido" className={compacto ? 'font-bold tabular-nums' : 'text-2xl font-bold tabular-nums'}>{tiempo}</span>
   </section>
 }
 
@@ -45,15 +46,50 @@ function ImagenEjercicio({ ejercicio }: { ejercicio: Exercise }) {
   const [indice, establecerIndice] = useState(0)
   const imagen = imagenes[indice]
   return <figure className="overflow-hidden rounded-2xl bg-neutral-50 dark:bg-neutral-900">
-    {imagen ? <img src={imagen} alt={`Demostración de ${ejercicio.name}`} className="h-44 w-full object-contain sm:h-60" onError={() => establecerIndice((actual) => actual + 1)} />
-      : <div className="flex min-h-32 flex-col items-center justify-center gap-2 p-4 text-center text-sm text-neutral-500"><ImageOff aria-hidden="true" size={28} /><p>Imagen no disponible para este ejercicio.</p><p>Consulta la técnica y el video de demostración.</p></div>}
-    {imagen && miniaturas.includes(imagen) && <figcaption className="px-3 pb-2 text-center text-xs text-neutral-500">Vista previa del video de demostración</figcaption>}
+    {imagen ? <img src={imagen} alt={`Demostración de ${ejercicio.name}`} className="h-32 w-full object-contain sm:h-40" onError={() => establecerIndice((actual) => actual + 1)} />
+      : <div className="flex min-h-24 flex-col items-center justify-center gap-1 p-3 text-center text-xs text-neutral-500"><ImageOff aria-hidden="true" size={24} /><p>Imagen no disponible para este ejercicio.</p><p>Consulta la técnica y el video de demostración.</p></div>}
+    {imagen && miniaturas.includes(imagen) && <figcaption className="px-2 pb-1 text-center text-[11px] text-neutral-500">Vista previa del video de demostración</figcaption>}
   </figure>
 }
 
 function fraseCorta(texto?: string | null) {
   if (!texto) return ''
   return texto.split(/(?<=[.!?])\s/)[0].slice(0, 160)
+}
+
+function ConfirmarFinEntrenamiento({ bloqueado, error, alCancelar, alFinalizar }: {
+  bloqueado: boolean
+  error: React.ReactNode
+  alCancelar: () => void
+  alFinalizar: () => void
+}) {
+  const modal = useRef<HTMLDialogElement>(null)
+  const cancelar = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    const ventana = modal.current!
+    const focoAnterior = document.activeElement as HTMLElement | null
+    const desbordamiento = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    ventana.showModal()
+    cancelar.current?.focus()
+    return () => {
+      ventana.close()
+      document.body.style.overflow = desbordamiento
+      focoAnterior?.focus()
+    }
+  }, [])
+  return createPortal(<dialog ref={modal} aria-labelledby="titulo-finalizar-entrenamiento" aria-describedby="detalle-finalizar-entrenamiento" aria-modal="true"
+    className="fixed inset-0 m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md overflow-y-auto rounded-2xl border border-red-200 bg-white p-6 text-neutral-900 shadow-2xl backdrop:bg-black/65 dark:border-red-900 dark:bg-neutral-950 dark:text-neutral-50"
+    onCancel={(evento) => { evento.preventDefault(); if (!bloqueado) alCancelar() }}>
+    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400"><AlertTriangle size={27} aria-hidden="true" /></div>
+    <h2 id="titulo-finalizar-entrenamiento" className="text-xl font-bold">¿Seguro que quieres cancelar el entrenamiento?</h2>
+    <p id="detalle-finalizar-entrenamiento" className="mt-3 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">Conservaremos las series que ya realizaste. Las pendientes quedarán como omitidas y se finalizará esta rutina.</p>
+    {error && <div className="mt-4">{error}</div>}
+    <div className="mt-6 grid gap-3 sm:grid-cols-2">
+      <button ref={cancelar} type="button" className="btn-secondary min-h-12" disabled={bloqueado} onClick={alCancelar}>No, continuar</button>
+      <button type="button" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-50" disabled={bloqueado} onClick={alFinalizar}><AlertTriangle size={18} aria-hidden="true" />Sí, finalizar</button>
+    </div>
+  </dialog>, document.body)
 }
 
 function detenerGuiaVoz() {
@@ -179,15 +215,15 @@ function GuiaEntrenamiento({
     hablar(String(restante))
   }, [ejercicio.id, fase, pausado, restante, revision, vozActiva])
 
-  return <section aria-label="Guía del entrenamiento" className="rounded-2xl border border-primary/20 bg-primary/5 p-4 dark:bg-primary/10">
-    <div className="flex items-start justify-between gap-3">
+  return <section aria-label="Guía del entrenamiento" className="rounded-xl border border-primary/15 bg-primary/5 px-3 py-2 dark:bg-primary/10">
+    <div className="flex items-center justify-between gap-2">
       <div>
-        <p className="text-xs font-bold uppercase tracking-wider text-primary">Guía del entrenador</p>
-        <h2 className="mt-1 text-lg font-bold">{guia.titulo}</h2>
+        <p className="sr-only">Guía del entrenador</p>
+        <h2 className="text-sm font-bold">{guia.titulo}</h2>
       </div>
       <button
         type="button"
-        className="flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-primary hover:bg-primary/10"
+        className="flex min-h-12 shrink-0 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold text-primary hover:bg-primary/10"
         aria-pressed={vozActiva}
         aria-label={vozActiva ? 'Desactivar guía por voz' : 'Activar guía por voz'}
         onClick={alCambiarVoz}
@@ -196,9 +232,8 @@ function GuiaEntrenamiento({
         {vozActiva ? 'Voz activa' : 'Voz apagada'}
       </button>
     </div>
-    <p className="mt-3 text-sm leading-relaxed" aria-live="polite">{guia.mensaje}</p>
-    {fase === 'preparacion' && !pausado && <p className="mt-3 text-center font-heading text-5xl font-black tabular-nums text-primary" aria-label={`Iniciamos en ${restante}`}>{restante || '¡Ya!'}</p>}
-    <p className="mt-3 border-t border-primary/15 pt-3 text-sm text-neutral-600 dark:text-neutral-300"><strong>Consejo:</strong> {guia.consejo}</p>
+    <p className="text-xs leading-relaxed" aria-live="polite">{guia.mensaje}</p>
+    <details className="mt-1 text-xs text-neutral-600 dark:text-neutral-300"><summary className="cursor-pointer py-2 font-semibold">Consejo de técnica</summary><p className="pb-2 leading-relaxed">{guia.consejo}</p></details>
   </section>
 }
 
@@ -219,6 +254,7 @@ export function EntrenamientoClientePage() {
   const fallida = useRef<{ id: number; payload: { accion: AccionEntrenamiento; revision: number; identificador: string } } | null>(null)
   const [restante, establecerRestante] = useState(0)
   const [confirmarFin, establecerConfirmarFin] = useState(false)
+  const reanudarAlCancelarFin = useRef(false)
   const [verAyuda, establecerVerAyuda] = useState(false)
   const [confirmarSalto, establecerConfirmarSalto] = useState(false)
   const [indiceRevisado, establecerIndiceRevisado] = useState<number | null>(null)
@@ -413,14 +449,13 @@ export function EntrenamientoClientePage() {
       </article>
     </div>
   }
-  return <div className="page-enter mx-auto max-w-2xl space-y-4 pb-8">
-    <CronometroRutina sesion={sesion} />
-    <div className="flex items-center justify-between text-sm"><span>Ejercicio {progreso.indice + 1} de {ejercicios.length}</span><span>{sesion.origen === 'libre' ? 'Rutina libre' : 'Mi plan'}</span></div>
-    <progress aria-label="Ejercicios resueltos" className="h-2 w-full accent-primary" value={progreso.indice} max={ejercicios.length} />
+  return <div className="page-enter mx-auto max-w-2xl space-y-2 pb-32">
+    <div className="flex items-center justify-between gap-3 text-xs"><span className="font-semibold">Ejercicio {progreso.indice + 1} de {ejercicios.length}<span className="sr-only"> · {sesion.origen === 'libre' ? 'Rutina libre' : 'Mi plan'}</span></span><CronometroRutina sesion={sesion} compacto /></div>
+    <progress aria-label="Ejercicios resueltos" className="block h-1 w-full accent-primary" value={progreso.indice} max={ejercicios.length} />
     {mensajeError}
-    <article className="card space-y-5 p-5 sm:p-7">
-      <h1 className="font-heading text-3xl font-black">{ejercicio.name}</h1>
-      <p className="text-sm text-neutral-500">{prescripcion(ejercicio)} · {ejercicio.rest_seconds} s de descanso</p>
+    <article className="card space-y-2 p-3 sm:p-5">
+      <header><h1 className="font-heading text-2xl font-black">{ejercicio.name}</h1>
+      <p className="mt-1 text-xs text-neutral-500">{prescripcion(ejercicio)} · {ejercicio.rest_seconds} s de descanso</p></header>
       <ImagenEjercicio key={`imagen-${ejercicio.id}`} ejercicio={ejercicio} />
       <GuiaEntrenamiento
         ejercicio={ejercicio}
@@ -436,29 +471,48 @@ export function EntrenamientoClientePage() {
       {(previa || verAyuda) && <Demostracion key={`ayuda-${ejercicio.id}`} ejercicio={ejercicio} mostrarImagen={false} />}
       {previa ? <>
         <p className="text-sm">{ejercicio.machine_detail?.name || 'Ejercicio libre'}{ejercicio.weight_suggestion_kg != null ? ` · Peso sugerido: ${formatPesoSugerido(ejercicio.weight_suggestion_kg, ejercicio.weight_suggestion_unit)}` : ''}</p>
-        <button className="btn-primary flex min-h-14 w-full items-center justify-center gap-2" disabled={bloquear} onClick={() => void enviar('comenzar')}><Play size={20} />Comenzar ejercicio</button>
       </> : <>
-        <p className="text-center text-lg font-semibold">{progreso.pausado ? 'En pausa' : enDescanso ? 'Descansa' : progreso.fase === 'preparacion' ? 'Prepárate' : `Serie ${serie} de ${ejercicio.sets ?? 1}`}</p>
-        {cuenta ? <div className="text-center"><p role="timer" className="font-heading text-7xl font-black tabular-nums">{progreso.fase === 'preparacion' ? segundos : `${Math.floor(segundos / 60).toString().padStart(2, '0')}:${(segundos % 60).toString().padStart(2, '0')}`}</p><p className="mt-3 text-sm text-neutral-500">{enDescanso ? `Siguiente: serie ${serie} de ${ejercicio.sets ?? 1}` : progreso.fase === 'preparacion' ? '3 · 2 · 1 · Iniciar' : `Serie ${serie} de ${ejercicio.sets ?? 1}`}</p></div> : <p className="text-center text-4xl font-bold">{ejercicio.reps_range} repeticiones</p>}
-        {progreso.pausado ? <button className="btn-primary min-h-14 w-full" disabled={bloquear} onClick={() => void enviar('reanudar')}>Reanudar</button> : <>
-          {!esTiempo && progreso.fase === 'trabajo' && <button className="btn-primary flex min-h-16 w-full items-center justify-center gap-2 text-lg" disabled={bloquear} onClick={() => void enviar('confirmar_serie')}><CheckCircle size={24} />Serie completada</button>}
-          <div className="flex gap-3"><button className="btn-secondary flex min-h-12 flex-1 items-center justify-center gap-2" disabled={bloquear} onClick={() => void enviar('pausar')}><Pause size={18} />Pausar</button>{enDescanso && <button className="btn-secondary min-h-12 flex-1" disabled={bloquear} onClick={() => void enviar('saltar_descanso')}>Saltar descanso</button>}</div>
-        </>}
-        <button className="min-h-11 w-full text-sm font-semibold text-primary" onClick={() => establecerVerAyuda(!verAyuda)}>{verAyuda ? 'Ocultar demostración' : 'Ver cómo hacerlo'}</button>
+        <section aria-label="Estado del ejercicio" className="flex items-center justify-center gap-3 rounded-xl bg-neutral-100 px-3 py-2 dark:bg-neutral-900">
+          {cuenta ? <Clock3 size={25} className="shrink-0 text-primary" aria-hidden="true" /> : <Dumbbell size={25} className="shrink-0 text-primary" aria-hidden="true" />}
+          <div><p className="text-xs font-semibold text-neutral-500">{progreso.pausado ? 'En pausa' : enDescanso ? 'Descansa' : progreso.fase === 'preparacion' ? 'Prepárate' : `Serie ${serie} de ${ejercicio.sets ?? 1}`}</p>
+          {cuenta ? <><p role="timer" className="font-heading text-5xl font-black leading-none tabular-nums">{progreso.fase === 'preparacion' ? segundos : `${Math.floor(segundos / 60).toString().padStart(2, '0')}:${(segundos % 60).toString().padStart(2, '0')}`}</p><p className="mt-1 text-xs text-neutral-500">{enDescanso ? `Siguiente: serie ${serie} de ${ejercicio.sets ?? 1}` : progreso.fase === 'preparacion' ? '3 · 2 · 1 · Iniciar' : `Serie ${serie} de ${ejercicio.sets ?? 1}`}</p></> : <p className="text-2xl font-bold">{ejercicio.reps_range} repeticiones</p>}</div>
+        </section>
+        <button className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold text-primary hover:bg-primary/5" onClick={() => establecerVerAyuda(!verAyuda)}><Play size={16} aria-hidden="true" />{verAyuda ? 'Ocultar demostración' : 'Ver cómo hacerlo'}</button>
       </>}
       {guardando && <p role="status" className="flex items-center justify-center gap-2 text-sm"><Loader2 size={16} className="animate-spin" />Guardando progreso…</p>}
-      <div className="grid grid-cols-2 gap-3 border-t border-neutral-200 pt-4 dark:border-neutral-800">
-        <button className="btn-secondary inline-flex min-h-12 items-center justify-center gap-2" disabled={bloquear || progreso.indice === 0 || confirmarSalto} onClick={() => { establecerIndiceRevisado(progreso.indice - 1); pausarParaRevisar() }}><ArrowLeft size={18} />Anterior</button>
-        <button className="btn-secondary inline-flex min-h-12 items-center justify-center gap-2" disabled={bloquear || confirmarSalto} onClick={() => { establecerConfirmarSalto(true); pausarParaRevisar() }}>Siguiente<ArrowRight size={18} /></button>
-      </div>
+      <details><summary className="cursor-pointer py-3 text-sm text-neutral-500">Otras opciones</summary><div className="flex flex-wrap gap-3">{!previa && !enDescanso && <button className="btn-secondary min-h-11" disabled={bloquear || progreso.pausado} onClick={() => void enviar('omitir_serie')}>Omitir esta serie</button>}</div></details>
+    </article>
+    {createPortal(<section aria-label="Controles del entrenamiento" className="fixed inset-x-0 bottom-[calc(76px+env(safe-area-inset-bottom))] z-30 px-3 text-neutral-900 dark:text-neutral-50 lg:bottom-4 lg:left-64">
+      <div className="mx-auto max-w-2xl space-y-2 rounded-2xl border border-neutral-200 bg-white p-2 shadow-lg dark:border-neutral-800 dark:bg-neutral-950">
       {confirmarSalto && <section aria-label="Confirmar salto de ejercicio" className="space-y-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
         <h2 className="font-bold">¿Dejar este ejercicio aquí?</h2>
         <p className="text-sm">Conservaremos tus series realizadas. Las pendientes de {ejercicio.name} quedarán como omitidas.{siguienteEjercicio ? ` Después verás ${siguienteEjercicio.name}.` : ' Este es el último ejercicio: la rutina quedará finalizada.'}</p>
         <div className="grid gap-2 sm:grid-cols-2"><button className="btn-secondary min-h-12" disabled={bloquear} onClick={() => establecerConfirmarSalto(false)}>Quedarme aquí</button><button className="btn-primary min-h-12" disabled={bloquear} onClick={() => void enviar('omitir_ejercicio')}>{siguienteEjercicio ? 'Omitir pendientes y seguir' : 'Omitir pendientes y finalizar'}</button></div>
       </section>}
-      <details><summary className="cursor-pointer py-3 text-sm text-neutral-500">Otras opciones</summary><div className="flex flex-wrap gap-3">{!previa && !enDescanso && <button className="btn-secondary min-h-11" disabled={bloquear || progreso.pausado} onClick={() => void enviar('omitir_serie')}>Omitir esta serie</button>}</div></details>
-    </article>
-    {confirmarFin ? <section className="card space-y-3 p-5"><h2 className="font-bold">¿Finalizar ahora?</h2><p>Conservaremos las series realizadas. Lo pendiente quedará como omitido.</p><div className="flex gap-3"><button className="btn-secondary min-h-12" onClick={() => establecerConfirmarFin(false)}>Continuar</button><button className="btn-primary min-h-12" disabled={bloquear} onClick={() => void enviar('finalizar')}>Finalizar entrenamiento</button></div></section> : <button className="min-h-12 w-full text-sm text-neutral-500" disabled={bloquear} onClick={() => { establecerConfirmarFin(true); void enviar('pausar') }}>Finalizar entrenamiento</button>}
+      <div className="flex gap-2">
+        {previa ? <button className="btn-primary inline-flex min-h-12 w-full items-center justify-center gap-2" disabled={bloquear} onClick={() => void enviar('comenzar')}><Play size={20} />Comenzar ejercicio</button>
+        : progreso.pausado ? <button className="btn-primary inline-flex min-h-12 w-full items-center justify-center gap-2" disabled={bloquear} onClick={() => void enviar('reanudar')}><Play size={20} />Reanudar</button> : <>
+          {!esTiempo && progreso.fase === 'trabajo' && <button className="btn-primary inline-flex min-h-12 flex-[2] items-center justify-center gap-2 px-3" disabled={bloquear} onClick={() => void enviar('confirmar_serie')}><CheckCircle size={21} />Serie completada</button>}
+          <button className="btn-secondary inline-flex min-h-12 flex-1 items-center justify-center gap-2 px-3" disabled={bloquear} onClick={() => void enviar('pausar')}><Pause size={18} />Pausar</button>
+          {enDescanso && <button className="btn-primary inline-flex min-h-12 flex-1 items-center justify-center gap-2 px-3" disabled={bloquear} onClick={() => void enviar('saltar_descanso')}><ArrowRight size={18} />Saltar descanso</button>}
+        </>}
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <button className="inline-flex min-h-12 items-center justify-center gap-1 rounded-xl bg-neutral-100 px-1 text-xs font-semibold disabled:opacity-40 dark:bg-neutral-900" disabled={bloquear || progreso.indice === 0 || confirmarSalto} onClick={() => { establecerIndiceRevisado(progreso.indice - 1); pausarParaRevisar() }}><ArrowLeft size={16} />Anterior</button>
+    <button type="button" aria-label="Finalizar entrenamiento" className="inline-flex min-h-12 items-center justify-center gap-1 rounded-xl border border-red-200 bg-red-50 px-1 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50 dark:border-red-900 dark:bg-red-950/40 dark:text-red-400" disabled={bloquear} onClick={() => {
+      reanudarAlCancelarFin.current = !progreso.pausado
+      establecerConfirmarFin(true)
+      if (!progreso.pausado) void enviar('pausar')
+    }}><AlertTriangle size={17} aria-hidden="true" />Finalizar</button>
+        <button className="inline-flex min-h-12 items-center justify-center gap-1 rounded-xl bg-neutral-100 px-1 text-xs font-semibold disabled:opacity-40 dark:bg-neutral-900" disabled={bloquear || confirmarSalto} onClick={() => { establecerConfirmarSalto(true); pausarParaRevisar() }}>Siguiente<ArrowRight size={16} /></button>
+      </div>
+      </div>
+    </section>, document.body)}
+    {confirmarFin && <ConfirmarFinEntrenamiento bloqueado={bloquear} error={mensajeError} alCancelar={() => {
+      establecerConfirmarFin(false)
+      if (reanudarAlCancelarFin.current && sesionRef.current?.progreso_guiado?.pausado && !fallida.current) void enviar('reanudar')
+      reanudarAlCancelarFin.current = false
+    }} alFinalizar={() => void enviar('finalizar')} />}
   </div>
 }
 

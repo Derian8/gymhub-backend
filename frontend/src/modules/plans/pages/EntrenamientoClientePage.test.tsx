@@ -45,6 +45,44 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
 
 describe('Ejecución del cliente', () => {
+  it.each([false, true])('abre una modal y conserva el estado de pausa al elegir no (pausado: %s)', async (pausado) => {
+    const activa = sesion()
+    activa.progreso_guiado = { ...activa.progreso_guiado!, fase: 'trabajo', pausado }
+    vi.mocked(entrenamientoApi.entrada).mockResolvedValue({ ...entrada(), sesion: activa })
+    vi.mocked(entrenamientoApi.iniciar).mockResolvedValue(activa)
+    vi.mocked(entrenamientoApi.accion).mockImplementation(async (_id, datos) => ({
+      ...activa, progreso_guiado: { ...activa.progreso_guiado!, pausado: datos.accion === 'pausar', revision: datos.revision + 1 },
+    }))
+    montar()
+    fireEvent.click(await screen.findByRole('button', { name: 'Continuar entrenamiento' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Finalizar entrenamiento' }))
+    const modal = await screen.findByRole('dialog', { name: '¿Seguro que quieres cancelar el entrenamiento?' })
+    expect(modal).toHaveAttribute('aria-modal', 'true')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'No, continuar' })).toBeEnabled())
+    expect(screen.getByRole('button', { name: 'No, continuar' })).toHaveFocus()
+    expect(entrenamientoApi.accion).not.toHaveBeenCalledWith(10, expect.objectContaining({ accion: 'finalizar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'No, continuar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    if (pausado) expect(entrenamientoApi.accion).not.toHaveBeenCalled()
+    else await waitFor(() => expect(entrenamientoApi.accion).toHaveBeenLastCalledWith(10, expect.objectContaining({ accion: 'reanudar' })))
+  })
+
+  it('solo finaliza al confirmar sí dentro de la modal', async () => {
+    const activa = sesion()
+    activa.progreso_guiado = { ...activa.progreso_guiado!, pausado: true }
+    vi.mocked(entrenamientoApi.iniciar).mockResolvedValue(activa)
+    await abrirPlan()
+    fireEvent.click(screen.getByRole('button', { name: 'Finalizar entrenamiento' }))
+    await screen.findByRole('dialog')
+    expect(entrenamientoApi.accion).not.toHaveBeenCalled()
+    vi.mocked(entrenamientoApi.accion).mockResolvedValue({ ...activa, is_completed: true, completed_at: new Date().toISOString() })
+    fireEvent.click(screen.getByRole('button', { name: 'Sí, finalizar' }))
+    expect(await screen.findByText('Entrenamiento finalizado')).toBeInTheDocument()
+    expect(entrenamientoApi.accion).toHaveBeenCalledTimes(1)
+    expect(entrenamientoApi.accion).toHaveBeenCalledWith(10, expect.objectContaining({ accion: 'finalizar' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
   it('mantiene la imagen visible durante el trabajo y usa otra referencia si falla', async () => {
     const activa = sesion()
     activa.detalle_iniciado = { prescripcion: [{ ...ejercicio, imagen_referencia_url: 'https://example.com/respaldo.png' }] }
