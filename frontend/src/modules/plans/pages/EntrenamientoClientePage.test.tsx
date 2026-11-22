@@ -45,6 +45,75 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
 
 describe('Ejecución del cliente', () => {
+  it('mantiene la imagen visible durante el trabajo y usa otra referencia si falla', async () => {
+    const activa = sesion()
+    activa.detalle_iniciado = { prescripcion: [{ ...ejercicio, imagen_referencia_url: 'https://example.com/respaldo.png' }] }
+    activa.progreso_guiado = { ...activa.progreso_guiado!, fase: 'trabajo' }
+    vi.mocked(entrenamientoApi.entrada).mockResolvedValue({ ...entrada(), sesion: activa })
+    vi.mocked(entrenamientoApi.iniciar).mockResolvedValue(activa)
+    montar()
+    fireEvent.click(await screen.findByRole('button', { name: 'Continuar entrenamiento' }))
+    const imagen = await screen.findByAltText('Demostración de Press de pecho')
+    expect(screen.getByRole('button', { name: 'Serie completada' })).toBeInTheDocument()
+    expect(imagen).toHaveAttribute('src', 'https://example.com/press.gif')
+    fireEvent.error(imagen)
+    expect(imagen).toHaveAttribute('src', 'https://example.com/respaldo.png')
+    fireEvent.error(imagen)
+    expect(imagen).toHaveAttribute('src', 'https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg')
+    expect(screen.getByText('Vista previa del video de demostración')).toBeInTheDocument()
+    fireEvent.error(imagen)
+    expect(screen.getByText('Imagen no disponible para este ejercicio.')).toBeInTheDocument()
+  })
+
+  it('pide confirmar antes de omitir y conserva el estado si se cancela', async () => {
+    await abrirPlan()
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }))
+    expect(screen.getByRole('region', { name: 'Confirmar salto de ejercicio' })).toBeInTheDocument()
+    expect(entrenamientoApi.accion).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Quedarme aquí' }))
+    expect(screen.queryByRole('region', { name: 'Confirmar salto de ejercicio' })).not.toBeInTheDocument()
+    expect(entrenamientoApi.accion).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }))
+    const finalizada = { ...sesion(), is_completed: true, completed_at: new Date().toISOString() }
+    finalizada.progreso_guiado = { ...finalizada.progreso_guiado!, fase: 'terminado', indice: 1, registros: { '11': ['omitido', 'omitido', 'omitido'] } }
+    vi.mocked(entrenamientoApi.accion).mockResolvedValue(finalizada)
+    fireEvent.click(screen.getByRole('button', { name: 'Omitir pendientes y finalizar' }))
+    expect(await screen.findByText('Entrenamiento finalizado')).toBeInTheDocument()
+    expect(entrenamientoApi.accion).toHaveBeenCalledWith(10, expect.objectContaining({ accion: 'omitir_ejercicio' }))
+    expect(screen.getByText('0 series realizadas · 3 omitidas')).toBeInTheDocument()
+  })
+
+  it('revisa el ejercicio anterior sin alterar series y permite regresar al actual', async () => {
+    const activa = sesion()
+    activa.detalle_iniciado = { prescripcion: [ejercicio, { ...ejercicio, id: 12, name: 'Remo' }] }
+    activa.progreso_guiado = { ...activa.progreso_guiado!, indice: 1, registros: { '11': ['realizado', 'omitido', 'omitido'] } }
+    vi.mocked(entrenamientoApi.entrada).mockResolvedValue({ ...entrada(), sesion: activa })
+    vi.mocked(entrenamientoApi.iniciar).mockResolvedValue(activa)
+    montar()
+    fireEvent.click(await screen.findByRole('button', { name: 'Continuar entrenamiento' }))
+    await screen.findByRole('heading', { name: 'Remo' })
+    fireEvent.click(screen.getByRole('button', { name: 'Anterior' }))
+    expect(screen.getByRole('heading', { name: 'Press de pecho' })).toBeInTheDocument()
+    expect(screen.getByText('Parcial · 1 series realizadas · 2 omitidas')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Serie completada' })).not.toBeInTheDocument()
+    expect(entrenamientoApi.accion).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Volver al ejercicio actual' }))
+    expect(screen.getByRole('heading', { name: 'Remo' })).toBeInTheDocument()
+  })
+
+  it('recupera la duración desde el inicio y fija el tiempo al finalizar', async () => {
+    const finalizada = sesion()
+    finalizada.started_at = '2026-11-21T18:00:00Z'
+    finalizada.completed_at = '2026-11-21T19:02:03Z'
+    finalizada.is_completed = true
+    vi.mocked(entrenamientoApi.iniciar).mockResolvedValue(finalizada)
+    montar()
+    fireEvent.click(await screen.findByRole('button', { name: /Seguir mi plan/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Iniciar rutina' }))
+    expect(await screen.findByLabelText('Tiempo total transcurrido')).toHaveTextContent('01:02:03')
+    expect(screen.getByText('Incluye descansos y pausas')).toBeInTheDocument()
+  })
+
   it('bloquea el inicio cuando no hay asistencia abierta', async () => {
     vi.mocked(entrenamientoApi.entrada).mockResolvedValue({ ...entrada(), asistencia_activa: false })
     montar()
@@ -80,6 +149,23 @@ describe('Ejecución del cliente', () => {
     expect(screen.getByRole('timer')).toHaveTextContent('01:00')
     expect(entrenamientoApi.accion).toHaveBeenLastCalledWith(10, expect.objectContaining({ accion: 'confirmar_serie', revision: 1 }))
     expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument()
+  })
+
+  it('guía la serie de fuerza con una cuenta regresiva y permite silenciar la voz', async () => {
+    const preparacion = sesion()
+    preparacion.progreso_guiado = {
+      ...preparacion.progreso_guiado!, revision: 1, fase: 'preparacion', restante: 3,
+      fin_fase: new Date(Date.now() + 3_000).toISOString(),
+    }
+    vi.mocked(entrenamientoApi.accion).mockResolvedValue(preparacion)
+    await abrirPlan()
+    fireEvent.click(screen.getByRole('button', { name: 'Comenzar ejercicio' }))
+    expect(await screen.findByText('Cuenta regresiva')).toBeInTheDocument()
+    expect(screen.getByRole('timer')).toHaveTextContent('3')
+    expect(screen.getByText('3 · 2 · 1 · Iniciar')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Serie completada' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Desactivar guía por voz' }))
+    expect(screen.getByRole('button', { name: 'Activar guía por voz' })).toBeInTheDocument()
   })
 
   it('reintenta una respuesta perdida con el mismo identificador', async () => {

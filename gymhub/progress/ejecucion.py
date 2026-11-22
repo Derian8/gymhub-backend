@@ -233,7 +233,9 @@ def resolver_serie(sesion, ejercicio, decision):
     elif ejercicio['rest_seconds']:
         establecer_fase(estado, 'descanso', ejercicio['rest_seconds'])
     else:
-        establecer_fase(estado, 'trabajo', duracion(ejercicio) if ejercicio['exercise_type'] == 'timed' else 0)
+        # Incluso sin descanso configurado, damos una señal breve antes de la
+        # siguiente serie. Así el cliente no entra a trabajar por sorpresa.
+        establecer_fase(estado, 'preparacion', 3)
 
 
 def siguiente_ejercicio(sesion, descanso=0):
@@ -303,7 +305,9 @@ def aplicar_accion(sesion, ejercicio, accion):
         if fase in ('preparacion', 'descanso', 'descanso_ejercicio') or (fase == 'trabajo' and es_tiempo):
             estado['fin_fase'] = (timezone.now() + timedelta(seconds=estado['restante'])).isoformat()
     elif accion == 'comenzar' and fase == 'previa':
-        establecer_fase(estado, 'preparacion' if es_tiempo else 'trabajo', 3 if es_tiempo else 0)
+        # La cuenta regresiva es una fase persistida: funciona igual al
+        # recuperar la sesión, pausar o cambiar de pantalla.
+        establecer_fase(estado, 'preparacion', 3)
     elif accion == 'finalizar':
         for pendiente in sesion.detalle_iniciado['prescripcion'][estado['indice']:]:
             registros = estado['registros'].setdefault(str(pendiente['id']), [])
@@ -312,7 +316,7 @@ def aplicar_accion(sesion, ejercicio, accion):
         establecer_fase(estado, 'terminado')
         sesion.motivo_cierre = 'anticipada'
         completar_sesion(sesion)
-    elif estado['pausado']:
+    elif estado['pausado'] and accion != 'omitir_ejercicio':
         raise ValidationError('Reanuda el entrenamiento para continuar.')
     elif accion == 'omitir_ejercicio':
         registros = estado['registros'].setdefault(str(ejercicio['id']), [])
@@ -324,13 +328,14 @@ def aplicar_accion(sesion, ejercicio, accion):
     elif accion == 'confirmar_serie' and fase == 'trabajo' and not es_tiempo:
         resolver_serie(sesion, ejercicio, 'realizado')
     elif accion == 'saltar_descanso' and fase in ('descanso', 'descanso_ejercicio'):
-        establecer_fase(estado, 'previa' if fase == 'descanso_ejercicio' else 'trabajo',
-                        duracion(ejercicio) if es_tiempo and fase == 'descanso' else 0)
+        establecer_fase(estado, 'previa' if fase == 'descanso_ejercicio' else 'preparacion', 0 if fase == 'descanso_ejercicio' else 3)
     elif accion == 'intervalo_terminado' and estado['fin_fase'] and parse_datetime(estado['fin_fase']) <= timezone.now():
         if fase == 'descanso_ejercicio':
             establecer_fase(estado, 'previa')
-        elif fase in ('preparacion', 'descanso'):
+        elif fase == 'preparacion':
             establecer_fase(estado, 'trabajo', duracion(ejercicio) if es_tiempo else 0)
+        elif fase == 'descanso':
+            establecer_fase(estado, 'preparacion', 3)
         elif fase == 'trabajo' and es_tiempo:
             resolver_serie(sesion, ejercicio, 'realizado')
         else:

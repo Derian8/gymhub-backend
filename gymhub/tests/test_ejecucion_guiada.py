@@ -45,41 +45,87 @@ def test_entrada_exige_asistencia_abierta(contexto, attendance_record):
 
 def test_fuerza_confirma_serie_y_descansa_sin_cronometrar_trabajo(contexto):
     cliente, dia = contexto
-    sesion = iniciar(contexto)
-    assert sesion['progreso_guiado']['fase'] == 'previa'
-    sesion = actuar(cliente, sesion, 'comenzar').data
-    assert sesion['progreso_guiado']['fin_fase'] is None
-    sesion = actuar(cliente, sesion, 'confirmar_serie').data
-    assert sesion['progreso_guiado']['fase'] == 'descanso'
-    assert sesion['progreso_guiado']['restante'] == dia.exercises.first().rest_seconds
-    assert sesion['exercise_logs'][0]['sets_completed'] == 1
-    sesion = actuar(cliente, sesion, 'saltar_descanso').data
-    assert sesion['progreso_guiado']['fase'] == 'trabajo'
-    assert sesion['progreso_guiado']['fin_fase'] is None
+    with freeze_time(timezone.now()) as reloj:
+        dia.plan.member.attendances.update(attendance_date=timezone.localdate())
+        sesion = iniciar(contexto)
+        assert sesion['progreso_guiado']['fase'] == 'previa'
+        sesion = actuar(cliente, sesion, 'comenzar').data
+        assert sesion['progreso_guiado']['fase'] == 'preparacion'
+        assert sesion['progreso_guiado']['restante'] == 3
+        reloj.tick(timedelta(seconds=3))
+        sesion = actuar(cliente, sesion, 'intervalo_terminado').data
+        assert sesion['progreso_guiado']['fase'] == 'trabajo'
+        assert sesion['progreso_guiado']['fin_fase'] is None
+        sesion = actuar(cliente, sesion, 'confirmar_serie').data
+        assert sesion['progreso_guiado']['fase'] == 'descanso'
+        assert sesion['progreso_guiado']['restante'] == dia.exercises.first().rest_seconds
+        assert sesion['exercise_logs'][0]['sets_completed'] == 1
+        sesion = actuar(cliente, sesion, 'saltar_descanso').data
+        assert sesion['progreso_guiado']['fase'] == 'preparacion'
+        reloj.tick(timedelta(seconds=3))
+        sesion = actuar(cliente, sesion, 'intervalo_terminado').data
+        assert sesion['progreso_guiado']['fase'] == 'trabajo'
 
 
 def test_reintento_y_revision_no_duplican_series(contexto):
     cliente, _ = contexto
-    sesion = actuar(cliente, iniciar(contexto), 'comenzar').data
-    identificador = str(uuid.uuid4())
-    primera = actuar(cliente, sesion, 'confirmar_serie', identificador)
-    repetida = actuar(cliente, sesion, 'confirmar_serie', identificador)
-    assert repetida.data == primera.data
-    assert actuar(cliente, sesion, 'confirmar_serie').status_code == 409
-    assert primera.data['exercise_logs'][0]['sets_completed'] == 1
+    with freeze_time(timezone.now()) as reloj:
+        sesion = actuar(cliente, iniciar(contexto), 'comenzar').data
+        reloj.tick(timedelta(seconds=3))
+        sesion = actuar(cliente, sesion, 'intervalo_terminado').data
+        identificador = str(uuid.uuid4())
+        primera = actuar(cliente, sesion, 'confirmar_serie', identificador)
+        repetida = actuar(cliente, sesion, 'confirmar_serie', identificador)
+        assert repetida.data == primera.data
+        assert actuar(cliente, sesion, 'confirmar_serie').status_code == 409
+        assert primera.data['exercise_logs'][0]['sets_completed'] == 1
 
 
 def test_finalizar_conserva_series_parciales(contexto):
     cliente, _ = contexto
-    sesion = actuar(cliente, iniciar(contexto), 'comenzar').data
-    sesion = actuar(cliente, sesion, 'confirmar_serie').data
-    sesion = actuar(cliente, sesion, 'finalizar').data
-    assert sesion['is_completed']
-    assert sesion['motivo_cierre'] == 'anticipada'
-    assert sesion['exercise_logs'][0]['sets_completed'] == 1
-    registros = list(sesion['progreso_guiado']['registros'].values())
-    assert registros[0].count('realizado') == 1
-    assert registros[0].count('omitido') == 3
+    with freeze_time(timezone.now()) as reloj:
+        sesion = actuar(cliente, iniciar(contexto), 'comenzar').data
+        reloj.tick(timedelta(seconds=3))
+        sesion = actuar(cliente, sesion, 'intervalo_terminado').data
+        sesion = actuar(cliente, sesion, 'confirmar_serie').data
+        sesion = actuar(cliente, sesion, 'finalizar').data
+        assert sesion['is_completed']
+        assert sesion['motivo_cierre'] == 'anticipada'
+        assert sesion['exercise_logs'][0]['sets_completed'] == 1
+        registros = list(sesion['progreso_guiado']['registros'].values())
+        assert registros[0].count('realizado') == 1
+        assert registros[0].count('omitido') == 3
+
+
+def test_saltar_ejercicio_pausado_conserva_series_y_no_duplica(contexto):
+    cliente, dia = contexto
+    with freeze_time(timezone.now()) as reloj:
+        sesion = actuar(cliente, iniciar(contexto), 'comenzar').data
+        reloj.tick(timedelta(seconds=3))
+        sesion = actuar(cliente, sesion, 'intervalo_terminado').data
+        sesion = actuar(cliente, sesion, 'confirmar_serie').data
+        sesion = actuar(cliente, sesion, 'pausar').data
+        identificador = str(uuid.uuid4())
+        salto = actuar(cliente, sesion, 'omitir_ejercicio', identificador)
+        assert salto.status_code == 200, salto.data
+        progreso = salto.data['progreso_guiado']
+        assert progreso['indice'] == 1
+        assert progreso['fase'] == 'previa'
+        registros = progreso['registros'][str(dia.exercises.first().id)]
+        assert registros.count('realizado') == 1
+        assert registros.count('omitido') == dia.exercises.first().sets - 1
+        assert actuar(cliente, sesion, 'omitir_ejercicio', identificador).data == salto.data
+
+
+def test_saltar_ultimo_ejercicio_pausado_cierra_sin_contarlo_realizado(contexto):
+    cliente, dia = contexto
+    dia.exercises.exclude(pk=dia.exercises.first().pk).delete()
+    sesion = actuar(cliente, iniciar(contexto), 'pausar').data
+    salto = actuar(cliente, sesion, 'omitir_ejercicio')
+    assert salto.status_code == 200, salto.data
+    assert salto.data['is_completed']
+    assert salto.data['exercise_logs'][0]['sets_completed'] == 0
+    assert salto.data['exercise_logs'][0]['estado'] == 'omitido'
 
 
 def test_tiempo_preparacion_trabajo_descanso_y_cierre_automatico(contexto):
@@ -92,14 +138,14 @@ def test_tiempo_preparacion_trabajo_descanso_y_cierre_automatico(contexto):
     ejercicio.duracion_trabajo_segundos = 20
     ejercicio.rest_seconds = 10
     ejercicio.save()
-    with freeze_time('2026-11-19 18:00:00') as reloj:
+    with freeze_time(timezone.now()) as reloj:
         # La asistencia del fixture puede ser de otro día que el reloj congelado.
         dia.plan.member.attendances.update(attendance_date=timezone.localdate())
         sesion = actuar(cliente, iniciar(contexto), 'comenzar').data
         assert sesion['progreso_guiado']['fase'] == 'preparacion'
         assert actuar(cliente, sesion, 'confirmar_serie').status_code == 400
         assert actuar(cliente, sesion, 'intervalo_terminado').status_code == 400
-        for segundos, fase in [(3, 'trabajo'), (20, 'descanso'), (10, 'trabajo'), (20, 'terminado')]:
+        for segundos, fase in [(3, 'trabajo'), (20, 'descanso'), (10, 'preparacion'), (3, 'trabajo'), (20, 'terminado')]:
             reloj.tick(timedelta(seconds=segundos))
             respuesta = actuar(cliente, sesion, 'intervalo_terminado')
             assert respuesta.status_code == 200, respuesta.data
@@ -113,6 +159,8 @@ def test_pausa_recupera_tiempo_sin_contar_series(contexto):
     cliente, dia = contexto
     with freeze_time(timezone.now()) as reloj:
         sesion = actuar(cliente, iniciar(contexto), 'comenzar').data
+        reloj.tick(timedelta(seconds=3))
+        sesion = actuar(cliente, sesion, 'intervalo_terminado').data
         sesion = actuar(cliente, sesion, 'confirmar_serie').data
         reloj.tick(timedelta(seconds=12))
         sesion = actuar(cliente, sesion, 'pausar').data
@@ -140,9 +188,13 @@ def test_libre_conserva_plan_e_historial(contexto, bloque_libre):
     sesion = respuesta.data
     assert sesion['origen'] == 'libre'
     assert sesion['workout_day'] is None
-    sesion = actuar(cliente, sesion, 'comenzar').data
-    sesion = actuar(cliente, sesion, 'confirmar_serie').data
-    assert sesion['is_completed']
+    with freeze_time(timezone.now()) as reloj:
+        dia.plan.member.attendances.update(attendance_date=timezone.localdate())
+        sesion = actuar(cliente, sesion, 'comenzar').data
+        reloj.tick(timedelta(seconds=3))
+        sesion = actuar(cliente, sesion, 'intervalo_terminado').data
+        sesion = actuar(cliente, sesion, 'confirmar_serie').data
+        assert sesion['is_completed']
     dia.plan.refresh_from_db()
     assert dia.plan.indice_bloque_actual == 0
     assert cliente.get(URL).data['plan']['id'] == dia.id
@@ -192,14 +244,18 @@ def test_descanso_entre_ejercicios_vuelve_a_demostracion(contexto):
     primero.sets = 1
     primero.descanso_entre_ejercicios_segundos = 30
     primero.save()
-    sesion = actuar(cliente, iniciar(contexto), 'comenzar').data
-    sesion = actuar(cliente, sesion, 'confirmar_serie').data
-    assert sesion['progreso_guiado']['fase'] == 'descanso_ejercicio'
-    assert sesion['progreso_guiado']['restante'] == 30
-    sesion = actuar(cliente, sesion, 'saltar_descanso').data
-    assert sesion['progreso_guiado']['fase'] == 'previa'
-    assert sesion['progreso_guiado']['indice'] == 1
-    assert not sesion['is_completed']
+    with freeze_time(timezone.now()) as reloj:
+        dia.plan.member.attendances.update(attendance_date=timezone.localdate())
+        sesion = actuar(cliente, iniciar(contexto), 'comenzar').data
+        reloj.tick(timedelta(seconds=3))
+        sesion = actuar(cliente, sesion, 'intervalo_terminado').data
+        sesion = actuar(cliente, sesion, 'confirmar_serie').data
+        assert sesion['progreso_guiado']['fase'] == 'descanso_ejercicio'
+        assert sesion['progreso_guiado']['restante'] == 30
+        sesion = actuar(cliente, sesion, 'saltar_descanso').data
+        assert sesion['progreso_guiado']['fase'] == 'previa'
+        assert sesion['progreso_guiado']['indice'] == 1
+        assert not sesion['is_completed']
 
 
 def test_no_exige_plan_para_rutina_libre(contexto, bloque_libre):
