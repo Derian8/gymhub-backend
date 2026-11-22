@@ -39,12 +39,35 @@ async function abrirPlan() {
 
 beforeEach(() => {
   vi.resetAllMocks()
+  window.localStorage.removeItem('pulso-guia-voz')
   vi.mocked(entrenamientoApi.entrada).mockResolvedValue(entrada())
   vi.mocked(entrenamientoApi.iniciar).mockResolvedValue(sesion())
 })
-afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
+afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
 
 describe('Ejecución del cliente', () => {
+  it.each(['10-12', '10–12', '10—12', '12'])('pronuncia el nombre del ejercicio y las repeticiones sin leer fechas (%s)', async (rango) => {
+    const hablar = vi.fn()
+    vi.stubGlobal('speechSynthesis', { cancel: vi.fn(), speak: hablar })
+    vi.stubGlobal('SpeechSynthesisUtterance', class {
+      lang = ''
+      rate = 1
+      constructor(public text: string) {}
+    })
+    const inicial = sesion()
+    inicial.detalle_iniciado = { prescripcion: [{ ...ejercicio, reps_range: rango }] }
+    const trabajo = { ...inicial, progreso_guiado: { ...inicial.progreso_guiado!, fase: 'trabajo' as const, revision: 1 } }
+    vi.mocked(entrenamientoApi.iniciar).mockResolvedValue(inicial)
+    vi.mocked(entrenamientoApi.accion).mockResolvedValue(trabajo)
+    await abrirPlan()
+    fireEvent.click(screen.getByRole('button', { name: 'Comenzar ejercicio' }))
+    await screen.findByRole('button', { name: 'Serie completada' })
+    await waitFor(() => expect(hablar).toHaveBeenLastCalledWith(expect.objectContaining({
+      text: `Inicia Press de pecho. Serie 1. Realiza ${rango === '12' ? '12' : '10 a 12'} repeticiones.`,
+    })))
+    expect(hablar.mock.calls[0][0].text).toContain(`${rango === '12' ? '12' : '10 a 12'} repeticiones`)
+  })
+
   it.each([false, true])('abre una modal y conserva el estado de pausa al elegir no (pausado: %s)', async (pausado) => {
     const activa = sesion()
     activa.progreso_guiado = { ...activa.progreso_guiado!, fase: 'trabajo', pausado }

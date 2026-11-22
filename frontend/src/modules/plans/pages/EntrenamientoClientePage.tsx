@@ -127,6 +127,10 @@ function datosGuia(
   const objetivo = ejercicio.exercise_type === 'timed'
     ? `${ejercicio.duracion_trabajo_segundos ?? (ejercicio.target_minutes ?? 0) * 60} segundos de trabajo`
     : `${ejercicio.reps_range} repeticiones`
+  // Los sintetizadores pueden leer 10-12 como una fecha. Pronunciar el rango
+  // con palabras conserva la prescripción y evita esa interpretación.
+  const objetivoVoz = ejercicio.exercise_type === 'timed' ? objetivo
+    : `${ejercicio.reps_range.replace(/(\d+)\s*[-–—]\s*(\d+)/g, '$1 a $2')} repeticiones`
 
   if (pausado) return {
     titulo: 'Pausa activa',
@@ -138,7 +142,7 @@ function datosGuia(
     titulo: 'Antes de empezar',
     mensaje: `Revisa la demostración y prepara tu espacio. Objetivo: ${objetivo}.`,
     consejo: tecnica || 'Prioriza la técnica y un rango de movimiento que puedas controlar.',
-    voz: `Siguiente ejercicio: ${ejercicio.name}. ${objetivo}. Revisa la demostración antes de comenzar.`,
+    voz: `Siguiente ejercicio: ${ejercicio.name}. ${objetivoVoz}. Revisa la demostración antes de comenzar.`,
   }
   if (fase === 'preparacion') return {
     titulo: 'Cuenta regresiva',
@@ -162,13 +166,13 @@ function datosGuia(
     titulo: 'Trabajo en curso',
     mensaje: `Mantén el ritmo durante ${objetivo}.`,
     consejo: tecnica || 'Respira de forma constante y conserva el control durante todo el intervalo.',
-    voz: `Inicia. ${ejercicio.name}.`,
+    voz: `Inicia ${ejercicio.name}. Serie ${serie}. Realiza ${objetivoVoz}.`,
   }
   return {
     titulo: `Serie ${serie} en curso`,
     mensaje: `Completa ${objetivo} con una técnica consistente.`,
     consejo: tecnica || 'Controla la subida y la bajada; la calidad de cada repetición es la prioridad.',
-    voz: `Inicia la serie ${serie}. ${objetivo}.`,
+    voz: `Inicia ${ejercicio.name}. Serie ${serie}. Realiza ${objetivoVoz}.`,
   }
 }
 
